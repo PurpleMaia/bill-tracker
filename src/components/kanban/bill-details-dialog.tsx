@@ -96,6 +96,9 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
 
       getBillDetails(billID)
         .then((details) => {
+          if (details.updates) {
+            details.updates = [...details.updates].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          }
           setBillDetails(details)
           setSelectedStatus(details.current_bill_status || '')
         })
@@ -217,13 +220,13 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
   }
 
   const handleStatusUpdateRefresh = (description: string, committee_assignment: string, introducers: string, updates: StatusUpdate[]) => {
-    const sortedUpdates = [...updates].sort((a, b) => b.date.localeCompare(a.date));
+    const sortedUpdates = [...updates].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const updatedDetails = billDetails ? { ...billDetails, description, committee_assignment, introducers, updates: sortedUpdates } : null;
 
     setBillDetails(updatedDetails);
     if (bill) {
       updateBill(bill.id, { 
-        description, latest_update: sortedUpdates[0] ?? null 
+        description, latest_update: updates[0] ?? null 
       });
     }
   }
