@@ -1,0 +1,547 @@
+year,bill,latest_update_chamber,latest_update_text,gold,predicted
+2025,HB1006 HD2 SD1,S,"Report Adopted; Passed Third Reading. Ayes, 22; Aye(s) with reservations: none.  Noes, 3 (Senator(s) Awa, DeCorte, Fevella).  Excused, 0 (none).  Transmitted to House.",conferenceDeferred,crossoverWaiting1
+2025,HB1012,H,"Referred to WAL, FIN, referral sheet 3",introduced,introduced
+2025,HB1013 HD1,H,Passed Second Reading as amended in HD 1 and referred to the committee(s) on AGR with none voting aye with reservations; none voting no (0) and Representative(s) Ward excused (1).,waiting3,waiting3
+2025,HB1016,H,Introduced and Pass First Reading.,introduced,introduced
+2025,HB1017 HD1 SD1,H,"Act 048, on 05/14/2025 (Gov. Msg. No. 1148).",governorSigns,governorSigns
+2025,HB1060 HD1,H,"Bill scheduled for decision making on Wednesday, 02-12-25 11:00AM in conference room 411 VIA VIDEOCONFERENCE.",crossoverWaiting2,waiting2
+2025,HB1075 HD1,H,"Bill scheduled to be heard by EDN on Tuesday, 02-11-25 2:01PM in House conference room 309 VIA VIDEOCONFERENCE.",waiting2,waiting2
+2025,HB1076 HD1,H,"The committee on EEP recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 5 Ayes: Representative(s) Lowen, Perruso, Kahaloa, Kusch, Quinlan; Ayes with reservations: none;  Noes: none; and 1 Excused: Representative(s) Ward.",waiting2,waiting2
+2025,HB1077 HD2,H,"Bill scheduled to be heard by ECD/TOU on Wednesday, 02-12-25 10:15AM in House conference room 423 VIA VIDEOCONFERENCE.",scheduled1,waiting3
+2025,HB109,H,"Referred to EEP, CPC, FIN, referral sheet 1",introduced,introduced
+2025,HB1099 HD1 SD1 CD1,S,Received notice of passage on Final Reading in House (Hse. Com. No. 821).,governorSigns,governorSigns
+2025,HB110 HD1 SD2,S,"Act 137, 05/30/2025 (Gov. Msg. No. 1237).",governorSigns,governorSigns
+2025,HB1141 HD1 SD2,H,Returned from Senate (Sen. Com. No.  733) in amended form (SD 2).,waiting2,crossoverWaiting1
+2025,HB1149 HD1,S,Received from House (Hse. Com. No. 336).,crossoverDeferred1,crossoverDeferred1
+2025,HB1184 HD1,H,"Reported from AGR (Stand. Com. Rep. No. 192) as amended in HD 1, recommending passage on Second Reading and referral to HED.",waiting2,waiting2
+2025,HB1230,H,"Referred to EEP, WAL, JHA, referral sheet 4",introduced,introduced
+2025,HB1237 HD1 SD1,S,"Referred to AEN, WAM.",crossoverWaiting2,crossoverWaiting2
+2025,HB1249,H,"Referred to EDN, PBS, FIN, referral sheet 4",introduced,introduced
+2025,HB1284,H,"Referred to AGR, CPC, FIN, referral sheet 4",introduced,introduced
+2025,HB1285,H,"Referred to AGR, CPC, referral sheet 4",introduced,introduced
+2025,HB1291 HD2 SD1 CD1,S,"Act 126, 05/29/2025 (Gov. Msg. No. 1226).",governorSigns,governorSigns
+2025,HB1293 HD2 SD2 CD1,S,"Act 134, 05/30/2025 (Gov. Msg. No. 1234).",governorSigns,governorSigns
+2025,HB1294 HD2 SD1,H,Returned from Senate (Sen. Com. No.  753) in amended form (SD 1).,conferenceDeferred,conferenceScheduled
+2025,HB1310,H,"Referred to AGR/ECD, LAB, FIN, referral sheet 4",introduced,introduced
+2025,HB1323 HD1,H,"Passed Second Reading as amended in HD 1 and referred to the committee(s) on WAL with Representative(s) Amato, Lowen, Perruso voting aye with reservations; none voting no (0) and Representative(s) Cochran, Kong, Ward excused (3).",waiting3,waiting3
+2025,HB1334 HD3 SD1,S,Received from House (Hse. Com. No. 357).,waiting3,crossoverWaiting2
+2025,HB1337 HD1,S,Passed First Reading.,crossoverDeferred1,crossoverDeferred1
+2025,HB1339,H,"Referred to ECD, FIN, referral sheet 4",introduced,introduced
+2025,HB1347,H,"Referred to WAL, JHA, FIN, referral sheet 4",introduced,introduced
+2025,HB1365 HD2 SD2 CD1,S,"Act 186, 06/06/2025 (Gov. Msg. No. 1286).",governorSigns,governorSigns
+2025,HB1366,H,"Referred to EEP/WAL, FIN, referral sheet 4",introduced,introduced
+2025,HB1375,H,"Referred to EEP/AGR, ECD, FIN, referral sheet 4",introduced,introduced
+2025,HB1380,H,"Referred to CPC, FIN, referral sheet 4",introduced,introduced
+2025,HB1393 HD1,H,"The committee on AGR recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 5 Ayes: Representative(s) Kahaloa, Kusch, Lowen, Perruso, Quinlan; Ayes with reservations: none;  Noes: none; and 1 Excused: Representative(s) Ward.",waiting2,waiting2
+2025,HB1417 HD1,H,"Passed Second Reading as amended in HD 1 and referred to the committee(s) on FIN with none voting aye with reservations; none voting no (0) and Representative(s) Cochran, Matayoshi, Poepoe, Ward excused (4).",waiting2,waiting2
+2025,HB1427 HD1 SD1,S,"Report Adopted; Passed Third Reading. Ayes, 23; Aye(s) with reservations: Senator(s) DeCoite, Richards.  Noes, 2 (Senator(s) Awa, DeCorte).  Excused, 0 (none).  Transmitted to House.",passedCommittees,conferenceAssigned
+2025,HB1449 HD2 SD1,S,"Referred to AEN, WAM.",crossoverWaiting2,crossoverWaiting2
+2025,HB1450 HD2 SD1,S,Received notice of disagreement (Hse. Com. No. 559).,conferenceAssigned,conferenceAssigned
+2025,HB1456,H,"Referred to EEP, ECD, FIN, referral sheet 4",introduced,introduced
+2025,HB1468,H,"Referred to CPC, JHA, referral sheet 4",introduced,introduced
+2025,HB1497 HD1 SD1,S,The committee(s) on AEN has scheduled a public hearing on 03-10-25 1:01PM; Conference Room 224 & Videoconference.,crossoverWaiting2,crossoverWaiting2
+2025,HB1500 HD1,H,"Bill scheduled to be heard by EDN on Tuesday, 02-11-25 2:01PM in House conference room 309 VIA VIDEOCONFERENCE.",waiting2,waiting2
+2026,HB1518,S,"The committee(s) on JDC recommend(s) that the measure be PASSED, UNAMENDED.  The votes in JDC were as follows: 5 Aye(s): Senator(s) Rhoads, Gabbard, Chang, San Buenaventura, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",passedCommittees,passedCommittees
+2026,HB1561,H,"Bill scheduled to be heard by EDN on Tuesday, 02-10-26 2:15PM in House conference room 309 VIA VIDEOCONFERENCE.",waiting2,waiting2
+2026,HB1570,H,"Referred to AGR/EEP, CPC, FIN, referral sheet 1",introduced,introduced
+2026,HB1571,H,The committee(s) on CPC recommend(s) that the measure be deferred.,deferred2,deferred2
+2026,HB1572,H,"Passed Third Reading with none voting aye with reservations; none voting no (0) and Representative(s) Perruso, Sayama excused (2).  Transmitted to Senate.",crossoverWaiting2,crossoverWaiting2
+2026,HB1585,H,"Referred to HSH, ECD, FIN, referral sheet 1",introduced,introduced
+2026,HB1596,H,"Reported from FIN (Stand. Com. Rep. No. 997-26), recommending passage on Third Reading.",crossoverWaiting1,crossoverWaiting1
+2026,HB1601,H,"Forty-eight (48) hours notice Tuesday,  03-10-26.",crossoverWaiting2,crossoverWaiting2
+2026,HB1602,H,"Bill scheduled to be heard by AGR on Wednesday, 02-11-26 9:30AM in House conference room 325 VIA VIDEOCONFERENCE.",deferred2,deferred2
+2026,HB1603,S,The committee on JDC deferred the measure.,crossoverDeferred2,crossoverDeferred2
+2026,HB1604,H,"Passed Third Reading with none voting aye with reservations; Representative(s) Pierick voting no (1) and Representative(s) Perruso, Sayama excused (2).  Transmitted to Senate.",crossoverWaiting2,crossoverWaiting2
+2026,HB1605,S,The committee(s) on WAM deferred the measure until 04-06-26 10:31AM; Conference Room 211 & Videoconference.,passedCommittees,crossoverDeferred2
+2026,HB1606,H,"Passed Second Reading as amended in HD 1 and referred to the committee(s) on ECD with Representative(s) Alcos, Gedeon, Matsumoto, Reyes Oda, Shimizu voting aye with reservations; Representative(s) Amato, Garcia, Muraoka, Perruso, Pierick voting no (5) and Representative(s) Kitagawa excused (1).",waiting2,waiting2
+2026,HB1611,H,"Bill scheduled to be heard by ECD on Wednesday, 02-11-26 8:30AM in House conference room 423 VIA VIDEOCONFERENCE.",deferred2,deferred2
+2026,HB1616,H,"Passed Third Reading with none voting aye with reservations; Representative(s) Iwamoto voting no (1) and Representative(s) Perruso, Sayama excused (2).  Transmitted to Senate.",crossoverWaiting2,crossoverWaiting2
+2026,HB1617,H,"Reported from EEP/AGR (Stand. Com. Rep. No. 452-26) as amended in HD 1, recommending passage on Second Reading and referral to FIN.",waiting2,waiting2
+2026,HB1621,H,"The committee on EEP recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 6 Ayes: Representative(s) Lowen, Perruso, Chun, Kahaloa, Kusch, Matsumoto; Ayes with reservations: none;  Noes: none; and 1 Excused: Representative(s) Quinlan.",waiting2,waiting2
+2026,HB1652,H,"The committee on WAL recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 9 Ayes: Representative(s) Hashem, Morikawa, Belatti, Ichiyama, Poepoe, Woodson, Souza; Ayes with reservations: Representative(s) Iwamoto, Shimizu;  Noes: none; and  Excused: none.",deferred2,deferred2
+2026,HB1699,H,This measure has been deleted from the meeting scheduled on Tuesday 02-03-26 9:00AM in conference room 329 VIA VIDEOCONFERENCE.,introduced,introduced
+2026,HB1703,H,"Reported from WAL (Stand. Com. Rep. No. 53-26) as amended in HD 1, recommending passage on Second Reading and referral to CAA.",waiting3,waiting3
+2026,HB1707,S,The committee(s) on WAM deferred the measure until 04-06-26 10:31AM; Conference Room 211 & Videoconference.,passedCommittees,crossoverDeferred2
+2026,HB1737,S,"The committee(s) on  JDC recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in JDC were as follows: 5 Aye(s): Senator(s) Rhoads, Gabbard, Chang, San Buenaventura, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",passedCommittees,crossoverWaiting3
+2026,HB1738,H,"Reported from JHA (Stand. Com. Rep. No. 1197-26) as amended in HD 2, recommending passage on Third Reading.",crossoverDeferred1,crossoverDeferred1
+2026,HB1747,H,The committee(s) on HSH recommend(s) that the measure be deferred.,deferred1,deferred1
+2026,HB1754,H,"Referred to ECD, HLT, FIN, referral sheet 1",introduced,introduced
+2026,HB1766,H,"Referred to AGR/EEP, FIN, referral sheet 1",introduced,introduced
+2026,HB1779,H,"Passed Third Reading with Representative(s) Alcos voting aye with reservations; Representative(s) Garcia, Shimizu voting no (2) and Representative(s) Perruso, Sayama excused (2).  Transmitted to Senate.",crossoverWaiting1,crossoverWaiting1
+2025,HB180,H,"Referred to HSH, ECD, FIN, referral sheet 1",introduced,introduced
+2026,HB1817,H,"Reported from WAL (Stand. Com. Rep. No. 710-26) as amended in HD 1, recommending passage on Second Reading and referral to JHA.",waiting2,waiting2
+2026,HB1823,S,"The committee(s) on  JDC recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in JDC were as follows: 5 Aye(s): Senator(s) Rhoads, Gabbard, Chang, San Buenaventura, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",passedCommittees,passedCommittees
+2026,HB1828,H,The committee(s) on AGR recommend(s) that the measure be deferred.,deferred1,deferred1
+2026,HB1830,H,"Referred to AGR, FIN, referral sheet 1",introduced,introduced
+2026,HB1831,S,Passed First Reading.,crossoverWaiting1,crossoverWaiting1
+2026,HB1832,H,"Forty-eight (48) hours notice Tuesday,  03-10-26.",crossoverWaiting2,crossoverWaiting2
+2026,HB1874,H,The committee(s) on LAB recommend(s) that the measure be deferred.,deferred1,deferred1
+2026,HB1880,H,"Reported from JHA (Stand. Com. Rep. No. 1106-26) as amended in HD 3, recommending passage on Third Reading.",crossoverDeferred1,crossoverWaiting2
+2025,HB189 HD1,H,Passed Second Reading as amended in HD 1 and referred to the committee(s) on WAL with none voting aye with reservations; none voting no (0) and Representative(s) Ward excused (1).,waiting2,waiting2
+2025,HB19,H,"Referred to TOU, LAB, FIN, referral sheet 1",introduced,introduced
+2025,HB190,H,"Referred to EDN, AGR, FIN, referral sheet 1",introduced,introduced
+2025,HB191,H,"Referred to EDN, AGR, FIN, referral sheet 1",introduced,introduced
+2025,HB192,H,"Referred to AGR/WAL, JHA, FIN, referral sheet 1",introduced,introduced
+2026,HB1929,S,"The committee(s) on  WAM recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in WAM were as follows: 13 Aye(s): Senator(s) Dela Cruz, Moriwaki, DeCoite, Elefante, Hashimoto, Inouye, Kanuha, Kidani, Kim, Lee, C., Richards, Wakai, Fevella; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",passedCommittees,passedCommittees
+2025,HB193,H,"Re-referred to AGR, JHA, referral sheet 4",introduced,introduced
+2026,HB1931,H,"Reported from FIN (Stand. Com. Rep. No. 932-26), recommending passage on Third Reading.",crossoverWaiting2,crossoverWaiting2
+2026,HB1951,H,"Reported from HED (Stand. Com. Rep. No. 124-26) as amended in HD 1, recommending passage on Second Reading and referral to AGR.",waiting3,waiting3
+2026,HB1952,S,The committee(s) on WAM will hold a public decision making on 04-06-26 10:32AM; Conference Room 211 & Videoconference.,passedCommittees,crossoverScheduled2
+2026,HB1953,H,"Reported from FIN (Stand. Com. Rep. No. 924-26), recommending passage on Third Reading.",crossoverWaiting2,crossoverWaiting2
+2026,HB2014,H,"Referred to AGR, CPC, referral sheet 3",introduced,introduced
+2026,HB2015,H,"Passed Third Reading with none voting aye with reservations; none voting no (0) and Representative(s) Perruso, Quinlan, Sayama excused (3).  Transmitted to Senate.",crossoverWaiting2,crossoverWaiting2
+2026,HB2017,H,"Reported from FIN (Stand. Com. Rep. No. 1026-26) as amended in HD 3, recommending passage on Third Reading.",crossoverWaiting2,crossoverWaiting2
+2026,HB2032,H,"Referred to ECD, FIN, referral sheet 3",introduced,introduced
+2026,HB2047,H,"Forty-eight (48) hours notice Tuesday,  03-10-26.",crossoverWaiting1,crossoverDeferred1
+2026,HB2119,H,"Passed Third Reading with none voting aye with reservations; none voting no (0) and Representative(s) Perruso, Sayama excused (2).  Transmitted to Senate.",crossoverWaiting2,crossoverWaiting2
+2026,HB2135,H,"Referred to AGR, ECD, FIN, referral sheet 4",introduced,introduced
+2026,HB2139,S,The committee(s) on WAM deferred the measure until 04-06-26 10:31AM; Conference Room 211 & Videoconference.,crossoverDeferred2,crossoverDeferred2
+2026,HB2152,S,"The committee(s) on  JDC recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in JDC were as follows: 4 Aye(s): Senator(s) Rhoads, Gabbard, Chang, San Buenaventura; Aye(s) with reservations: none ; 0 No(es): none; and 1 Excused: Senator(s) Awa.",passedCommittees,passedCommittees
+2026,HB2155,H,"Reported from FIN (Stand. Com. Rep. No. 1027-26) as amended in HD 2, recommending passage on Third Reading.",crossoverWaiting2,crossoverWaiting2
+2026,HB2176,H,"Referred to LMG, FIN, referral sheet 5",introduced,introduced
+2026,HB2207,S,The committee(s) on WAM will hold a public decision making on 04-06-26 10:32AM; Conference Room 211 & Videoconference.,passedCommittees,crossoverScheduled2
+2026,HB2208,S,The committee(s) on WAM will hold a public decision making on 04-06-26 10:32AM; Conference Room 211 & Videoconference.,passedCommittees,crossoverScheduled2
+2026,HB2216,S,The committee on WAM has deleted the measure from decision making scheduled on 04-09-26 10:55AM; CR 211 & Videoconference.,crossoverWaiting2,crossoverDeferred2
+2026,HB2218,S,48 Hrs. Notice 04-14-26.,passedCommittees,passedCommittees
+2026,HB2229,H,"Reported from HLT (Stand. Com. Rep. No. 353-26) as amended in HD 1, recommending passage on Second Reading and referral to CPC.",waiting2,waiting2
+2026,HB2233,H,"Passed Third Reading with none voting aye with reservations; Representative(s) Pierick voting no (1) and Representative(s) Perruso, Sayama excused (2).  Transmitted to Senate.",crossoverWaiting1,crossoverWaiting1
+2026,HB2246,S,Reported from WAM (Stand. Com. Rep. No. 3630) with recommendation of passage on Third Reading.,passedCommittees,passedCommittees
+2026,HB2296,S,The committee(s) on WAM deferred the measure until 04-06-26 10:31AM; Conference Room 211 & Videoconference.,passedCommittees,crossoverDeferred2
+2026,HB2300,S,The committee(s) on WAM deferred the measure until 04-06-26 10:31AM; Conference Room 211 & Videoconference.,passedCommittees,crossoverDeferred2
+2026,HB2310,S,The committee(s) on WAM deferred the measure until 04-06-26 10:31AM; Conference Room 211 & Videoconference.,passedCommittees,crossoverDeferred2
+2026,HB2317,H,"Referred to HLT, CPC, referral sheet 6",introduced,introduced
+2026,HB2338,S,The committee(s) on WAM deferred the measure until 04-06-26 10:31AM; Conference Room 211 & Videoconference.,passedCommittees,crossoverDeferred2
+2026,HB2374,H,"Bill scheduled to be heard by EDN on Tuesday, 02-10-26 2:15PM in House conference room 309 VIA VIDEOCONFERENCE.",waiting2,waiting2
+2026,HB2377,H,"Referred to AGR, WAL, FIN, referral sheet 6",introduced,introduced
+2026,HB2404,H,"Referred to CPC, JHA, referral sheet 6",waiting2,waiting2
+2026,HB2424,H,"Forty-eight (48) hours notice Tuesday,  03-10-26.",crossoverDeferred1,crossoverDeferred1
+2026,HB2425,H,"Passed Second Reading as amended in HD 1 and referred to the committee(s) on WAL with Representative(s) Perruso, Poepoe voting aye with reservations; Representative(s) Amato, Cochran voting no (2) and none excused (0).",waiting2,waiting2
+2026,HB2457,H,"Bill scheduled to be heard by PBS on Wednesday, 02-11-26 8:40AM in House conference room 411 VIA VIDEOCONFERENCE.",waiting2,introduced
+2026,HB2458,H,"Reported from JHA (Stand. Com. Rep. No. 1128-26) as amended in HD 3, recommending passage on Third Reading.",crossoverWaiting2,crossoverWaiting1
+2026,HB2459,H,"Passed Third Reading with none voting aye with reservations; none voting no (0) and Representative(s) Perruso, Sayama excused (2).  Transmitted to Senate.",crossoverWaiting1,crossoverWaiting1
+2026,HB2495,H,"Referred to AGR, HSG, FIN, referral sheet 6",introduced,introduced
+2026,HB2496,H,"Referred to AGR, TRN, FIN, referral sheet 6",introduced,introduced
+2026,HB2497,H,"Referred to AGR, JHA, referral sheet 6",waiting2,waiting2
+2026,HB2509,H,"Referred to HSH, FIN, referral sheet 6",introduced,introduced
+2026,HB2521,H,"Referred to ECD, FIN, referral sheet 6",introduced,introduced
+2026,HB2548,H,"Reported from FIN (Stand. Com. Rep. No. 930-26), recommending passage on Third Reading.",crossoverWaiting2,crossoverWaiting2
+2026,HB2549,H,"Passed Third Reading with none voting aye with reservations; none voting no (0) and Representative(s) Perruso, Sayama excused (2).  Transmitted to Senate.",crossoverWaiting2,crossoverWaiting2
+2026,HB2550,H,"Referred to AGR, JHA, FIN, referral sheet 6",introduced,introduced
+2026,HB2551,S,"The committee(s) on WAM recommend(s) that the measure be PASSED, UNAMENDED.  The votes in WAM were as follows: 12 Aye(s): Senator(s) Dela Cruz, Moriwaki, DeCoite, Elefante, Hashimoto, Inouye, Kanuha, Kidani, Kim, Richards, Wakai, Fevella; Aye(s) with reservations: none ; 0 No(es): none; and 1 Excused: Senator(s) Lee, C..",passedCommittees,crossoverWaiting3
+2026,HB2555,H,"Referred to ECD, FIN, referral sheet 6",introduced,introduced
+2026,HB2571,H,"Referred to AGR, FIN, referral sheet 6",introduced,introduced
+2026,HB2572,H,"Referred to AGR, FIN, referral sheet 6",waiting2,waiting2
+2026,HB2573,H,"Reported from AGR (Stand. Com. Rep. No. 40-26) as amended in HD 1, recommending passage on Second Reading and referral to HED.",waiting2,waiting2
+2026,HB2585,H,"Forty-eight (48) hours notice Tuesday,  03-10-26.",crossoverWaiting2,crossoverWaiting2
+2026,HB2594,H,"Reported from FIN (Stand. Com. Rep. No. 927-26), recommending passage on Third Reading.",crossoverWaiting2,crossoverWaiting2
+2026,HB2595,H,"Reported from FIN (Stand. Com. Rep. No. 929-26), recommending passage on Third Reading.",crossoverWaiting2,crossoverWaiting2
+2026,HB2596,H,The committee(s) on AGR recommend(s) that the measure be deferred.,deferred1,deferred1
+2026,HB2599,S,The committee(s) on WAM deferred the measure until 04-06-26 10:31AM; Conference Room 211 & Videoconference.,passedCommittees,crossoverDeferred2
+2026,HB2603,H,"Bill scheduled to be heard by ECD on Wednesday, 02-11-26 8:30AM in House conference room 423 VIA VIDEOCONFERENCE.",waiting2,waiting2
+2026,HB2619,H,"Reported from CPC (Stand. Com. Rep. No. 1062-26) as amended in HD 2, recommending passage on Third Reading.",crossoverWaiting2,crossoverWaiting2
+2025,HB281,H,"Referred to HLT, ECD, FIN, referral sheet 1",scheduled1,introduced
+2025,HB299 HD1 SD1,S,"Referred to WTL/AEN, WAM.",crossoverWaiting2,crossoverWaiting2
+2025,HB305,H,The committee(s) on WAL recommend(s) that the measure be deferred.,deferred1,deferred1
+2025,HB309 HD1 SD1,S,"Report adopted; Passed Third Reading, as amended (SD  1). Ayes, 25; Aye(s) with reservations: none .  Noes, 0 (none). Excused, 0 (none).  Transmitted to House.",conferenceDeferred,conferenceScheduled
+2025,HB328 HD1,H,"The committee on AGR recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 5 Ayes: Representative(s) Kahaloa, Kusch, Lowen, Perruso, Quinlan; Ayes with reservations: none;  Noes: none; and 1 Excused: Representative(s) Ward.",waiting3,waiting3
+2025,HB335,H,"Referred to EDN, FIN, referral sheet 1",introduced,introduced
+2025,HB345 HD2 SD1 CD1,S,Received notice of passage on Final Reading in House (Hse. Com. No. 821).,governorSigns,governorSigns
+2025,HB347,H,The committee(s) on WAL recommend(s) that the measure be deferred.,deferred1,deferred1
+2025,HB360,H,"Referred to WAL, FIN, referral sheet 1",introduced,introduced
+2025,HB365 HD1,H,"Bill scheduled to be heard by AGR on Wednesday, 02-12-25 9:30AM in House conference room 325 VIA VIDEOCONFERENCE.",waiting2,waiting2
+2025,HB379 HD2,H,"Bill scheduled to be heard by WAL on Tuesday, 02-11-25 10:00AM in House conference room 411 VIA VIDEOCONFERENCE.",waiting3,waiting3
+2025,HB404,H,"Referred to EEP, WAL, FIN, referral sheet 1",introduced,introduced
+2025,HB424 HD2,S,"Referred to EDU, WAM.",deferred2,crossoverWaiting1
+2025,HB427 HD2 SD2 CD1,H,"Act 236, on 06/27/2025 (Gov. Msg. No. 1338).",governorSigns,governorSigns
+2025,HB428 HD1 SD1,S,Received notice of disagreement (Hse. Com. No. 559).,conferenceDeferred,conferenceScheduled
+2025,HB436,H,Introduced and Pass First Reading.,introduced,introduced
+2025,HB452 HD1,H,"Passed Second Reading as amended in HD 1 and referred to the committee(s) on ECD with none voting aye with reservations; none voting no (0) and Representative(s) Cochran, Ward excused (2).",waiting2,waiting2
+2025,HB456,H,Introduced and Pass First Reading.,introduced,introduced
+2025,HB465,H,Introduced and Pass First Reading.,introduced,introduced
+2025,HB47 HD2,H,"The committee on CPC recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 10 Ayes: Representative(s) Matayoshi, Chun, Ilagan, Ichiyama, Iwamoto, Kong, Lowen, Marten, Tam, Pierick; Ayes with reservations: none;  Noes: none; and  Excused: none.",waiting3,waiting3
+2025,HB48 HD2 SD1,H,House disagrees with Senate amendment (s).,conferenceAssigned,conferenceAssigned
+2025,HB496 HD2 SD1 CD1,H,Notice of intent to veto (Gov. Msg. No. 1301),governorSigns,governorSigns
+2025,HB497 HD2,H,"The committee on AGR recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 5 Ayes: Representative(s) Kahaloa, Kusch, Lowen, Perruso, Quinlan; Ayes with reservations: none;  Noes: none; and 1 Excused: Representative(s) Ward.",waiting2,waiting3
+2025,HB498 HD2,H,"Bill scheduled to be heard by JHA on Tuesday, 02-11-25 2:00PM in House conference room 325 VIA VIDEOCONFERENCE.",waiting3,waiting3
+2025,HB499 HD1,H,"Passed Second Reading as amended in HD 1 and referred to the committee(s) on ECD with none voting aye with reservations; none voting no (0) and Representative(s) Cochran, Ward excused (2).",waiting2,waiting2
+2025,HB500,H,"Referred to HED, FIN, referral sheet 2",introduced,introduced
+2025,HB501 HD2,H,"The committee on JHA recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 10 Ayes: Representative(s) Tarnas, Poepoe, Belatti, Cochran, Hashem, Kahaloa, Perruso, Takayama, Todd; Ayes with reservations: Representative(s) Shimizu;  Noes: none; and 1 Excused: Representative(s) Garcia.",waiting3,waiting3
+2025,HB502 HD1,H,The committee(s) on JHA recommend(s) that the measure be deferred.,deferred2,deferred2
+2025,HB530,H,The committee(s) on AGR recommend(s) that the measure be deferred.,deferred1,deferred1
+2025,HB534 HD2 SD1 CD1,S,"Act 238, 06/27/2025 (Gov. Msg. No. 1340).",governorSigns,governorSigns
+2025,HB539,H,Introduced and Pass First Reading.,scheduled1,introduced
+2025,HB555 HD1,H,"The committee on LAB recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 5 Ayes: Representative(s) Sayama, Garrett, Kapela; Ayes with reservations: Representative(s) Lee, M., Reyes Oda; 1 Noes: Representative(s) Kong; and  Excused: none.",waiting2,waiting2
+2025,HB572 HD1,H,"The committee on ECD recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 7 Ayes: Representative(s) Ilagan, Hussey, Holt, Tam, Templo, Todd, Matsumoto; Ayes with reservations: none; 0 Noes: none; and 0 Excused: none.",waiting2,waiting2
+2025,HB643 HD2 SD1,S,Received notice of disagreement (Hse. Com. No. 559).,passedCommittees,conferenceAssigned
+2025,HB644,H,Introduced and Pass First Reading.,introduced,introduced
+2025,HB685 HD1,H,"Bill scheduled to be heard by AGR on Wednesday, 02-12-25 9:30AM in House conference room 325 VIA VIDEOCONFERENCE.",waiting2,waiting2
+2025,HB687,H,"Referred to HSH, FIN, referral sheet 2",introduced,introduced
+2025,HB690,H,"Referred to WAL, ECD, FIN, referral sheet 2",introduced,introduced
+2025,HB696,H,Introduced and Pass First Reading.,scheduled1,introduced
+2025,HB704,H,"Referred to HSH, FIN, referral sheet 2",introduced,introduced
+2025,HB750 HD2 SD1 CD1,H,"Act 103, on 05/27/2025 (Gov. Msg. No. 1203).",governorSigns,governorSigns
+2025,HB757 HD1,H,"Bill scheduled to be heard by EDN on Tuesday, 02-11-25 2:01PM in House conference room 309 VIA VIDEOCONFERENCE.",waiting2,waiting2
+2025,HB760 HD1,H,"Passed Second Reading as amended in HD 1 and referred to the committee(s) on ECD with Representative(s) Reyes Oda voting aye with reservations; Representative(s) Alcos, Garcia, Muraoka, Pierick, Shimizu voting no (5) and Representative(s) Ward excused (1).",waiting2,waiting2
+2025,HB773 HD1 SD1,S,"Report adopted; Passed Third Reading.  Ayes, 25; Aye(s) with reservations: none .  Noes, 0 (none). Excused, 0 (none).  Transmitted to House.",conferenceDeferred,conferenceScheduled
+2025,HB774 HD2 SD1 CD1,S,"Act 237, 06/27/2025 (Gov. Msg. No. 1339).",governorSigns,governorSigns
+2025,HB775 HD1,H,"Bill scheduled to be heard by AGR on Wednesday, 02-12-25 9:30AM in House conference room 325 VIA VIDEOCONFERENCE.",waiting2,waiting2
+2025,HB776 HD1,H,"The committee on AGR recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 5 Ayes: Representative(s) Kahaloa, Kusch, Lowen, Perruso, Quinlan; Ayes with reservations: none;  Noes: none; and 1 Excused: Representative(s) Ward.",waiting2,waiting2
+2025,HB777,H,"Referred to WAL/AGR, ECD, JHA, referral sheet 2",introduced,introduced
+2025,HB778 HD2 SD1 CD1,H,"Act 187, on 06/06/2025 (Gov. Msg. No. 1287).",governorSigns,governorSigns
+2025,HB782 HD1 SD1,S,"Report adopted; Passed Third Reading.  Ayes, 25; Aye(s) with reservations: none .  Noes, 0 (none). Excused, 0 (none).  Transmitted to House.",conferenceDeferred,conferenceScheduled
+2025,HB783 HD1,H,"Bill scheduled to be heard by AGR on Wednesday, 02-12-25 9:30AM in House conference room 325 VIA VIDEOCONFERENCE.",waiting2,waiting2
+2025,HB812 HD1,H,"The committee on AGR recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 5 Ayes: Representative(s) Kahaloa, Kusch, Lowen, Perruso, Quinlan; Ayes with reservations: none;  Noes: none; and 1 Excused: Representative(s) Ward.",waiting2,waiting2
+2025,HB828,H,"Referred to LAB, HLT, FIN, referral sheet 3",introduced,introduced
+2025,HB845,H,Introduced and Pass First Reading.,introduced,introduced
+2025,HB856,H,"Referred to HED, FIN, referral sheet 3",introduced,introduced
+2025,HB858 HD1 SD1,S,The committee(s) on AEN has scheduled a public hearing on 03-10-25 1:01PM; Conference Room 224 & Videoconference.,crossoverWaiting2,crossoverWaiting2
+2025,HB859 HD1,H,"Reported from AGR (Stand. Com. Rep. No. 156) as amended in HD 1, recommending passage on Second Reading and referral to JHA.",waiting2,waiting2
+2025,HB86 HD2 SD1,S,"Report adopted; Passed Third Reading, as amended (SD  1). Ayes, 25; Aye(s) with reservations: none .  Noes, 0 (none). Excused, 0 (none).  Transmitted to House.",conferenceScheduled,conferenceScheduled
+2025,HB87,H,"Referred to EDN, FIN, referral sheet 1",introduced,introduced
+2025,HB873,H,Introduced and Pass First Reading.,introduced,introduced
+2025,HB884,H,Introduced and Pass First Reading.,introduced,introduced
+2025,HB912 HD1,H,"Reported from AGR (Stand. Com. Rep. No. 81) as amended in HD 1, recommending passage on Second Reading and referral to WAL.",waiting2,waiting2
+2025,HB929,H,The committee(s) on WAL recommend(s) that the measure be deferred.,deferred1,deferred1
+2025,HB92 HD2,H,"The committee recommends that the measure pass with amendments, for recommittal for further consideration. The votes were as follows: 5 Ayes: Representative(s) Kahaloa, Kusch, Lowen, Perruso, Quinlan;  Ayes with reservations: none;  Noes: none; and 1 Excused: Representative(s) Ward.",waiting2,waiting2
+2025,HB933 HD1,H,The committee(s) on ECD recommend(s) that the measure be deferred.,deferred2,deferred2
+2025,HB946,H,"Referred to EEP, ECD, FIN, referral sheet 3",introduced,introduced
+2025,HB966 HD2,S,"Referred to AEN/WTL/EDT/EIG, WAM.",crossoverWaiting1,crossoverDeferred1
+2025,HB967 HD1,H,"The committee on AGR recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 5 Ayes: Representative(s) Kahaloa, Kusch, Lowen, Perruso, Quinlan; Ayes with reservations: none;  Noes: none; and 1 Excused: Representative(s) Ward.",waiting2,waiting2
+2025,HB968 HD1,H,"The committee on AGR recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 5 Ayes: Representative(s) Kahaloa, Kusch, Lowen, Perruso, Quinlan; Ayes with reservations: none;  Noes: none; and 1 Excused: Representative(s) Ward.",waiting2,waiting2
+2025,HB975 HD1,H,"Reported from EEP (Stand. Com. Rep. No. 768) as amended in HD 1, recommending passage on Second Reading and referral to FIN.",waiting2,waiting2
+2025,HB980 HD1,S,"Referred to AEN, JDC.",introduced,crossoverDeferred1
+2025,HB984 HD2 SD1 CD1,S,Received notice of passage on Final Reading in House (Hse. Com. No. 821).,governorSigns,governorSigns
+2025,HB985,H,"Referred to AGR, FIN, referral sheet 3",introduced,introduced
+2025,HB986,H,"Referred to AGR, FIN, referral sheet 3",introduced,introduced
+2025,HB99,H,"Referred to EDN, FIN, referral sheet 1",introduced,introduced
+2025,SB1,S,Pending Introduction.,introduced,introduced
+2025,SB1003 SD1,S,"Report adopted; Passed Second Reading, as amended (SD 1) and referred to WAM.",waiting2,waiting2
+2025,SB1020,S,"Referred to CPN/AEN, JDC.",introduced,introduced
+2025,SB1043 SD2 HD1,H,"Referred to ECD, FIN, referral sheet 19",deferred2,crossoverWaiting2
+2025,SB1055,S,"Referred to HHS, WAM.",scheduled1,introduced
+2025,SB1079,S,"Referred to WTL/EIG, WAM.",introduced,introduced
+2025,SB1085 SD1,S,The committee(s) on AEN/WTL has scheduled a public hearing on 02-12-25 1:05PM; Conference Room 229 & Videoconference.,waiting2,waiting2
+2025,SB1086 SD1,S,The committee(s) on AEN/WTL has scheduled a public hearing on 02-12-25 1:05PM; Conference Room 229 & Videoconference.,waiting2,waiting2
+2025,SB1099 HD1,H,"Passed Third Reading with none voting aye with reservations; Representative(s) Iwamoto, Pierick, Shimizu voting no (3) and Representative(s) Cochran excused (1).  Transmitted to Senate.",conferenceAssigned,conferenceAssigned
+2025,SB1100 SD2 HD2,H,"Re-referred to AGR, CPC, FIN, referral sheet 20",crossoverWaiting3,crossoverWaiting3
+2025,SB1111 SD1,S,"The committee(s) on  AEN recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in AEN were as follows: 4 Aye(s): Senator(s) Gabbard, Richards, Rhoads, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 1 Excused: Senator(s) DeCoite.",waiting2,waiting2
+2025,SB1114,S,"Referred to WTL/HOU, WAM.",introduced,introduced
+2025,SB1152,S,"Referred to AEN, WAM.",introduced,introduced
+2025,SB1155,S,"Referred to AEN, WAM.",introduced,introduced
+2025,SB1158 SD1,S,"Reported from HRE/AEN (Stand. Com. Rep. No. 309) with recommendation of passage on Second Reading, as amended (SD 1) and referral to WAM.",waiting2,waiting2
+2025,SB1159,S,The committee(s) on AEN has scheduled a public hearing on 02-10-25 1:01PM; Conference Room 224 & Videoconference.,waiting2,waiting2
+2025,SB1171 SD1,S,"The committee(s) on  AEN recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in AEN were as follows: 4 Aye(s): Senator(s) Gabbard, Richards, Rhoads, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 1 Excused: Senator(s) DeCoite.",waiting2,waiting2
+2025,SB1178,S,"Referred to WTL/AEN, WAM.",introduced,introduced
+2025,SB1182,S,"Referred to WTL/AEN, WAM.",waiting2,introduced
+2025,SB1183,S,"Referred to EDT/AEN, CPN.",introduced,introduced
+2025,SB1184,S,"Referred to AEN, WAM.",introduced,introduced
+2025,SB1185 SD1 HD1,H,"Referred to AGR, FIN, referral sheet 19",crossoverWaiting2,crossoverWaiting2
+2025,SB1186 SD2 HD3 CD1,S,"Act 239, 06/27/2025 (Gov. Msg. No. 1341).",governorSigns,governorSigns
+2025,SB1187 SD1,S,"The committee(s) on  AEN recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in AEN were as follows: 4 Aye(s): Senator(s) Gabbard, Richards, Rhoads, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 1 Excused: Senator(s) DeCoite.",waiting2,waiting2
+2025,SB1188,S,"Referred to WTL/EIG/HHS, WAM.",introduced,introduced
+2025,SB1189,S,"Referred to EDU/HRE/AEN, WAM.",introduced,introduced
+2025,SB1190,S,"Referred to WTL/AEN, WAM.",introduced,introduced
+2025,SB1191,S,The committee(s) on AEN/HHS deleted the measure from the public hearing scheduled on 02-07-25 2:00PM; CR 225 & Videoconference.,scheduled1,deferred1
+2025,SB1192,S,"Referred to EDU, WAM/JDC.",introduced,introduced
+2025,SB1193,S,"Referred to WTL/PSM, WAM/JDC.",introduced,introduced
+2025,SB12,S,The committee(s) on AEN has scheduled a public hearing on 02-10-25 1:01PM; Conference Room 224 & Videoconference.,deferred1,deferred1
+2025,SB1247,S,"Referred to EDT, WAM.",introduced,introduced
+2025,SB1248,S,The committee(s) on AEN has scheduled a public hearing on 02-10-25 1:01PM; Conference Room 224 & Videoconference.,waiting2,waiting2
+2025,SB1249 SD1 HD2 CD1,S,"Act 235, 06/27/2025 (Gov. Msg. No. 1337).",governorSigns,governorSigns
+2025,SB1250 SD1 HD1,H,"Referred to AGR, FIN, referral sheet 19",crossoverWaiting2,crossoverWaiting2
+2025,SB1251,S,"Referred to WTL/AEN/EIG/EDT, WAM.",introduced,introduced
+2025,SB1257 SD1 HD1,H,"Bill scheduled to be heard by AGR on Wednesday, 03-12-25 9:00AM in House conference room 325 VIA VIDEOCONFERENCE.",crossoverDeferred2,crossoverDeferred2
+2025,SB1258,S,"Referred to EDT, WAM.",waiting2,introduced
+2025,SB1259,S,"Referred to EDU/AEN, WAM/JDC.",introduced,introduced
+2025,SB1260 SD1,S,The committee(s) on AEN has scheduled a public hearing on 02-10-25 1:01PM; Conference Room 224 & Videoconference.,waiting2,waiting2
+2025,SB1262,S,"Referred to WTL/AEN, JDC/WAM.",introduced,introduced
+2025,SB1276 SD1 HD1,H,"Bill scheduled to be heard by AGR on Wednesday, 03-12-25 9:00AM in House conference room 325 VIA VIDEOCONFERENCE.",crossoverWaiting2,crossoverWaiting2
+2025,SB127 SD1,S,"Reported from AEN (Stand. Com. Rep. No. 43) with recommendation of passage on Second Reading, as amended (SD 1) and referral to WAM.",introduced,waiting2
+2025,SB128,S,"Referred to AEN, JDC.",introduced,introduced
+2025,SB1290,S,"Referred to HHS, WAM/CPN.",introduced,introduced
+2025,SB129 SD2,H,Pass First Reading,crossoverWaiting1,crossoverWaiting1
+2025,SB1300 SD1 HD1 CD1,S,"Act 139, 05/30/2025 (Gov. Msg. No. 1239).",governorSigns,governorSigns
+2025,SB1303 SD1,S,"The committee(s) on  AEN recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in AEN were as follows: 4 Aye(s): Senator(s) Gabbard, Richards, Rhoads, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 1 Excused: Senator(s) DeCoite.",waiting2,waiting2
+2025,SB1304 SD2 HD1 CD1,H,"Act 179, on 06/06/2025 (Gov. Msg. No. 1279).",governorSigns,governorSigns
+2025,SB1305,S,"Referred to AEN, WAM.",introduced,introduced
+2025,SB1325 SD1,S,"The committee(s) on  EDT recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in EDT were as follows: 5 Aye(s): Senator(s) DeCoite, Wakai, Fukunaga, Kim, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",waiting2,waiting2
+2025,SB1331 SD1,S,The committee(s) on WTL has scheduled a public hearing on 02-10-25 1:00PM; Conference Room 229 & Videoconference.,waiting2,waiting2
+2025,SB1332,S,"Referred to AEN/WTL, WAM.",introduced,introduced
+2025,SB1335 SD1,S,The committee(s) on WTL has scheduled a public hearing on 02-10-25 1:00PM; Conference Room 229 & Videoconference.,waiting2,waiting2
+2025,SB1336,S,"The committee(s) on EIG recommend(s) that the measure be PASSED, UNAMENDED.  The votes in EIG were as follows: 5 Aye(s): Senator(s) Wakai, Chang, DeCoite, Richards, Fevella; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",waiting2,waiting2
+2025,SB135,S,The committee(s) on EDT/CPN has scheduled a public hearing on 02-11-25 1:02PM; Conference Room 229 & Videoconference.,deferred1,deferred1
+2025,SB1379 SD2 HD1,H,"Bill scheduled to be heard by PBS on Wednesday, 03-12-25 9:30AM in House conference room 411 VIA VIDEOCONFERENCE.",crossoverWaiting2,crossoverWaiting2
+2025,SB139,S,"Referred to AEN/WTL, CPN/WAM.",introduced,introduced
+2025,SB1394,S,"Referred to EDU, WAM.",introduced,introduced
+2025,SB1395 SD2 HD1,H,Pass First Reading,crossoverDeferred2,crossoverDeferred2
+2025,SB1396 SD3 HD3 CD2,S,"Act 096, 05/27/2025 (Gov. Msg. No. 1196).",governorSigns,governorSigns
+2025,SB13 SD1,S,"Reported from AEN (Stand. Com. Rep. No. 298) with recommendation of passage on Second Reading, as amended (SD 1) and referral to WAM.",waiting2,waiting2
+2025,SB1418 SD1,S,"The committee(s) on  HHS recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in HHS were as follows: 4 Aye(s): Senator(s) San Buenaventura, Aquino, Hashimoto, Keohokalole; Aye(s) with reservations: none ; 0 No(es): none; and 1 Excused: Senator(s) Fevella.",crossoverDeferred1,deferred2
+2025,SB1468 SD1,S,The committee(s) on AEN has scheduled a public hearing on 02-10-25 1:01PM; Conference Room 224 & Videoconference.,waiting2,waiting2
+2025,SB1539 SD1,S,The committee(s) on EDT has scheduled a public hearing on 02-11-25 1:00PM; Conference Room 229 & Videoconference.,waiting2,waiting2
+2025,SB1547 SD1 HD1,S,Senate disagrees with House amendments.,conferenceScheduled,conferenceScheduled
+2025,SB1548,S,The committee on EDU deferred the measure.,deferred1,deferred1
+2025,SB1573,S,"Referred to WTL/AEN, JDC.",introduced,introduced
+2025,SB1582 HD1,H,Received notice of disagreement (Sen. Com. No. 481).,conferenceAssigned,conferenceAssigned
+2025,SB1591 SD1,S,"The committee(s) on  AEN recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in AEN were as follows: 5 Aye(s): Senator(s) Gabbard, Richards, DeCoite, Rhoads, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",waiting2,waiting2
+2025,SB16,S,Pending Introduction.,introduced,introduced
+2025,SB1607,S,Re-Referred to JDC.,introduced,introduced
+2025,SB177 SD1 HD1,S,Senate disagrees with House amendments.,conferenceScheduled,conferenceScheduled
+2025,SB184,S,Report adopted; Passed Second Reading and referred to WAM.,introduced,waiting2
+2025,SB194,S,"Referred to HHS, WAM.",introduced,introduced
+2025,SB19 SD1,S,"The committee(s) on  WTL recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in WTL were as follows: 5 Aye(s): Senator(s) Inouye, Elefante, Chang, McKelvey, DeCorte; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",waiting2,waiting2
+2026,SB2002,S,48 Hrs. Notice 03-10-26.,crossoverWaiting2,crossoverWaiting2
+2026,SB2006,S,48 Hrs. Notice 03-10-26.,crossoverWaiting1,crossoverWaiting1
+2026,SB2007,S,The committee on EIG deferred the measure.,deferred1,deferred1
+2026,SB2015,S,"Referred to WLA/EIG, WAM.",introduced,introduced
+2026,SB2019,S,The committee(s) on WLA/AEN has scheduled a public hearing on 02-11-26 1:00PM; CR 224 & Videoconference.,waiting2,waiting2
+2026,SB2028,S,"Referred to AEN, WAM.",introduced,introduced
+2026,SB2048,S,The committee(s) on AEN/CPN has scheduled a public hearing on 02-11-26 10:00AM; Conference Room 229 & Videoconference.,waiting2,waiting2
+2026,SB2085,S,"Referred to HHS, WAM.",introduced,introduced
+2026,SB2094,S,The committee(s) on AEN/GVO has scheduled a public hearing on 02-12-26 3:05PM; Conference Room 225 & Videoconference.,waiting2,waiting2
+2026,SB2095,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 16 Ayes: Representative(s) Todd, Takenouchi, Hartsfield, Hussey, Keohokapu-Lee Loy, Kitagawa, Kusch, Lee, M., Miyake, Morikawa, Perruso, Templo, Yamashita, Alcos, Gedeon, Reyes Oda; Ayes with reservations: none; 0 Noes: none; and 0 Excused: none.",passedCommittees,passedCommittees
+2026,SB2096,S,"Reported from WAM (Stand. Com. Rep. No. 2948) with recommendation of passage on Third Reading, as amended (SD 2).",crossoverWaiting2,crossoverWaiting2
+2026,SB2097,S,"Reported from AEN (Stand. Com. Rep. No. 2233) with recommendation of passage on Second Reading, as amended (SD 1) and referral to WAM.",waiting2,waiting2
+2026,SB2098,S,"Report adopted; Passed Second Reading, as amended (SD 1) and referred to WAM.",waiting2,waiting2
+2026,SB2100,S,48 Hrs. Notice 03-10-26.,crossoverWaiting2,crossoverWaiting2
+2026,SB2101,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 15 Ayes: Representative(s) Todd, Takenouchi, Hartsfield, Hussey, Keohokapu-Lee Loy, Kitagawa, Kusch, Lee, M., Miyake, Morikawa, Perruso, Templo, Yamashita, Gedeon, Reyes Oda; Ayes with reservations: none; 1 Noes: Representative(s) Alcos; and  Excused: none.",passedCommittees,passedCommittees
+2026,SB2102,H,"The committee on CPC recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 11 Ayes: Representative(s) Matayoshi, Grandinetti, Chun, Ilagan, Ichiyama, Iwamoto, Kong, Lowen, Marten, Tam, Pierick; Ayes with reservations: none; 0 Noes: none; and 0 Excused: none.",passedCommittees,passedCommittees
+2026,SB2103,S,48 Hrs. Notice 03-10-26.,crossoverWaiting1,crossoverWaiting1
+2026,SB2104,S,"Referred to HHS/EIG, WAM.",introduced,introduced
+2026,SB2109,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 16 Ayes: Representative(s) Todd, Takenouchi, Hussey, Kitagawa, Kusch, Lee, M., Miyake, Morikawa, Perruso, Templo, Yamashita, Alcos, Gedeon, Reyes Oda; Ayes with reservations: Representative(s) Hartsfield, Keohokapu-Lee Loy;  Noes: none; and  Excused: none.",passedCommittees,passedCommittees
+2026,SB2110,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 16 Ayes: Representative(s) Todd, Takenouchi, Hartsfield, Hussey, Keohokapu-Lee Loy, Kitagawa, Kusch, Lee, M., Miyake, Morikawa, Perruso, Templo, Yamashita, Alcos, Gedeon, Reyes Oda; Ayes with reservations: none; 0 Noes: none; and 0 Excused: none.",passedCommittees,passedCommittees
+2026,SB2112,S,"Re-Referred to AEN, CPN/WAM.",waiting2,introduced
+2026,SB2113,S,"Referred to GVO/AEN/PSM/HHS, WAM.",introduced,introduced
+2026,SB2123,S,The committee on AEN deferred the measure.,deferred1,deferred1
+2026,SB2126,S,"Report adopted; Passed Second Reading, as amended (SD 1) and referred to WAM.",waiting2,waiting2
+2026,SB2127,S,"The committee(s) on  HHS recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in HHS were as follows: 3 Aye(s): Senator(s) San Buenaventura, McKelvey, Kanuha; Aye(s) with reservations: none ; 0 No(es): none; and 2 Excused: Senator(s) Keohokalole, Fevella.",waiting2,waiting2
+2026,SB2130,S,The committee(s) on WLA deleted the measure from the public hearing scheduled on 02-09-26 1:00PM; CR 224 & Videoconference.,waiting2,waiting2
+2026,SB2144,S,"Referred to EDU, WAM.",introduced,introduced
+2026,SB2148,S,"Referred to HHS/CPN, WAM.",introduced,introduced
+2026,SB2153,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 15 Ayes: Representative(s) Todd, Takenouchi, Hartsfield, Hussey, Keohokapu-Lee Loy, Kitagawa, Kusch, Lee, M., Miyake, Perruso, Templo, Yamashita, Alcos, Gedeon, Reyes Oda; Ayes with reservations: none; 0 Noes: none; and 1 Excused: Representative(s) Morikawa.",passedCommittees,passedCommittees
+2026,SB2154,S,"Reported from AEN (Stand. Com. Rep. No. 2105) with recommendation of passage on Second Reading, as amended (SD 1) and referral to WAM.",waiting2,waiting2
+2026,SB2156,S,"Reported from EDT/WLA (Stand. Com. Rep. No. 2688) with recommendation of passage on Second Reading, as amended (SD 1) and referral to WAM.",waiting2,waiting2
+2026,SB2159,S,"Referred to EDT/AEN, WAM.",introduced,introduced
+2026,SB2160,S,"Report adopted; Passed Second Reading, as amended (SD 1) and referred to WAM/CPN.",waiting2,waiting2
+2026,SB2161,S,48 Hrs. Notice 03-10-26.,crossoverWaiting1,crossoverWaiting1
+2026,SB2162,S,"Referred to WLA/HOU, WAM.",introduced,introduced
+2026,SB2168,S,"Referred to EDU/AEN, WAM.",introduced,introduced
+2026,SB2169,H,"The committee on JHA recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 6 Ayes: Representative(s) Tarnas, Hashem, Kahaloa, Takayama; Ayes with reservations: Representative(s) Cochran, Garcia; 2 Noes: Representative(s) Poepoe, Shimizu; and 2 Excused: Representative(s) Belatti, Sayama.",passedCommittees,passedCommittees
+2025,SB216 SD1,S,The committee(s) on AEN has scheduled a public hearing on 02-10-25 1:01PM; Conference Room 224 & Videoconference.,waiting2,waiting2
+2026,SB2170,S,"The committee(s) on  EDT recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in EDT were as follows: 3 Aye(s): Senator(s) DeCoite, Fukunaga, Fevella; Aye(s) with reservations: none ; 0 No(es): none; and 2 Excused: Senator(s) Wakai, Kim.",waiting2,waiting2
+2026,SB2174,S,"Reported from JDC (Stand. Com. Rep. No. 3018) with recommendation of passage on Third Reading, as amended (SD 2).",crossoverWaiting2,crossoverWaiting2
+2025,SB22,S,The committee(s) on WTL/AEN has scheduled a public hearing on 02-12-25 1:05PM; Conference Room 229 & Videoconference.,deferred1,deferred1
+2025,SB221,S,"Referred to EDU, WAM.",introduced,introduced
+2026,SB2211,H,Pass First Reading,crossoverWaiting2,crossoverWaiting2
+2026,SB2213,S,"Referred to EDU/AEN, WAM.",introduced,introduced
+2026,SB2236,S,"Referred to HHS, CPN.",introduced,introduced
+2026,SB2240,S,48 Hrs. Notice 03-10-26.,crossoverWaiting1,crossoverWaiting1
+2026,SB2258,S,The committee(s) on GVO/CPN has scheduled a public hearing on 02-11-26 9:45AM; CR 229 & Videoconference.,waiting2,waiting2
+2025,SB229,S,"Referred to EDU, WAM.",scheduled1,introduced
+2026,SB2309,S,"The committee(s) on  AEN recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in AEN were as follows: 5 Aye(s): Senator(s) Gabbard, Richards, DeCoite, Rhoads, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",waiting2,waiting2
+2025,SB231,S,"Referred to WTL/AEN/EIG/EDT, WAM.",introduced,introduced
+2026,SB2317,S,"The committee(s) on  AEN recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in AEN were as follows: 5 Aye(s): Senator(s) Gabbard, Richards, DeCoite, Rhoads, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",waiting2,waiting2
+2026,SB2318,S,"The committee(s) on  AEN recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in AEN were as follows: 5 Aye(s): Senator(s) Gabbard, Richards, DeCoite, Rhoads, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",waiting2,waiting2
+2026,SB2319,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 15 Ayes: Representative(s) Todd, Takenouchi, Hartsfield, Hussey, Keohokapu-Lee Loy, Kitagawa, Kusch, Lee, M., Miyake, Perruso, Templo, Yamashita, Alcos, Gedeon, Reyes Oda; Ayes with reservations: none; 0 Noes: none; and 1 Excused: Representative(s) Morikawa.",passedCommittees,passedCommittees
+2026,SB2320,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 16 Ayes: Representative(s) Todd, Takenouchi, Hartsfield, Hussey, Keohokapu-Lee Loy, Kitagawa, Kusch, Lee, M., Miyake, Morikawa, Perruso, Templo, Yamashita, Alcos, Gedeon, Reyes Oda; Ayes with reservations: none;  Noes: none; and  Excused: none.",passedCommittees,passedCommittees
+2026,SB2321,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 15 Ayes: Representative(s) Todd, Takenouchi, Hartsfield, Hussey, Keohokapu-Lee Loy, Kitagawa, Kusch, Lee, M., Miyake, Perruso, Templo, Yamashita, Gedeon, Reyes Oda; Ayes with reservations: Representative(s) Alcos;  Noes: none; and 1 Excused: Representative(s) Morikawa.",passedCommittees,passedCommittees
+2026,SB2323,S,"The committee(s) on  AEN recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in AEN were as follows: 5 Aye(s): Senator(s) Gabbard, Richards, DeCoite, Rhoads, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",waiting2,waiting2
+2025,SB233,S,The committee(s) on EIG has scheduled a public hearing on 02-11-25 3:20PM; Conference Room 016 & Videoconference.,waiting2,waiting2
+2026,SB2332,S,The committee(s) on AEN will hold a public decision making on 02-11-26 4:00PM; Conference Room 224 & Videoconference.,deferred1,deferred1
+2026,SB2333,S,The committee(s) on AEN will hold a public decision making on 02-11-26 4:00PM; Conference Room 224 & Videoconference.,waiting2,waiting2
+2026,SB2334,S,The committee(s) on AEN/WLA has scheduled a public hearing on 02-11-26 3:00PM; CR 224 & Videoconference.,deferred1,deferred1
+2026,SB2335,S,"Referred to EDT/AEN, WAM.",introduced,introduced
+2026,SB2349,S,"The committee(s) on  EDT recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in EDT were as follows: 4 Aye(s): Senator(s) DeCoite, Wakai, Kim, Fevella; Aye(s) with reservations: none ; 0 No(es): none; and 1 Excused: Senator(s) Fukunaga.",waiting2,waiting2
+2025,SB235,S,"Referred to EDU/AEN, WAM.",introduced,introduced
+2026,SB2350,S,"Reported from WAM (Stand. Com. Rep. No. 2850) with recommendation of passage on Third Reading, as amended (SD 2).",crossoverDeferred1,crossoverDeferred1
+2026,SB2360,H,"Reported from FIN (Stand. Com. Rep. No. 2002-26), recommending passage on Third Reading.",passedCommittees,waiting2
+2026,SB2371,S,"Reported from AEN/WLA/EIG (Stand. Com. Rep. No. 2685) with recommendation of passage on Second Reading, as amended (SD 1) and referral to CPN/JDC.",waiting2,waiting2
+2026,SB2374,S,The committee(s) on EDT/AEN has rescheduled its public hearing to 02-13-26 3:01PM; Conference Room 224 & Videoconference.,waiting2,waiting2
+2025,SB240,S,The committee on AEN deferred the measure.,deferred1,deferred1
+2026,SB2404,S,"Referred to AEN, WAM.",introduced,introduced
+2026,SB2405,H,"Reported from WAL (Stand. Com. Rep. No. 1990-26), recommending passage on Third Reading.",passedCommittees,introduced
+2026,SB2406,S,"Referred to AEN, CPN.",introduced,introduced
+2026,SB2407,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 15 Ayes: Representative(s) Todd, Takenouchi, Hartsfield, Hussey, Keohokapu-Lee Loy, Kitagawa, Kusch, Lee, M., Miyake, Perruso, Templo, Yamashita, Alcos, Gedeon, Reyes Oda; Ayes with reservations: none; 0 Noes: none; and 1 Excused: Representative(s) Morikawa.",passedCommittees,passedCommittees
+2026,SB2417,S,"Referred to PSM/HHS, JDC/WAM.",introduced,introduced
+2026,SB2427,S,"Referred to HHS, WAM.",introduced,introduced
+2025,SB242 SD2,H,Pass First Reading,crossoverWaiting1,crossoverWaiting1
+2026,SB2439,S,"Referred to AEN, WAM/CPN.",introduced,introduced
+2026,SB2440,S,"Referred to WLA/AEN, WAM.",introduced,introduced
+2026,SB2458,S,"Referred to HHS/CPN, WAM.",introduced,introduced
+2026,SB2459,S,"Referred to AEN, CPN.",introduced,introduced
+2025,SB247,S,"Referred to WTL, WAM.",introduced,introduced
+2025,SB248,S,"Referred to EDU/LBT, WAM.",introduced,introduced
+2026,SB2488,S,The committee(s) on WLA/AEN has scheduled a public hearing on 02-11-26 1:00PM; CR 224 & Videoconference.,waiting2,waiting2
+2026,SB2489,S,"Reported from JDC (Stand. Com. Rep. No. 3021) with recommendation of passage on Third Reading, as amended (SD 1).",crossoverWaiting2,crossoverWaiting2
+2025,SB249 SD1,S,The committee(s) on EDU has scheduled a public hearing on 02-10-25 3:02PM; Conference Room 229 & Videoconference.,waiting2,waiting2
+2025,SB250 SD1,S,"Reported from AEN (Stand. Com. Rep. No. 50) with recommendation of passage on Second Reading, as amended (SD 1) and referral to WAM.",waiting2,waiting2
+2025,SB251,S,Reported from AEN (Stand. Com. Rep. No. 16) with recommendation of passage on Second Reading and referral to CPN/WAM.,waiting2,waiting2
+2025,SB252 SD2 HD2,H,"Bill scheduled to be heard by AGR on Wednesday, 03-12-25 9:00AM in House conference room 325 VIA VIDEOCONFERENCE.",crossoverWaiting3,crossoverWaiting3
+2026,SB2576,S,The committee on AEN deferred the measure.,deferred1,deferred1
+2026,SB2595,H,"Bill scheduled for decision making on Tuesday, 04-07-26 10:10AM in conference room 308 VIA VIDEOCONFERENCE.",passedCommittees,crossoverDeferred2
+2026,SB2597,S,"Referred to AEN, WAM.",introduced,introduced
+2026,SB2615,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 16 Ayes: Representative(s) Todd, Takenouchi, Hartsfield, Hussey, Keohokapu-Lee Loy, Kitagawa, Kusch, Lee, M., Miyake, Morikawa, Perruso, Templo, Yamashita, Alcos, Gedeon, Reyes Oda; Ayes with reservations: none; 0 Noes: none; and 0 Excused: none.",passedCommittees,passedCommittees
+2026,SB2677,S,"Referred to EDU, WAM.",introduced,introduced
+2026,SB2685,S,"Referred to WLA, JDC.",introduced,introduced
+2026,SB2689,S,"Referred to EIG/AEN, WAM.",introduced,introduced
+2026,SB2703,S,"Referred to AEN, WAM.",introduced,introduced
+2026,SB2704,S,"Report adopted; Passed Second Reading, as amended (SD 1) and referred to WAM.",waiting2,waiting2
+2026,SB2705,S,"Referred to EDU, WAM.",introduced,introduced
+2026,SB2706,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 16 Ayes: Representative(s) Todd, Takenouchi, Hartsfield, Hussey, Keohokapu-Lee Loy, Kitagawa, Kusch, Lee, M., Miyake, Morikawa, Perruso, Templo, Yamashita, Alcos, Gedeon, Reyes Oda; Ayes with reservations: none; 0 Noes: none; and 0 Excused: none.",passedCommittees,passedCommittees
+2026,SB2707,S,"Referred to EDU/AEN, WAM.",introduced,introduced
+2026,SB2708,S,"Referred to EDU, WAM.",introduced,introduced
+2026,SB2709,S,"Reported from AEN/TRS (Stand. Com. Rep. No. 2562) with recommendation of passage on Second Reading, as amended (SD 1) and referral to WAM.",waiting2,waiting2
+2025,SB271,S,The committee on HHS deferred the measure.,deferred1,deferred1
+2026,SB2713,S,One Day Notice 03-10-26.,crossoverWaiting1,crossoverWaiting1
+2026,SB2716,S,The committee on EDT deferred the measure.,deferred1,deferred1
+2026,SB2717,S,"Referred to AEN, JDC/WAM.",introduced,introduced
+2026,SB2718,S,"Report adopted; Passed Second Reading, as amended (SD 1) and referred to WAM.",waiting2,waiting2
+2026,SB2740,S,"Referred to AEN/EIG/WLA, WAM/JDC.",introduced,introduced
+2026,SB2741,S,"Reported from AEN (Stand. Com. Rep. No. 2677) with recommendation of passage on Second Reading, as amended (SD 1) and referral to WAM.",waiting2,waiting2
+2026,SB2742,S,"Referred to AEN, JDC.",introduced,introduced
+2026,SB2743,S,"Referred to AEN/EIG, JDC.",introduced,introduced
+2026,SB2745,S,"Referred to WLA/AEN, WAM.",introduced,introduced
+2026,SB2747,S,"Referred to AEN/WLA, WAM.",introduced,introduced
+2026,SB2760,S,The committee(s) on AEN/CPN has scheduled a public hearing on 02-11-26 10:00AM; Conference Room 229 & Videoconference.,waiting2,waiting2
+2026,SB2779,S,"Referred to AEN/WLA, WAM/CPN.",introduced,introduced
+2026,SB2790,S,"The committee(s) on HWN recommend(s) that the measure be PASSED, UNAMENDED.  The votes in HWN were as follows: 5 Aye(s): Senator(s) Richards, Lamosao, Ihara, Keohokalole, DeCorte; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",waiting2,waiting2
+2026,SB2792,S,"Referred to HHS, WAM.",introduced,introduced
+2026,SB2798,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 16 Ayes: Representative(s) Todd, Takenouchi, Hartsfield, Hussey, Keohokapu-Lee Loy, Kitagawa, Kusch, Lee, M., Miyake, Morikawa, Perruso, Templo, Yamashita, Alcos, Gedeon, Reyes Oda; Ayes with reservations: none; 0 Noes: none; and 0 Excused: none.",passedCommittees,passedCommittees
+2026,SB2800,H,Passed Third Reading with none voting aye with reservations; none voting no (0) and Representative(s) Cochran excused (1).  Transmitted to Senate.,passedCommittees,introduced
+2026,SB2802,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 16 Ayes: Representative(s) Todd, Takenouchi, Hartsfield, Hussey, Keohokapu-Lee Loy, Kitagawa, Kusch, Lee, M., Miyake, Morikawa, Perruso, Templo, Yamashita, Alcos, Gedeon, Reyes Oda; Ayes with reservations: none; 0 Noes: none; and 0 Excused: none.",passedCommittees,passedCommittees
+2026,SB2805,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 15 Ayes: Representative(s) Todd, Takenouchi, Hartsfield, Hussey, Keohokapu-Lee Loy, Kitagawa, Kusch, Lee, M., Miyake, Perruso, Templo, Yamashita, Alcos, Gedeon, Reyes Oda; Ayes with reservations: none; 0 Noes: none; and 1 Excused: Representative(s) Morikawa.",passedCommittees,passedCommittees
+2026,SB2885,S,One Day Notice 03-10-26.,crossoverDeferred1,crossoverDeferred1
+2026,SB2887,S,The committee(s) on AEN/HWN has scheduled a public hearing on 02-12-26 1:00PM; CR 224 & Videoconference.,waiting2,waiting2
+2026,SB2890,S,Referred to WAM.,introduced,introduced
+2026,SB2891,S,"Referred to HHS, WAM.",introduced,introduced
+2026,SB2922,S,"Reported from JDC (Stand. Com. Rep. No. 3015) with recommendation of passage on Third Reading, as amended (SD 2).",crossoverWaiting1,crossoverWaiting1
+2026,SB2925,S,Reported from WAM/CPN (Stand. Com. Rep. No. 2892) with recommendation of passage on Third Reading.,crossoverWaiting3,crossoverWaiting2
+2026,SB2935,S,"Reported from HHS (Stand. Com. Rep. No. 2573) with recommendation of passage on Second Reading, as amended (SD 1) and referral to WAM.",waiting2,waiting2
+2026,SB2942,S,The committee(s) on AEN deleted the measure from the public hearing scheduled on 02-09-26 4:00PM; CR 224 & Videoconference.,introduced,introduced
+2026,SB2972,H,"The committee on JHA recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 8 Ayes: Representative(s) Tarnas, Poepoe, Hashem, Kahaloa, Takayama; Ayes with reservations: Representative(s) Cochran, Garcia, Shimizu; 0 Noes: none; and 2 Excused: Representative(s) Belatti, Sayama.",passedCommittees,passedCommittees
+2026,SB2973,S,One Day Notice 03-10-26.,crossoverWaiting2,crossoverWaiting2
+2026,SB2975,S,One Day Notice 03-10-26.,crossoverWaiting1,crossoverWaiting1
+2026,SB2977,S,"Referred to WLA, WAM.",introduced,introduced
+2026,SB2979,S,"Reported from WLA (Stand. Com. Rep. No. 2606) with recommendation of passage on Second Reading, as amended (SD 1) and referral to JDC.",waiting2,waiting2
+2025,SB2 SD1,S,"The committee(s) on  GVO recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in GVO were as follows: 3 Aye(s): Senator(s) McKelvey, Moriwaki, San Buenaventura; Aye(s) with reservations: none ; 0 No(es): none; and 2 Excused: Senator(s) Gabbard, Fevella.",waiting2,waiting2
+2026,SB3043,S,The committee(s) on WLA/AEN has scheduled a public hearing on 02-11-26 1:00PM; CR 224 & Videoconference.,waiting2,waiting2
+2026,SB3054,S,"Referred to AEN, WAM.",introduced,introduced
+2026,SB3056,S,"Referred to PSM, WAM.",introduced,introduced
+2026,SB3058,S,"Referred to EDU, WAM.",introduced,introduced
+2026,SB3060,S,"Referred to AEN/PSM, JDC.",introduced,introduced
+2026,SB3063,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 15 Ayes: Representative(s) Todd, Takenouchi, Hartsfield, Hussey, Keohokapu-Lee Loy, Kitagawa, Kusch, Lee, M., Miyake, Perruso, Templo, Yamashita, Reyes Oda; Ayes with reservations: Representative(s) Alcos, Gedeon;  Noes: none; and 1 Excused: Representative(s) Morikawa.",passedCommittees,crossoverWaiting3
+2026,SB3066,S,"Referred to AEN, WAM.",introduced,introduced
+2026,SB3115,S,"Referred to EDU, WAM.",introduced,introduced
+2026,SB3119,S,"Referred to EDU, WAM.",introduced,introduced
+2026,SB3137,H,"The committee on CPC recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 11 Ayes: Representative(s) Matayoshi, Grandinetti, Chun, Ilagan, Ichiyama, Iwamoto, Kong, Lowen, Marten, Tam, Pierick; Ayes with reservations: none;  Noes: none; and  Excused: none.",passedCommittees,passedCommittees
+2025,SB315,S,The committee(s) on WTL/AEN has scheduled a public hearing on 02-12-25 1:05PM; Conference Room 229 & Videoconference.,deferred1,deferred1
+2026,SB3158,S,"Referred to EDU, WAM.",introduced,introduced
+2026,SB3162,S,"Referred to AEN, WAM.",waiting2,waiting2
+2026,SB3197,S,"Referred to HHS/LBT, WAM.",introduced,introduced
+2026,SB3221,S,"Referred to TRS/AEN, WAM.",introduced,introduced
+2026,SB3222,S,"Referred to AEN, WAM.",introduced,introduced
+2026,SB3224,S,"Referred to AEN, JDC.",introduced,introduced
+2026,SB3231,S,"Reported from CPN (Stand. Com. Rep. No. 3009) with recommendation of passage on Third Reading, as amended (SD 1).",crossoverWaiting1,crossoverWaiting1
+2026,SB3232,S,"Report Adopted; Passed Third Reading. Ayes, 24; Aye(s) with reservations: none.  Noes, 0 (none).  Excused, 1 (Senator(s) Ihara).  Transmitted to House.",crossoverWaiting1,crossoverWaiting1
+2026,SB3233,H,Passed Third Reading with none voting aye with reservations; Representative(s) Pierick voting no (1) and Representative(s) Cochran excused (1).  Transmitted to Senate.,passedCommittees,ERROR
+2026,SB3245,H,"The committee on FIN recommend that the measure be PASSED, UNAMENDED. The votes were as follows: 16 Ayes: Representative(s) Todd, Takenouchi, Hartsfield, Hussey, Keohokapu-Lee Loy, Kitagawa, Kusch, Lee, M., Miyake, Morikawa, Perruso, Templo, Yamashita, Alcos, Gedeon, Reyes Oda; Ayes with reservations: none;  Noes: none; and  Excused: none.",passedCommittees,passedCommittees
+2026,SB3256,S,"Referred to AEN, WAM.",waiting2,waiting2
+2026,SB3257,S,"Referred to EDU/HHS, WAM.",introduced,introduced
+2026,SB3258,S,"Referred to AEN, WAM.",introduced,introduced
+2025,SB328 SD1 HD2,H,"Passed Third Reading as amended in HD 2 with none voting aye with reservations; Representative(s) Amato, Iwamoto voting no (2) and Representative(s) Cochran, Marten excused (2).  Transmitted to Senate.",conferenceAssigned,conferenceAssigned
+2026,SB3296,S,The committee on WAM deferred the measure.,deferred2,deferred2
+2026,SB3297,S,"Referred to WLA/AEN, WAM.",introduced,introduced
+2026,SB3298,S,"Referred to WLA/AEN/EIG/EDT, WAM.",introduced,introduced
+2026,SB3302,H,"The committee on CPC recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 11 Ayes: Representative(s) Matayoshi, Grandinetti, Chun, Ilagan, Ichiyama, Iwamoto, Kong, Lowen, Marten, Tam, Pierick; Ayes with reservations: none;  Noes: none; and  Excused: none.",passedCommittees,passedCommittees
+2025,SB330 SD1 HD2 CD1,H,"Act 190, on 06/06/2025 (Gov. Msg. No. 1290).",governorSigns,governorSigns
+2026,SB3318,S,"Referred to AEN/EDU, WAM.",introduced,introduced
+2026,SB3320,H,"Bill scheduled to be heard by FIN on Tuesday, 04-07-26 2:00PM in House conference room 308 VIA VIDEOCONFERENCE.",passedCommittees,crossoverScheduled3
+2026,SB3321,S,"Referred to AEN, WAM.",introduced,introduced
+2026,SB3323,S,The committee(s) on AEN/WLA has scheduled a public hearing on 02-11-26 3:00PM; CR 224 & Videoconference.,deferred1,deferred1
+2025,SB334,S,"Referred to EDT, WAM.",introduced,introduced
+2025,SB351,S,Report adopted; Passed Second Reading and referred to CPN/WAM.,waiting2,waiting2
+2025,SB352 SD2,H,"Referred to AGR, CPC, referral sheet 19",crossoverWaiting1,crossoverWaiting1
+2025,SB369,S,"Referred to EDT, WAM.",introduced,introduced
+2025,SB43,S,Pending Introduction.,introduced,introduced
+2025,SB443 SD1 HD2,H,"Passed Third Reading as amended in HD 2 with none voting aye with reservations; Representative(s) Pierick voting no (1) and Representative(s) Cochran, Marten excused (2).  Transmitted to Senate.",conferenceAssigned,conferenceAssigned
+2025,SB448 SD1 HD1,H,"The committee on AGR recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 4 Ayes: Representative(s) Kahaloa, Lowen, Perruso, Quinlan; Ayes with reservations: none;  Noes: none; and 2 Excused: Representative(s) Kusch, Ward.",crossoverWaiting3,crossoverWaiting2
+2025,SB471,S,"Referred to AEN/WTL, WAM.",introduced,introduced
+2025,SB495,S,"Referred to EDT/AEN, WAM.",introduced,introduced
+2025,SB496 SD1,S,"The committee(s) on  AEN recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in AEN were as follows: 4 Aye(s): Senator(s) Gabbard, Richards, Rhoads, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 1 Excused: Senator(s) DeCoite.",waiting2,waiting2
+2025,SB498 SD1,S,"Reported from AEN (Stand. Com. Rep. No. 45) with recommendation of passage on Second Reading, as amended (SD 1) and referral to WAM.",waiting2,waiting2
+2025,SB499,S,"Referred to EDT/AEN, WAM.",introduced,introduced
+2025,SB500 SD1,S,"The committee(s) on  AEN recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in AEN were as follows: 4 Aye(s): Senator(s) Gabbard, DeCoite, Rhoads, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 1 Excused: Senator(s) Richards.",waiting2,waiting2
+2025,SB521,S,"Re-Referred to HWN/WTL, JDC.",introduced,introduced
+2025,SB522 SD1,S,The committee(s) on EDT/AEN has scheduled a public hearing on 02-11-25 1:01PM; Conference Room 229 & Videoconference.,introduced,waiting2
+2025,SB523 SD1,S,"The committee(s) on  AEN recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in AEN were as follows: 5 Aye(s): Senator(s) Gabbard, Richards, DeCoite, Rhoads, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",waiting2,waiting2
+2025,SB53,S,Pending Introduction.,deferred1,deferred1
+2025,SB535,S,"Referred to WTL/HHS, JDC.",introduced,introduced
+2025,SB536,S,"Referred to HHS/AEN, WAM.",introduced,introduced
+2025,SB537,S,"Referred to AEN/EIG, WAM.",introduced,introduced
+2025,SB540,S,"Referred to GVO/AEN/PSM/HHS, WAM.",introduced,introduced
+2025,SB543,S,"Referred to WTL/EIG, WAM/JDC.",introduced,introduced
+2025,SB545,S,"Referred to EDU, JDC.",introduced,introduced
+2025,SB546,S,Report adopted; Passed Second Reading and referred to WAM.,waiting2,waiting2
+2025,SB547 SD1,S,The committee(s) on AEN/PSM/EDT has scheduled a public hearing on 02-10-25 1:00PM; Conference Room 224 & Videoconference.,waiting2,waiting2
+2025,SB548 SD1,S,The committee(s) on WTL/AEN has scheduled a public hearing on 02-12-25 1:05PM; Conference Room 229 & Videoconference.,waiting2,waiting2
+2025,SB549,S,"Referred to EDU/AEN, WAM.",introduced,introduced
+2025,SB551,S,"Referred to AEN/HHS, CPN.",introduced,introduced
+2025,SB552 SD1 HD1,H,"The committee on AGR recommend that the measure be PASSED, WITH AMENDMENTS. The votes were as follows: 4 Ayes: Representative(s) Kahaloa, Lowen, Perruso, Quinlan; Ayes with reservations: none;  Noes: none; and 2 Excused: Representative(s) Kusch, Ward.",crossoverWaiting2,crossoverWaiting2
+2025,SB558 SD2 HD2,H,"Bill scheduled to be heard by AGR on Wednesday, 03-12-25 9:00AM in House conference room 325 VIA VIDEOCONFERENCE.",crossoverWaiting3,crossoverWaiting3
+2025,SB562 SD2 HD1,H,"Bill scheduled to be heard by AGR on Wednesday, 03-12-25 9:00AM in House conference room 325 VIA VIDEOCONFERENCE.",crossoverDeferred2,crossoverDeferred2
+2025,SB563 SD1,S,"The committee(s) on  AEN recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in AEN were as follows: 3 Aye(s): Senator(s) Gabbard, Richards, Rhoads; Aye(s) with reservations: none ; 0 No(es): none; and 2 Excused: Senator(s) DeCoite, Awa.",waiting2,waiting2
+2025,SB564,S,"Referred to TCA/AEN, WAM.",introduced,introduced
+2025,SB568,S,"Referred to WTL, WAM.",introduced,introduced
+2025,SB584,S,"Referred to EDT/AEN, WAM.",deferred1,introduced
+2025,SB633,S,"Referred to AEN/EIG, WAM.",introduced,introduced
+2025,SB638,S,"Referred to LBT, JDC/WAM.",introduced,introduced
+2025,SB639 SD1 HD1,H,"Referred to EEP, WAL, JHA, referral sheet 19",crossoverWaiting2,crossoverWaiting2
+2025,SB657 SD1 HD1,S,Senate disagrees with House amendments.,conferenceScheduled,conferenceScheduled
+2025,SB658 SD1,S,The committee(s) on AEN has scheduled a public hearing on 02-10-25 1:01PM; Conference Room 224 & Videoconference.,waiting2,waiting2
+2025,SB659 SD2 HD1,H,"Bill scheduled to be heard by EDN on Tuesday, 03-11-25 2:00PM in House conference room 309 VIA VIDEOCONFERENCE.",waiting3,crossoverWaiting2
+2025,SB663,S,The committee on HRE deferred the measure.,deferred1,deferred1
+2025,SB666 SD1,S,"Reported from HRE (Stand. Com. Rep. No. 310) with recommendation of passage on Second Reading, as amended (SD 1) and referral to WAM.",waiting2,waiting2
+2025,SB667,S,"Referred to AEN/GVO, WAM.",introduced,introduced
+2025,SB671,S,"Referred to AEN/GVO/WTL, CPN/WAM.",introduced,introduced
+2025,SB674 SD1,S,"Report adopted; Passed Second Reading, as amended (SD 1) and referred to WAM.",waiting2,waiting2
+2025,SB677 SD1,S,The committee(s) on WTL/AEN has scheduled a public hearing on 02-12-25 1:05PM; Conference Room 229 & Videoconference.,waiting2,waiting2
+2025,SB678 SD1,S,"The committee(s) on  AEN recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in AEN were as follows: 4 Aye(s): Senator(s) Gabbard, Richards, Rhoads, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 1 Excused: Senator(s) DeCoite.",waiting2,waiting2
+2025,SB681,S,"The committee(s) on AEN recommend(s) that the measure be PASSED, UNAMENDED.  The votes in AEN were as follows: 3 Aye(s): Senator(s) Gabbard, Awa; Aye(s) with reservations: Senator(s) Rhoads ; 1 No(es): Senator(s) Richards; and 1 Excused: Senator(s) DeCoite.",waiting3,waiting2
+2025,SB683 SD1,S,The committee(s) on AEN has scheduled a public hearing on 02-10-25 1:01PM; Conference Room 224 & Videoconference.,waiting2,waiting2
+2025,SB685,S,"Referred to AEN/EIG, WAM.",introduced,introduced
+2025,SB686 SD1,S,"The committee(s) on  HRE recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in HRE were as follows: 5 Aye(s): Senator(s) Kim, Kidani, Fukunaga, Hashimoto, Fevella; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",waiting2,waiting2
+2025,SB688 SD1,S,"Report adopted; Passed Second Reading, as amended (SD 1) and referred to WAM.",waiting2,waiting2
+2025,SB689,S,"Referred to AEN/HHS, WAM.",introduced,introduced
+2025,SB690,S,"Referred to EDT/AEN, WAM.",introduced,introduced
+2025,SB693 SD1 HD1 CD1,S,"Act 185, 06/06/2025 (Gov. Msg. No. 1285).",governorSigns,governorSigns
+2025,SB719,S,"Referred to HHS, WAM/JDC.",introduced,introduced
+2025,SB729,S,The committee on EDT deferred the measure.,deferred1,deferred1
+2025,SB737,S,"Referred to AEN/HHS, CPN/WAM.",introduced,introduced
+2025,SB739 SD2 HD1 CD1,H,"Act 279, on 07/02/2025 (Gov. Msg. No. 1382).",governorSigns,governorSigns
+2025,SB740,S,"The committee(s) on WTL recommend(s) that the measure be PASSED, UNAMENDED.  The votes in WTL were as follows: 5 Aye(s): Senator(s) Inouye, Elefante, Chang, McKelvey, DeCorte; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",waiting2,waiting2
+2025,SB746 SD2 HD1,H,"Bill scheduled to be heard by AGR on Wednesday, 03-12-25 9:00AM in House conference room 325 VIA VIDEOCONFERENCE.",crossoverWaiting3,crossoverWaiting3
+2025,SB760,S,"Referred to WTL/TCA, JDC.",introduced,introduced
+2025,SB761,S,"Referred to EDT, WAM.",introduced,introduced
+2025,SB762 SD1,S,"The committee(s) on  AEN recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in AEN were as follows: 4 Aye(s): Senator(s) Gabbard, Richards, DeCoite, Rhoads; Aye(s) with reservations: none ; 1 No(es): Senator(s) Awa; and 0 Excused: none.",waiting2,waiting2
+2025,SB763 SD2 HD3,H,"Passed Third Reading as amended in HD 3 with none voting aye with reservations; Representative(s) Garcia, Muraoka, Pierick voting no (3) and Representative(s) Cochran, Marten excused (2).  Transmitted to Senate.",conferenceAssigned,conferenceAssigned
+2025,SB765 SD1,S,"Report adopted; Passed Second Reading, as amended (SD 1) and referred to WAM/CPN.",waiting2,waiting2
+2025,SB785,S,"Referred to HHS, CPN/JDC.",introduced,introduced
+2025,SB789 SD2 HD1,H,"Bill scheduled to be heard by EDN on Tuesday, 03-11-25 2:00PM in House conference room 309 VIA VIDEOCONFERENCE.",waiting2,crossoverWaiting2
+2025,SB790,S,"Referred to EDU, WAM.",introduced,introduced
+2025,SB791,S,"Referred to EDU, WAM.",introduced,introduced
+2025,SB815,S,"Referred to EDT, WAM.",introduced,introduced
+2025,SB827 SD1,S,"The committee(s) on  EDT recommend(s) that the measure be PASSED, WITH AMENDMENTS.  The votes in EDT were as follows: 5 Aye(s): Senator(s) DeCoite, Wakai, Fukunaga, Kim, Awa; Aye(s) with reservations: none ; 0 No(es): none; and 0 Excused: none.",waiting2,waiting2
+2025,SB836 SD1,S,The committee(s) on HHS has scheduled a public hearing on 02-12-25 1:00PM; Conference Room 225 & Videoconference.,waiting2,waiting2
+2025,SB86,S,Pending Introduction.,introduced,introduced
+2025,SB865 SD1 HD2 CD1,H,"Act 184, on 06/06/2025 (Gov. Msg. No. 1284).",governorSigns,governorSigns
+2025,SB875,S,"Referred to HHS/EDT, WAM.",introduced,introduced
+2025,SB881,S,"Referred to HHS, WAM.",introduced,introduced
+2025,SB890 SD2 HD2,H,"Passed Third Reading as amended in HD 2 with none voting aye with reservations; none voting no (0) and Representative(s) Cochran, Marten excused (2).  Transmitted to Senate.",conferenceScheduled,conferenceAssigned
+2025,SB894 SD3 HD1,H,Received notice of disagreement (Sen. Com. No. 774).,conferenceDeferred,conferenceAssigned
+2025,SB940,S,"Referred to EDU, WAM.",scheduled1,introduced
+2025,SB960 SD1 HD2 CD1,H,"Act 264, on 07/01/2025 (Gov. Msg. No. 1367).",governorSigns,governorSigns
+2025,SB961 SD1 HD1,H,"Bill scheduled to be heard by HSH on Thursday, 03-13-25 10:00AM in House conference room 329 VIA VIDEOCONFERENCE.",crossoverWaiting2,crossoverWaiting2
+2025,SB962,S,"Referred to AEN/HHS, CPN/JDC.",introduced,introduced
+2025,SB963 SD1,S,"Reported from HHS (Stand. Com. Rep. No. 644) with recommendation of passage on Second Reading, as amended (SD 1) and referral to WAM.",deferred1,waiting2
+2025,SB984 SD2 HD1,H,Pass First Reading,crossoverWaiting2,crossoverWaiting2
+2025,SB988,S,"Referred to EDU/AEN, WAM.",introduced,introduced

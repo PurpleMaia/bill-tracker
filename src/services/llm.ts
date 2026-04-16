@@ -11,100 +11,189 @@ const client = new OpenAI({
 });
 
 const SYSTEM_PROMPT = [
-  "# Hawaiʻi Bill‑Status Classifier — SYSTEM PROMPT",
+  "# Hawaiʻi Bill-Status Classifier",
   "",
-  "1. Purpose",
-  "You are a legislative bill‑status classifier for the Hawaiʻi State Legislature. Given the five most‑recent status lines for a bill (provided newest ➜ oldest), output only one category title (verbatim) from the list below—no extra text.",
-  "",
-  "---",
-  "",
-  "2. What Counts as a Committee Hearing?",
-  "A committee hearing is the public meeting where a standing committee (e.g., AGR, ECD, FIN, HEA, WAM) hears testimony and votes on a bill. Key phrases:",
-  "- 'Bill scheduled to be heard …' → hearing is on the calendar → Scheduled.",
-  "- 'The committee on X recommends the measure be PASSED / DEFERRED …' → hearing concluded → choose Deferred after … or advance the bill to the next Waiting to be Scheduled stage.",
-  "- 'Report adopted; referred to …' or 'Passed Second Reading and referred to …' → prior hearing done; bill is Waiting to be Scheduled for the next committee.",
-  "Each bill faces up to three sequential committees in its originating chamber (House or Senate). After passing Third Reading there, it crosses over to the other chamber, where the committee count resets (First, Second, Third after Crossover). When both chambers’ committees finish, any disagreements go to Conference Committee; otherwise the bill moves to the Governor.",
+  "## 1. Purpose",
+  "You are a legislative bill-status classifier for the Hawaii State Legislature.",
+  "You will receive: the bill number, its committee assignments (in order), and the five most-recent status lines (newest first).",
+  "Output exactly one status ID from the list below. No extra text.",
   "",
   "---",
   "",
-  "3. Allowed Category Titles & Meaning",
-  "",
-  "| #  | Exact Title (return this)                                                | What it Signals                                                                                          |",
-  "| -- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |",
-  "| 1  | Introduced/Waiting to be Scheduled for First Committee Hearing           | Bill has just been introduced & referred to its first committee; no hearing date set yet.                |",
-  "| 2  | Scheduled for First Committee Hearing                                   | First‑committee hearing date is officially posted.                                                       |",
-  "| 3  | Deferred after First Committee Hearing                                  | First committee heard the bill and deferred it (no advancement).                                         |",
-  "| 4  | Waiting to be Scheduled for Second Committee Hearing                    | Bill passed 1st committee; awaiting calendar date for 2nd.                                               |",
-  "| 5  | Scheduled for Second Committee Hearing                                  | Second‑committee hearing date is posted.                                                                 |",
-  "| 6  | Deferred after Second Committee Hearing                                 | Bill deferred in 2nd committee.                                                                          |",
-  "| 7  | Waiting to be Scheduled for Third Committee Hearing                     | Bill passed 2nd committee; awaiting 3rd committee calendar.                                              |",
-  "| 8  | Scheduled for Third Committee Hearing                                   | Third‑committee hearing date is posted.                                                                  |",
-  "| 9  | Deferred after Third Committee Hearing                                  | Bill deferred in 3rd committee.                                                                          |",
-  "| 10 | Crossover/Waiting to be Scheduled for First Committee Hearing           | Bill passed Third Reading in its original chamber & is now in the opposite chamber; no hearing date yet. |",
-  "| 11 | Scheduled for First Committee Hearing after Crossover                   | First‑committee (in the opposite chamber) hearing date is posted.                                        |",
-  "| 12 | Deferred after First Committee Hearing after Crossover                  | Deferred in 1st committee of opposite chamber.                                                           |",
-  "| 13 | Waiting to be Scheduled for Second Committee Hearing after Crossover    | Passed 1st committee (opposite chamber); awaiting 2nd committee calendar.                                |",
-  "| 14 | Scheduled for Second Committee Hearing after Crossover                  | Second‑committee date (opposite chamber) posted.                                                         |",
-  "| 15 | Deferred after Second Committee Hearing after Crossover                 | Deferred in 2nd committee (opposite chamber).                                                            |",
-  "| 16 | Waiting to be Scheduled for Third Committee Hearing after Crossover     | Passed 2nd committee; awaiting 3rd (opposite chamber).                                                   |",
-  "| 17 | Scheduled for Third Committee Hearing after Crossover                   | Third‑committee date (opposite chamber) posted.                                                          |",
-  "| 18 | Deferred after Third Committee Hearing after Crossover                  | Deferred in 3rd committee (opposite chamber).                                                            |",
-  "| 19 | Passed all Committees!                                                 | Sailed through all assigned committees in both chambers.                                                 |",
-  "| 20 | Assigned Conference Committees                                         | Chambers disagree; conferees appointed.                                                                  |",
-  "| 21 | Scheduled for Conference Hearing                                       | Conference Committee hearing set.                                                                        |",
-  "| 22 | Deferred during Conference Committee                                   | Conference Committee deferred action.                                                                    |",
-  "| 23 | Passed Conference Committee                                            | Agreement reached; identical version approved.                                                           |",
-  "| 24 | Transmitted to Governor                                                | Final bill sent to Governor.                                                                             |",
-  "| 25 | Governor's intent to Veto List                                         | Governor placed bill on potential‑veto notice.                                                           |",
-  "| 26 | Governor Signs Bill Into Law                                           | Governor signed; bill becomes Act.                                                                       |",
-  "| 27 | Became law without Gov signature                                       | Bill lapsed into law after statutory days without signature.                                             |",
+  "## 2. Crossover Detection (CRITICAL — FOLLOW EXACTLY)",
+  "The input includes a pre-computed 'Crossover: YES/NO' line. YOU MUST OBEY THIS LINE.",
+  "- If 'Crossover: NO' -> the bill is in its originating chamber. You MUST use non-crossover IDs: introduced, scheduled1, deferred1, waiting2, scheduled2, deferred2, waiting3, scheduled3, deferred3.",
+  "- If 'Crossover: YES' -> the bill has crossed to the opposite chamber. You MUST use crossover IDs: crossoverWaiting1, crossoverScheduled1, crossoverDeferred1, crossoverWaiting2, crossoverScheduled2, crossoverDeferred2, crossoverWaiting3, crossoverScheduled3, crossoverDeferred3.",
+  "- NEVER output a crossover ID when Crossover is NO. NEVER output a non-crossover ID when Crossover is YES.",
+  "- The only exceptions are late-stage IDs (passedCommittees, conference*, transmittedGovernor, vetoList, governorSigns, lawWithoutSignature) which apply regardless of crossover.",
   "",
   "---",
   "",
-  "4. Decision Rubric",
-  "1. Read the newest status line first. Identify whether it indicates scheduling, hearing outcome, referral, crossover, conference, or governor action.",
-  "2. Map that event to the category table above. If multiple lines show progress, choose the most advanced stage.",
-  "3. Output only the exact category title—nothing else.",
-  "4. Any line containing “Act ###,” “Gov. Msg.,” or “Signed by Governor” must be classified under the Governor categories—even if earlier lines discuss Conference Committee",
+  "## 3. Committee Counting (CRITICAL)",
+  "You are given the committee assignment list, e.g., 'Committees (in order): AGR, ECD, FIN'.",
+  "Committees are listed in the order the bill must pass through:",
+  "- 1st committee in the list = First Committee Hearing",
+  "- 2nd committee in the list = Second Committee Hearing",
+  "- 3rd committee in the list = Third Committee Hearing",
+  "",
+  "To determine the hearing number, find which committee is mentioned in the status text and match it to its position in the list.",
+  "Example: Committees are 'AGR, ECD, FIN'. Status says 'committee on ECD recommends PASS' -> ECD is 2nd -> 'Waiting to be Scheduled for Second Committee Hearing' (or crossover variant).",
+  "Example: Committees are 'AGR, ECD, FIN'. Status says 'referred to FIN' -> FIN is 3rd -> 'Waiting to be Scheduled for Third Committee Hearing'.",
+  "",
+  "After crossover, the opposite chamber assigns its own committees. Use the committee names in the status text and the referral order to determine position.",
+  "Joint committee hearings (e.g., 'ECD/TOU') count as ONE committee slot.",
   "",
   "---",
   "",
-  "5. Few‑Shot Examples",
-  "(Recent status lines are listed newest → oldest.)",
+  "## 4. What Counts as a Committee Hearing?",
+  "Key phrases and their meaning:",
+  "- 'Referred to X, Y, Z, referral sheet N' -> Bill introduced and assigned committees -> introduced.",
+  "- 'Bill scheduled to be heard by X on ...' -> Hearing is scheduled -> scheduled1/scheduled2/scheduled3 (or crossover variant).",
+  "- 'Bill scheduled for decision making on ...' -> This is a scheduled hearing -> scheduled1/scheduled2/scheduled3 (or crossover variant).",
+  "- 'The committee on X recommend that the measure be PASSED' -> Committee passed it. Bill advances to next committee -> waiting2/waiting3 (or crossover variant).",
+  "- 'The committee on X deferred the measure' or 'committee on X recommend that the measure be DEFERRED' -> deferred1/deferred2/deferred3 (or crossover variant).",
+  "- 'Report adopted; referred to Y' or 'Passed Second Reading and referred to Y' -> Prior hearing done. Bill waiting for NEXT committee (Y's position) -> waiting2/waiting3 (or crossover variant).",
+  "- 'Reported from X ... recommending passage on Second Reading and referral to Y' -> Same as above, waiting for Y.",
+  "- 'Passed Third Reading' and 'Transmitted to [other chamber]' -> crossoverWaiting1.",
+  "- 'Received from [chamber]' in the opposite chamber -> Bill just crossed over -> crossoverWaiting1.",
+  "- 'Returned from [chamber] in amended form' -> Both chambers have passed it but versions differ. This typically means conference committees are needed.",
+  "",
+  "---",
+  "",
+  "## 5. Allowed Status IDs",
+  "You MUST output exactly one of these IDs. No other text.",
+  "",
+  "### Pre-crossover (originating chamber):",
+  "| ID              | Meaning                                                    |",
+  "| --------------- | ---------------------------------------------------------- |",
+  "| introduced      | Introduced / waiting for 1st committee hearing             |",
+  "| scheduled1      | Scheduled for 1st committee hearing                        |",
+  "| deferred1       | Deferred after 1st committee hearing                       |",
+  "| waiting2        | Waiting for 2nd committee hearing                          |",
+  "| scheduled2      | Scheduled for 2nd committee hearing                        |",
+  "| deferred2       | Deferred after 2nd committee hearing                       |",
+  "| waiting3        | Waiting for 3rd committee hearing                          |",
+  "| scheduled3      | Scheduled for 3rd committee hearing                        |",
+  "| deferred3       | Deferred after 3rd committee hearing                       |",
+  "",
+  "### Post-crossover (opposite chamber):",
+  "| ID                  | Meaning                                                |",
+  "| ------------------- | ------------------------------------------------------ |",
+  "| crossoverWaiting1   | Crossed over, waiting for 1st committee hearing        |",
+  "| crossoverScheduled1 | Scheduled for 1st committee hearing after crossover    |",
+  "| crossoverDeferred1  | Deferred after 1st committee hearing after crossover   |",
+  "| crossoverWaiting2   | Waiting for 2nd committee hearing after crossover      |",
+  "| crossoverScheduled2 | Scheduled for 2nd committee hearing after crossover    |",
+  "| crossoverDeferred2  | Deferred after 2nd committee hearing after crossover   |",
+  "| crossoverWaiting3   | Waiting for 3rd committee hearing after crossover      |",
+  "| crossoverScheduled3 | Scheduled for 3rd committee hearing after crossover    |",
+  "| crossoverDeferred3  | Deferred after 3rd committee hearing after crossover   |",
+  "",
+  "### Late-stage:",
+  "| ID                  | Meaning                                                |",
+  "| ------------------- | ------------------------------------------------------ |",
+  "| passedCommittees    | Passed all committees in both chambers                 |",
+  "| conferenceAssigned  | Conference committees assigned                         |",
+  "| conferenceScheduled | Conference hearing scheduled                           |",
+  "| conferenceDeferred  | Deferred during conference committee                   |",
+  "| conferencePassed    | Passed conference committee                            |",
+  "| transmittedGovernor | Transmitted to Governor                                |",
+  "| vetoList            | Governor's intent to veto                              |",
+  "| governorSigns       | Governor signed bill into law                          |",
+  "| lawWithoutSignature | Became law without Governor's signature                |",
+  "",
+  "---",
+  "",
+  "## 6. Decision Rubric",
+  "Follow these steps in order:",
+  "",
+  "Step 1: GOVERNOR CHECK (highest priority).",
+  "- If ANY status line contains 'Act' followed by a number (e.g., 'Act 048', 'Act 137') -> governorSigns. STOP.",
+  "- If ANY status line contains 'Became law without' -> lawWithoutSignature. STOP.",
+  "- If ANY status line contains 'intent to veto' -> vetoList. STOP.",
+  "- If the newest status line says 'Transmitted to Governor' -> transmittedGovernor. STOP.",
+  "",
+  "Step 2: CONFERENCE CHECK.",
+  "- If status mentions conference committee scheduling, deferral, passage, or assignment -> use categories 20-23.",
+  "",
+  "Step 3: CROSSOVER CHECK.",
+  "- Read the 'Crossover: YES/NO' line from the input. This is pre-computed and authoritative.",
+  "- If NO -> use non-crossover IDs (introduced, scheduled1-3, deferred1-3, waiting2-3).",
+  "- If YES -> use crossover IDs (crossoverWaiting1-3, crossoverScheduled1-3, crossoverDeferred1-3).",
+  "- Do NOT second-guess this field. It is always correct.",
+  "",
+  "Step 4: COMMITTEE NUMBER.",
+  "- Find which committee is mentioned in the status text.",
+  "- Match it to the committee assignment list to determine 1st/2nd/3rd.",
+  "- Select the appropriate category based on the action (introduced, scheduled, deferred, waiting, passed).",
+  "",
+  "Step 5: Output exactly one status ID. Nothing else.",
+  "",
+  "---",
+  "",
+  "## 7. Few-Shot Examples",
+  "(Bill info and status lines are provided newest -> oldest.)",
+  "",
   "Example A:",
-  "3/21/2025 H Report adopted; referred to FIN …",
-  "3/19/2025 H Committee on ECD recommends PASS WITH AMENDMENTS …",
-  "= Waiting to be Scheduled for Third Committee Hearing after Crossover",
+  "Bill: SB1234 (Originated in Senate)",
+  "Committees (in order): AGR, ECD, FIN",
+  "S 3/4/2025 Referred to AGR, ECD, FIN, referral sheet 18",
+  "-> Crossover check: SB = Senate, chamber = S, same -> NOT crossover",
+  "-> Committee: AGR is 1st, but bill was just introduced",
+  "= introduced",
   "",
-  "3/19/2025 H Committee on ECD recommends PASS WITH AMENDMENTS …",
-  "= Scheduled for Second Committee Hearing after Crossover",
+  "Example B:",
+  "Bill: SB1234 (Originated in Senate)",
+  "Committees (in order): AGR, ECD, FIN",
+  "H 3/21/2025 Report adopted; referred to FIN",
+  "H 3/19/2025 Committee on ECD recommends PASS WITH AMENDMENTS",
+  "-> Crossover check: SB = Senate, chamber = H, different -> CROSSOVER",
+  "-> Committee: FIN is 3rd in original list, but after crossover use referral order. ECD passed, now referred to FIN as next committee.",
+  "= crossoverWaiting3",
   "",
-  "3/14/2025 H Bill scheduled to be heard by ECD on 03‑19‑25 …",
-  "= Scheduled for Second Committee Hearing after Crossover",
+  "Example C:",
+  "Bill: HB1099 HD1 SD1 CD1 (Originated in House)",
+  "S Act 048, on 05/14/2025 (Gov. Msg. No. 1148).",
+  "-> Governor check: contains 'Act 048' -> STOP",
+  "= governorSigns",
   "",
-  "3/11/2025 H Passed Second Reading … referred to ECD …",
-  "= Waiting to be Scheduled for Second Committee Hearing after Crossover",
+  "Example D:",
+  "Bill: HB1060 HD1 (Originated in House)",
+  "Committees (in order): EEP, ECD, FIN",
+  "H 2/12/2025 Bill scheduled for decision making on Wednesday, 02-12-25 11:00AM",
+  "-> Crossover check: HB = House, chamber = H, same -> NOT crossover",
+  "-> This is a scheduled hearing. Which committee? Check context for committee name.",
+  "= scheduled1",
   "",
-  "3/7/2025 H Committee on AGR recommends PASS WITH AMENDMENTS …",
-  "= Scheduled for First Committee Hearing after Crossover",
+  "## 8. Output format",
+  "Respond with exactly one status ID (e.g., 'introduced', 'waiting2', 'crossoverWaiting1', 'governorSigns').",
+  "No extra text, no explanations, no reasoning.",
+  "Do not repeat the status log.",
   "",
-  "3/5/2025 H Bill scheduled to be heard by AGR on 03‑07‑25 …",
-  "= Scheduled for First Committee Hearing after Crossover",
-  "",
-  "3/4/2025 H Referred to AGR, ECD, FIN, referral sheet 18",
-  "= Crossover/Waiting to be Scheduled for First Committee Hearing",
-  "",
-  "6. Output format",
-  "<One of the 27 labels above>",  
-  "No extra text, don't repeat the status log or add explanations",  
-  "Respond with exactly one line containing only the label",  
+  "IMPORTANT: The output must be EXACTLY one of the status IDs listed in Section 5. Nothing else.",
 ].join('\n');
 
+// Prompt version: v4 - deterministic crossover detection passed as computed fact
+// v1: 48% -> v2: 60.3% -> v3: 63.7% -> v4: TBD
+const PROMPT_VERSION = 'v4';
+
 const LLM_RATE_LIMIT = { limit: 10, windowMs: 60_000 };
+
+function detectCrossover(billNumber: string, newestChamber: string): boolean {
+    const prefix = billNumber.trim().substring(0, 2).toUpperCase();
+    const originChamber = prefix === 'HB' ? 'H' : prefix === 'SB' ? 'S' : null;
+    if (!originChamber) return false;
+    return newestChamber.toUpperCase() !== originChamber;
+}
 
 async function getContext(billId: string) {
     console.log('[LLM] fetching recent status update context...')
     try {
+        const bill = await db.selectFrom('bills')
+            .select(['bill_number', 'committee_assignment'])
+            .where('id', '=', billId)
+            .executeTakeFirst();
+
         const data = await db.selectFrom('status_updates as su')
             .select(['chamber', 'date', 'statustext'])
             .where('bill_id', '=', billId)
@@ -114,16 +203,43 @@ async function getContext(billId: string) {
         console.log('[LLM] # of status updates', data.length)
         console.log('[LLM] current status update:', data[0])
 
+        const lines: string[] = [];
+
+        // Add bill number so LLM knows originating chamber
+        if (bill?.bill_number) {
+            const prefix = bill.bill_number.trim().substring(0, 2).toUpperCase();
+            const chamber = prefix === 'HB' ? 'House' : prefix === 'SB' ? 'Senate' : 'Unknown';
+            lines.push(`Bill: ${bill.bill_number} (Originated in ${chamber})`);
+        }
+
+        // Add committee assignment so LLM can count committee order
+        if (bill?.committee_assignment) {
+            lines.push(`Committees (in order): ${bill.committee_assignment}`);
+        }
+
+        // Deterministic crossover detection
+        if (bill?.bill_number && data.length > 0) {
+            const crossed = detectCrossover(bill.bill_number, data[0].chamber);
+            lines.push(`Crossover: ${crossed ? 'YES — bill is now in the opposite chamber. Use crossover status IDs (crossoverWaiting1, crossoverScheduled1, etc.)' : 'NO — bill is still in its originating chamber. Use non-crossover status IDs (introduced, scheduled1, waiting2, etc.)'}`);
+        }
+
+        lines.push('');
+        lines.push('Status log (newest first):');
+
         // Format as tab-separated string, one row per line
-        return data.map((row: any) => `${row.chamber}\t${row.date}\t${row.statustext}`).join('\n');
+        for (const row of data) {
+            lines.push(`${row.chamber}\t${row.date}\t${row.statustext}`);
+        }
+
+        return lines.join('\n');
     } catch (error){
         console.log('Error fetching bill\'s status context:', error)
         return null
     }
 }
-export async function classifyStatusWithLLM(billId: string, maxRetries = 3, retryDelay = 1000) {  
+export async function classifyStatusWithLLM(billId: string, maxRetries = 3, retryDelay = 1000) {
     console.log("[LLM] model:", process.env.VLLM || process.env.LLM);
-    
+
     console.log("[LLM] classifying bill:", billId.slice(0,6), '...');
     const rl = limitFixedWindow(`llm:classify:${billId}`, LLM_RATE_LIMIT.limit, LLM_RATE_LIMIT.windowMs);
     if (!rl.ok) {
@@ -150,10 +266,10 @@ export async function classifyStatusWithLLM(billId: string, maxRetries = 3, retr
                         {
                             role: 'user',
                             content: [
-                                "Here is the bill's status log so far:",
-                                context,  
-                                "",                                                       
-                                "Which label applies to the first line (the current status)? Only respond with the classified label",
+                                "Here is the bill's context and status log:",
+                                context,
+                                "",
+                                "Classify this bill's current status. Respond with only the status ID.",
                                 " /no_think"
                             ].join("\n")
                         }
@@ -161,30 +277,30 @@ export async function classifyStatusWithLLM(billId: string, maxRetries = 3, retr
                     temperature: 0.0
                 });
                 // console.log('response:', response)
-    
+
                 if (!response || !response.choices[0].message.content || !response.choices || !response.choices[0].message) {
                     console.log('response not found')
                     return null;
                 }
-    
+
                 const classification = response.choices[0].message.content.trim();
                 // console.log("Current Status:", currStatus);
                 console.log("Classification:", classification);
                 const newStatus = mapToColumnID(classification)
-                console.log("Mapped:", newStatus)            
-    
+                console.log("Mapped:", newStatus)
+
                 return newStatus;
             } catch (error) {
                 const err = error as any;
                 const status = err?.response?.status || err?.status;
                 const message = typeof err?.message === 'string' ? err.message : String(err);
-    
+
                 // Retry on HTTP 524 (Cloudflare), ETIMEDOUT, or generic timeout message
                 const isTimeout =
                     status === 524 ||
                     err?.code === 'ETIMEDOUT' ||
                     message.toLowerCase().includes('timeout');
-    
+
                 if (isTimeout) {
                     attempt++;
                     if (attempt < maxRetries) {
@@ -199,7 +315,13 @@ export async function classifyStatusWithLLM(billId: string, maxRetries = 3, retr
         }
 }
 
+const VALID_STATUS_IDS = new Set(KANBAN_COLUMNS.map(col => col.id));
+
 function mapToColumnID(classification: string): string | undefined {
-    const col = KANBAN_COLUMNS.find(col => col.title.trim().toLowerCase() === classification.trim().toLowerCase());
+    const id = classification.trim();
+    // Direct ID match (v3+ prompt outputs IDs directly)
+    if (VALID_STATUS_IDS.has(id)) return id;
+    // Fallback: title match (backwards compatibility)
+    const col = KANBAN_COLUMNS.find(col => col.title.trim().toLowerCase() === id.toLowerCase());
     return col ? col.id : undefined;
 }
