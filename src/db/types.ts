@@ -35,6 +35,7 @@ export interface Bills {
   committee_assignment: string | null;
   created_at: Generated<Timestamp | null>;
   current_status_string: string;
+  dead: Generated<boolean>;
   description: string;
   food_related: Generated<boolean | null>;
   id: Generated<string>;
