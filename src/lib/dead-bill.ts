@@ -73,10 +73,32 @@ export function isPreCrossover(status: BillStatus): boolean {
 
 // --- Kill Condition 1: Explicit Deferral ---
 
+/**
+ * A permanent deferral looks like: "The committee on JDC deferred the measure."
+ * A temporary deferral (NOT a kill) looks like: "...deferred the measure until 04-06-26..."
+ *
+ * Only permanent deferrals count as kills. A deferral is permanent if:
+ * 1. The statustext contains "deferred the measure" WITHOUT "until" after it, AND
+ * 2. There is no subsequent status update after the deferral (bill did not recover)
+ */
 export function isExplicitlyDeferred(statusUpdates: StatusUpdate[]): boolean {
-  return statusUpdates.some((update) =>
-    update.statustext.toLowerCase().includes('deferred the measure')
-  );
+  // Status updates should be sorted by date ascending
+  for (let i = 0; i < statusUpdates.length; i++) {
+    const text = statusUpdates[i].statustext.toLowerCase();
+    if (!text.includes('deferred the measure')) continue;
+
+    // Skip temporary deferrals ("deferred the measure until ...")
+    if (text.includes('deferred the measure until')) continue;
+
+    // Check if the bill recovered — any subsequent status update means it did
+    const hasSubsequentActivity = statusUpdates.slice(i + 1).some((u) =>
+      !u.statustext.toLowerCase().includes('deferred the measure')
+    );
+    if (hasSubsequentActivity) continue;
+
+    return true;
+  }
+  return false;
 }
 
 // --- Deadline Resolution ---
