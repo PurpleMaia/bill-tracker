@@ -89,6 +89,12 @@ function resolveDate(
   return entry[chamber];
 }
 
+/**
+ * Returns all deadlines applicable to this bill, in chronological order,
+ * with the minimum status the bill must have reached by each deadline.
+ * Minimum status indices are monotonically non-decreasing with date.
+ * All dates use YYYY-MM-DD format for lexicographic comparison.
+ */
 export function getApplicableDeadlines(
   referralType: ReferralType,
   chamber: Chamber,
@@ -115,10 +121,12 @@ export function getApplicableDeadlines(
       });
     }
 
-    if (referralType === 'single') {
+    // Single referral SBs have a pre-crossover filing deadline (Mar 5).
+    // Single referral HBs have a post-crossover filing deadline (Apr 9) — handled in the else branch.
+    if (referralType === 'single' && chamber === 'SB') {
       entries.push({
-        name: 'Single Referral Filing',
-        date: resolveDate(d.single_referral_filing, chamber),
+        name: 'Single Referral Filing (SBs)',
+        date: resolveDate(d.single_referral_filing, 'SB'),
         minimumStatus: 'waiting2' as BillStatus,
       });
     }
@@ -176,6 +184,10 @@ export function getApplicableDeadlines(
   return entries;
 }
 
+/**
+ * Given today's date (YYYY-MM-DD), find the most recent deadline that has passed
+ * and return it. Returns null if no deadlines have passed yet.
+ */
 export function getRelevantDeadline(
   referralType: ReferralType,
   chamber: Chamber,
