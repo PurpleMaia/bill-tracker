@@ -1,5 +1,5 @@
 'use server'
-import { KANBAN_COLUMNS } from '@/lib/kanban-columns';
+import { KANBAN_COLUMNS, COLUMN_INDEX } from '@/lib/kanban-columns';
 import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
 import { OpenAI } from 'openai';
 import { db } from '../db/kysely/client';
@@ -15,7 +15,7 @@ const SYSTEM_PROMPT = [
   "",
   "## 1. Purpose",
   "You are a legislative bill-status classifier for the Hawaii State Legislature.",
-  "You will receive: the bill number, its committee assignments (in order), and the five most-recent status lines (newest first).",
+  "You will receive: the bill number, its committee assignments (in order), and the ten most-recent status lines (newest first).",
   "Output exactly one status ID from the list below. No extra text.",
   "",
   "---",
@@ -114,7 +114,10 @@ const SYSTEM_PROMPT = [
   "- If the newest status line says 'Transmitted to Governor' -> transmittedGovernor. STOP.",
   "",
   "Step 2: CONFERENCE CHECK.",
-  "- If status mentions conference committee scheduling, deferral, passage, or assignment -> use categories 20-23.",
+  "- The input includes a pre-computed 'BothChambers: YES/NO' line indicating whether the status log contains updates from BOTH the House (H) and the Senate (S).",
+  "- Conference IDs (conferenceAssigned, conferenceScheduled, conferenceDeferred, conferencePassed) may ONLY be used when 'BothChambers: YES'. A bill cannot reach conference without activity in both chambers.",
+  "- If 'BothChambers: NO', NEVER output a conference ID, even if the status text mentions the word 'conference'. Instead, classify using the appropriate committee-stage ID.",
+  "- If 'BothChambers: YES' AND status mentions conference committee scheduling, deferral, passage, or assignment -> use the matching conference ID.",
   "",
   "Step 3: CROSSOVER CHECK.",
   "- Read the 'Crossover: YES/NO' line from the input. This is pre-computed and authoritative.",
@@ -165,7 +168,17 @@ const SYSTEM_PROMPT = [
   "-> This is a scheduled hearing. Which committee? Check context for committee name.",
   "= scheduled1",
   "",
-  "## 8. Output format",
+  "## 8. No Backward Regression (CRITICAL)",
+  "Bills move FORWARD through the legislative process. They do NOT move backward.",
+  "The status IDs are ordered by progression (index 0 = earliest stage, higher index = later stage).",
+  "The input includes a 'Current status: <statusId> (index N)' line showing the bill's current position.",
+  "Your classification MUST have an index >= the current index. A bill at index 5 cannot regress to index 3.",
+  "If the status text is ambiguous, keep the bill at its current status rather than moving it backward.",
+  "The ONLY exception: 'unassigned' (index 0) has no restriction — any status is valid from unassigned.",
+  "",
+  "---",
+  "",
+  "## 9. Output format",
   "Respond with exactly one status ID (e.g., 'introduced', 'waiting2', 'crossoverWaiting1', 'governorSigns').",
   "No extra text, no explanations, no reasoning.",
   "Do not repeat the status log.",
@@ -173,9 +186,9 @@ const SYSTEM_PROMPT = [
   "IMPORTANT: The output must be EXACTLY one of the status IDs listed in Section 5. Nothing else.",
 ].join('\n');
 
-// Prompt version: v4 - deterministic crossover detection passed as computed fact
-// v1: 48% -> v2: 60.3% -> v3: 63.7% -> v4: TBD
-const PROMPT_VERSION = 'v4';
+// Prompt version: v6 - add no-backward-regression rule + deterministic guard
+// v1: 48% -> v2: 60.3% -> v3: 63.7% -> v4: TBD -> v5: TBD -> v6: TBD
+const PROMPT_VERSION = 'v6';
 
 const LLM_RATE_LIMIT = { limit: 10, windowMs: 60_000 };
 
@@ -186,21 +199,52 @@ function detectCrossover(billNumber: string, newestChamber: string): boolean {
     return newestChamber.toUpperCase() !== originChamber;
 }
 
+/**
+ * Enforces monotonic forward progression of bill status.
+ * Returns the proposedStatus if it's at or ahead of currentStatus,
+ * otherwise returns currentStatus (no regression allowed).
+ * Bills at 'unassigned' have no restriction.
+ */
+function enforceForwardProgression(currentStatus: string | null | undefined, proposedStatus: string): string {
+    if (!currentStatus || currentStatus === 'unassigned') return proposedStatus;
+
+    const currentIndex = COLUMN_INDEX[currentStatus];
+    const proposedIndex = COLUMN_INDEX[proposedStatus];
+
+    // If either status is unknown, allow the proposed status through
+    if (currentIndex === undefined || proposedIndex === undefined) return proposedStatus;
+
+    if (proposedIndex < currentIndex) {
+        console.warn(`[LLM] Backward regression blocked: "${proposedStatus}" (index ${proposedIndex}) < current "${currentStatus}" (index ${currentIndex}). Keeping current status.`);
+        return currentStatus;
+    }
+
+    return proposedStatus;
+}
+
 async function getContext(billId: string) {
     console.log('[LLM] fetching recent status update context...')
     try {
         const bill = await db.selectFrom('bills')
-            .select(['bill_number', 'committee_assignment'])
+            .select(['bill_number', 'committee_assignment', 'bill_status'])
             .where('id', '=', billId)
             .executeTakeFirst();
 
+        // Lightweight query: distinct chambers across ALL status updates (for pre-computed flags)
+        const distinctChambers = await db.selectFrom('status_updates')
+            .select('chamber')
+            .distinct()
+            .where('bill_id', '=', billId)
+            .execute();
+
+        // Limited query: only the most recent status lines for LLM context
         const data = await db.selectFrom('status_updates as su')
             .select(['chamber', 'date', 'statustext'])
             .where('bill_id', '=', billId)
             .orderBy(sql`cast(su.date as date)`, 'desc')
-            .limit(5)
+            .limit(10)
             .execute();
-        console.log('[LLM] # of status updates', data.length)
+        console.log('[LLM] # of status updates (capped at 10):', data.length)
         console.log('[LLM] current status update:', data[0])
 
         const lines: string[] = [];
@@ -220,7 +264,20 @@ async function getContext(billId: string) {
         // Deterministic crossover detection
         if (bill?.bill_number && data.length > 0) {
             const crossed = detectCrossover(bill.bill_number, data[0].chamber);
+            console.log('[LLM] Crossover detected:', crossed, `(bill prefix: ${bill.bill_number.substring(0,2).toUpperCase()}, newest chamber: ${data[0].chamber.toUpperCase()})`);
             lines.push(`Crossover: ${crossed ? 'YES — bill is now in the opposite chamber. Use crossover status IDs (crossoverWaiting1, crossoverScheduled1, etc.)' : 'NO — bill is still in its originating chamber. Use non-crossover status IDs (introduced, scheduled1, waiting2, etc.)'}`);
+        }
+
+        // Deterministic both-chambers detection (uses full history via distinct query)
+        const chambers = new Set(distinctChambers.map(row => row.chamber.toUpperCase()));
+        const bothChambers = chambers.has('H') && chambers.has('S');
+        console.log('[LLM] BothChambers: ', bothChambers, ' (distinct chambers in history:', Array.from(chambers).join(', '), ')');
+        lines.push(`BothChambers: ${bothChambers ? 'YES — status updates exist from both chambers. Conference IDs are eligible.' : 'NO — only one chamber has acted. Conference IDs are NOT allowed.'}`);
+
+        // Include current status so the LLM can respect the no-backward-regression rule
+        if (bill?.bill_status) {
+            const currentIndex = COLUMN_INDEX[bill.bill_status];
+            lines.push(`Current status: ${bill.bill_status} (index ${currentIndex ?? '?'}). Your classification must have an index >= ${currentIndex ?? '?'}.`);
         }
 
         lines.push('');
@@ -248,7 +305,6 @@ export async function classifyStatusWithLLM(billId: string, maxRetries = 3, retr
     }
 
     const context = await getContext(billId);
-    const currStatus = context ? context.split(/\r?\n/)[0] : '';
     let attempt = 0;
     console.log('[LLM] starting classification attempts...')
     while (attempt < maxRetries) {
@@ -284,10 +340,22 @@ export async function classifyStatusWithLLM(billId: string, maxRetries = 3, retr
                 }
 
                 const classification = response.choices[0].message.content.trim();
-                // console.log("Current Status:", currStatus);
                 console.log("Classification:", classification);
-                const newStatus = mapToColumnID(classification)
-                console.log("Mapped:", newStatus)
+                const mappedStatus = mapToColumnID(classification)
+                console.log("Mapped:", mappedStatus)
+
+                if (!mappedStatus) return mappedStatus;
+
+                // Deterministic guard: prevent backward regression
+                const currentBill = await db.selectFrom('bills')
+                    .select('bill_status')
+                    .where('id', '=', billId)
+                    .executeTakeFirst();
+
+                const newStatus = enforceForwardProgression(currentBill?.bill_status, mappedStatus);
+                if (newStatus !== mappedStatus) {
+                    console.log(`[LLM] Final status after guard: ${newStatus} (LLM proposed: ${mappedStatus})`);
+                }
 
                 return newStatus;
             } catch (error) {

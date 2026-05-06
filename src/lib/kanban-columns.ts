@@ -39,3 +39,9 @@ export const COLUMN_TITLES: Record<string, string> = KANBAN_COLUMNS.reduce((acc,
   acc[col.id] = col.title;
   return acc;
 }, {} as Record<string, string>);
+
+// Map column IDs to their index position for monotonic progression enforcement
+export const COLUMN_INDEX: Record<string, number> = KANBAN_COLUMNS.reduce((acc, col, idx) => {
+  acc[col.id] = idx;
+  return acc;
+}, {} as Record<string, number>);
