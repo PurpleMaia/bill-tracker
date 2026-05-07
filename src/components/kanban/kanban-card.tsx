@@ -127,8 +127,9 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                 "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 w-full max-w-[300px]", // limit card width
                 "flex flex-col", // Flex column layout
                 isDragging ? "opacity-80 shadow-xl rotate-3 scale-105 cursor-grabbing" : "hover:shadow-md cursor-grab",
-                latestUpdate && "ring-1 ring-green-200/50", // Subtle glow for active bills
+                latestUpdate && !bill.dead && "ring-1 ring-green-200/50", // Subtle glow for active bills (not dead)
                 isHighlighted && "ring-2 ring-blue-500 ring-offset-2 bg-blue-50/50 border-blue-300", // Highlight search match
+                bill.dead && "border-l-4 border-l-red-400 opacity-60 grayscale-[40%] bg-gray-50", // Dead bill: red left accent, desaturated
                  className
             )}
             style={style} // dnd positioning
@@ -239,9 +240,15 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
 
                     <div className='flex justify-between items-center mt-2 px-3 mb-2'>
 
-                      <Badge variant='outline' className='text-muted-foreground'>
-                        {formatBillStatusName(bill.current_bill_status)}
-                      </Badge>
+                      {bill.dead ? (
+                        <Badge variant='destructive' className='text-white'>
+                          Dead
+                        </Badge>
+                      ) : (
+                        <Badge variant='outline' className='text-muted-foreground'>
+                          {formatBillStatusName(bill.current_bill_status)}
+                        </Badge>
+                      )}
 
                       {canSeeTracking ? (
                         <div className="flex items-center gap-2">
@@ -361,6 +368,7 @@ const arePropsEqual = (prevProps: KanbanCardProps, nextProps: KanbanCardProps): 
   if (prev.year !== next.year) return false;
   if (prev.description !== next.description) return false;
   if (prev.current_bill_status !== next.current_bill_status) return false;
+  if (prev.dead !== next.dead) return false;
   // if (prev.user_nickname !== next.user_nickname) return false;
   if (prev.llm_suggested !== next.llm_suggested) return false;
   if (prev.llm_processing !== next.llm_processing) return false;

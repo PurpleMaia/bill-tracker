@@ -47,6 +47,7 @@ export interface Bill {
   current_status_string: string;
   description: string;
   archived: boolean;
+  dead: boolean;
 
   // client side attributes
   latest_update: StatusUpdate | null;

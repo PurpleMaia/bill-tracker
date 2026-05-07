@@ -1042,6 +1042,7 @@ async function convertDataToBillShape(
     current_status_string: bill.current_status_string ?? '',
     description: bill.description ?? '',
     archived: bill.archived ?? false,
+    dead: bill.dead ?? false,
     year: bill.year ?? null,
 
     latest_update: updates[0] || null,
