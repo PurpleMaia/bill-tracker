@@ -81,7 +81,7 @@ export function isPreCrossover(status: BillStatus): boolean {
  * 1. The statustext contains "deferred the measure" WITHOUT "until" after it, AND
  * 2. There is no subsequent status update after the deferral (bill did not recover)
  */
-export function isExplicitlyDeferred(statusUpdates: StatusUpdate[]): boolean {
+export function findPermanentDeferral(statusUpdates: StatusUpdate[]): StatusUpdate | null {
   // Status updates should be sorted by date ascending
   for (let i = 0; i < statusUpdates.length; i++) {
     const text = statusUpdates[i].statustext.toLowerCase();
@@ -96,9 +96,13 @@ export function isExplicitlyDeferred(statusUpdates: StatusUpdate[]): boolean {
     );
     if (hasSubsequentActivity) continue;
 
-    return true;
+    return statusUpdates[i];
   }
-  return false;
+  return null;
+}
+
+export function isExplicitlyDeferred(statusUpdates: StatusUpdate[]): boolean {
+  return findPermanentDeferral(statusUpdates) !== null;
 }
 
 // --- Deadline Resolution ---
@@ -236,13 +240,11 @@ export function isBillDead(
   today: string
 ): DeadBillResult {
   // Kill Condition 1: Explicit deferral
-  if (isExplicitlyDeferred(statusUpdates)) {
-    const deferralUpdate = statusUpdates.find((u) =>
-      u.statustext.toLowerCase().includes('deferred the measure')
-    );
+  const deferralUpdate = findPermanentDeferral(statusUpdates);
+  if (deferralUpdate) {
     return {
       dead: true,
-      reason: `Explicitly deferred: "${deferralUpdate?.statustext}"`,
+      reason: `Explicitly deferred: "${deferralUpdate.statustext}"`,
     };
   }
 
