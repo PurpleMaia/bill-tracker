@@ -421,6 +421,13 @@ export async function updateBillStatus(billId: string, newStatus: string): Promi
     }
 }
 
+export async function updateBillDeadFlag(billId: string, dead: boolean): Promise<void> {
+    await db.updateTable('bills')
+      .set({ dead, updated_at: new Date() })
+      .where('id', '=', billId)
+      .execute();
+}
+
 /**
  * Updates the food-related flag for a bill using its URL.
  *

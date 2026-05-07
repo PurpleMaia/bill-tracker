@@ -85,15 +85,19 @@ export function findPermanentDeferral(statusUpdates: StatusUpdate[]): StatusUpda
   // Status updates should be sorted by date ascending
   for (let i = 0; i < statusUpdates.length; i++) {
     const text = statusUpdates[i].statustext.toLowerCase();
-    if (!text.includes('deferred the measure')) continue;
+
+    // Match either deferral phrase
+    const isDeferral = text.includes('deferred the measure') || text.includes('measure to be deferred');
+    if (!isDeferral) continue;
 
     // Skip temporary deferrals ("deferred the measure until ...")
     if (text.includes('deferred the measure until')) continue;
 
-    // Check if the bill recovered — any subsequent status update means it did
-    const hasSubsequentActivity = statusUpdates.slice(i + 1).some((u) =>
-      !u.statustext.toLowerCase().includes('deferred the measure')
-    );
+    // Check if the bill recovered — any subsequent status update that is NOT a deferral means it did
+    const hasSubsequentActivity = statusUpdates.slice(i + 1).some((u) => {
+      const uText = u.statustext.toLowerCase();
+      return !uText.includes('deferred the measure') && !uText.includes('measure to be deferred');
+    });
     if (hasSubsequentActivity) continue;
 
     return statusUpdates[i];
