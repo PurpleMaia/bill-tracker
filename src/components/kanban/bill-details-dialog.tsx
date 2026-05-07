@@ -30,8 +30,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from '@/hooks/use-toast';
-import { updateBillStatus, getBillDetails } from '@/services/data/legislation';
+import { updateBillStatus, updateBillDeadFlag, getBillDetails } from '@/services/data/legislation';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { TagSelector } from '../tags/tag-selector';
 import { useTrackedBills } from '@/hooks/use-tracked-bills';
 
@@ -320,6 +321,37 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                   <DetailItem label="Committee Assignment" value={billDetails?.committee_assignment || 'Not Assigned'} />
                   <DetailItem label="Introducers" value={billDetails?.introducer || 'N/A'} />
                 </div>
+
+                {/* Dead Flag Toggle - Admins/Supervisors only */}
+                {canSeeTracking && (
+                  <div className="flex items-center justify-between rounded-md border p-3 bg-muted/30">
+                    <div className="space-y-0.5">
+                      <span className="font-medium text-sm">Dead Bill</span>
+                      <p className="text-xs text-muted-foreground">
+                        {bill.dead ? 'This bill has been flagged as dead by the algorithm.' : 'This bill is active.'}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={bill.dead}
+                      onCheckedChange={async (checked) => {
+                        try {
+                          await updateBillDeadFlag(bill.id, checked);
+                          updateBill(bill.id, { dead: checked });
+                          toast({
+                            title: checked ? 'Bill Marked Dead' : 'Bill Marked Alive',
+                            description: `${bill.bill_number} has been ${checked ? 'flagged as dead' : 'restored to active'}.`,
+                          });
+                        } catch {
+                          toast({
+                            title: 'Error',
+                            description: 'Failed to update dead flag.',
+                            variant: 'destructive',
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+                )}
 
                 <DetailItem label="Description" value={billDetails?.description || bill.description || 'No description available.'} />
 
