@@ -8,13 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { cn } from '@/lib/utils';
-import { FileText, RefreshCw, WandSparkles, Lock, Loader2 } from 'lucide-react';
+import { FileText, Lock, Loader2, ExternalLink, Clock, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
@@ -32,14 +31,12 @@ import {
 } from "@/components/ui/select";
 import { toast } from '@/hooks/use-toast';
 import { updateBillStatus, updateBillDeadFlag, getBillDetails } from '@/services/data/legislation';
-import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { TagSelector } from '../tags/tag-selector';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/dead-bill';
-import type { SessionDeadlines, StatusUpdate as DeadBillStatusUpdate } from '@/lib/dead-bill';
+import type { SessionDeadlines } from '@/lib/dead-bill';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import deadlinesJson from '@/data/session-deadlines-2026.json';
-import { useTrackedBills } from '@/hooks/use-tracked-bills';
 
 interface BillDetailsDialogProps {
   billID: string | null;
@@ -47,8 +44,6 @@ interface BillDetailsDialogProps {
   onClose: () => void;
 }
 
-// --- Progress Tracker ---
-// Define the stages and their corresponding statuses
 const PROGRESS_STAGES = [
   { name: 'Introduced', statuses: ['introduced'] },
   { name: 'Orig. Chamber', statuses: ['scheduled1', 'deferred1', 'waiting2', 'scheduled2', 'deferred2', 'waiting3', 'scheduled3', 'deferred3', 'crossoverWaiting1'] },
@@ -59,358 +54,207 @@ const PROGRESS_STAGES = [
 ];
 
 const getProgressValue = (status: BillStatus): number => {
-  const currentStageIndex = PROGRESS_STAGES.findIndex(stage => stage.statuses.includes(status));
-  // If status not found in defined stages, assume introductory phase (or handle as error)
-  if (currentStageIndex === -1) {
-      if (status === 'introduced') return (1 / (PROGRESS_STAGES.length + 1)) * 100; // ~14% if just introduced
-      return 0; // Default or error state
-  }
-  // Calculate progress based on the index of the *completed* stage
-  // Since index is 0-based, add 1, and add 1 again because 'Introduced' is the first *step*
-  const completedStages = currentStageIndex + 1;
-  // Add 1 to length for the 'Introduced' step before the first chamber
-  return (completedStages / PROGRESS_STAGES.length) * 100;
+  const idx = PROGRESS_STAGES.findIndex(s => s.statuses.includes(status));
+  if (idx === -1) return status === 'introduced' ? (1 / (PROGRESS_STAGES.length + 1)) * 100 : 0;
+  return ((idx + 1) / PROGRESS_STAGES.length) * 100;
 };
 
 const getCurrentStageName = (status: BillStatus): string => {
-    const currentStage = PROGRESS_STAGES.find(stage => stage.statuses.includes(status));
-    if (currentStage) return currentStage.name;
-    if (status === 'introduced') return 'Introduced';
-    return 'Not Assigned'; // Fallback
-}
+  const stage = PROGRESS_STAGES.find(s => s.statuses.includes(status));
+  if (stage) return stage.name;
+  if (status === 'introduced') return 'Introduced';
+  return 'Not Assigned';
+};
 
 export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialogProps) {
-  const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills()
-  const { user } = useAuth()
-  const [selectedStatus, setSelectedStatus] = useState<string>('')
-  const [, setSaving] = useState<boolean>(false)
-  const [billDetails, setBillDetails] = useState<BillDetails | null>(null)
-  const [loadingDetails, setLoadingDetails] = useState<boolean>(false)
-  const [detailsError, setDetailsError] = useState<string | null>(null)
+  const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills();
+  const { user } = useAuth();
+  const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [, setSaving] = useState<boolean>(false);
+  const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState<boolean>(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
 
-  // Find the basic bill data from context (for card info)
-  const bill = useMemo(() => {
-    const found = bills.find(b => b.id === billID)
-    return found
-  }, [bills, billID])
+  const bill = useMemo(() => bills.find(b => b.id === billID), [bills, billID]);
 
-  // Fetch detailed bill data when dialog opens
   useEffect(() => {
     if (isOpen && billID) {
-      setLoadingDetails(true)
-      setDetailsError(null)
-
+      setLoadingDetails(true);
+      setDetailsError(null);
       getBillDetails(billID)
         .then((details) => {
           if (details.updates) {
             details.updates = [...details.updates].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
           }
-          setBillDetails(details)
-          setSelectedStatus(details.current_bill_status || '')
+          setBillDetails(details);
+          setSelectedStatus(details.current_bill_status || '');
         })
-        .catch((error) => {
-          console.error('Failed to fetch bill details:', error)
-          setDetailsError('Failed to load bill details')
-          toast({
-            title: 'Error',
-            description: 'Failed to load bill details. Please try again.',
-            variant: 'destructive',
-          })
+        .catch(() => {
+          setDetailsError('Failed to load bill details');
+          toast({ title: 'Error', description: 'Failed to load bill details.', variant: 'destructive' });
         })
-        .finally(() => {
-          setLoadingDetails(false)
-        })
+        .finally(() => setLoadingDetails(false));
     }
-  }, [isOpen, billID])
+  }, [isOpen, billID]);
 
-  // Clear state when dialog closes
   useEffect(() => {
-      if (!isOpen) {
-          setSelectedStatus('')
-          setBillDetails(null)
-          setDetailsError(null)
-      }
-  }, [isOpen])
+    if (!isOpen) { setSelectedStatus(''); setBillDetails(null); setDetailsError(null); }
+  }, [isOpen]);
 
+  if (!bill) return null;
 
-  if (!bill) {
-    return null; // Don't render anything if no bill is selected
-  }
-  // Use billDetails for status if available, otherwise fall back to bill
-  const currentStatus = billDetails?.current_bill_status || bill.current_bill_status
+  const currentStatus = billDetails?.current_bill_status || bill.current_bill_status;
   const progressValue = getProgressValue(currentStatus as BillStatus);
   const currentStageName = getCurrentStageName(currentStatus as BillStatus);
-
-  const handleOnValueChange = (status: string) => {
-    setSelectedStatus(status)
-  }
-
-  // Check if editing should be disabled for interns in "All Bills" view
   const isInternInAllBillsView = user?.role === 'user' && viewMode === 'all-bills';
-  
-  // Interns can only edit bills in "My Bills" view (not in "All Bills" view)
   const canEditBill = !isInternInAllBillsView;
   const canSeeTracking = user?.role === 'admin' || user?.role === 'supervisor';
 
+  // Derive dead reason and deadline
+  const committeeAssign = billDetails?.committee_assignment || bill.committee_assignment;
+  const today = new Date().toISOString().split('T')[0];
+
+  const deadReason = (bill.dead && committeeAssign && billDetails)
+    ? isBillDead(
+        {
+          bill_number: billDetails.bill_number || bill.bill_number,
+          bill_status: (billDetails.current_bill_status || bill.current_bill_status) as DBBillStatus,
+          committee_assignment: committeeAssign,
+        },
+        (billDetails.updates || []).map(u => ({ statustext: u.statustext, date: u.date, chamber: u.chamber })),
+        deadlinesJson as SessionDeadlines,
+        today,
+      ).reason
+    : null;
+
+  const nextDeadline = (!bill.dead && committeeAssign)
+    ? getNextDeadline(
+        bill.bill_number,
+        (billDetails?.current_bill_status || bill.current_bill_status) as DBBillStatus,
+        committeeAssign,
+        deadlinesJson as SessionDeadlines,
+        today
+      )
+    : null;
+
+  const deadlineDaysAway = nextDeadline
+    ? Math.ceil((new Date(nextDeadline.date + 'T00:00:00').getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+  const isUrgent = deadlineDaysAway !== null && deadlineDaysAway <= 7;
+  const fiscal = committeeAssign ? isFiscalBill(committeeAssign) : false;
+
   const handleSave = async () => {
     try {
-        setSaving(true);
-
-        // If intern is in "All Bills" view, prevent editing
-        if (isInternInAllBillsView) {
-          toast({
-            title: "Cannot Edit",
-            description: "You can only edit bills in your 'My Bills' view. Switch to 'My Bills' to edit this bill.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        // Interns (users with role 'user') propose changes instead of directly updating
-        if (user?.role === 'user') {
-          console.log('🔵 [DIALOG] User proposing change:', bill.id, '→', selectedStatus);
-          await proposeStatusChange(bill, selectedStatus as BillStatus, {
-            userId: user.id,
-            role: 'intern',
-          });
-          toast({
-            title: "Change Proposed",
-            description: `Awaiting supervisor approval.`,
-          });
-          onClose();
-          return;
-        }
-
-        // Admins and supervisors can directly update
-        const updatedBillFromServer = await updateBillStatus(bill.id, selectedStatus);
-        if (!updatedBillFromServer) {
-            throw new Error('Failed to update bill status on server.');
-        }
-
-        // Update the UI bill
-        setBills(prevBills => 
-            prevBills.map(b => 
-            b.id === bill.id 
-                ? { 
-                    ...b, 
-                    llm_suggested: false,
-                    llm_processing: false,
-                    previous_status: b.current_bill_status, // Store original status
-                    current_bill_status: selectedStatus,                        
-                }
-                : b
-            )
-        );
-
-        // Remove the corresponding temp bill
-        setTempBills(prevTempBills => 
-          prevTempBills.filter(tb => tb.id !== bill.id)
-        );
-
-        toast({
-          title: "Bill Status Updated",
-          description: `${bill.bill_title} moved to ${COLUMN_TITLES[selectedStatus]}.`,
-        });
-        
-        onClose()
-    } catch (error) {
-        console.error("Failed to update bill status:", error);
-        toast({
-          title: "Error",
-          description: "Failed to update bill status. Please try again.",
-          variant: "destructive",
-        });
+      setSaving(true);
+      if (isInternInAllBillsView) {
+        toast({ title: "Cannot Edit", description: "Switch to 'My Bills' to edit.", variant: "destructive" });
+        return;
+      }
+      if (user?.role === 'user') {
+        await proposeStatusChange(bill, selectedStatus as BillStatus, { userId: user.id, role: 'intern' });
+        toast({ title: "Change Proposed", description: "Awaiting supervisor approval." });
+        onClose();
+        return;
+      }
+      const updatedBillFromServer = await updateBillStatus(bill.id, selectedStatus);
+      if (!updatedBillFromServer) throw new Error('Failed to update');
+      setBills(prev => prev.map(b => b.id === bill.id
+        ? { ...b, llm_suggested: false, llm_processing: false, previous_status: b.current_bill_status, current_bill_status: selectedStatus }
+        : b
+      ));
+      setTempBills(prev => prev.filter(tb => tb.id !== bill.id));
+      toast({ title: "Status Updated", description: `Moved to ${COLUMN_TITLES[selectedStatus]}.` });
+      onClose();
+    } catch {
+      toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
     } finally {
-        setSaving(false)
-    }         
-  }
+      setSaving(false);
+    }
+  };
 
   const handleStatusUpdateRefresh = (description: string, committee_assignment: string, introducers: string, updates: StatusUpdate[]) => {
-    const sortedUpdates = [...updates].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    const updatedDetails = billDetails ? { ...billDetails, description, committee_assignment, introducers, updates: sortedUpdates } : null;
-
-    setBillDetails(updatedDetails);
-    if (bill) {
-      updateBill(bill.id, { 
-        description, latest_update: updates[0] ?? null 
-      });
-    }
-  }
+    const sorted = [...updates].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    setBillDetails(prev => prev ? { ...prev, description, committee_assignment, introducers, updates: sorted } : null);
+    if (bill) updateBill(bill.id, { description, latest_update: updates[0] ?? null });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0"> {/* Larger, full height, flex-col ensures footer is at bottom */}
-        {/* Header */}
-        <DialogHeader className="p-4 border-b sticky top-0 bg-background z-10">
-            <div className="flex justify-between items-start">
-                <div>
-                    <DialogTitle className="text-lg font-semibold">{bill.bill_number} - {bill.bill_title}</DialogTitle>
-                    <DialogDescription className="text-sm text-muted-foreground">
-                        Current Stage: {currentStageName}
-                    </DialogDescription>
-                </div>
-                 {/* The 'X' close button is part of DialogContent by default */}
+      <DialogContent className="max-w-6xl h-[95vh] flex flex-col p-0 gap-0">
+        {/* Header — compact, with progress */}
+        <DialogHeader className="px-6 pt-5 pb-4 border-b shrink-0">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <DialogTitle className="text-lg font-semibold tracking-tight">
+                  {bill.bill_number}
+                </DialogTitle>
+                {bill.dead && (
+                  <Badge variant="destructive" className="text-[10px] h-5 text-white">Dead</Badge>
+                )}
+                {fiscal && (
+                  <Badge variant="secondary" className="text-[10px] h-5">Fiscal</Badge>
+                )}
+              </div>
+              <DialogDescription className="text-sm text-muted-foreground line-clamp-1">
+                {bill.bill_title}
+              </DialogDescription>
             </div>
+          </div>
 
-          {/* Progress Tracker */}
-          <div className="mt-2">
+          {/* Progress bar */}
+          <div className="mt-3">
             <TooltipProvider delayDuration={100}>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                         <Progress value={progressValue} className="w-full h-2" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>{currentStageName} ({Math.round(progressValue)}%)</p>
-                    </TooltipContent>
-                 </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Progress value={progressValue} className="w-full h-1.5" />
+                </TooltipTrigger>
+                <TooltipContent><p>{currentStageName} ({Math.round(progressValue)}%)</p></TooltipContent>
+              </Tooltip>
             </TooltipProvider>
-            <div className="flex justify-between text-xs text-muted-foreground mt-1 px-1">
-              <span>Introduced</span>
-              <span>Orig. Chamber</span>
-              <span>Non-Orig. Chamber</span>
-              <span>Conference</span>
-              <span>Governor</span>
-              <span>Law</span>
+            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+              {PROGRESS_STAGES.map(s => <span key={s.name}>{s.name}</span>)}
             </div>
           </div>
         </DialogHeader>
 
-        {/* Main Content Area (Scrollable) */}
-        <ScrollArea className="flex-1 overflow-y-auto"> {/* flex-1 allows this area to grow and push footer down */}
-          {loadingDetails ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="flex flex-col items-center gap-2">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Loading bill details...</p>
-              </div>
+        {/* Body — split layout */}
+        {loadingDetails ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Loading bill details...</p>
             </div>
-          ) : detailsError ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-center">
-                <p className="text-sm text-destructive">{detailsError}</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4"
-                  onClick={() => {
-                    if (billID) {
-                      setLoadingDetails(true)
-                      setDetailsError(null)
-                      getBillDetails(billID)
-                        .then(setBillDetails)
-                        .catch((error) => {
-                          setDetailsError('Failed to load bill details')
-                        })
-                        .finally(() => setLoadingDetails(false))
-                    }
-                  }}
-                >
-                  Try Again
-                </Button>
-              </div>
+          </div>
+        ) : detailsError ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-sm text-destructive">{detailsError}</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={() => {
+                if (billID) {
+                  setLoadingDetails(true); setDetailsError(null);
+                  getBillDetails(billID).then(setBillDetails).catch(() => setDetailsError('Failed to load')).finally(() => setLoadingDetails(false));
+                }
+              }}>Try Again</Button>
             </div>
-          ) : (
-          <div className="space-y-6 p-6">
-            {/* Bill Information Section - Priority 1 */}
-            <section className="rounded-lg border bg-card p-6 shadow-sm">
-              <h3 className="text-sm font-semibold mb-4">Bill Information</h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <DetailItem label="Bill Number" value={billDetails?.bill_number || bill.bill_number} />
-                  <DetailItem label="Year Introduced" value={billDetails?.year?.toString() || bill.year?.toString() || 'N/A'} />
-                </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex min-h-0">
+            {/* LEFT PANEL — Bill info, controls */}
+            <div className="w-[55%] border-r flex flex-col">
+              <ScrollArea className="flex-1">
+                <div className="p-6 space-y-5">
 
-                <DetailItem label="Bill Title" value={billDetails?.bill_title || bill.bill_title} />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <DetailItem label="Committee Assignment" value={billDetails?.committee_assignment || 'Not Assigned'} />
-                  <DetailItem label="Introducers" value={billDetails?.introducer || 'N/A'} />
-                </div>
-
-                {/* Upcoming Deadline */}
-                {(() => {
-                  const committeeAssign = billDetails?.committee_assignment || bill.committee_assignment;
-                  if (!committeeAssign || bill.dead) return null;
-                  const today = new Date().toISOString().split('T')[0];
-                  const deadline = getNextDeadline(
-                    bill.bill_number,
-                    (billDetails?.current_bill_status || bill.current_bill_status) as DBBillStatus,
-                    committeeAssign,
-                    deadlinesJson as SessionDeadlines,
-                    today
-                  );
-                  if (!deadline) return null;
-                  const fiscal = isFiscalBill(committeeAssign);
-                  const deadlineDate = new Date(deadline.date + 'T00:00:00');
-                  const daysUntil = Math.ceil((deadlineDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                  const isUrgent = daysUntil <= 7;
-                  return (
-                    <div className={cn(
-                      "rounded-md border p-3",
-                      isUrgent ? "border-amber-300 bg-amber-50" : "border-blue-200 bg-blue-50/50"
-                    )}>
+                  {/* Dead / Deadline alert */}
+                  {bill.dead ? (
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                       <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <span className={cn("font-medium text-sm", isUrgent && "text-amber-700")}>
-                            Next Deadline: {deadline.name}
-                          </span>
-                          <p className={cn("text-xs", isUrgent ? "text-amber-600" : "text-blue-600")}>
-                            {deadlineDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-                            {daysUntil > 0 ? ` (${daysUntil} day${daysUntil !== 1 ? 's' : ''} away)` : daysUntil === 0 ? ' (today!)' : ' (passed)'}
-                          </p>
-                        </div>
-                        {fiscal && (
-                          <Badge variant="secondary" className="text-[10px]">Fiscal</Badge>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Dead Flag Section */}
-                {(() => {
-                  // Derive the algorithm's reason using full bill details when available
-                  const deadReason = (bill.dead && billDetails?.committee_assignment)
-                    ? isBillDead(
-                        {
-                          bill_number: billDetails.bill_number || bill.bill_number,
-                          bill_status: (billDetails.current_bill_status || bill.current_bill_status) as DBBillStatus,
-                          committee_assignment: billDetails.committee_assignment,
-                        },
-                        (billDetails.updates || []).map(u => ({
-                          statustext: u.statustext,
-                          date: u.date,
-                          chamber: u.chamber,
-                        })),
-                        deadlinesJson as SessionDeadlines,
-                        new Date().toISOString().split('T')[0],
-                      ).reason
-                    : null;
-
-                  return (
-                    <div className={cn(
-                      "rounded-md border p-3",
-                      bill.dead ? "border-red-200 bg-red-50" : "bg-muted/30"
-                    )}>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">
-                              {bill.dead ? 'Dead Bill' : 'Bill Status'}
-                            </span>
-                            {bill.dead && (
-                              <Badge variant="destructive" className="text-white text-[10px] h-4">
-                                Dead
-                              </Badge>
-                            )}
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-sm text-red-700">Bill is Dead</span>
                           </div>
-                          {bill.dead && deadReason && (
-                            <p className="text-xs text-red-600 mt-1">
-                              {deadReason}
-                            </p>
-                          )}
-                          {!bill.dead && (
-                            <p className="text-xs text-muted-foreground">This bill is active.</p>
+                          {deadReason && (
+                            <p className="text-xs text-red-600">{deadReason}</p>
                           )}
                         </div>
                         {canSeeTracking && (
@@ -421,225 +265,205 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                                 await updateBillDeadFlag(bill.id, checked);
                                 updateBill(bill.id, { dead: checked });
                                 toast({
-                                  title: checked ? 'Bill Marked Dead' : 'Bill Marked Alive',
-                                  description: `${bill.bill_number} has been ${checked ? 'flagged as dead' : 'restored to active'}.`,
+                                  title: checked ? 'Marked Dead' : 'Marked Alive',
+                                  description: `${bill.bill_number} updated.`,
                                 });
                               } catch {
-                                toast({
-                                  title: 'Error',
-                                  description: 'Failed to update dead flag.',
-                                  variant: 'destructive',
-                                });
+                                toast({ title: 'Error', description: 'Failed to update.', variant: 'destructive' });
                               }
                             }}
                           />
                         )}
                       </div>
                     </div>
-                  );
-                })()}
-
-                <DetailItem label="Description" value={billDetails?.description || bill.description || 'No description available.'} />
-
-                {billDetails?.bill_url && (
-                  <div>
-                    <span className="font-medium">Bill URL:</span>{' '}
-                    <a href={billDetails.bill_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline">
-                      <FileText className="h-4 w-4" />
-                      View on Hawaii State Legislature
-                    </a>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {/* Status Updates Section - Priority 2 */}
-            <section className="rounded-lg border bg-card p-6 shadow-sm">
-              <h3 className="text-sm font-semibold mb-4">Status Updates</h3>
-              {billDetails?.updates && billDetails.updates.length > 0 ? (
-                <div className="relative max-h-96 overflow-y-auto pr-2">
-                  <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-border"></div>
-
-                  {billDetails.updates.map((update, index) => (
-                    <div key={`${billDetails.id}-update-${index}-${update.id || index}`} className="relative flex gap-4 mb-4 last:mb-0">
-                      <div className="relative z-10 flex-shrink-0 w-12 h-12 flex items-center justify-center">
-                        {index === 0 ? (
-                          <div className="w-5 h-5 bg-green-500 border-4 border-green-200 rounded-full shadow-lg"></div>
-                        ) : (
-                          <div className="w-4 h-4 bg-gray-300 border-2 border-gray-200 rounded-full opacity-60"></div>
+                  ) : nextDeadline ? (
+                    <div className={cn(
+                      "rounded-lg border p-4",
+                      isUrgent ? "border-amber-300 bg-amber-50" : "border-blue-200 bg-blue-50/50"
+                    )}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <Clock className={cn("h-3.5 w-3.5", isUrgent ? "text-amber-600" : "text-blue-600")} />
+                            <span className={cn("font-medium text-sm", isUrgent ? "text-amber-700" : "text-blue-700")}>
+                              {nextDeadline.name}
+                            </span>
+                          </div>
+                          <p className={cn("text-xs", isUrgent ? "text-amber-600" : "text-blue-600")}>
+                            {new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                            {deadlineDaysAway !== null && (
+                              deadlineDaysAway > 0 ? ` — ${deadlineDaysAway} day${deadlineDaysAway !== 1 ? 's' : ''} away`
+                                : deadlineDaysAway === 0 ? ' — today' : ''
+                            )}
+                          </p>
+                        </div>
+                        {canSeeTracking && (
+                          <Switch
+                            checked={bill.dead}
+                            onCheckedChange={async (checked) => {
+                              try {
+                                await updateBillDeadFlag(bill.id, checked);
+                                updateBill(bill.id, { dead: checked });
+                                toast({ title: checked ? 'Marked Dead' : 'Marked Alive', description: `${bill.bill_number} updated.` });
+                              } catch {
+                                toast({ title: 'Error', description: 'Failed to update.', variant: 'destructive' });
+                              }
+                            }}
+                          />
                         )}
                       </div>
-                      <div className="flex-1 bg-muted/50 rounded-lg p-4 border">
-                        <div className="flex items-start justify-between gap-4 mb-2 flex-wrap">
-                          <Badge variant="outline" className="text-xs">
-                            {update.chamber}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            {new Date(update.date).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
-                        </div>
-                        <p className="text-sm text-foreground leading-relaxed break-words">
-                          {update.statustext}
-                        </p>
+                    </div>
+                  ) : null}
+
+                  {/* Bill details grid */}
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Description</h3>
+                      <p className="text-sm leading-relaxed">{billDetails?.description || bill.description}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Committees</h3>
+                        <p className="text-sm">{billDetails?.committee_assignment || bill.committee_assignment || 'Not Assigned'}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Introducers</h3>
+                        <p className="text-sm">{billDetails?.introducer || 'N/A'}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No status updates available</p>
-                </div>
-              )}
-            </section>
 
-            {/* Tags and Tracking Section - Priority 3 */}
-            <section className="rounded-lg border bg-card p-6 shadow-sm">
-              <h3 className="text-sm font-semibold mb-4">Tags & Tracking</h3>
-              <div className="space-y-6">
-                {/* Tags */}
-                <div>
-                  <h4 className="font-medium text-sm mb-2">Tags</h4>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Add tags to categorize this bill.
-                  </p>
-                  <TagSelector billId={bill.id} />
-                </div>
-
-                {/* Tracked By */}
-                {canSeeTracking && (
-                  <div>
-                    <h4 className="font-medium text-sm mb-2">Tracked By</h4>
-                    {bill.tracked_by && bill.tracked_by.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {bill.tracked_by.map((tracker) => (
-                          <Badge key={tracker.id} variant="outline" className="text-xs">
-                            {tracker.username || tracker.email || 'Unknown'}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">No one is tracking this bill.</p>
+                    {billDetails?.bill_url && (
+                      <a
+                        href={billDetails.bill_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        View on Hawaii State Legislature
+                      </a>
                     )}
+                  </div>
+
+                  {/* Tags */}
+                  <div>
+                    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Tags</h3>
+                    <TagSelector billId={bill.id} />
+                  </div>
+
+                  {/* Tracked By */}
+                  {canSeeTracking && (
+                    <div>
+                      <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Tracked By</h3>
+                      {bill.tracked_by && bill.tracked_by.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {bill.tracked_by.map((tracker) => (
+                            <Badge key={tracker.id} variant="outline" className="text-xs">
+                              {tracker.username || tracker.email || 'Unknown'}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">No one is tracking this bill.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+
+              {/* Status change — pinned to bottom of left panel */}
+              <div className="border-t p-4 shrink-0 bg-muted/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Change Status</h3>
+                  {!user && (
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <Lock className="h-2.5 w-2.5" />
+                      <span>Login required</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Select value={selectedStatus} onValueChange={setSelectedStatus} disabled={!user || !canEditBill}>
+                    <SelectTrigger className="flex-1 h-9 text-sm">
+                      <SelectValue placeholder={!user ? "Login to edit" : !canEditBill ? "Only in 'My Bills'" : "Select status"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {KANBAN_COLUMNS.map((col) => (
+                        <SelectItem key={col.id} value={col.id} className="cursor-pointer text-sm">
+                          {col.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={handleSave} disabled={!user || !selectedStatus || !canEditBill} size="sm" className="px-6 h-9">
+                    Save
+                  </Button>
+                </div>
+                {user && (
+                  <div className="flex gap-2 mt-2">
+                    <AIUpdateSingleButton bill={bill} />
+                    <RefreshStatusesButton bill={bill} onRefresh={handleStatusUpdateRefresh} />
                   </div>
                 )}
               </div>
-            </section>
-          </div>
-          )}
-        </ScrollArea>
-        {/* Status Change Section - Now conditionally editable */}
-        <div className="border-t bg-background p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="text-sm font-semibold">Change Bill Status</h3>
-            {!user && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Lock className="h-3 w-3" />
-                <span>Login required to edit</span>
+            </div>
+
+            {/* RIGHT PANEL — Status updates timeline */}
+            <div className="w-[45%] flex flex-col bg-muted/20">
+              <div className="px-5 pt-5 pb-3 border-b shrink-0">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Status Updates
+                  {billDetails?.updates && (
+                    <span className="ml-1.5 text-muted-foreground/60">({billDetails.updates.length})</span>
+                  )}
+                </h3>
               </div>
-            )}
+              <ScrollArea className="flex-1">
+                <div className="p-5">
+                  {billDetails?.updates && billDetails.updates.length > 0 ? (
+                    <div className="space-y-3">
+                      {billDetails.updates.map((update, index) => (
+                        <div
+                          key={`${billDetails.id}-update-${index}-${update.id || index}`}
+                          className={cn(
+                            "rounded-lg border p-3 text-sm transition-colors",
+                            index === 0
+                              ? "bg-card border-primary/20 shadow-sm"
+                              : "bg-card/50 border-border/50"
+                          )}
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <Badge variant={index === 0 ? "default" : "outline"} className="text-[10px] h-4 px-1.5">
+                              {update.chamber}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground tabular-nums">
+                              {new Date(update.date).toLocaleDateString('en-US', {
+                                month: 'short', day: 'numeric', year: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                          <p className={cn(
+                            "text-xs leading-relaxed",
+                            index === 0 ? "text-foreground" : "text-muted-foreground"
+                          )}>
+                            {update.statustext}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">No status updates</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
           </div>
-
-          <div className='flex gap-3'>
-            <Select
-              value={selectedStatus}
-              onValueChange={handleOnValueChange}
-              disabled={!user || !canEditBill}
-            >
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder={
-                  !user
-                    ? "Login to edit status"
-                    : !canEditBill
-                      ? "Only editable in 'My Bills' view"
-                      : "Select a new status"
-                } />
-              </SelectTrigger>
-              <SelectContent>
-                {KANBAN_COLUMNS.map((column) => (
-                  <SelectItem key={column.id} value={column.id} className='cursor-pointer hover:bg-slate-100'>
-                    {column.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Button
-              onClick={handleSave}
-              disabled={!user || !selectedStatus || !canEditBill}
-              className="px-8"
-            >
-              Save
-            </Button>
-          </div>
-        </div>
-
-        {/* Footer - Also conditionally show admin buttons */}
-        <DialogFooter className="p-6 border-t bg-background sm:justify-between items-center">
-          <div className='flex gap-2 items-center'>
-            {user ? (
-              <>
-                <AIUpdateSingleButton bill={bill} />
-                <RefreshStatusesButton bill={bill} onRefresh={handleStatusUpdateRefresh} />
-              </>
-            ) : (
-              <div className="text-xs text-muted-foreground flex items-center gap-1">
-                <Lock className="h-3 w-3" />
-                <span>Admin features require login</span>
-              </div>
-            )}
-          </div>
-          <Button variant="outline" onClick={onClose} className="min-w-[100px]">
-            Close
-          </Button>
-        </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
-}
-
-// Helper component for displaying details
-interface DetailItemProps {
-    label: string;
-    value: string;
-    badge?: boolean;
-}
-const DetailItem: React.FC<DetailItemProps> = ({ label, value, badge }) => (
-    <div className="space-y-1">
-        <span className="font-medium text-sm">{label}:</span>
-        <div className="text-sm">
-          {label === 'Bill URL' ? (
-            <a
-              href={value}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 underline break-all hover:text-blue-800"
-            >
-              {checkURL(value)}
-            </a>
-          ) : badge ? (
-            <Badge variant="secondary">{value}</Badge>
-          ) : (
-            <p className="text-muted-foreground break-words whitespace-normal">{value}</p>
-          )}
-        </div>
-    </div>
-);
-
-function checkURL(url: string){
-  // extracting href from the html incase it is not caught on server-side
-  if (url.startsWith('<a')) {
-    const match = url.match(/href=(["']?)([^"'\s>]+)\1/);
-    const editedURL = match ? match[2] : null;
-    console.log('Had to convert:', url)
-    return editedURL
-  } else {
-    return url
-  }
 }
