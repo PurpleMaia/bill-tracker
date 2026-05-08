@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 export default {
-    darkMode: ["class"],
+    // darkMode removed — Food+ is light-only
     content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -59,7 +59,14 @@ export default {
   				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
   				border: 'hsl(var(--sidebar-border))',
   				ring: 'hsl(var(--sidebar-ring))'
-  			}
+  			},
+  			olive: {
+  				DEFAULT: 'hsl(var(--olive))',
+  				dark: 'hsl(var(--olive-dark))',
+  				soft: 'hsl(var(--olive-soft))'
+  			},
+  			'teal-light': 'hsl(var(--teal-light))',
+  			coral: 'hsl(var(--coral))'
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

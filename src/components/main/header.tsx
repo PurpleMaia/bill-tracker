@@ -31,11 +31,11 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-10 flex items-center px-8 py-4 border-b bg-white ">
+      <header className="sticky top-0 z-10 flex items-center px-8 py-4 border-b-[3px] border-olive bg-primary text-primary-foreground">
         {/* Info */}
         <div className="flex-shrink-0">
           {/* FOOD+ LOGO HERE */}
-          <h1 className="text-xl font-semibold">Food+ Bill Tracker</h1>
+          <h1 className="text-xl font-semibold text-primary-foreground">Food+ Bill Tracker</h1>
         </div>
 
         {/* View Select Bar */}
@@ -43,12 +43,12 @@ export function Header() {
           <Tabs
             value={currentView}
             onValueChange={(v) => setView(v as "kanban" | "spreadsheet" | "admin" | "approvals" | "supervisor")}
-            className='border rounded-md shadow-sm'
+            className='rounded-md shadow-sm'
           >
-            <TabsList>
+            <TabsList className="bg-secondary">
               {views.map(v => (
                 <TabsTrigger key={v} value={v}
-                  className='data-[state=active]:bg-accent data-[state=active]:text-white'
+                  className='data-[state=active]:bg-primary data-[state=active]:text-white text-secondary-foreground'
                 >
                   {getIconForView(v)} {v.charAt(0).toUpperCase() + v.slice(1)}
                 </TabsTrigger>
@@ -56,14 +56,14 @@ export function Header() {
             </TabsList>
           </Tabs>
         </div>
-        
+
         {/* Search and Auth */}
         <div className="relative max-w-md flex gap-4 flex-shrink-0 ml-auto">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-3 h-4 w-4 text-white/60" />
           <Input
             type="search"
             placeholder="Search..."
-            className="w-full rounded-md bg-muted pl-9 focus:bg-background shadow-sm"
+            className="w-full rounded-md bg-white/10 border border-white/20 text-white placeholder:text-white/60 pl-9 focus:bg-white/20 shadow-sm"
             onChange={handleSearchChange}
             aria-label="Search bills"
           />

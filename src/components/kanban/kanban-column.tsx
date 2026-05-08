@@ -17,6 +17,23 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 // Adds readOnly prop to control card rendering
 // When readOnly=true, cards aren't wrapped in Draggable components
 
+/** Map a column ID to its legislative-phase background class. */
+function getColumnPhaseBg(columnId: string): string {
+  if (columnId === 'vetoList') return 'bg-[#f8d7d2]';
+  if (columnId === 'governorSigns' || columnId === 'lawWithoutSignature') return 'bg-[#d6e8d4]';
+  if (columnId.startsWith('crossoverWaiting1') || columnId.startsWith('conference') || columnId === 'passedCommittees' || columnId === 'conferencePassed' || columnId === 'transmittedGovernor')
+    return 'bg-olive-soft';
+  return 'bg-secondary/50';
+}
+
+function getColumnPhaseHeaderBg(columnId: string): string {
+  if (columnId === 'vetoList') return 'bg-[#f8d7d2]/95';
+  if (columnId === 'governorSigns' || columnId === 'lawWithoutSignature') return 'bg-[#d6e8d4]/95';
+  if (columnId.startsWith('crossoverWaiting1') || columnId.startsWith('conference') || columnId === 'passedCommittees' || columnId === 'conferencePassed' || columnId === 'transmittedGovernor')
+    return 'bg-olive-soft/95';
+  return 'bg-secondary/95';
+}
+
 export interface KanbanColumnProps extends React.HTMLAttributes<HTMLDivElement> {
   columnId: any; // keep as-is since your board passes a string id
   title: string;
@@ -88,14 +105,15 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
       <div
         ref={ref}
         className={cn(
-          'flex h-[calc(100vh-10rem)] w-80 shrink-0 flex-col rounded-lg border bg-secondary/50 shadow-sm',
+          'flex h-[calc(100vh-10rem)] w-80 shrink-0 flex-col rounded-lg border shadow-sm',
+          getColumnPhaseBg(columnId),
           isDraggingOver ? 'bg-accent/20' : '',
           className
         )}
         {...props}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 rounded-t-lg bg-secondary/95 backdrop-blur supports-[backdrop-filter]:bg-secondary/80 p-3 shadow-sm border-b">
+        <div className={cn("sticky top-0 z-10 rounded-t-lg backdrop-blur p-3 shadow-sm border-b", getColumnPhaseHeaderBg(columnId))}>
           <h2
             className="flex items-center justify-between gap-2 text-sm font-semibold text-secondary-foreground"
             title={title}
