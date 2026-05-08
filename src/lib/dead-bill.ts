@@ -88,13 +88,24 @@ export function isPreCrossover(status: BillStatus): boolean {
 // --- Kill Condition 1: Explicit Deferral ---
 
 /**
- * A permanent deferral looks like: "The committee on JDC deferred the measure."
+ * A permanent deferral looks like:
+ *   "The committee on JDC deferred the measure."
+ *   "The committee(s) on LAB recommend(s) that the measure be deferred."
+ *   "The recommendation was not adopted."
+ *
  * A temporary deferral (NOT a kill) looks like: "...deferred the measure until 04-06-26..."
  *
  * Only permanent deferrals count as kills. A deferral is permanent if:
- * 1. The statustext contains "deferred the measure" WITHOUT "until" after it, AND
+ * 1. The statustext contains a kill phrase (see below) WITHOUT "until" after it, AND
  * 2. There is no subsequent status update after the deferral (bill did not recover)
  */
+
+function isDeferralText(text: string): boolean {
+  return text.includes('deferred the measure') ||
+    text.includes('measure be deferred') ||
+    text.includes('recommendation was not adopted');
+}
+
 export function findPermanentDeferral(statusUpdates: StatusUpdate[]): StatusUpdate | null {
   // Sort by date properly (dates may be M/D/YYYY strings, not ISO)
   const sorted = [...statusUpdates].sort((a, b) =>
@@ -104,9 +115,7 @@ export function findPermanentDeferral(statusUpdates: StatusUpdate[]): StatusUpda
   for (let i = 0; i < sorted.length; i++) {
     const text = sorted[i].statustext.toLowerCase();
 
-    // Match either deferral phrase
-    const isDeferral = text.includes('deferred the measure') || text.includes('measure to be deferred');
-    if (!isDeferral) continue;
+    if (!isDeferralText(text)) continue;
 
     // Skip temporary deferrals ("deferred the measure until ...")
     if (text.includes('deferred the measure until')) continue;
@@ -114,7 +123,7 @@ export function findPermanentDeferral(statusUpdates: StatusUpdate[]): StatusUpda
     // Check if the bill recovered — any subsequent status update that is NOT a deferral means it did
     const hasSubsequentActivity = sorted.slice(i + 1).some((u) => {
       const uText = u.statustext.toLowerCase();
-      return !uText.includes('deferred the measure') && !uText.includes('measure to be deferred');
+      return !isDeferralText(uText);
     });
     if (hasSubsequentActivity) continue;
 
@@ -137,7 +146,12 @@ export function getDeadReasonFromUpdate(latestStatusText: string | null): string
   const text = latestStatusText.toLowerCase();
 
   // Check for explicit deferral language
-  if (text.includes('deferred the measure') || text.includes('measure to be deferred')) {
+  if (isDeferralText(text)) {
+    if (text.includes('recommendation was not adopted')) {
+      const committeeMatch = latestStatusText.match(/committee(?:\(s\))?\s+on\s+(\S+)/i);
+      const committee = committeeMatch ? committeeMatch[1] : null;
+      return committee ? `Recommendation not adopted by ${committee}` : 'Recommendation not adopted';
+    }
     const committeeMatch = latestStatusText.match(/committee(?:\(s\))?\s+on\s+(\S+)/i);
     const committee = committeeMatch ? committeeMatch[1] : null;
     return committee ? `Deferred by ${committee}` : 'Deferred by committee';
@@ -328,12 +342,19 @@ export function isBillDead(
   deadlines: SessionDeadlines,
   today: string
 ): DeadBillResult {
-  // Kill Condition 1: Explicit deferral
+  // Kill Condition 1: Explicit deferral / recommendation not adopted
+  // This supersedes the deadline kill condition — committee action is the authoritative reason.
   const deferralUpdate = findPermanentDeferral(statusUpdates);
   if (deferralUpdate) {
-    // Extract committee name from deferral text (e.g., "The committee on AGR deferred the measure.")
     const committeeMatch = deferralUpdate.statustext.match(/committee(?:\(s\))?\s+on\s+(\S+)/i);
     const committee = committeeMatch ? committeeMatch[1] : 'committee';
+    const text = deferralUpdate.statustext.toLowerCase();
+    if (text.includes('recommendation was not adopted')) {
+      return {
+        dead: true,
+        reason: `Recommendation not adopted by ${committee}`,
+      };
+    }
     return {
       dead: true,
       reason: `Deferred by ${committee}`,
