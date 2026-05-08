@@ -109,6 +109,25 @@ export function isExplicitlyDeferred(statusUpdates: StatusUpdate[]): boolean {
   return findPermanentDeferral(statusUpdates) !== null;
 }
 
+/**
+ * Derives a short human-readable death reason from just the latest status update text.
+ * Used on the kanban card where we don't have full algorithm context.
+ */
+export function getDeadReasonFromUpdate(latestStatusText: string | null): string {
+  if (!latestStatusText) return 'Missed deadline';
+
+  const text = latestStatusText.toLowerCase();
+
+  // Check for explicit deferral language
+  if (text.includes('deferred the measure') || text.includes('measure to be deferred')) {
+    const committeeMatch = latestStatusText.match(/committee(?:\(s\))?\s+on\s+(\S+)/i);
+    const committee = committeeMatch ? committeeMatch[1] : null;
+    return committee ? `Deferred by ${committee}` : 'Deferred by committee';
+  }
+
+  return 'Missed deadline';
+}
+
 // --- Deadline Resolution ---
 
 function resolveDate(
@@ -246,9 +265,12 @@ export function isBillDead(
   // Kill Condition 1: Explicit deferral
   const deferralUpdate = findPermanentDeferral(statusUpdates);
   if (deferralUpdate) {
+    // Extract committee name from deferral text (e.g., "The committee on AGR deferred the measure.")
+    const committeeMatch = deferralUpdate.statustext.match(/committee(?:\(s\))?\s+on\s+(\S+)/i);
+    const committee = committeeMatch ? committeeMatch[1] : 'committee';
     return {
       dead: true,
-      reason: `Explicitly deferred: "${deferralUpdate.statustext}"`,
+      reason: `Deferred by ${committee}`,
     };
   }
 
@@ -280,7 +302,7 @@ export function isBillDead(
   if (currentIndex < requiredIndex) {
     return {
       dead: true,
-      reason: `Missed deadline: ${deadline.name} (${deadline.date}). Bill is at "${bill.bill_status}" (index ${currentIndex}) but should be at or past "${deadline.minimumStatus}" (index ${requiredIndex})`,
+      reason: `Missed ${deadline.name} deadline (${deadline.date})`,
     };
   }
 

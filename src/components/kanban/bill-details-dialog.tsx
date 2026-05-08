@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
+import { cn } from '@/lib/utils';
 import { FileText, RefreshCw, WandSparkles, Lock, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -34,6 +35,10 @@ import { updateBillStatus, updateBillDeadFlag, getBillDetails } from '@/services
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { TagSelector } from '../tags/tag-selector';
+import { isBillDead } from '@/lib/dead-bill';
+import type { SessionDeadlines, StatusUpdate as DeadBillStatusUpdate } from '@/lib/dead-bill';
+import type { BillStatus as DBBillStatus } from '@/db/types';
+import deadlinesJson from '@/data/session-deadlines-2026.json';
 import { useTrackedBills } from '@/hooks/use-tracked-bills';
 
 interface BillDetailsDialogProps {
@@ -322,36 +327,77 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                   <DetailItem label="Introducers" value={billDetails?.introducer || 'N/A'} />
                 </div>
 
-                {/* Dead Flag Toggle - Admins/Supervisors only */}
-                {canSeeTracking && (
-                  <div className="flex items-center justify-between rounded-md border p-3 bg-muted/30">
-                    <div className="space-y-0.5">
-                      <span className="font-medium text-sm">Dead Bill</span>
-                      <p className="text-xs text-muted-foreground">
-                        {bill.dead ? 'This bill has been flagged as dead by the algorithm.' : 'This bill is active.'}
-                      </p>
+                {/* Dead Flag Section */}
+                {(() => {
+                  // Derive the algorithm's reason using full bill details when available
+                  const deadReason = (bill.dead && billDetails?.committee_assignment)
+                    ? isBillDead(
+                        {
+                          bill_number: billDetails.bill_number || bill.bill_number,
+                          bill_status: (billDetails.current_bill_status || bill.current_bill_status) as DBBillStatus,
+                          committee_assignment: billDetails.committee_assignment,
+                        },
+                        (billDetails.updates || []).map(u => ({
+                          statustext: u.statustext,
+                          date: u.date,
+                          chamber: u.chamber,
+                        })),
+                        deadlinesJson as SessionDeadlines,
+                        new Date().toISOString().split('T')[0],
+                      ).reason
+                    : null;
+
+                  return (
+                    <div className={cn(
+                      "rounded-md border p-3",
+                      bill.dead ? "border-red-200 bg-red-50" : "bg-muted/30"
+                    )}>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">
+                              {bill.dead ? 'Dead Bill' : 'Bill Status'}
+                            </span>
+                            {bill.dead && (
+                              <Badge variant="destructive" className="text-white text-[10px] h-4">
+                                Dead
+                              </Badge>
+                            )}
+                          </div>
+                          {bill.dead && deadReason && (
+                            <p className="text-xs text-red-600 mt-1">
+                              {deadReason}
+                            </p>
+                          )}
+                          {!bill.dead && (
+                            <p className="text-xs text-muted-foreground">This bill is active.</p>
+                          )}
+                        </div>
+                        {canSeeTracking && (
+                          <Switch
+                            checked={bill.dead}
+                            onCheckedChange={async (checked) => {
+                              try {
+                                await updateBillDeadFlag(bill.id, checked);
+                                updateBill(bill.id, { dead: checked });
+                                toast({
+                                  title: checked ? 'Bill Marked Dead' : 'Bill Marked Alive',
+                                  description: `${bill.bill_number} has been ${checked ? 'flagged as dead' : 'restored to active'}.`,
+                                });
+                              } catch {
+                                toast({
+                                  title: 'Error',
+                                  description: 'Failed to update dead flag.',
+                                  variant: 'destructive',
+                                });
+                              }
+                            }}
+                          />
+                        )}
+                      </div>
                     </div>
-                    <Switch
-                      checked={bill.dead}
-                      onCheckedChange={async (checked) => {
-                        try {
-                          await updateBillDeadFlag(bill.id, checked);
-                          updateBill(bill.id, { dead: checked });
-                          toast({
-                            title: checked ? 'Bill Marked Dead' : 'Bill Marked Alive',
-                            description: `${bill.bill_number} has been ${checked ? 'flagged as dead' : 'restored to active'}.`,
-                          });
-                        } catch {
-                          toast({
-                            title: 'Error',
-                            description: 'Failed to update dead flag.',
-                            variant: 'destructive',
-                          });
-                        }
-                      }}
-                    />
-                  </div>
-                )}
+                  );
+                })()}
 
                 <DetailItem label="Description" value={billDetails?.description || bill.description || 'No description available.'} />
 

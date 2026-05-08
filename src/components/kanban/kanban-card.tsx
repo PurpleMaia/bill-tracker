@@ -5,6 +5,7 @@ import { Calendar, CheckCircle, Clock, FileText, GitBranch, Send, Gavel, Sparkle
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTagSelector } from '../tags/card-tag-selector';
+import { getDeadReasonFromUpdate } from '@/lib/dead-bill';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { AssignBillDialog } from './assign-bill-dialog';
@@ -241,9 +242,14 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                     <div className='flex justify-between items-center mt-2 px-3 mb-2'>
 
                       {bill.dead ? (
-                        <Badge variant='destructive' className='text-white'>
-                          Dead
-                        </Badge>
+                        <div className="flex flex-col gap-0.5">
+                          <Badge variant='destructive' className='text-white'>
+                            Dead
+                          </Badge>
+                          <span className="text-[10px] text-red-500 leading-tight">
+                            {getDeadReasonFromUpdate(bill.latest_update?.statustext ?? null)}
+                          </span>
+                        </div>
                       ) : (
                         <Badge variant='outline' className='text-muted-foreground'>
                           {formatBillStatusName(bill.current_bill_status)}
