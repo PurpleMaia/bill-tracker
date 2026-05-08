@@ -15,6 +15,8 @@ export interface DeadlineEntry {
 export interface DeadBillResult {
   dead: boolean;
   reason: string;
+  /** The specific deadline the bill failed, if death was due to a missed deadline */
+  failedDeadline?: DeadlineEntry;
 }
 
 export interface SessionDeadlines {
@@ -345,16 +347,13 @@ export function isBillDead(
   const preCrossover = isPreCrossover(bill.bill_status);
 
   // Kill Condition 2: Missed deadline
-  const deadline = getRelevantDeadline(
-    referralType,
-    chamber,
-    preCrossover,
-    deadlines,
-    today,
-    bill.committee_assignment
-  );
+  // Walk deadlines chronologically and find the FIRST one the bill failed.
+  // This gives a specific, actionable reason (e.g. "Missed First Lateral")
+  // instead of always blaming the most recent deadline (e.g. Adjournment).
+  const applicable = getApplicableDeadlines(referralType, chamber, preCrossover, deadlines, bill.committee_assignment);
+  const passed = applicable.filter((d) => d.date <= today);
 
-  if (!deadline) {
+  if (passed.length === 0) {
     return {
       dead: false,
       reason: 'No applicable deadline has passed yet',
@@ -362,17 +361,25 @@ export function isBillDead(
   }
 
   const currentIndex = COLUMN_INDEX[bill.bill_status] ?? 0;
-  const requiredIndex = COLUMN_INDEX[deadline.minimumStatus] ?? 0;
 
-  if (currentIndex < requiredIndex) {
+  // Find the earliest deadline the bill failed to meet
+  const firstFailed = passed.find((d) => {
+    const requiredIndex = COLUMN_INDEX[d.minimumStatus] ?? 0;
+    return currentIndex < requiredIndex;
+  });
+
+  if (firstFailed) {
     return {
       dead: true,
-      reason: `Missed ${deadline.name} deadline (${deadline.date})`,
+      reason: `Missed ${firstFailed.name} deadline (${firstFailed.date})`,
+      failedDeadline: firstFailed,
     };
   }
 
+  // Bill met all passed deadlines
+  const lastPassed = passed[passed.length - 1];
   return {
     dead: false,
-    reason: `Bill meets the most recent deadline: ${deadline.name} (${deadline.date}). Status "${bill.bill_status}" (index ${currentIndex}) >= required "${deadline.minimumStatus}" (index ${requiredIndex})`,
+    reason: `Bill meets all passed deadlines through ${lastPassed.name} (${lastPassed.date}). Status "${bill.bill_status}" (index ${currentIndex}) is on track.`,
   };
 }

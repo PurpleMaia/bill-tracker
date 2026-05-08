@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { cn, formatBillStatusName, canAssignBills } from '@/lib/utils';
-import { CardContent } from '@/components/ui/card';
-import { Calendar, Sparkles, X, Check, Users, Clock } from 'lucide-react';
+import { Sparkles, X, Check, Users, Clock, Info } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTagSelector } from '../tags/card-tag-selector';
-import { getDeadReasonFromUpdate, getNextDeadline } from '@/lib/dead-bill';
+import { getNextDeadline } from '@/lib/dead-bill';
 import type { SessionDeadlines } from '@/lib/dead-bill';
+import { DeadBillInfoPopover } from './dead-bill-info-popover';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import deadlinesJson from '@/data/session-deadlines-2026.json';
 import { useBills } from '@/hooks/contexts/bills-context';
@@ -99,20 +99,25 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
         <div
             ref={ref}
             className={cn(
-                "group rounded-lg border bg-card text-card-foreground transition-all duration-200 w-full max-w-[300px]",
+                "group relative rounded-lg border bg-card text-card-foreground transition-all duration-200 w-full max-w-[300px]",
                 "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
                 "flex flex-col overflow-hidden",
                 isDragging
                   ? "opacity-80 shadow-xl rotate-2 scale-105 cursor-grabbing"
                   : "shadow-sm hover:shadow-md cursor-grab",
                 isHighlighted && "ring-2 ring-blue-500 ring-offset-2 border-blue-300",
-                bill.dead && "opacity-50 grayscale-[50%]",
                 className
             )}
             style={style}
             {...props}
             tabIndex={0}
         >
+            {/* Grayed-out content layer for dead bills */}
+            <div className={cn(
+              "flex flex-col",
+              bill.dead && "opacity-50 grayscale-[50%]"
+            )}>
+
             {/* Status color strip — top edge */}
             <div className={cn(
               "h-1 w-full",
@@ -137,18 +142,30 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                 tabIndex={0}
                 aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
             >
-                {/* Tags + remove button — same row */}
+                {/* Tags row + dead badge */}
                 <div className="flex items-start justify-between gap-1">
                   <div className="flex-1 min-w-0">
                     <CardTagSelector billId={bill.id} billTags={bill.tags} />
-                  </div>
+                  </div>                  
+                </div>
+
+                {/* Bill number + year + X remove button */}
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="text-sm font-semibold tracking-tight">
+                    {bill.bill_number}
+                  </span>
+                  {bill.year && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 rounded-md text-muted-foreground">
+                      {bill.year}
+                    </Badge>
+                  )}
                   {canAssignBills(user) && (
                     <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
                       <AlertDialogTrigger asChild>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="cursor-pointer h-5 w-5 p-0 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500"
+                          className="cursor-pointer h-5 w-5 p-0 shrink-0 ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500"
                           onClick={(e) => { e.stopPropagation(); setShowRemoveDialog(true); }}
                           disabled={isRemoving}
                         >
@@ -177,65 +194,42 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                   )}
                 </div>
 
-                {/* Bill number + year */}
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className={cn(
-                    "text-sm font-semibold tracking-tight",
-                    bill.dead && "line-through decoration-red-400/70"
-                  )}>
-                    {bill.bill_number}
-                  </span>
-                  {bill.year && (
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1 rounded-md text-muted-foreground">
-                      {bill.year}
-                    </Badge>
-                  )}
-                </div>
-
                 {/* Description — 2 lines with ellipsis */}
-                <p className="text-sm text-foreground line-clamp-2 mt-1 leading-relaxed">
+                <p className="text-sm text-foreground line-clamp-2 mt-1 leading-relaxed truncate">
                   {bill.description}
                 </p>
 
-                {/* Latest Status Update */}
+                {/* Latest update + committee referral */}
                 {bill.latest_update && (
-                  <div className="border-y bg-muted/30 my-2 p-2.5 -mx-3">
-                    <div className="flex items-start gap-2 px-0.5">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-1.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] text-muted-foreground mb-0.5">
-                          Latest update &middot; {new Date(bill.latest_update.date).toLocaleDateString()}
-                        </p>
-                        <p className="text-xs text-foreground line-clamp-2 leading-relaxed">
-                          {bill.latest_update.statustext}
-                        </p>
-                      </div>
+                  <div className="mt-1.5 space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full flex-shrink-0" />
+                      <span className="text-xs text-muted-foreground">
+                        Latest update &middot; {new Date(bill.latest_update.date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                      </span>
                     </div>
+                    {bill.latest_update && (
+                      <p className="text-xs text-muted-foreground pl-[14px] truncate">
+                        {bill.latest_update.statustext}
+                      </p>
+                    )}
                   </div>
                 )}
 
-                {/* Status + metadata footer */}
-                <div className="flex items-center justify-between">
-                  {/* Left: Status or Dead indicator */}
-                  {bill.dead ? (
-                    <div className="flex items-center gap-1">
-                      <Badge variant="destructive" className="text-[10px] h-4 px-1.5 text-white">
-                        Dead
-                      </Badge>
-                      <span className="text-[10px] text-red-500 truncate max-w-[120px]">
-                        {getDeadReasonFromUpdate(bill.latest_update?.statustext ?? null)}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1">
-                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">
-                        {formatBillStatusName(bill.current_bill_status)}
-                      </Badge>
-                    </div>
-                  )}
+                {/* Status badges footer */}
+                <div className="flex items-center flex-wrap gap-1.5 mt-2.5">
+                    <Badge variant="outline" className="text-[10px] h-5 px-2 text-muted-foreground rounded-full">
+                      {formatBillStatusName(bill.current_bill_status)}
+                    </Badge>
+                    {canSeeTracking && (
+                      <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                        <Users className="h-2.5 w-2.5" />
+                        <span>{trackedCount}</span>
+                      </div>
+                    )}
 
-                  {/* Right: Deadline + tracking count */}
-                  <div className="flex items-center gap-2">
+                  {/* Deadline */}
+                  <div className="flex items-center gap-2 ml-auto">
                     {nextDeadline && (
                       <div className={cn(
                         "flex items-center gap-0.5 text-[10px]",
@@ -247,12 +241,12 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                         </span>
                       </div>
                     )}
-                    {canSeeTracking && (
-                      <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                        <Users className="h-2.5 w-2.5" />
-                        <span>{trackedCount}</span>
-                      </div>
-                    )}
+
+                    {bill.dead && (
+                    <Badge variant="destructive" className="text-[10px] h-5 px-2 text-white rounded-full shrink-0">
+                      Dead
+                    </Badge>
+                  )}
                   </div>
                 </div>
             </div>
@@ -284,8 +278,8 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
               </div>
             )}
 
-            {/* Assign Bill — visible on hover */}
-            {canAssignBills(user) && (
+            {/* Assign Bill — visible on hover, hidden for dead bills */}
+            {canAssignBills(user) && !bill.dead && (
               <div className="px-3 pb-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <AssignBillDialog
                   bill={bill}
@@ -299,6 +293,27 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                     </Button>
                   }
                 />
+              </div>
+            )}
+            </div>{/* end grayed-out content layer */}
+
+            {/* Dead info popover — bottom-right, layered on top of grayed content */}
+            {bill.dead && (
+              <div className="absolute top-3 right-2 z-10">
+              <DeadBillInfoPopover
+                  billNumber={bill.bill_number}
+                  billStatus={bill.current_bill_status}
+                  committeeAssignment={bill.committee_assignment}
+                  latestUpdate={bill.latest_update}
+                >
+                  <button
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm"
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label="Why did this bill die?"
+                  >
+                    <Info className="h-5 w-5" />
+                  </button>
+                </DeadBillInfoPopover>
               </div>
             )}
       </div>
