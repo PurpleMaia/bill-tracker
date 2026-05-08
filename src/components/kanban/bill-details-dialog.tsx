@@ -35,7 +35,7 @@ import { updateBillStatus, updateBillDeadFlag, getBillDetails } from '@/services
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { TagSelector } from '../tags/tag-selector';
-import { isBillDead } from '@/lib/dead-bill';
+import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/dead-bill';
 import type { SessionDeadlines, StatusUpdate as DeadBillStatusUpdate } from '@/lib/dead-bill';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import deadlinesJson from '@/data/session-deadlines-2026.json';
@@ -326,6 +326,46 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                   <DetailItem label="Committee Assignment" value={billDetails?.committee_assignment || 'Not Assigned'} />
                   <DetailItem label="Introducers" value={billDetails?.introducer || 'N/A'} />
                 </div>
+
+                {/* Upcoming Deadline */}
+                {(() => {
+                  const committeeAssign = billDetails?.committee_assignment || bill.committee_assignment;
+                  if (!committeeAssign || bill.dead) return null;
+                  const today = new Date().toISOString().split('T')[0];
+                  const deadline = getNextDeadline(
+                    bill.bill_number,
+                    (billDetails?.current_bill_status || bill.current_bill_status) as DBBillStatus,
+                    committeeAssign,
+                    deadlinesJson as SessionDeadlines,
+                    today
+                  );
+                  if (!deadline) return null;
+                  const fiscal = isFiscalBill(committeeAssign);
+                  const deadlineDate = new Date(deadline.date + 'T00:00:00');
+                  const daysUntil = Math.ceil((deadlineDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                  const isUrgent = daysUntil <= 7;
+                  return (
+                    <div className={cn(
+                      "rounded-md border p-3",
+                      isUrgent ? "border-amber-300 bg-amber-50" : "border-blue-200 bg-blue-50/50"
+                    )}>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <span className={cn("font-medium text-sm", isUrgent && "text-amber-700")}>
+                            Next Deadline: {deadline.name}
+                          </span>
+                          <p className={cn("text-xs", isUrgent ? "text-amber-600" : "text-blue-600")}>
+                            {deadlineDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                            {daysUntil > 0 ? ` (${daysUntil} day${daysUntil !== 1 ? 's' : ''} away)` : daysUntil === 0 ? ' (today!)' : ' (passed)'}
+                          </p>
+                        </div>
+                        {fiscal && (
+                          <Badge variant="secondary" className="text-[10px]">Fiscal</Badge>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Dead Flag Section */}
                 {(() => {

@@ -5,7 +5,10 @@ import { Calendar, CheckCircle, Clock, FileText, GitBranch, Send, Gavel, Sparkle
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTagSelector } from '../tags/card-tag-selector';
-import { getDeadReasonFromUpdate } from '@/lib/dead-bill';
+import { getDeadReasonFromUpdate, getNextDeadline } from '@/lib/dead-bill';
+import type { SessionDeadlines } from '@/lib/dead-bill';
+import type { BillStatus as DBBillStatus } from '@/db/types';
+import deadlinesJson from '@/data/session-deadlines-2026.json';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { AssignBillDialog } from './assign-bill-dialog';
@@ -119,6 +122,17 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
         setIsRemoving(false);
       }
     };
+
+    const today = new Date().toISOString().split('T')[0];
+    const nextDeadline = !bill.dead && bill.committee_assignment && bill.current_bill_status
+      ? getNextDeadline(
+          bill.bill_number,
+          bill.current_bill_status as DBBillStatus,
+          bill.committee_assignment,
+          deadlinesJson as SessionDeadlines,
+          today
+        )
+      : null;
 
     return (
         <div
@@ -251,9 +265,17 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                           </span>
                         </div>
                       ) : (
-                        <Badge variant='outline' className='text-muted-foreground'>
-                          {formatBillStatusName(bill.current_bill_status)}
-                        </Badge>
+                        <div className="flex flex-col gap-0.5">
+                          <Badge variant='outline' className='text-muted-foreground'>
+                            {formatBillStatusName(bill.current_bill_status)}
+                          </Badge>
+                          
+                          {nextDeadline && (
+                            <span className="text-[10px] text-muted-foreground leading-tight">
+                              Next: {nextDeadline.name} ({new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
+                            </span>
+                          )}
+                        </div>
                       )}
 
                       {canSeeTracking ? (

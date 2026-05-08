@@ -1050,6 +1050,7 @@ async function convertDataToBillShape(
     description: bill.description ?? '',
     archived: bill.archived ?? false,
     dead: bill.dead ?? false,
+    committee_assignment: bill.committee_assignment ?? null,
     year: bill.year ?? null,
 
     latest_update: updates[0] || null,

@@ -48,6 +48,7 @@ export interface Bill {
   description: string;
   archived: boolean;
   dead: boolean;
+  committee_assignment: string | null;
 
   // client side attributes
   latest_update: StatusUpdate | null;

@@ -144,6 +144,35 @@ export function getDeadReasonFromUpdate(latestStatusText: string | null): string
   return 'Missed deadline';
 }
 
+/**
+ * Returns the next upcoming deadline for a bill based on its current status,
+ * referral type, chamber, and fiscal status. Returns null if all deadlines passed.
+ */
+export function getNextDeadline(
+  billNumber: string,
+  billStatus: BillStatus,
+  committeeAssignment: string,
+  deadlines: SessionDeadlines,
+  today: string
+): DeadlineEntry | null {
+  const committees = parseCommittees(committeeAssignment);
+  const referralType = getReferralType(committees.length);
+  const chamber = getBillChamber(billNumber);
+  const preCrossover = isPreCrossover(billStatus);
+  const applicable = getApplicableDeadlines(referralType, chamber, preCrossover, deadlines, committeeAssignment);
+  const currentIndex = COLUMN_INDEX[billStatus] ?? 0;
+
+  // Find the next deadline that:
+  // 1. Hasn't passed yet (date >= today), AND
+  // 2. The bill hasn't already met (bill status is below the minimum required)
+  const upcoming = applicable.filter((d) => {
+    const requiredIndex = COLUMN_INDEX[d.minimumStatus] ?? 0;
+    return d.date >= today && currentIndex < requiredIndex;
+  });
+  if (upcoming.length === 0) return null;
+  return upcoming[0];
+}
+
 // --- Deadline Resolution ---
 
 function resolveDate(
