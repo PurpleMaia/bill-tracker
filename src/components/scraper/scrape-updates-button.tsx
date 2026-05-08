@@ -55,6 +55,7 @@ export default function RefreshStatusesButton({ bill, onRefresh } : Props) {
     return (
         <>
             <Button
+            size="sm" className="px-6 h-9"
                 onClick={async () => {
                     setLoading(true);
                     await handleScrapeStatuses();
@@ -64,7 +65,7 @@ export default function RefreshStatusesButton({ bill, onRefresh } : Props) {
                 { loading ? (
                     <span className="flex items-center gap-2"><RefreshCw className='animate-spin'/>Loading</span>
                 ) : (
-                    <span className="flex items-center gap-2"><ListRestart />Refresh Status Updates</span>
+                    <span className="flex items-center gap-2"><ListRestart />Refresh</span>
                 )}
             </Button>
         </>

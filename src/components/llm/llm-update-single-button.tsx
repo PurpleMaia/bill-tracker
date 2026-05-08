@@ -150,6 +150,7 @@ export default function AIUpdateSingleButton({ bill } : Props) {
   return (
     <>
       <Button
+        size="sm" className="px-6 h-9"
         onClick={async () => {
           setLoading(true);
           await handleAIUpdate();

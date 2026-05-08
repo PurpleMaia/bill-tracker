@@ -384,7 +384,6 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                   )}
                 </div>
                 <div className="flex gap-2">
-                  {user && <AIUpdateSingleButton bill={bill} />}
                   <Select value={selectedStatus} onValueChange={setSelectedStatus} disabled={!user || !canEditBill}>
                     <SelectTrigger className="flex-1 h-9 text-sm">
                       <SelectValue placeholder={!user ? "Login to edit" : !canEditBill ? "Only in 'My Bills'" : "Select status"} />
@@ -400,6 +399,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                   <Button onClick={handleSave} disabled={!user || !selectedStatus || !canEditBill} size="sm" className="px-6 h-9">
                     Save
                   </Button>
+                  {user && <AIUpdateSingleButton bill={bill} />}
                 </div>
               </div>
             </div>
