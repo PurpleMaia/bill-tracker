@@ -384,6 +384,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                   )}
                 </div>
                 <div className="flex gap-2">
+                  {user && <AIUpdateSingleButton bill={bill} />}
                   <Select value={selectedStatus} onValueChange={setSelectedStatus} disabled={!user || !canEditBill}>
                     <SelectTrigger className="flex-1 h-9 text-sm">
                       <SelectValue placeholder={!user ? "Login to edit" : !canEditBill ? "Only in 'My Bills'" : "Select status"} />
@@ -400,24 +401,21 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                     Save
                   </Button>
                 </div>
-                {user && (
-                  <div className="flex gap-2 mt-2">
-                    <AIUpdateSingleButton bill={bill} />
-                    <RefreshStatusesButton bill={bill} onRefresh={handleStatusUpdateRefresh} />
-                  </div>
-                )}
               </div>
             </div>
 
             {/* RIGHT PANEL — Status updates timeline */}
             <div className="w-[45%] flex flex-col bg-muted/20">
-              <div className="px-5 pt-5 pb-3 border-b shrink-0">
+              <div className="px-5 pt-5 pb-3 border-b shrink-0 flex items-center justify-between">
                 <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Status Updates
                   {billDetails?.updates && (
                     <span className="ml-1.5 text-muted-foreground/60">({billDetails.updates.length})</span>
                   )}
                 </h3>
+                {user && (
+                  <RefreshStatusesButton bill={bill} onRefresh={handleStatusUpdateRefresh} />
+                )}
               </div>
               <ScrollArea className="flex-1">
                 <div className="p-5">

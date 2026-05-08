@@ -99,7 +99,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
         <div
             ref={ref}
             className={cn(
-                "group rounded-lg border bg-card text-card-foreground transition-all duration-200 w-full max-w-[280px]",
+                "group rounded-lg border bg-card text-card-foreground transition-all duration-200 w-full max-w-[300px]",
                 "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
                 "flex flex-col overflow-hidden",
                 isDragging
@@ -137,30 +137,18 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                 tabIndex={0}
                 aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
             >
-                {/* Row 1: Bill number + year + remove button */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className={cn(
-                      "text-sm font-semibold tracking-tight",
-                      bill.dead && "line-through decoration-red-400/70"
-                    )}>
-                      {bill.bill_number}
-                    </span>
-                    {bill.year && (
-                      <span className="text-[10px] text-muted-foreground tabular-nums">
-                        {bill.year}
-                      </span>
-                    )}
+                {/* Tags + remove button — same row */}
+                <div className="flex items-start justify-between gap-1">
+                  <div className="flex-1 min-w-0">
+                    <CardTagSelector billId={bill.id} billTags={bill.tags} />
                   </div>
-
-                  {/* Remove button — visible on hover for admins */}
                   {canAssignBills(user) && (
                     <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
                       <AlertDialogTrigger asChild>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="cursor-pointer h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500"
+                          className="cursor-pointer h-5 w-5 p-0 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500"
                           onClick={(e) => { e.stopPropagation(); setShowRemoveDialog(true); }}
                           disabled={isRemoving}
                         >
@@ -189,18 +177,45 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                   )}
                 </div>
 
-                {/* Row 2: Description — 2 lines max */}
-                <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
+                {/* Bill number + year */}
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className={cn(
+                    "text-sm font-semibold tracking-tight",
+                    bill.dead && "line-through decoration-red-400/70"
+                  )}>
+                    {bill.bill_number}
+                  </span>
+                  {bill.year && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 rounded-md text-muted-foreground">
+                      {bill.year}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Description — 2 lines with ellipsis */}
+                <p className="text-sm text-foreground line-clamp-2 mt-1 leading-relaxed">
                   {bill.description}
                 </p>
 
-                {/* Row 3: Tags */}
-                <div className="mt-2">
-                  <CardTagSelector billId={bill.id} billTags={bill.tags} />
-                </div>
+                {/* Latest Status Update */}
+                {bill.latest_update && (
+                  <div className="border-y bg-muted/30 my-2 p-2.5 -mx-3">
+                    <div className="flex items-start gap-2 px-0.5">
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-1.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] text-muted-foreground mb-0.5">
+                          Latest update &middot; {new Date(bill.latest_update.date).toLocaleDateString()}
+                        </p>
+                        <p className="text-xs text-foreground line-clamp-2 leading-relaxed">
+                          {bill.latest_update.statustext}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-                {/* Row 4: Status + metadata footer */}
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
+                {/* Status + metadata footer */}
+                <div className="flex items-center justify-between">
                   {/* Left: Status or Dead indicator */}
                   {bill.dead ? (
                     <div className="flex items-center gap-1">
