@@ -31,6 +31,9 @@ export interface SessionDeadlines {
     second_lateral: string;
     second_decking: string;
     second_crossover: string;
+    final_decking_non_fiscal: string;
+    final_decking_fiscal: string;
+    adjournment_sine_die: string;
   };
 }
 
@@ -61,6 +64,15 @@ export function getBillChamber(billNumber: string): Chamber {
   return 'HB';
 }
 
+/**
+ * A bill is fiscal if its committee assignment includes FIN or WAM.
+ * Joint committees like JDL/WAM also count.
+ */
+export function isFiscalBill(committeeAssignment: string): boolean {
+  return committeeAssignment.toUpperCase().includes('FIN') ||
+    committeeAssignment.toUpperCase().includes('WAM');
+}
+
 // --- Phase Detection ---
 
 export function isPreCrossover(status: BillStatus): boolean {
@@ -82,9 +94,13 @@ export function isPreCrossover(status: BillStatus): boolean {
  * 2. There is no subsequent status update after the deferral (bill did not recover)
  */
 export function findPermanentDeferral(statusUpdates: StatusUpdate[]): StatusUpdate | null {
-  // Status updates should be sorted by date ascending
-  for (let i = 0; i < statusUpdates.length; i++) {
-    const text = statusUpdates[i].statustext.toLowerCase();
+  // Sort by date properly (dates may be M/D/YYYY strings, not ISO)
+  const sorted = [...statusUpdates].sort((a, b) =>
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  for (let i = 0; i < sorted.length; i++) {
+    const text = sorted[i].statustext.toLowerCase();
 
     // Match either deferral phrase
     const isDeferral = text.includes('deferred the measure') || text.includes('measure to be deferred');
@@ -94,13 +110,13 @@ export function findPermanentDeferral(statusUpdates: StatusUpdate[]): StatusUpda
     if (text.includes('deferred the measure until')) continue;
 
     // Check if the bill recovered — any subsequent status update that is NOT a deferral means it did
-    const hasSubsequentActivity = statusUpdates.slice(i + 1).some((u) => {
+    const hasSubsequentActivity = sorted.slice(i + 1).some((u) => {
       const uText = u.statustext.toLowerCase();
       return !uText.includes('deferred the measure') && !uText.includes('measure to be deferred');
     });
     if (hasSubsequentActivity) continue;
 
-    return statusUpdates[i];
+    return sorted[i];
   }
   return null;
 }
@@ -148,7 +164,8 @@ export function getApplicableDeadlines(
   referralType: ReferralType,
   chamber: Chamber,
   preCrossover: boolean,
-  deadlines: SessionDeadlines
+  deadlines: SessionDeadlines,
+  committeeAssignment?: string
 ): DeadlineEntry[] {
   const d = deadlines.deadlines;
   const entries: DeadlineEntry[] = [];
@@ -229,6 +246,23 @@ export function getApplicableDeadlines(
     });
   }
 
+  // --- Endgame deadlines (apply to all bills regardless of phase) ---
+
+  // Final Decking: fiscal bills (FIN/WAM) get until May 1, non-fiscal until Apr 29
+  const fiscal = committeeAssignment ? isFiscalBill(committeeAssignment) : false;
+  entries.push({
+    name: fiscal ? 'Final Decking (Fiscal)' : 'Final Decking (Non-Fiscal)',
+    date: fiscal ? d.final_decking_fiscal : d.final_decking_non_fiscal,
+    minimumStatus: 'transmittedGovernor' as BillStatus,
+  });
+
+  // Adjournment Sine Die: session over, bill must be signed or law
+  entries.push({
+    name: 'Adjournment Sine Die',
+    date: d.adjournment_sine_die,
+    minimumStatus: 'governorSigns' as BillStatus,
+  });
+
   entries.sort((a, b) => a.date.localeCompare(b.date));
   return entries;
 }
@@ -242,9 +276,10 @@ export function getRelevantDeadline(
   chamber: Chamber,
   preCrossover: boolean,
   deadlines: SessionDeadlines,
-  today: string
+  today: string,
+  committeeAssignment?: string
 ): DeadlineEntry | null {
-  const applicable = getApplicableDeadlines(referralType, chamber, preCrossover, deadlines);
+  const applicable = getApplicableDeadlines(referralType, chamber, preCrossover, deadlines, committeeAssignment);
   const passed = applicable.filter((d) => d.date <= today);
   if (passed.length === 0) return null;
   return passed[passed.length - 1];
@@ -286,7 +321,8 @@ export function isBillDead(
     chamber,
     preCrossover,
     deadlines,
-    today
+    today,
+    bill.committee_assignment
   );
 
   if (!deadline) {

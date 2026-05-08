@@ -75,7 +75,8 @@ async function main() {
       chamber,
       preCrossover,
       deadlines,
-      today
+      today,
+      bill.committee_assignment
     );
 
     const explicitlyDeferred = isExplicitlyDeferred(statusUpdates);
