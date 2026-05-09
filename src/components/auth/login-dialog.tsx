@@ -68,7 +68,7 @@ export function LoginDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="h-10 shadow-sm">
+        <Button variant="outline" className="h-10 shadow-sm text-primary bg-white">
           <LogIn className="mr-1" />
           Login
         </Button>

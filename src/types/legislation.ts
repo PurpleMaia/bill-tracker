@@ -42,6 +42,7 @@ export interface Bill {
   id: string;
   bill_number: string;
   bill_title: string;
+  bill_url: string;
   year: number | null;
   current_bill_status: string;
   current_status_string: string;
@@ -63,7 +64,6 @@ export interface Bill {
 }
 
 export interface BillDetails extends Bill {
-  bill_url: string;
   committee_assignment: string;
   introducer: string;
   food_related: boolean | null;

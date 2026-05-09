@@ -20,7 +20,7 @@ interface DeadBillInfoPopoverProps {
   latestUpdate: { statustext: string; date: string; chamber: string } | null;
   /** Full status updates for detailed analysis — optional, falls back to latestUpdate only */
   statusUpdates?: StatusUpdate[];
-  billUrl?: string;
+  billUrl: string;
   children: React.ReactNode;
 }
 

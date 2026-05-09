@@ -303,6 +303,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
               <DeadBillInfoPopover
                   billNumber={bill.bill_number}
                   billStatus={bill.current_bill_status}
+                  billUrl={bill.bill_url}
                   committeeAssignment={bill.committee_assignment}
                   latestUpdate={bill.latest_update}
                 >
