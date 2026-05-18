@@ -15,6 +15,22 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
 
 export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 
+export type Json = JsonValue;
+
+export type JsonArray = JsonValue[];
+
+export type JsonObject = {
+  [x: string]: JsonValue | undefined;
+};
+
+export type JsonPrimitive = boolean | number | string | null;
+
+export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
+
+export type OrgRole = "admin" | "worker";
+
+export type Sysrole = "sysadmin" | "user";
+
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface AuthKey {
@@ -27,6 +43,7 @@ export interface AuthKey {
 
 export interface Bills {
   ai_misclassification_type: AiMisclassification | null;
+  ai_status: BillStatus | null;
   archived: Generated<boolean>;
   bill_number: string | null;
   bill_status: Generated<BillStatus | null>;
@@ -52,6 +69,21 @@ export interface BillTags {
   tag_id: string;
 }
 
+export interface Members {
+  created_at: Generated<Timestamp | null>;
+  id: Generated<string>;
+  org_role: Generated<OrgRole>;
+  tenant_id: string;
+  user_id: string;
+}
+
+export interface OrgBills {
+  bill_id: string;
+  bill_status: Generated<BillStatus>;
+  tenant_id: string;
+  updated_at: Generated<Timestamp | null>;
+}
+
 export interface PendingProposals {
   approval_status: Generated<string | null>;
   approved_at: Timestamp | null;
@@ -63,6 +95,7 @@ export interface PendingProposals {
   proposed_at: Generated<Timestamp>;
   proposed_by_user_id: string;
   proposed_status: string;
+  tenant_id: string | null;
 }
 
 export interface SchemaMigrations {
@@ -107,7 +140,16 @@ export interface Tags {
   created_at: Generated<Timestamp>;
   id: Generated<string>;
   name: string;
+  tenant_id: string | null;
   updated_at: Generated<Timestamp>;
+}
+
+export interface Tenants {
+  branding_config: Json | null;
+  created_at: Generated<Timestamp | null>;
+  id: Generated<string>;
+  name: string;
+  slug: string;
 }
 
 export interface User {
@@ -122,6 +164,7 @@ export interface User {
   requested_admin: Generated<boolean>;
   requested_supervisor: Generated<boolean | null>;
   role: Generated<string>;
+  system_role: Generated<Sysrole>;
   username: string;
   verification_token: string | null;
 }
@@ -139,6 +182,7 @@ export interface UserBills {
   adopted_at: Generated<Timestamp | null>;
   bill_id: string | null;
   id: Generated<string>;
+  tenant_id: string | null;
   user_id: string | null;
 }
 
@@ -146,6 +190,8 @@ export interface DB {
   auth_key: AuthKey;
   bill_tags: BillTags;
   bills: Bills;
+  members: Members;
+  org_bills: OrgBills;
   pending_proposals: PendingProposals;
   schema_migrations: SchemaMigrations;
   scraping_stats: ScrapingStats;
@@ -153,6 +199,7 @@ export interface DB {
   status_updates: StatusUpdates;
   supervisor_users: SupervisorUsers;
   tags: Tags;
+  tenants: Tenants;
   user: User;
   user_bill_preferences: UserBillPreferences;
   user_bills: UserBills;
