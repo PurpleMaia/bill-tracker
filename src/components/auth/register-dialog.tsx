@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export function RegisterDialog() {
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -21,14 +22,15 @@ export function RegisterDialog() {
     setIsLoading(true);
 
     try {
-      const success = await register(email, password);
-      if (success) {
+      const result = await register(email, username, password);
+      if (result.success) {
         toast({
           title: 'Registration successful!',
           description: 'You can now log in with your new account.',
         });
         setIsOpen(false);
         setEmail('');
+        setUsername('');
         setPassword('');
       } else {
         toast({
@@ -66,6 +68,17 @@ export function RegisterDialog() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="register-username">Username</Label>
+            <Input
+              id="register-username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Choose a username"
               required
             />
           </div>

@@ -144,7 +144,16 @@ export function BillsProvider({ children }: { children: ReactNode }) {
     if (!bill || !bill.llm_suggested) return;
 
     try {
-      await updateBillStatus(billId, bill.current_bill_status);
+      const response = await fetch(`/api/bills/${billId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateStatus',
+          newStatus: bill.current_bill_status,
+          tenantId: activeTenant?.tenantId,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to update bill status');
 
       setBills((prevBills) =>
         prevBills.map((b) =>
@@ -168,7 +177,7 @@ export function BillsProvider({ children }: { children: ReactNode }) {
         variant: 'destructive',
       });
     }
-  }, [bills]);
+  }, [bills, activeTenant]);
 
   /**
    * Rejects an LLM suggestion and reverts to the previous status
