@@ -64,7 +64,8 @@ export async function POST(request: NextRequest) {
     //validates input
     const validation = loginSchema.safeParse({ authString, password });
     if (!validation.success) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
+      const messages = validation.error.issues.map(i => i.message).join(', ');
+      return NextResponse.json({ error: messages }, { status: 400 });
     }
 
     // Authenticate user

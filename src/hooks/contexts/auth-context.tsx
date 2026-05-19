@@ -17,7 +17,7 @@ interface AuthContextType {
   // Auth actions
   login: (authString: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  register: (email: string, username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, username: string, password: string, orgName?: string) => Promise<{ success: boolean; error?: string }>;
   checkSession: () => Promise<void>;
 }
 
@@ -118,7 +118,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: true };
       } else {
         const errorData = await response.json();
-        return { success: false, error: errorData.error };
+        const errorMsg = typeof errorData.error === 'string'
+          ? errorData.error
+          : 'Login failed. Please check your credentials.';
+        return { success: false, error: errorMsg };
       }
     } catch (error) {
       return { success: false, error: 'Login error' };
@@ -138,19 +141,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (email: string, username: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const register = async (email: string, username: string, password: string, orgName?: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, username, password }),
+        body: JSON.stringify({ email, username, password, orgName: orgName || undefined }),
       });
 
       if (response.ok) {
+        const data = await response.json();
+        // Auto-login: set user + memberships from register response
+        if (data.user) {
+          setUser(data.user);
+          const membershipList: Membership[] = data.memberships ?? [];
+          setMemberships(membershipList);
+          initializeTenant(membershipList);
+        }
         return { success: true };
       } else {
         const errorData = await response.json();
-        return { success: false, error: errorData.error };
+        const errorMsg = typeof errorData.error === 'string'
+          ? errorData.error
+          : 'Registration failed. Please try again.';
+        return { success: false, error: errorMsg };
       }
     } catch (error) {
       console.error('Registration error:', error);

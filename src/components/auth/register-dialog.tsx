@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 
@@ -12,6 +13,8 @@ export function RegisterDialog() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [createOrg, setCreateOrg] = useState(false);
+  const [orgName, setOrgName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const { register } = useAuth();
@@ -22,20 +25,24 @@ export function RegisterDialog() {
     setIsLoading(true);
 
     try {
-      const result = await register(email, username, password);
+      const result = await register(
+        email,
+        username,
+        password,
+        createOrg ? orgName.trim() : undefined
+      );
       if (result.success) {
         toast({
-          title: 'Registration successful!',
-          description: 'You can now log in with your new account.',
+          title: 'Welcome!',
+          description: createOrg
+            ? `Account and org "${orgName.trim()}" created.`
+            : 'Your account has been created.',
         });
         setIsOpen(false);
-        setEmail('');
-        setUsername('');
-        setPassword('');
       } else {
         toast({
           title: 'Registration failed',
-          description: 'Please try again with a different email.',
+          description: result.error || 'Please try again.',
           variant: 'destructive',
         });
       }
@@ -93,8 +100,42 @@ export function RegisterDialog() {
               required
             />
           </div>
+
+          <div className="border-t pt-3 mt-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="dialog-create-org" className="text-sm font-medium cursor-pointer">
+                  Create an organization
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Start a new org and become its admin
+                </p>
+              </div>
+              <Switch
+                id="dialog-create-org"
+                checked={createOrg}
+                onCheckedChange={setCreateOrg}
+              />
+            </div>
+
+            {createOrg && (
+              <div className="space-y-2">
+                <Label htmlFor="dialog-org-name">Organization Name</Label>
+                <Input
+                  id="dialog-org-name"
+                  type="text"
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  placeholder="e.g. Food Policy Council"
+                  required={createOrg}
+                  maxLength={100}
+                />
+              </div>
+            )}
+          </div>
+
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Registering...' : 'Register'}
+            {isLoading ? 'Creating account...' : createOrg ? 'Register & Create Org' : 'Register'}
           </Button>
         </form>
       </DialogContent>

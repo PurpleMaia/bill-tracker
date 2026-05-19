@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
 
     const validation = proposalSchema.safeParse({ billId, currentStatus, proposedStatus, note });
     if (!validation.success) {
-      return NextResponse.json({ success: false, error: validation.error }, { status: 400 });
+      return NextResponse.json({ success: false, error: validation.error.issues.map(i => i.message).join(', ') }, { status: 400 });
     }
 
     if (tenantId) {
@@ -223,7 +223,7 @@ export async function PATCH(request: NextRequest) {
 
     const validation = uuidSchema.safeParse(proposalId);
     if (!validation.success) {
-      return NextResponse.json({ success: false, error: validation.error }, { status: 400 });
+      return NextResponse.json({ success: false, error: validation.error.issues.map(i => i.message).join(', ') }, { status: 400 });
     }
 
     if (tenantId) {
