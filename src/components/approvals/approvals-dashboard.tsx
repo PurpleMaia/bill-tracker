@@ -1,3 +1,4 @@
+/** @deprecated Approvals tab removed from header nav. This component is kept for backwards compatibility but is no longer actively used. */
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';

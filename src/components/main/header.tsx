@@ -13,9 +13,10 @@ export function Header() {
   const publicViews = ['kanban', 'spreadsheet'];
 
   const orgRole = activeTenant?.orgRole;
+  // NOTE: 'approvals' tab deprecated — removed from header nav but view/route still exists
   const views = user
     ? orgRole === 'admin'
-      ? ['kanban', 'spreadsheet', 'approvals', 'admin']
+      ? ['kanban', 'spreadsheet', 'admin']
       : orgRole === 'worker'
         ? ['kanban', 'spreadsheet']
         : ['kanban', 'spreadsheet']
