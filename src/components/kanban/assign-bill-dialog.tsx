@@ -32,7 +32,7 @@ export function AssignBillDialog({ bill, trigger }: AssignBillDialogProps) {
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
   const [pendingUserIds, setPendingUserIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, activeTenant } = useAuth();
   const { assignBill, unassignBill } = useTrackedBills();
 
   // Fetch assignable users when dialog opens
@@ -42,7 +42,7 @@ export function AssignBillDialog({ bill, trigger }: AssignBillDialogProps) {
 
       setIsFetchingUsers(true);
       try {
-        const users = await getAssignableUsers(user.id);
+        const users = await getAssignableUsers(user.id, activeTenant?.tenantId);
         setAssignableUsers(users);
       } catch (error: any) {
         toast({
@@ -106,8 +106,8 @@ export function AssignBillDialog({ bill, trigger }: AssignBillDialogProps) {
           <DialogTitle>Assign Bill to User</DialogTitle>
           <DialogDescription className="text-muted-foreground text-sm">
             {bill.bill_number
-              ? `Assign ${bill.bill_number} to an intern or supervisor.`
-              : 'Assign this bill to an intern or supervisor.'}
+              ? `Assign ${bill.bill_number} to a user.`
+              : 'Assign this bill to a user.'}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -139,7 +139,7 @@ export function AssignBillDialog({ bill, trigger }: AssignBillDialogProps) {
                           {assignableUser.username || assignableUser.email || 'Unknown user'}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {assignableUser.role === 'user' ? 'Intern' : assignableUser.role === 'supervisor' ? 'Supervisor' : 'Admin'}
+                          {assignableUser.role === 'admin' ? 'Admin' : assignableUser.role === 'worker' ? 'User' : assignableUser.role === 'supervisor' ? 'Supervisor' : 'User'}
                         </span>
                       </div>
                       {isPending && (

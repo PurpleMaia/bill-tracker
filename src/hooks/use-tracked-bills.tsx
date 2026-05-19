@@ -9,7 +9,7 @@ import { useBills } from '@/hooks/contexts/bills-context';
 import { Bill } from '@/types/legislation';
 
 export function useTrackedBills() {
-  const { user } = useAuth();
+  const { user, activeTenant } = useAuth();
   const { setBills, addBill, updateBill } = useBills();
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -97,7 +97,7 @@ export function useTrackedBills() {
   const handleAssignBill = async (targetUserId: string, bill: Bill) => {
     if (!user) return null;
     try {
-      const tracker = await assignBill(user.id, targetUserId, bill);
+      const tracker = await assignBill(user.id, targetUserId, bill, activeTenant?.tenantId);
       if (tracker) {
         console.log('Bill assigned successfully');
         toast({
@@ -133,7 +133,7 @@ export function useTrackedBills() {
   const handleUnassignBill = async (targetUserId: string, bill: Bill) => {
     if (!user) return null;
     try {
-      const success = await unassignBillFromUser(user.id, targetUserId, bill.id);
+      const success = await unassignBillFromUser(user.id, targetUserId, bill.id, activeTenant?.tenantId);
       if (success) {
         toast({
           title: 'Bill unassigned',

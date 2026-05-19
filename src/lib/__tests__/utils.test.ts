@@ -113,6 +113,18 @@ describe('canAssignBills', () => {
   it('returns false for undefined', () => {
     expect(canAssignBills(undefined)).toBe(false);
   });
+
+  it('returns true for org admin even if legacy role is user', () => {
+    expect(canAssignBills({ role: 'user' }, 'admin')).toBe(true);
+  });
+
+  it('returns false for org worker with legacy role user', () => {
+    expect(canAssignBills({ role: 'user' }, 'worker')).toBe(false);
+  });
+
+  it('returns true for legacy admin even without orgRole', () => {
+    expect(canAssignBills({ role: 'admin' }, undefined)).toBe(true);
+  });
 });
 
 describe('canTrackOwnBills', () => {

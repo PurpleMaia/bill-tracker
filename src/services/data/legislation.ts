@@ -834,7 +834,7 @@ export async function untrackBill(userId: string, billId: string, tenantId?: str
  * @param billUrl The URL of the bill to assign
  * @returns The assigned Bill object
  */
-async function validateAssignmentScope(assignerId: string, targetUserId: string) {
+async function validateAssignmentScope(assignerId: string, targetUserId: string, tenantId?: string) {
   const assigner = await db
     .selectFrom('user')
     .select(['id', 'role'])
@@ -845,7 +845,22 @@ async function validateAssignmentScope(assignerId: string, targetUserId: string)
     throw new Error('Assigner not found');
   }
 
-  if (assigner.role !== 'admin' && assigner.role !== 'supervisor') {
+  // Check org-level role if tenantId is provided
+  let orgRole: string | null = null;
+  if (tenantId) {
+    const membership = await db
+      .selectFrom('members')
+      .select('org_role')
+      .where('user_id', '=', assignerId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    orgRole = membership?.org_role ?? null;
+  }
+
+  const isAdmin = orgRole === 'admin' || assigner.role === 'admin';
+  const isSupervisor = assigner.role === 'supervisor';
+
+  if (!isAdmin && !isSupervisor) {
     throw new Error('Only admins and supervisors can assign bills');
   }
 
@@ -859,7 +874,7 @@ async function validateAssignmentScope(assignerId: string, targetUserId: string)
     throw new Error('Target user not found');
   }
 
-  if (assigner.role === 'supervisor') {
+  if (isSupervisor && !isAdmin) {
     const adoptionRelation = await db
       .selectFrom('supervisor_users')
       .selectAll()
@@ -875,9 +890,9 @@ async function validateAssignmentScope(assignerId: string, targetUserId: string)
   return { assigner, targetUser };
 }
 
-export async function assignBill(assignerId: string, targetUserId: string, bill: Bill) {
+export async function assignBill(assignerId: string, targetUserId: string, bill: Bill, tenantId?: string) {
   try {
-    await validateAssignmentScope(assignerId, targetUserId);
+    await validateAssignmentScope(assignerId, targetUserId, tenantId);
 
     // Check if already tracked by target user
     const alreadyTracked = await db
@@ -929,9 +944,9 @@ export async function assignBill(assignerId: string, targetUserId: string, bill:
   }
 }
 
-export async function unassignBillFromUser(assignerId: string, targetUserId: string, billId: string) {
+export async function unassignBillFromUser(assignerId: string, targetUserId: string, billId: string, tenantId?: string) {
   try {
-    await validateAssignmentScope(assignerId, targetUserId);
+    await validateAssignmentScope(assignerId, targetUserId, tenantId);
 
     const deleted = await db
       .deleteFrom('user_bills')
@@ -954,9 +969,9 @@ export async function unassignBillFromUser(assignerId: string, targetUserId: str
  * @param userId The ID of the user requesting assignable users
  * @returns Array of users that can be assigned bills
  */
-export async function getAssignableUsers(userId: string): Promise<Selectable<User>[]> {
+export async function getAssignableUsers(userId: string, tenantId?: string): Promise<Selectable<User>[]> {
   try {
-    // Get user role
+    // Get user info
     const user = await db
       .selectFrom('user')
       .select(['id', 'role'])
@@ -967,17 +982,47 @@ export async function getAssignableUsers(userId: string): Promise<Selectable<Use
       throw new Error('User not found');
     }
 
-    if (user.role === 'admin') {
-      // Admins can assign to everyone
-      const users = await db
+    // Check org-level role if tenantId is provided
+    let orgRole: string | null = null;
+    if (tenantId) {
+      const membership = await db
+        .selectFrom('members')
+        .select('org_role')
+        .where('user_id', '=', userId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      orgRole = membership?.org_role ?? null;
+    }
+
+    const isAdmin = orgRole === 'admin' || user.role === 'admin';
+    const isSupervisor = user.role === 'supervisor';
+
+    if (isAdmin) {
+      if (tenantId) {
+        // Tenant-scoped: join members to get org role
+        const rows = await db
+          .selectFrom('user')
+          .innerJoin('members', (join) =>
+            join.onRef('members.user_id', '=', 'user.id').on('members.tenant_id', '=', tenantId)
+          )
+          .selectAll('user')
+          .select('members.org_role')
+          .where('user.account_status', '=', 'active')
+          .orderBy('user.username', 'asc')
+          .execute();
+
+        // Override legacy role field with org role so the UI displays correctly
+        return rows.map((r) => ({ ...r, role: r.org_role }));
+      }
+
+      // No tenant — return all active users with legacy roles
+      return await db
         .selectFrom('user')
         .selectAll()
         .where('account_status', '=', 'active')
         .orderBy('username', 'asc')
         .execute();
-
-      return users;
-    } else if (user.role === 'supervisor') {
+    } else if (isSupervisor) {
       // Supervisors can only assign to their adopted interns
       const supervisorRelations = await db
         .selectFrom('supervisor_users')
