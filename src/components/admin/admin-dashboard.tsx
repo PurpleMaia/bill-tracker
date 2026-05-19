@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import AdminHeader from './admin-header';
 import { useAdminDashboard } from '@/hooks/use-query-admin';
+import { useAuth } from '@/hooks/contexts/auth-context';
 import { formatBillStatusName } from '@/lib/utils';
 import { BillWithInterns, InternWithBills, PendingProposal, PendingUser, SupervisorWithInterns } from '@/types/admin';
 import { InternSelector } from './intern-selector';
@@ -163,6 +164,9 @@ function AccountsTab(
 }
 
 function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
+  const { activeTenant } = useAuth();
+  const isTenantScoped = !!activeTenant;
+
   const [activeUsers, setActiveUsers] = useState<PendingUser[]>(allAccounts);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
@@ -193,7 +197,7 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
     setUpdatingUserId(userId);
     try {
       const { updateUserRole } = await import('@/app/actions/admin');
-      const result = await updateUserRole(userId, newRole as 'user' | 'supervisor' | 'admin');
+      const result = await updateUserRole(userId, newRole, activeTenant?.tenantId);
 
       if (result.success) {
         // Update local state
@@ -217,7 +221,7 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
     setArchivingUserId(userId);
     try {
       const { archiveAccount } = await import('@/app/actions/admin');
-      const result = await archiveAccount(userId);
+      const result = await archiveAccount(userId, activeTenant?.tenantId);
 
       if (result.success) {
         // Update local state
@@ -243,6 +247,8 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
         return 'bg-red-100 text-red-800';
       case 'supervisor':
         return 'bg-yellow-100 text-yellow-800';
+      case 'worker':
+        return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-blue-100 text-blue-800';
     }
@@ -254,6 +260,8 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
         return 'Admin';
       case 'supervisor':
         return 'Supervisor';
+      case 'worker':
+        return 'Worker';
       default:
         return 'Intern';
     }
@@ -311,9 +319,18 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
               className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               <option value="all">All Roles</option>
-              <option value="user">Intern</option>
-              <option value="supervisor">Supervisor</option>
-              <option value="admin">Admin</option>
+              {isTenantScoped ? (
+                <>
+                  <option value="worker">Worker</option>
+                  <option value="admin">Admin</option>
+                </>
+              ) : (
+                <>
+                  <option value="user">Intern</option>
+                  <option value="supervisor">Supervisor</option>
+                  <option value="admin">Admin</option>
+                </>
+              )}
             </select>
           </div>
 
@@ -378,9 +395,18 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
                             className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             disabled={updatingUserId === user.id}
                           >
-                            <option value="user">Intern</option>
-                            <option value="supervisor">Supervisor</option>
-                            <option value="admin">Admin</option>
+                            {isTenantScoped ? (
+                              <>
+                                <option value="worker">Worker</option>
+                                <option value="admin">Admin</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="user">Intern</option>
+                                <option value="supervisor">Supervisor</option>
+                                <option value="admin">Admin</option>
+                              </>
+                            )}
                           </select>
                           {hasChanged && (
                             <Button
@@ -443,6 +469,7 @@ function AllInternsTab(
   }
 ) {
   const { isLoadingInterns } = useAdminDashboard();
+  const { activeTenant } = useAuth();
   const [expandedIntern, setExpandedIntern] = useState<string | null>(null);
   const [removingBill, setRemovingBill] = useState<{ internId: string; billId: string; billNumber: string; internName: string } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -454,7 +481,7 @@ function AllInternsTab(
     setIsRemoving(true);
     try {
       const { removeBillFromIntern } = await import('@/app/actions/admin');
-      const result = await removeBillFromIntern(removingBill.internId, removingBill.billId);
+      const result = await removeBillFromIntern(removingBill.internId, removingBill.billId, activeTenant?.tenantId);
 
       if (result.success) {
         // Refresh the page to show updated data
@@ -797,6 +824,7 @@ function AllInternBillsTab(
   }
 ) {
   const { isLoadingBills } = useAdminDashboard();
+  const { activeTenant } = useAuth();
   const [removingBill, setRemovingBill] = useState<{ internId: string; billId: string; billNumber: string; internName: string } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
@@ -806,7 +834,7 @@ function AllInternBillsTab(
     setIsRemoving(true);
     try {
       const { removeBillFromIntern } = await import('@/app/actions/admin');
-      const result = await removeBillFromIntern(removingBill.internId, removingBill.billId);
+      const result = await removeBillFromIntern(removingBill.internId, removingBill.billId, activeTenant?.tenantId);
 
       if (result.success) {
         // Refresh the page to show updated data
