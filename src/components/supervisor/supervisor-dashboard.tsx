@@ -36,7 +36,7 @@ export function SupervisorDashboard() {
 
   const fetchAvailableUsers = async () => {
     try {
-      const response = await fetch('/api/supervisor/adoptees');
+      const response = await fetch('/api/supervisors?available=true');
       if (!response.ok) {
         throw new Error('Failed to fetch available users');
       }
@@ -58,7 +58,7 @@ export function SupervisorDashboard() {
 
   const fetchMyAdoptees = async () => {
     try {
-      const response = await fetch('/api/supervisor/my-adoptees');
+      const response = await fetch('/api/supervisors');
       if (!response.ok) {
         throw new Error('Failed to fetch my adoptees');
       }
@@ -75,7 +75,7 @@ export function SupervisorDashboard() {
 
   const handleAdoptUser = async (userId: string, username: string) => {
     try {
-      const response = await fetch('/api/supervisor/adopt', {
+      const response = await fetch('/api/supervisors', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,8 +107,8 @@ export function SupervisorDashboard() {
 
   const handleDropUser = async (userId: string, username: string) => {
     try {
-      const response = await fetch('/api/supervisor/drop', {
-        method: 'POST',
+      const response = await fetch('/api/supervisors', {
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
