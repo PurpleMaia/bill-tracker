@@ -127,7 +127,7 @@ function AccountsTab(
                           ? <Badge variant="secondary" className='bg-red-100 text-red-800'>Admin</Badge>
                           : user.requested_supervisor ? (
                             <Badge variant="secondary" className='bg-yellow-100 text-yellow-800'>Supervisor</Badge>
-                          ) : <Badge variant="secondary">Intern</Badge>
+                          ) : <Badge variant="secondary">User</Badge>
                           }
                         </div>
                       </div>
@@ -263,7 +263,7 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
       case 'worker':
         return 'Worker';
       default:
-        return 'Intern';
+        return 'User';
     }
   };
 
@@ -326,7 +326,7 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
                 </>
               ) : (
                 <>
-                  <option value="user">Intern</option>
+                  <option value="user">User</option>
                   <option value="supervisor">Supervisor</option>
                   <option value="admin">Admin</option>
                 </>
@@ -402,7 +402,7 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
                               </>
                             ) : (
                               <>
-                                <option value="user">Intern</option>
+                                <option value="user">User</option>
                                 <option value="supervisor">Supervisor</option>
                                 <option value="admin">Admin</option>
                               </>
@@ -513,20 +513,20 @@ function AllInternsTab(
     <TabsContent value="all-interns" className="mx-8 space-y-8 mt-6">
           {/* All Interns */}
           <div>
-            <h1 className="text-2xl font-bold mb-1 ">All Interns</h1>
-            <h2 className="text-sm mb-6 text-muted-foreground">View all intern accounts</h2>
+            <h1 className="text-2xl font-bold mb-1 ">All Users</h1>
+            <h2 className="text-sm mb-6 text-muted-foreground">View all user accounts</h2>
               <div className="space-y-4">
                 {interns.length === 0 ? (
                   <Card className="p-6">
                     <p className="text-center text-muted-foreground">
-                      No interns found
+                      No users found
                     </p>
                   </Card>
                 ) : (
                   <Table className='border bg-white shadow-sm'>
                     <TableHeader>
                       <TableRow className='bg-gray-100'>
-                        <TableHead className='font-bold'>Intern</TableHead>
+                        <TableHead className='font-bold'>User</TableHead>
                         <TableHead className='font-bold'>Supervisor</TableHead>
                         <TableHead className='font-bold'>Status</TableHead>
                         <TableHead className='font-bold'>Joined</TableHead>
@@ -598,7 +598,7 @@ function AllInternsTab(
                                           <TableHead>Bill Number</TableHead>
                                           <TableHead>Title</TableHead>
                                           <TableHead>Status</TableHead>
-                                          <TableHead>Intern Adopted</TableHead>
+                                          <TableHead>Adopted</TableHead>
                                           <TableHead>Actions</TableHead>
                                         </TableRow>
                                       </TableHeader>
@@ -656,7 +656,7 @@ function AllInternsTab(
           <AlertDialog open={!!removingBill} onOpenChange={(open) => !open && setRemovingBill(null)}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Remove Bill from Intern</AlertDialogTitle>
+                <AlertDialogTitle>Remove Bill from User</AlertDialogTitle>
                 <AlertDialogDescription>
                   Are you sure you want to remove bill <strong>{removingBill?.billNumber}</strong> from <strong>{removingBill?.internName}</strong>&apos;s tracking list? This action cannot be undone.
                 </AlertDialogDescription>
@@ -729,7 +729,7 @@ function AllSupervisorsTab(
     <TabsContent value="all-supervisors" className="mx-8 space-y-8 mt-6">
       <div>
         <h1 className="text-2xl font-bold mb-1 ">All Supervisors</h1>
-        <h2 className="text-sm mb-6 text-muted-foreground">View all supervisor accounts and their interns</h2>
+        <h2 className="text-sm mb-6 text-muted-foreground">View all supervisor accounts and their users</h2>
 
         <div className='bg-white rounded-lg shadow-sm border'>
             <div className="p-4 space-y-6">
@@ -753,10 +753,10 @@ function AllSupervisorsTab(
 
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-foreground">
-                        Assigned Interns ({supervisor.interns.length})
+                        Assigned Users ({supervisor.interns.length})
                       </p>
                       {supervisor.interns.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No interns assigned</p>
+                        <p className="text-sm text-muted-foreground">No users assigned</p>
                       ) : (
                         <div className="flex items-center gap-2 flex-wrap">
                           {supervisor.interns.map((intern) => (
@@ -782,7 +782,7 @@ function AllSupervisorsTab(
 
                     <div className="space-y-2 pt-2 border-t">
                       <p className="text-sm font-medium text-foreground">
-                        Assign New Interns
+                        Assign New Users
                       </p>
                       <div className="flex items-end gap-2">
                         <div className="flex-1">
@@ -868,7 +868,7 @@ function AllInternBillsTab(
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold mb-1">All Tracked Bills</h1>
-            <h2 className="text-sm text-muted-foreground">View all bills tracked by interns</h2>
+            <h2 className="text-sm text-muted-foreground">View all bills tracked by users</h2>
           </div>
           <AssignMultipleBillsDialog
             trigger={
@@ -903,7 +903,7 @@ function AllInternBillsTab(
                     <div className="space-x-2">
                       <p className="text-sm text-muted-foreground mb-2">Tracked by:</p>
                       {bill.tracked_by.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No interns tracking this bill</p>
+                        <p className="text-sm text-muted-foreground">No users tracking this bill</p>
                       ) : (
                         bill.tracked_by.map((intern) => (
                           <Badge key={intern.id} variant="secondary" className="bg-blue-100 text-blue-800 pr-1 pl-3 py-1 inline-flex items-center gap-1">
@@ -938,7 +938,7 @@ function AllInternBillsTab(
       <AlertDialog open={!!removingBill} onOpenChange={(open) => !open && setRemovingBill(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Bill from Intern</AlertDialogTitle>
+            <AlertDialogTitle>Remove Bill from User</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to remove bill <strong>{removingBill?.billNumber}</strong> from <strong>{removingBill?.internName}</strong>&apos;s tracking list? This action cannot be undone.
             </AlertDialogDescription>

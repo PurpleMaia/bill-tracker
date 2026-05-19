@@ -9,7 +9,7 @@ import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 
 export function UserMenu() {
   //gets user info and logout function from context
-  const { user, logout } = useAuth();
+  const { user, logout, activeTenant } = useAuth();
   const { setView } = useKanbanBoard();
 
   //creates avatar with users first initial
@@ -37,7 +37,7 @@ export function UserMenu() {
             <p className="text-sm font-bold leading-none">{user ? user.username : ''}</p>
             <p className="text-sm font-medium leading-none">{user ? user.email : ''}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user?.role === 'admin' ? 'Admin' : user?.role === 'supervisor' ? 'Supervisor' : 'Intern'}
+              {activeTenant ? (activeTenant.orgRole === 'admin' ? 'Admin' : 'User') : 'Public'}
             </p>
           </div>
         </DropdownMenuLabel>

@@ -216,7 +216,7 @@ export async function registerUser(email: string, username: string, password: st
     const userResult = await db.insertInto('user').values({
       username: username,
       email: email, 
-      role: 'admin', // Legacy field; org-level roles are managed via members table
+      role: 'user', // Legacy field; org-level roles are managed via members table
       account_status: 'active', // Public users are active by default; org membership is controlled by invites
       requested_admin: false,      
       // verification_token: verificationToken (NOTE: not storing verification token for now)
@@ -242,7 +242,7 @@ export async function registerUser(email: string, username: string, password: st
     }
 
     return {
-      user: { id: userId, email, username, systemRole: 'user', role: 'admin' },
+      user: { id: userId, email, username, systemRole: 'user', role: 'user' },
       // verificationToken
     };
 }

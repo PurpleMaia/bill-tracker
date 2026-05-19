@@ -24,7 +24,7 @@ export default function AdminHeader({ count }: AdminHeaderProps) {
                   Tracked Bills <Badge className='ml-1 bg-yellow-100 text-yellow-800'>{count.allTrackedBills}</Badge>
                 </TabsTrigger>
                 <TabsTrigger value="all-interns" className={activeStyle}>
-                  Interns <Badge className='ml-1 bg-blue-100 text-blue-800'>{count.allInterns}</Badge>
+                  Users <Badge className='ml-1 bg-blue-100 text-blue-800'>{count.allInterns}</Badge>
                 </TabsTrigger>
                 <TabsTrigger value="all-supervisors" className={activeStyle}>
                   Supervisors <Badge className='ml-1 bg-green-100 text-green-800'>{count.allSupervisors}</Badge>
