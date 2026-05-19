@@ -3,6 +3,9 @@ import { validateSession } from '@/lib/auth';
 import { getSessionCookie } from '@/lib/cookies';
 import { validateMembership, addMember } from '@/services/data/tenants';
 import { db } from '@/db/kysely/client';
+import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
+
+const INVITE_RATE_LIMIT = { limit: 20, windowMs: 15 * 60_000 };
 
 export async function POST(
   request: NextRequest,
@@ -10,6 +13,15 @@ export async function POST(
 ) {
   try {
     const { id: tenantId } = await params;
+
+    const rl = limitFixedWindow(`invite:${tenantId}`, INVITE_RATE_LIMIT.limit, INVITE_RATE_LIMIT.windowMs);
+    if (!rl.ok) {
+      const retryMs = retryAfterMs(rl.resetAt);
+      return NextResponse.json(
+        { error: 'Too many invite requests. Please try again later.', retryAfterMs: retryMs },
+        { status: 429, headers: { 'Retry-After': Math.ceil(retryMs / 1000).toString() } }
+      );
+    }
     const sessionToken = getSessionCookie(request);
     if (!sessionToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

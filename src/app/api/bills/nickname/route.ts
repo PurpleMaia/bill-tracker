@@ -9,10 +9,10 @@ export async function POST(request: NextRequest) {
   try {
     const sessionToken = getSessionCookie(request);
     const user = await validateSession(sessionToken);
-    if (!user || user.role !== 'user') {
+    if (!user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
-        { status: 403 }
+        { status: 401 }
       );
     }
 
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     const validation = nicknameSchema.safeParse({ nickname });
     if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: validation.error },
+        { success: false, error: validation.error.issues.map(i => i.message).join(', ') },
         { status: 400 }
       );
     }    

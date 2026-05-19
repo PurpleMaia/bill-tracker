@@ -59,7 +59,7 @@ export async function POST(
 
     const validation = tagsSchema.safeParse({ tagIds });
     if (!validation.success) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
+      return NextResponse.json({ error: validation.error.issues.map(i => i.message).join(', ') }, { status: 400 });
     }
 
     // Check if bill exists

@@ -3,21 +3,31 @@ import { registerUser, createSession } from '@/lib/auth';
 import { registerSchema } from '@/lib/validators';
 import { setSessionCookie } from '@/lib/cookies';
 import { createTenant, addMember, getUserMemberships } from '@/services/data/tenants';
-// import { sendVerificationEmail } from '@/services/email';
+import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
+import { ApiError } from '@/lib/errors';
 
-// Allowed email domains
-// const ALLOWED_EMAIL_DOMAINS = [
-//   '@purplemaia.org',
-//   // Add more domains here as needed
-// ];
+const REGISTER_RATE_LIMIT = { limit: 5, windowMs: 15 * 60_000 };
 
-// function isValidEmailDomain(email: string): boolean {
-//   const emailDomain = email.substring(email.lastIndexOf('@'));
-//   return ALLOWED_EMAIL_DOMAINS.includes(emailDomain);
-// }
+function getClientIp(request: NextRequest): string {
+  const cfIp = request.headers.get('cf-connecting-ip');
+  if (cfIp) return cfIp;
+  const xff = request.headers.get('x-forwarded-for');
+  if (xff) return xff.split(',')[0]?.trim() || 'unknown';
+  return request.headers.get('x-real-ip') || 'unknown';
+}
 
 export async function POST(req: NextRequest) {
   try {
+    const clientIp = getClientIp(req);
+    const rl = limitFixedWindow(`register:${clientIp}`, REGISTER_RATE_LIMIT.limit, REGISTER_RATE_LIMIT.windowMs);
+    if (!rl.ok) {
+      const retryMs = retryAfterMs(rl.resetAt);
+      return NextResponse.json(
+        { error: 'Too many registration attempts. Please try again later.', retryAfterMs: retryMs },
+        { status: 429, headers: { 'Retry-After': Math.ceil(retryMs / 1000).toString() } }
+      );
+    }
+
     const { username, email, password, orgName } = await req.json();
     const validation = registerSchema.safeParse({ username, email, password });
     if (!validation.success) {
@@ -83,6 +93,6 @@ export async function POST(req: NextRequest) {
     );
   } catch (error) {
     console.error('Registration error:', error);
-    return NextResponse.json({ error: 'Registration error.' }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

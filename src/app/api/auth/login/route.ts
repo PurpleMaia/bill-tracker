@@ -74,7 +74,6 @@ export async function POST(request: NextRequest) {
 
       // Create session token for successfully authenticated user
       const token = await createSession(user.id);
-      console.log("Created session token:", token);
 
       // Fetch memberships for the authenticated user
       const memberships = await getUserMemberships(user.id);
@@ -102,7 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Unknown error
-    console.error("[REGISTER]", error);
+    console.error("[LOGIN]", error);
     return NextResponse.json({ error: "Unknown Error" }, { status: 500 });
   }
 }
