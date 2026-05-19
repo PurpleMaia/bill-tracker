@@ -9,15 +9,15 @@ import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 export function Header() {
   const { view: currentView, setView } = useKanbanBoard();
-  const { user } = useAuth();
-  const publicViews = ['kanban', 'spreadsheet'];  
+  const { user, activeTenant, memberships, setActiveTenant } = useAuth();
+  const publicViews = ['kanban', 'spreadsheet'];
 
-  const role = user?.role;
+  const orgRole = activeTenant?.orgRole;
   const views = user
-    ? role === 'admin'
+    ? orgRole === 'admin'
       ? ['kanban', 'spreadsheet', 'approvals', 'admin']
-      : role === 'supervisor'
-        ? ['kanban', 'spreadsheet', 'approvals']
+      : orgRole === 'worker'
+        ? ['kanban', 'spreadsheet']
         : ['kanban', 'spreadsheet']
     : publicViews;
 
@@ -33,9 +33,24 @@ export function Header() {
     <>
       <header className="sticky top-0 z-10 flex items-center px-8 py-4 border-b-[3px] border-olive bg-primary text-primary-foreground">
         {/* Info */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 flex items-center gap-3">
           {/* FOOD+ LOGO HERE */}
-          <h1 className="text-xl font-semibold text-primary-foreground">Food+ Bill Tracker</h1>
+          <h1 className="text-xl font-semibold text-primary-foreground">
+            {activeTenant?.name ?? 'Food+'} Bill Tracker
+          </h1>
+          {memberships.length > 1 && (
+            <select
+              value={activeTenant?.tenantId ?? ''}
+              onChange={(e) => setActiveTenant(e.target.value)}
+              className="text-sm bg-white/10 border border-white/20 text-white rounded-md px-2 py-1"
+            >
+              {memberships.map((m) => (
+                <option key={m.tenantId} value={m.tenantId} className="text-black">
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* View Select Bar */}
