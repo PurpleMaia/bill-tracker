@@ -46,7 +46,7 @@ export async function PATCH(
     }
     const user = await validateSession(sessionToken);
     const orgRole = await validateMembership(user.id, id);
-    if (orgRole !== 'org_admin') {
+    if (orgRole !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const body = await request.json();

@@ -35,7 +35,7 @@ export interface AdoptedBill {
   bill_id: Selectable<Bills>['id'];
   bill_number: Selectable<Bills>['bill_number'];
   bill_title: Selectable<Bills>['bill_title'];
-  current_status: Selectable<Bills>['current_status'];
+  current_status: Selectable<Bills>['bill_status'];
   adopted_at: Selectable<UserBills>['adopted_at'];
 }
 export interface InternWithBills {
@@ -67,6 +67,6 @@ export interface BillWithInterns {
   bill_id: Selectable<Bills>['id'];
   bill_number: Selectable<Bills>['bill_number'];
   bill_title: Selectable<Bills>['bill_title'];
-  current_status: Selectable<Bills>['current_status'];
+  current_status: Selectable<Bills>['bill_status'];
   tracked_by: Intern[];
 }
