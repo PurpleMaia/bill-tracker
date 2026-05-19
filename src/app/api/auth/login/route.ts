@@ -5,6 +5,7 @@ import { limitFixedWindow, retryAfterMs } from "@/lib/ratelimit-memory";
 import type { User } from "@/types/user";
 import { loginSchema } from "@/lib/validators";
 import { ApiError } from "@/lib/errors";
+import { getUserMemberships } from "@/services/data/tenants";
 
 const LOGIN_RATE_LIMIT = { limit: 5, windowMs: 5 * 60_000 };
 
@@ -74,9 +75,12 @@ export async function POST(request: NextRequest) {
       const token = await createSession(user.id);
       console.log("Created session token:", token);
 
-      // Set session token in cookie and return user information
+      // Fetch memberships for the authenticated user
+      const memberships = await getUserMemberships(user.id);
+
+      // Set session token in cookie and return user information with memberships
       return NextResponse.json(
-        { success: true, user: user as User },
+        { success: true, user: user as User, memberships },
         {
           status: 200,
           headers: {
