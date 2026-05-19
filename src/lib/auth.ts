@@ -143,7 +143,7 @@ export async function authenticateUser(identifier: string, password: string): Pr
   }
   
   // Only accounts with 'active' status can log in
-  // This ensures ALL users (both old and new) require admin approval before they can log in
+  // New users are active by default; org membership is controlled by invites
   // Note: Using snake_case because we're using (db as any) which returns raw DB column names
   if (userResult.account_status !== 'active') {
     // For new accounts: check if email is verified (for better error message)
@@ -217,7 +217,7 @@ export async function registerUser(email: string, username: string, password: st
       username: username,
       email: email, 
       role: 'user',
-      account_status: 'pending', // NOTE: use ʻunverifiedʻ when implementing email verification
+      account_status: 'active', // Public users are active by default; org membership is controlled by invites
       requested_admin: false,      
       // verification_token: verificationToken (NOTE: not storing verification token for now)
     }).returning('id').executeTakeFirst();
