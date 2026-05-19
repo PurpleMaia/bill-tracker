@@ -1117,6 +1117,7 @@ async function convertDataToBillShape(
   const baseBill: Bill = {
     // attributes from the database
     id: typeof bill.id === 'string' ? bill.id : '',
+    bill_url: bill.bill_url ?? '',
     bill_number: bill.bill_number ?? '',
     bill_title: bill.bill_title ?? '',
     current_bill_status: additionalData?.orgBillStatuses?.[bill.id] ?? (typeof bill.bill_status === 'string' ? bill.bill_status : ''),
