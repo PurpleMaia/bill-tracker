@@ -43,9 +43,9 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const [isRemoving, setIsRemoving] = useState(false);
     const [showRemoveDialog, setShowRemoveDialog] = useState(false);
     const { acceptLLMChange, rejectLLMChange, removeBill } = useBills();
-    const { user } = useAuth();
+    const { user, activeTenant } = useAuth();
 
-    const canSeeTracking = user?.role === 'admin' || user?.role === 'supervisor';
+    const canSeeTracking = activeTenant?.orgRole === 'admin' || user?.role === 'admin' || user?.role === 'supervisor';
     const trackedBy = bill.tracked_by ?? [];
     const trackedCount = bill.tracked_count ?? trackedBy.length;
 
@@ -159,7 +159,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                       {bill.year}
                     </Badge>
                   )}
-                  {canAssignBills(user) && (
+                  {canAssignBills(user, activeTenant?.orgRole) && (
                     <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
                       <AlertDialogTrigger asChild>
                         <Button
@@ -279,14 +279,14 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
             )}
 
             {/* Assign Bill — visible on hover, hidden for dead bills */}
-            {canAssignBills(user) && !bill.dead && (
+            {canAssignBills(user, activeTenant?.orgRole) && !bill.dead && (
               <div className="px-3 pb-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <AssignBillDialog
                   bill={bill}
                   trigger={
                     <Button
-                      size="sm" variant="ghost"
-                      className="w-full text-[10px] h-6 text-muted-foreground hover:text-foreground"
+                      size="sm" variant="outline"
+                      className="w-full text-[10px] h-6 text-muted-foreground"
                       onClick={(e) => e.stopPropagation()}
                     >
                       Assign to User
