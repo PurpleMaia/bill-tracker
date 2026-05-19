@@ -34,7 +34,7 @@ interface BillsContextType {
   proposeStatusChange: (
     bill: Bill,
     suggested_status: BillStatus,
-    meta: { userId: string; role: 'intern' | 'supervisor' | 'admin'; note?: string }
+    meta: { userId: string; role: 'intern' | 'supervisor' | 'admin' | 'worker'; note?: string }
   ) => Promise<void>;
   acceptTempChange: (billId: string) => Promise<void>;
   rejectTempChange: (billId: string) => Promise<void>;
