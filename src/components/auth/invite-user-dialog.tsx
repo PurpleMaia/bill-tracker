@@ -43,7 +43,7 @@ export function InviteUserDialog({ open, onOpenChange }: InviteUserDialogProps) 
       if (response.ok) {
         toast({
           title: 'Invite sent',
-          description: `An invitation has been sent to ${email.trim()}.`,
+          description: `An invitation has been sent to ${email.trim()}. You can manage and copy invite links in the Pending Invites section of the Admin dashboard.`,
         });
         setEmail('');
         onOpenChange(false);
@@ -86,6 +86,7 @@ export function InviteUserDialog({ open, onOpenChange }: InviteUserDialogProps) 
               required
             />
           </div>
+
           <Button type="submit" className="w-full" disabled={isLoading}>
             <UserPlus className="mr-2 h-4 w-4" />
             {isLoading ? 'Sending invite...' : 'Send Invite'}

@@ -27,6 +27,7 @@ export async function GET(
       .select([
         'it.id',
         'it.email',
+        'it.token',
         'it.status',
         'it.expires_at',
         'it.created_at',

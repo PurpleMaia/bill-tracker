@@ -135,7 +135,7 @@ export async function sendInviteEmail(email: string, orgName: string, inviteToke
     }
 
     console.log('✅ Invite email sent successfully to:', email);
-    return { success: true, data };
+    return { success: true, url: inviteUrl, data };
   } catch (error: any) {
     console.error('❌ Exception sending invite email:', error);
     console.log('📧 Invite URL (use this manually):', inviteUrl);

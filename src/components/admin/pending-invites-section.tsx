@@ -17,11 +17,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { X } from 'lucide-react';
+import { X, Copy, Check } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface Invite {
   id: string;
   email: string;
+  token: string;
   status: string;
   expires_at: string;
   created_at: string;
@@ -31,10 +33,12 @@ interface Invite {
 
 export function PendingInvitesSection() {
   const { activeTenant } = useAuth();
+  const { toast } = useToast();
   const [invites, setInvites] = useState<Invite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [revokeDialogId, setRevokeDialogId] = useState<string | null>(null);
   const [isRevoking, setIsRevoking] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchInvites = useCallback(async () => {
     if (!activeTenant) return;
@@ -76,6 +80,17 @@ export function PendingInvitesSection() {
       setIsRevoking(false);
       setRevokeDialogId(null);
     }
+  };
+
+  const handleCopyLink = async (invite: Invite) => {
+    const url = `${window.location.origin}/register?invite=${invite.token}`;
+    await navigator.clipboard.writeText(url);
+    setCopiedId(invite.id);
+    toast({
+      title: 'Link copied',
+      description: 'Invite link copied to clipboard.',
+    });
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const getStatusBadge = (invite: Invite) => {
@@ -140,14 +155,25 @@ export function PendingInvitesSection() {
                 <TableCell>{getStatusBadge(invite)}</TableCell>
                 <TableCell>
                   {isPending(invite) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setRevokeDialogId(invite.id)}
-                      className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyLink(invite)}
+                        className="text-muted-foreground hover:text-foreground"
+                        title="Copy invite link"
+                      >
+                        {copiedId === invite.id ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setRevokeDialogId(invite.id)}
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
                 </TableCell>
               </TableRow>

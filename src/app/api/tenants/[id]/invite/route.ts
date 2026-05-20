@@ -97,11 +97,10 @@ export async function POST(
 
     const orgName = tenant?.name ?? 'an organization';
 
-    // Send invite email
-    const emailSendResult = await sendInviteEmail(email, orgName, token);
-    if (!emailSendResult.success) {
-      console.error('Failed to send invite email, but invite token was created:', emailSendResult.error);
-    }
+    // Send invite email (fire-and-forget — don't block the response)
+    sendInviteEmail(email, orgName, token).catch((err) => {
+      console.error('Failed to send invite email, but invite token was created:', err);
+    });
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (error: any) {
