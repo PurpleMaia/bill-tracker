@@ -17,7 +17,7 @@ interface AuthContextType {
   // Auth actions
   login: (authString: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  register: (email: string, username: string, password: string, orgName?: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, username: string, password: string, orgName?: string, inviteToken?: string) => Promise<{ success: boolean; error?: string }>;
   checkSession: () => Promise<void>;
 }
 
@@ -141,12 +141,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (email: string, username: string, password: string, orgName?: string): Promise<{ success: boolean; error?: string }> => {
+  const register = async (email: string, username: string, password: string, orgName?: string, inviteToken?: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, username, password, orgName: orgName || undefined }),
+        body: JSON.stringify({
+          email,
+          username,
+          password,
+          orgName: orgName || undefined,
+          inviteToken: inviteToken || undefined,
+        }),
       });
 
       if (response.ok) {
