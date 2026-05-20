@@ -88,3 +88,57 @@ export async function sendVerificationEmail(email: string, username: string, ver
   }
 }
 
+export async function sendInviteEmail(email: string, orgName: string, inviteToken: string) {
+  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/register?invite=${inviteToken}`;
+
+  if (!resend) {
+    console.warn('⚠️  RESEND_API_KEY not configured. Email sending disabled.');
+    console.log('📧 Invite URL for manual testing:', inviteUrl);
+    if (process.env.NODE_ENV === 'development') {
+      return { success: true, data: { message: 'Email service not configured, but invite created in development' } };
+    }
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  console.log('📧 Invite URL (always logged):', inviteUrl);
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: email,
+      subject: `You've been invited to join ${orgName} on Food+`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>You're invited!</h2>
+          <p>You've been invited to join <strong>${orgName}</strong> on Food+.</p>
+          <p>Click the button below to create your account and get started:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${inviteUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              Join ${orgName}
+            </a>
+          </div>
+          <p>Or copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; color: #666;">${inviteUrl}</p>
+          <p style="margin-top: 30px; color: #666; font-size: 14px;">
+            This invite expires in 48 hours. If you didn't expect this invitation, please ignore this email.
+          </p>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('❌ Resend API error (invite):', JSON.stringify(error, null, 2));
+      console.log('📧 Invite URL (use this manually):', inviteUrl);
+      return { success: false, error };
+    }
+
+    console.log('✅ Invite email sent successfully to:', email);
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('❌ Exception sending invite email:', error);
+    console.log('📧 Invite URL (use this manually):', inviteUrl);
+    return { success: false, error };
+  }
+}
