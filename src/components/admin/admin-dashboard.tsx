@@ -30,6 +30,7 @@ import { BillWithInterns, InternWithBills, PendingProposal, PendingUser, Supervi
 import { InternSelector } from './intern-selector';
 import { AssignMultipleBillsDialog } from './assign-multiple-bills-dialog';
 // import { ManageInternDialog } from './manage-intern-dialog';
+import { PendingInvitesSection } from './pending-invites-section';
 
 export function AdminDashboard() {
   const {
@@ -157,6 +158,9 @@ function AccountsTab(
               )}
             </div>
           </div>
+
+          {/* Pending Invites */}
+          <PendingInvitesSection />
 
         </div>
     </TabsContent>
