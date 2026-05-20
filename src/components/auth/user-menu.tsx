@@ -4,13 +4,16 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, UserPlus } from 'lucide-react';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
+import { useState } from 'react';
+import { InviteUserDialog } from './invite-user-dialog';
 
 export function UserMenu() {
   //gets user info and logout function from context
   const { user, logout, activeTenant } = useAuth();
   const { setView } = useKanbanBoard();
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
   //creates avatar with users first initial
   const handleLogout = async () => {
@@ -42,11 +45,21 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {activeTenant?.orgRole === 'admin' && (
+          <>
+            <DropdownMenuItem onClick={() => setInviteDialogOpen(true)} className='cursor-pointer'>
+              <UserPlus className="mr-2 h-4 w-4" />
+              <span>Invite User</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem onClick={handleLogout} className='cursor-pointer'>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
+      <InviteUserDialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen} />
     </DropdownMenu>
   );
 }
