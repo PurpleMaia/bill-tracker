@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/lib/auth';
 import { getSessionCookie } from '@/lib/cookies';
-import { validateMembership, addMember } from '@/services/data/tenants';
+import { validateMembership } from '@/services/data/tenants';
 import { db } from '@/db/kysely/client';
 import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
+import { emailSchema } from '@/lib/validators';
+import { sendInviteEmail } from '@/services/email';
+import { randomUUID } from 'crypto';
 
 const INVITE_RATE_LIMIT = { limit: 20, windowMs: 15 * 60_000 };
+const INVITE_EXPIRY_MS = 48 * 60 * 60 * 1000; // 48 hours
 
 export async function POST(
   request: NextRequest,
@@ -14,6 +18,7 @@ export async function POST(
   try {
     const { id: tenantId } = await params;
 
+    // Rate limit
     const rl = limitFixedWindow(`invite:${tenantId}`, INVITE_RATE_LIMIT.limit, INVITE_RATE_LIMIT.windowMs);
     if (!rl.ok) {
       const retryMs = retryAfterMs(rl.resetAt);
@@ -22,6 +27,8 @@ export async function POST(
         { status: 429, headers: { 'Retry-After': Math.ceil(retryMs / 1000).toString() } }
       );
     }
+
+    // Auth
     const sessionToken = getSessionCookie(request);
     if (!sessionToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -31,23 +38,77 @@ export async function POST(
     if (orgRole !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+
+    // Validate email
     const body = await request.json();
-    const { email, orgRole: inviteRole } = body;
-    const invitee = await db
-      .selectFrom('user')
-      .select('id')
-      .where('email', '=', email)
-      .executeTakeFirst();
-    if (!invitee) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    const emailResult = emailSchema.safeParse(body.email);
+    if (!emailResult.success) {
+      return NextResponse.json({ error: 'Please provide a valid email address.' }, { status: 400 });
     }
-    await addMember(tenantId, invitee.id, inviteRole ?? 'worker');
-    return NextResponse.json({ success: true }, { status: 200 });
+    const email = emailResult.data;
+
+    // Check if email is already a member of this tenant
+    const existingMember = await db
+      .selectFrom('members as m')
+      .innerJoin('user as u', 'm.user_id', 'u.id')
+      .select('u.id')
+      .where('u.email', '=', email)
+      .where('m.tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (existingMember) {
+      return NextResponse.json(
+        { error: 'This user is already a member of the organization.' },
+        { status: 409 }
+      );
+    }
+
+    // Revoke any existing pending invites for this email + tenant
+    await db
+      .updateTable('invite_tokens')
+      .set({ status: 'revoked' })
+      .where('email', '=', email)
+      .where('tenant_id', '=', tenantId)
+      .where('status', '=', 'pending')
+      .execute();
+
+    // Create new invite token
+    const token = randomUUID();
+    const expiresAt = new Date(Date.now() + INVITE_EXPIRY_MS);
+
+    await db
+      .insertInto('invite_tokens')
+      .values({
+        email,
+        tenant_id: tenantId,
+        token,
+        status: 'pending',
+        invited_by: user.id,
+        expires_at: expiresAt,
+      })
+      .execute();
+
+    // Get tenant name for the email
+    const tenant = await db
+      .selectFrom('tenants')
+      .select('name')
+      .where('id', '=', tenantId)
+      .executeTakeFirst();
+
+    const orgName = tenant?.name ?? 'an organization';
+
+    // Send invite email
+    const emailSendResult = await sendInviteEmail(email, orgName, token);
+    if (!emailSendResult.success) {
+      console.error('Failed to send invite email, but invite token was created:', emailSendResult.error);
+    }
+
+    return NextResponse.json({ success: true }, { status: 201 });
   } catch (error: any) {
     if (error?.statusCode) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }
-    console.error('Error:', error);
+    console.error('Invite error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
