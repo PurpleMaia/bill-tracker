@@ -16,7 +16,7 @@ import { getBatchBillTags } from '@/services/data/tags';
  * Used for public view
  * @param showArchived Whether to include archived bills (default: false)
  */
-export async function getAllTrackedBills(showArchived: boolean = false, tenantId?: string): Promise<Bill[]> {
+export async function getAllTrackedBills(showArchived: boolean = false, tenantId?: string, includeTrackedBy: boolean = false): Promise<Bill[]> {
     console.log(`[BILLS FETCH (PUBLIC)] Fetching all food+ tracked bills, tenant: ${tenantId?.slice(0, 6) ?? 'public'}...`);
     try {
         // Fetch all bills that have been adopted at least once
@@ -47,7 +47,7 @@ export async function getAllTrackedBills(showArchived: boolean = false, tenantId
         const billIds = bills.map(bill => bill.id);
 
         console.log(`[BILLS FETCH (PUBLIC)] Found ${billIds.length} food-related adopted bills, fetching status updates & tags...`);
-        const additionalData = await getAdditionalBillData(billIds, false, tenantId);
+        const additionalData = await getAdditionalBillData(billIds, includeTrackedBy, tenantId);
 
         const billObjects = await mapBillDataToBillClient({
           bills,

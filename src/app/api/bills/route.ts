@@ -32,11 +32,13 @@ export async function GET(request: NextRequest) {
     }
 
     let bills;
-    if (user && viewMode === 'my-bills') {
+    if (user && viewMode === 'my-bills') { // "My Bills" = bills tracked by this user, regardless of tenant
       bills = await getUserTrackedBills(user.id, showArchived, true, tenantId);
-    } else if (user) {
+    } else if (user && tenantId) { // "All Bills" for a tenant = all bills tracked by anyone in this tenant
+      bills = await getAllTrackedBills(showArchived, tenantId, true);
+    } else if (user) { // "All Bills" for public = all food-related bills tracked by anyone in Food+
       bills = await getAllFoodRelatedBills(showArchived, true, tenantId);
-    } else {
+    } else { // Public view with no user = all food-related bills tracked by anyone in Food+
       bills = await getAllTrackedBills(showArchived);
     }
 
