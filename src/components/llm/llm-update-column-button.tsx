@@ -23,8 +23,7 @@ export default function LLMUpdateColumnButton({ bills, onRefreshStart, onRefresh
   const { setBills, setTempBills } = useBills();
   const { user } = useAuth();
 
-  // Only admin and supervisor can use AI updates
-  const canUseAI = user && (user.role === 'admin' || user.role === 'supervisor');
+  const canUseAI = !!user;
 
   // Helper function to get column index based on status ID
   const getColumnIndex = (statusId: BillStatus): number => {

@@ -19,11 +19,11 @@ export function ProtectedComponent({ children, fallback = null }: ProtectedCompo
 }
 
 export function ProtectedAdminComponent({ children, fallback = null }: ProtectedComponentProps) {
-  const { user } = useAuth();
+  const { user, activeTenant } = useAuth();
 
-  if (!user || user.role !== 'admin') {
+  if (!user || activeTenant?.orgRole !== 'admin') {
     return fallback;
-  }  
+  }
 
   return <>{children}</>;
 }

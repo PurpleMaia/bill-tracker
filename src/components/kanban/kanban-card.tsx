@@ -45,7 +45,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const { acceptLLMChange, rejectLLMChange, removeBill } = useBills();
     const { user, activeTenant } = useAuth();
 
-    const canSeeTracking = activeTenant?.orgRole === 'admin' || user?.role === 'admin' || user?.role === 'supervisor';
+    const canSeeTracking = activeTenant?.orgRole === 'admin';
     const trackedBy = bill.tracked_by ?? [];
     const trackedCount = bill.tracked_count ?? trackedBy.length;
 

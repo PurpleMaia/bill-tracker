@@ -16,9 +16,8 @@ export default function AIUpdateButton() {
   const { toast } = useToast();  
   const { bills, setBills, setTempBills, acceptAllLLMChanges, rejectAllLLMChanges, resetBills } = useBills()
   const { user } = useAuth();
-  
-  // Only admin and supervisor can use AI updates
-  const canUseAI = user && (user.role === 'admin' || user.role === 'supervisor');
+
+  const canUseAI = !!user;
 
   // Helper function to get column index based on status ID
   const getColumnIndex = (statusId: BillStatus): number => {

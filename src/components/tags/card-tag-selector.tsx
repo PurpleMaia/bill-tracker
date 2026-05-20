@@ -26,10 +26,10 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, activeTenant } = useAuth();
   const { updateBill } = useBills();
 
-  const canManageTags = user?.role === 'admin' || user?.role === 'supervisor';
+  const canManageTags = activeTenant?.orgRole === 'admin';
 
   // Use billTags prop directly for display - no local state sync needed
   const displayTags = billTags || [];

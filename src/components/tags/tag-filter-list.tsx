@@ -30,10 +30,10 @@ export function TagFilterList({
   const [loading, setLoading] = useState(false);
   const [showManagementDialog, setShowManagementDialog] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, activeTenant } = useAuth();
   const { bills } = useBills();
 
-  const canManageTags = user?.role === 'admin' || user?.role === 'supervisor';
+  const canManageTags = activeTenant?.orgRole === 'admin';
 
   // Extract unique years from bills
   const availableYears = React.useMemo(() => {
