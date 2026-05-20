@@ -77,6 +77,18 @@ export interface Members {
   user_id: string;
 }
 
+export interface InviteTokens {
+  id: Generated<string>;
+  email: string;
+  tenant_id: string;
+  token: string;
+  status: Generated<string>;
+  invited_by: string;
+  expires_at: Timestamp;
+  created_at: Generated<Timestamp | null>;
+  accepted_at: Timestamp | null;
+}
+
 export interface OrgBills {
   bill_id: string;
   bill_status: Generated<BillStatus>;
@@ -190,6 +202,7 @@ export interface DB {
   auth_key: AuthKey;
   bill_tags: BillTags;
   bills: Bills;
+  invite_tokens: InviteTokens;
   members: Members;
   org_bills: OrgBills;
   pending_proposals: PendingProposals;
