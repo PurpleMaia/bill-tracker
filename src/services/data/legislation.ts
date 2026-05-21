@@ -23,11 +23,14 @@ export async function getAllTrackedBills(showArchived: boolean = false, tenantId
         let query = db
           .selectFrom('bills as b')
           .innerJoin('user_bills as ub', 'b.id', 'ub.bill_id') // Only bills that have been adopted
-          .selectAll('b')
-          .where('food_related', '=', true); // Only food-related bills
+          .selectAll('b');
 
         if (tenantId) {
+          // Tenant-scoped: show all bills tracked by anyone in this tenant
           query = query.where('ub.tenant_id', '=', tenantId);
+        } else {
+          // Public: only food-related bills
+          query = query.where('food_related', '=', true);
         }
 
         // Conditionally exclude archived bills

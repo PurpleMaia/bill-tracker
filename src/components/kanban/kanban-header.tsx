@@ -5,6 +5,7 @@ import { Switch } from '../ui/switch';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { Label } from '../ui/label';
 import NewBillButton from './new-bill/new-bill-button';
+import { TrackBillDialog } from './track-bill-dialog';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { TagFilterList } from '../tags/tag-filter-list';
 
@@ -66,6 +67,7 @@ export function KanbanHeader() {
 
             {!isPublic && (
               <>
+                <TrackBillDialog />
                 {canAddRemoveBills && <NewBillButton />}
               </>
             )}

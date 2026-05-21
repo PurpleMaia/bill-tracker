@@ -22,7 +22,7 @@ export function useTrackedBills() {
   const handleTrackBill = async (billUrl: string) => {
     if (!user) return false;
     try {
-      const trackedBill = await trackBill(user.id, billUrl);
+      const trackedBill = await trackBill(user.id, billUrl, activeTenant?.tenantId);
       if (trackedBill) {
         // Add the bill to the list
         console.log('Bill tracked successfully, adding to list...');
@@ -54,7 +54,7 @@ export function useTrackedBills() {
   const handleUntrackBill = useCallback(async (billId: string, options?: { suppressToast?: boolean; keepInList?: boolean }) => {
     if (!user) return false;
     try {
-      const success = await untrackBill(user.id, billId);
+      const success = await untrackBill(user.id, billId, activeTenant?.tenantId);
       if (success) {
         if (options?.keepInList) {
           setBills((prev) =>
