@@ -32,22 +32,17 @@ export function ProtectedKanbanBoardOrSpreadsheet() {
   }
 
 
-  // Show tracked bills if user has any, otherwise show empty state
-  // Admins always see the kanban board (they can manage all bills)
-  if (user && bills.length === 0 && !loadingBills && activeTenant?.orgRole !== 'admin') {
-    console.log('User has', bills.length, 'adopted bills, rendering empty state');
-
+  // Show empty state only when viewing "my-bills" with no tracked bills
+  if (user && bills.length === 0 && !loadingBills && viewMode === 'my-bills') {
     return (
       <>
         <KanbanHeader />
         <div className="flex flex-col items-center justify-center h-full space-y-6 p-8">
           <div className="text-center space-y-4">
-            <>
-              <h2 className="text-2xl font-semibold">No Tracked Bills Yet</h2>
-              <p className="text-muted-foreground max-w-md">
-                You have not tracked any bills yet. Click the All Bills toggle in the header to browse and track bills to get started!
-              </p>
-            </>
+            <h2 className="text-2xl font-semibold">No Tracked Bills Yet</h2>
+            <p className="text-muted-foreground max-w-md">
+              Click Track Bill in the header to get started.
+            </p>
           </div>
         </div>
       </>
