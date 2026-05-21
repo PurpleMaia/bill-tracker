@@ -1,5 +1,14 @@
 import { Resend } from 'resend';
 
+export function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export async function sendVerificationEmail(email: string, username: string, verificationToken: string) {
@@ -33,7 +42,7 @@ export async function sendVerificationEmail(email: string, username: string, ver
       subject: 'Verify your email address',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Welcome, ${username}!</h2>
+          <h2>Welcome, ${escapeHtml(username)}!</h2>
           <p>Thank you for registering. Please verify your email address by clicking the button below:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${verificationUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
@@ -108,15 +117,15 @@ export async function sendInviteEmail(email: string, orgName: string, inviteToke
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: email,
-      subject: `You've been invited to join ${orgName} on Food+`,
+      subject: `You've been invited to join ${escapeHtml(orgName)} on Food+`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>You're invited!</h2>
-          <p>You've been invited to join <strong>${orgName}</strong> on Food+.</p>
+          <p>You've been invited to join <strong>${escapeHtml(orgName)}</strong> on Food+.</p>
           <p>Click the button below to create your account and get started:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${inviteUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
-              Join ${orgName}
+              Join ${escapeHtml(orgName)}
             </a>
           </div>
           <p>Or copy and paste this link into your browser:</p>

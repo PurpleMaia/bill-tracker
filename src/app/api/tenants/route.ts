@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
     const body = await request.json();
     const { name, slug, brandingConfig } = body;
-    const tenant = await createTenant(name, slug, brandingConfig);
+    const tenant = await createTenant(name, slug, brandingConfig, { skipAuth: true });
     return NextResponse.json({ tenant }, { status: 201 });
   } catch (error: any) {
     if (error?.statusCode) {

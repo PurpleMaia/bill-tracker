@@ -114,14 +114,16 @@ export function BillsProvider({ children }: { children: ReactNode }) {
   /**
    * Fetches bills and their tags based on view mode
    * @param viewModeOverride Optional view mode to use instead of current state
+   * @param showArchivedOverride Optional archived flag to use instead of current state
    */
-  const fetchBillsWithTags = useCallback(async (viewModeOverride?: 'my-bills' | 'all-bills') => {
+  const fetchBillsWithTags = useCallback(async (viewModeOverride?: 'my-bills' | 'all-bills', showArchivedOverride?: boolean) => {
     const mode = viewModeOverride ?? viewMode;
+    const archived = showArchivedOverride ?? showArchived;
 
     const params = new URLSearchParams();
     if (activeTenant?.tenantId) params.set('tenantId', activeTenant.tenantId);
     params.set('viewMode', mode);
-    params.set('showArchived', String(showArchived));
+    params.set('showArchived', String(archived));
 
     const response = await fetch(`/api/bills?${params}`);
     if (!response.ok) throw new Error('Failed to fetch bills');
@@ -499,15 +501,19 @@ export function BillsProvider({ children }: { children: ReactNode }) {
    * Rejects all pending human proposals
    */
   const rejectAllTempChanges: BillsContextType['rejectAllTempChanges'] = useCallback(async () => {
+    if (!canCommitStatus(activeTenant?.orgRole)) {
+      toast({
+        title: 'Forbidden',
+        description: 'You do not have permission to reject changes.',
+        variant: 'destructive',
+      });
+      return;
+    }
     const humanProposals = tempBills.filter((t) => t.source === 'human');
-    if (humanProposals.length === 0) return;
-    setTempBills((prev) => prev.filter((t) => t.source !== 'human'));
-    toast({
-      title: 'All Proposals Rejected',
-      description: `Discarded ${humanProposals.length} pending changes.`,
-      variant: 'default',
-    });
-  }, [tempBills]);
+    const ops = humanProposals.map((t) => rejectTempChange(t.id));
+    await Promise.allSettled(ops);
+    await reloadProposalsFromServer();
+  }, [activeTenant, tempBills, rejectTempChange, reloadProposalsFromServer]);
 
   /**
    * Allows a user to undo/delete their own pending proposal
@@ -690,7 +696,7 @@ export function BillsProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       try {
-        const billsWithTags = await fetchBillsWithTags();
+        const billsWithTags = await fetchBillsWithTags(undefined, newShowArchived);
         setBills(billsWithTags);
       } catch (err) {
         console.error('Error refreshing bills on archived toggle:', err);
@@ -698,7 +704,7 @@ export function BillsProvider({ children }: { children: ReactNode }) {
       } finally {
         setTimeout(() => {
           setLoadingBills(false);
-        }, 500); // slight delay for better UX
+        }, 500);
       }
     })();
   }, [showArchived, fetchBillsWithTags]);
@@ -713,6 +719,8 @@ export function BillsProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     (async () => {
+      setBills([]);
+      setTempBills([]);
       setLoadingBills(true);
       setError(null);
 

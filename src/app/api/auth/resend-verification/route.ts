@@ -65,10 +65,10 @@ export async function POST(request: NextRequest) {
     if (!emailResult.success) {
       console.error('Failed to resend verification email:', emailResult.error);
       const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/verify-email?token=${user.verification_token}`;
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to send email. Use this link to verify:',
-        verificationUrl 
+      console.log('Verification URL (not sent to client):', verificationUrl);
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to send verification email. Please try again later.'
       }, { status: 500 });
     }
 

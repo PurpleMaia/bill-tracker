@@ -94,12 +94,17 @@ export async function createTag(name: string, color?: string, tenantId?: string)
  */
 export async function updateTag(id: string, name: string, color?: string, tenantId?: string): Promise<Tag> {
   try {
-    // Check if tag exists
-    const existingTag = await db
+    // Check if tag exists and belongs to the caller's tenant
+    let existingQuery = db
       .selectFrom('tags')
-      .select('id')
-      .where('id', '=', id)
-      .executeTakeFirst();
+      .select(['id', 'tenant_id'])
+      .where('id', '=', id);
+
+    if (tenantId) {
+      existingQuery = existingQuery.where('tenant_id', '=', tenantId);
+    }
+
+    const existingTag = await existingQuery.executeTakeFirst();
 
     if (!existingTag) {
       throw new Error('Tag not found');
@@ -122,14 +127,20 @@ export async function updateTag(id: string, name: string, color?: string, tenant
       throw new Error('Tag with this name already exists');
     }
 
-    const updatedTag = await db
+    let updateQuery = db
       .updateTable('tags')
       .set({
         name: name.trim(),
         color: color || null,
         updated_at: new Date(),
       })
-      .where('id', '=', id)
+      .where('id', '=', id);
+
+    if (tenantId) {
+      updateQuery = updateQuery.where('tenant_id', '=', tenantId);
+    }
+
+    const updatedTag = await updateQuery
       .returningAll()
       .executeTakeFirst();
 
@@ -150,20 +161,29 @@ export async function updateTag(id: string, name: string, color?: string, tenant
  * @param id - Tag ID
  * @throws Error if tag not found or deletion fails
  */
-export async function deleteTag(id: string): Promise<void> {
+export async function deleteTag(id: string, tenantId?: string): Promise<void> {
   try {
-    // Check if tag exists
-    const existingTag = await db
+    // Check if tag exists and belongs to the caller's tenant
+    let existingQuery = db
       .selectFrom('tags')
       .select('id')
-      .where('id', '=', id)
-      .executeTakeFirst();
+      .where('id', '=', id);
+
+    if (tenantId) {
+      existingQuery = existingQuery.where('tenant_id', '=', tenantId);
+    }
+
+    const existingTag = await existingQuery.executeTakeFirst();
 
     if (!existingTag) {
       throw new Error('Tag not found');
     }
 
-    await db.deleteFrom('tags').where('id', '=', id).execute();
+    let deleteQuery = db.deleteFrom('tags').where('id', '=', id);
+    if (tenantId) {
+      deleteQuery = deleteQuery.where('tenant_id', '=', tenantId);
+    }
+    await deleteQuery.execute();
   } catch (error) {
     console.error('Error deleting tag:', error);
     throw error instanceof Error ? error : new Error('Failed to delete tag');
@@ -293,11 +313,24 @@ export async function updateBillTags(billId: string, tagIds: string[], tenantId?
       throw new Error('Bill not found');
     }
 
-    // Remove existing tags for this bill
-    await db
-      .deleteFrom('bill_tags')
-      .where('bill_id', '=', billId)
-      .execute();
+    // Remove existing tags for this bill, scoped to the caller's tenant
+    if (tenantId) {
+      await db
+        .deleteFrom('bill_tags')
+        .where('bill_id', '=', billId)
+        .where('tag_id', 'in',
+          db.selectFrom('tags').select('id').where('tenant_id', '=', tenantId)
+        )
+        .execute();
+    } else {
+      await db
+        .deleteFrom('bill_tags')
+        .where('bill_id', '=', billId)
+        .where('tag_id', 'in',
+          db.selectFrom('tags').select('id').where('tenant_id', 'is', null)
+        )
+        .execute();
+    }
 
     // Add new tags if any provided
     if (tagIds.length > 0) {

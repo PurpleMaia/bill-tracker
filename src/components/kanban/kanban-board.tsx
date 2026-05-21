@@ -332,7 +332,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
         if (billToRevertIndex > -1) {
           const revertedBill = {
             ...revertedBills[billToRevertIndex],
-            current_status: sourceColumnId,
+            current_bill_status: sourceColumnId,
           };
           revertedBills.splice(billToRevertIndex, 1, revertedBill);
           setBills(revertedBills);

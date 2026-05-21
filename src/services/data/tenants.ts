@@ -3,6 +3,9 @@
 import { db } from '@/db/kysely/client';
 import type { Membership, OrgRole } from '@/types/tenant';
 import { Errors } from '@/lib/errors';
+import { auth } from '@/lib/auth';
+
+type MutationOptions = { skipAuth?: boolean };
 
 /**
  * Fetches all tenant memberships for a user.
@@ -57,8 +60,14 @@ export async function validateMembership(
 export async function createTenant(
   name: string,
   slug: string,
-  brandingConfig?: Record<string, unknown>
+  brandingConfig?: Record<string, unknown>,
+  options?: MutationOptions
 ): Promise<{ id: string; name: string; slug: string }> {
+  if (!options?.skipAuth) {
+    const session = await auth();
+    if (!session) throw Errors.NO_SESSION_COOKIE;
+  }
+
   const result = await db
     .insertInto('tenants')
     .values({
@@ -82,8 +91,16 @@ export async function createTenant(
 export async function addMember(
   tenantId: string,
   userId: string,
-  orgRole: OrgRole = 'worker'
+  orgRole: OrgRole = 'worker',
+  options?: MutationOptions
 ): Promise<void> {
+  if (!options?.skipAuth) {
+    const session = await auth();
+    if (!session) throw Errors.NO_SESSION_COOKIE;
+    const callerRole = await validateMembership(session.user.id, tenantId);
+    if (callerRole !== 'admin') throw Errors.UNAUTHORIZED;
+  }
+
   await db
     .insertInto('members')
     .values({
@@ -99,8 +116,16 @@ export async function addMember(
  */
 export async function removeMember(
   tenantId: string,
-  userId: string
+  userId: string,
+  options?: MutationOptions
 ): Promise<void> {
+  if (!options?.skipAuth) {
+    const session = await auth();
+    if (!session) throw Errors.NO_SESSION_COOKIE;
+    const callerRole = await validateMembership(session.user.id, tenantId);
+    if (callerRole !== 'admin') throw Errors.UNAUTHORIZED;
+  }
+
   await db
     .deleteFrom('members')
     .where('tenant_id', '=', tenantId)
@@ -114,8 +139,16 @@ export async function removeMember(
 export async function updateMemberRole(
   tenantId: string,
   userId: string,
-  newRole: OrgRole
+  newRole: OrgRole,
+  options?: MutationOptions
 ): Promise<void> {
+  if (!options?.skipAuth) {
+    const session = await auth();
+    if (!session) throw Errors.NO_SESSION_COOKIE;
+    const callerRole = await validateMembership(session.user.id, tenantId);
+    if (callerRole !== 'admin') throw Errors.UNAUTHORIZED;
+  }
+
   await db
     .updateTable('members')
     .set({ org_role: newRole })

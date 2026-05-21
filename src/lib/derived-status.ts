@@ -2,6 +2,17 @@ import { db } from '@/db/kysely/client';
 import { KANBAN_COLUMNS, COLUMN_INDEX } from '@/lib/kanban-columns';
 import type { BillStatus } from '@/db/types';
 
+const EXTENDED_INDEX: Record<string, number> = {
+  ...COLUMN_INDEX,
+  deferred1: COLUMN_INDEX['scheduled1'] ?? 2,
+  deferred2: COLUMN_INDEX['scheduled2'] ?? 4,
+  deferred3: COLUMN_INDEX['scheduled3'] ?? 6,
+  crossoverDeferred1: COLUMN_INDEX['crossoverScheduled1'] ?? 8,
+  crossoverDeferred2: COLUMN_INDEX['crossoverScheduled2'] ?? 10,
+  crossoverDeferred3: COLUMN_INDEX['crossoverScheduled3'] ?? 12,
+  conferenceDeferred: COLUMN_INDEX['conferenceScheduled'] ?? 15,
+};
+
 /**
  * Pure function: computes the derived public status from AI + org statuses.
  * Algorithm B: AI as floor, org consensus as ceiling.
@@ -23,7 +34,7 @@ export function deriveBillStatus(
     return ai;
   }
 
-  const floor = COLUMN_INDEX[ai] ?? 0;
+  const floor = EXTENDED_INDEX[ai] ?? 0;
 
   // Compute mode
   const frequencyMap = new Map<BillStatus, number>();
@@ -49,14 +60,14 @@ export function deriveBillStatus(
   } else {
     // No clear mode — use median index
     const sortedIndices = orgStatuses
-      .map(s => COLUMN_INDEX[s] ?? 0)
+      .map(s => EXTENDED_INDEX[s] ?? 0)
       .sort((a, b) => a - b);
     const medianIdx = sortedIndices[Math.floor(sortedIndices.length / 2)];
     const medianColumn = KANBAN_COLUMNS[medianIdx];
     consensus = (medianColumn?.id ?? fallback) as BillStatus;
   }
 
-  const consensusIndex = COLUMN_INDEX[consensus] ?? 0;
+  const consensusIndex = EXTENDED_INDEX[consensus] ?? 0;
 
   if (consensusIndex < floor) {
     return ai;

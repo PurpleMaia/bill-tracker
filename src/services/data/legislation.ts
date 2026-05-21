@@ -176,6 +176,10 @@ export async function getUserTrackedBills(userId: string, showArchived: boolean 
           .innerJoin('user_bills as ub', 'b.id', 'ub.bill_id')
           .where('ub.user_id', 'in', internIds);
 
+        if (tenantId) {
+          internBillsQuery = internBillsQuery.where('ub.tenant_id', '=', tenantId);
+        }
+
         // Conditionally exclude archived bills
         if (!showArchived) {
           internBillsQuery = internBillsQuery.where('b.archived', '=', false);
@@ -231,9 +235,9 @@ async function getAdditionalBillData(billIds: string[], includeTrackedBy: boolea
   // Batch fetch tags for these bills
   const tags = await getBatchBillTags(billIds, tenantId);
 
-  const trackedBy = includeTrackedBy ? await getTrackedByForBills(billIds) : {};
+  const trackedBy = includeTrackedBy ? await getTrackedByForBills(billIds, tenantId) : {};
 
-  const trackedCount = await getTrackedCountForBills(billIds);
+  const trackedCount = await getTrackedCountForBills(billIds, tenantId);
 
   // Batch fetch org-specific statuses if tenant scoped
   const orgBillStatuses: Record<string, string> = {};
@@ -344,10 +348,10 @@ async function getStatusUpdatesForBill(billId: string): Promise<StatusUpdate[]> 
     return updates;
 }
 
-async function getTrackedByForBills(billIds: string[]): Promise<Record<string, BillTracker[]>> {
+async function getTrackedByForBills(billIds: string[], tenantId?: string): Promise<Record<string, BillTracker[]>> {
   if (billIds.length === 0) return {};
 
-  const rows = await db
+  let query = db
     .selectFrom('user_bills as ub')
     .innerJoin('user as u', 'ub.user_id', 'u.id')
     .select([
@@ -357,7 +361,13 @@ async function getTrackedByForBills(billIds: string[]): Promise<Record<string, B
       'u.username as user_username',
       'ub.adopted_at as adopted_at',
     ])
-    .where('ub.bill_id', 'in', billIds)
+    .where('ub.bill_id', 'in', billIds);
+
+  if (tenantId) {
+    query = query.where('ub.tenant_id', '=', tenantId);
+  }
+
+  const rows = await query
     .orderBy('ub.adopted_at', 'desc')
     .execute();
 
@@ -379,16 +389,22 @@ async function getTrackedByForBills(billIds: string[]): Promise<Record<string, B
   return trackedBy;
 }
 
-async function getTrackedCountForBills(billIds: string[]): Promise<Record<string, number>> {
+async function getTrackedCountForBills(billIds: string[], tenantId?: string): Promise<Record<string, number>> {
   if (billIds.length === 0) return {};
 
-  const rows = await db
+  let query = db
     .selectFrom('user_bills as ub')
     .select([
       'ub.bill_id as bill_id',
       db.fn.countAll().as('tracked_count'),
     ])
-    .where('ub.bill_id', 'in', billIds)
+    .where('ub.bill_id', 'in', billIds);
+
+  if (tenantId) {
+    query = query.where('ub.tenant_id', '=', tenantId);
+  }
+
+  const rows = await query
     .groupBy('ub.bill_id')
     .execute();
 
@@ -914,13 +930,37 @@ export async function assignBill(assignerId: string, targetUserId: string, bill:
     const relation = await db.insertInto('user_bills').values({
       user_id: targetUserId,
       bill_id: bill.id,
-      adopted_at: new Date()
+      adopted_at: new Date(),
+      tenant_id: tenantId ?? null,
     })
     .returningAll()
     .executeTakeFirst();
 
     if (!relation) {
       throw new Error('Failed to assign bill to user');
+    }
+
+    // Create org_bills row if this is the first adoption in this org
+    if (tenantId) {
+      const existingOrgBill = await db
+        .selectFrom('org_bills')
+        .select('bill_id')
+        .where('tenant_id', '=', tenantId)
+        .where('bill_id', '=', bill.id)
+        .executeTakeFirst();
+
+      if (!existingOrgBill) {
+        const billData = await db.selectFrom('bills')
+          .select('ai_status')
+          .where('id', '=', bill.id)
+          .executeTakeFirst();
+
+        await db.insertInto('org_bills').values({
+          tenant_id: tenantId,
+          bill_id: bill.id,
+          bill_status: (billData?.ai_status as BillStatus) ?? 'unassigned',
+        }).execute();
+      }
     }
     
     // Get user info for tracker object

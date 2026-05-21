@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No user found with that email address' }, { status: 404 });
     }
 
-    await addMember(tenantId, targetUser.id, orgRole ?? 'worker');
+    await addMember(tenantId, targetUser.id, orgRole ?? 'worker', { skipAuth: true });
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (error: any) {
     if (error?.statusCode) {
@@ -162,7 +162,30 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: org admin role required' }, { status: 403 });
     }
 
-    await updateMemberRole(tenantId, userId, orgRole);
+    // Prevent demoting the last admin
+    if (orgRole !== 'admin') {
+      const currentRole = await db
+        .selectFrom('members')
+        .select('org_role')
+        .where('tenant_id', '=', tenantId)
+        .where('user_id', '=', userId)
+        .executeTakeFirst();
+
+      if (currentRole?.org_role === 'admin') {
+        const adminCount = await db
+          .selectFrom('members')
+          .select(db.fn.countAll().as('count'))
+          .where('tenant_id', '=', tenantId)
+          .where('org_role', '=', 'admin')
+          .executeTakeFirst();
+
+        if (Number(adminCount?.count ?? 0) <= 1) {
+          return NextResponse.json({ error: 'Cannot demote the last admin of the organization' }, { status: 400 });
+        }
+      }
+    }
+
+    await updateMemberRole(tenantId, userId, orgRole, { skipAuth: true });
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error: any) {
     if (error?.statusCode) {
@@ -209,7 +232,28 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: org admin role required' }, { status: 403 });
     }
 
-    await removeMember(tenantId, userId);
+    // Prevent removing the last admin
+    const targetMember = await db
+      .selectFrom('members')
+      .select('org_role')
+      .where('tenant_id', '=', tenantId)
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    if (targetMember?.org_role === 'admin') {
+      const adminCount = await db
+        .selectFrom('members')
+        .select(db.fn.countAll().as('count'))
+        .where('tenant_id', '=', tenantId)
+        .where('org_role', '=', 'admin')
+        .executeTakeFirst();
+
+      if (Number(adminCount?.count ?? 0) <= 1) {
+        return NextResponse.json({ error: 'Cannot remove the last admin of the organization' }, { status: 400 });
+      }
+    }
+
+    await removeMember(tenantId, userId, { skipAuth: true });
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error: any) {
     if (error?.statusCode) {

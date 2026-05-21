@@ -36,17 +36,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: messages }, { status: 400 });
     }
 
-    // If inviteToken is provided, validate it before creating the user
+    // If inviteToken is provided, atomically claim it before creating the user
     let validatedInvite: { tenant_id: string; id: string } | null = null;
     if (inviteToken) {
       const invite = await db
-        .selectFrom('invite_tokens')
-        .select(['id', 'tenant_id', 'status', 'expires_at'])
+        .updateTable('invite_tokens')
+        .set({ status: 'accepted', accepted_at: new Date() })
         .where('token', '=', inviteToken)
+        .where('status', '=', 'pending')
+        .where('expires_at', '>', new Date())
+        .returning(['id', 'tenant_id', 'email'])
         .executeTakeFirst();
 
-      if (!invite || invite.status !== 'pending' || new Date(invite.expires_at) < new Date()) {
+      if (!invite) {
         return NextResponse.json({ error: 'Invite is invalid, expired, or already used.' }, { status: 400 });
+      }
+      if (invite.email !== email) {
+        await db
+          .updateTable('invite_tokens')
+          .set({ status: 'pending', accepted_at: null })
+          .where('id', '=', invite.id)
+          .execute();
+        return NextResponse.json({ error: 'This invite was issued to a different email address.' }, { status: 400 });
       }
       validatedInvite = { tenant_id: invite.tenant_id, id: invite.id };
     }
@@ -83,21 +94,16 @@ export async function POST(req: NextRequest) {
         .slice(0, 50);
 
       try {
-        tenant = await createTenant(trimmedName, slug);
-        await addMember(tenant.id, user.id, 'admin');
+        tenant = await createTenant(trimmedName, slug, undefined, { skipAuth: true });
+        await addMember(tenant.id, user.id, 'admin', { skipAuth: true });
       } catch (orgError) {
         console.error('Failed to create organization:', orgError);
       }
     }
 
-    // If registering via invite, add user to the org and mark invite as accepted
+    // If registering via invite, add user to the org (invite already marked accepted atomically above)
     if (validatedInvite) {
-      await addMember(validatedInvite.tenant_id, user.id, 'worker');
-      await db
-        .updateTable('invite_tokens')
-        .set({ status: 'accepted', accepted_at: new Date() })
-        .where('id', '=', validatedInvite.id)
-        .execute();
+      await addMember(validatedInvite.tenant_id, user.id, 'worker', { skipAuth: true });
     }
 
     // Auto-login: create session and return cookie + memberships
@@ -117,8 +123,8 @@ export async function POST(req: NextRequest) {
         },
       }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error?.message ?? 'Registration failed' }, { status: 500 });
   }
 }

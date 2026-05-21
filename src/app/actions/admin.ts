@@ -118,7 +118,7 @@ export async function getPendingProposals(tenantId?: string): Promise<ActionResu
     await verifyAdminAccess(tenantId);
 
     console.log('📋 [PENDING PROPOSALS] Admin loading all pending proposals...');
-    const proposals = await db
+    let query = db
       .selectFrom('pending_proposals')
       .leftJoin('user as proposer', (join: any) =>
         join.onRef('pending_proposals.proposed_by_user_id', '=', 'proposer.id')
@@ -134,8 +134,13 @@ export async function getPendingProposals(tenantId?: string): Promise<ActionResu
         'bills.bill_number',
         'bills.bill_title',
       ])
-      .where('pending_proposals.approval_status', '=', 'pending')
-      .execute();
+      .where('pending_proposals.approval_status', '=', 'pending');
+
+    if (tenantId) {
+      query = query.where('pending_proposals.tenant_id', '=', tenantId);
+    }
+
+    const proposals = await query.execute();
 
     const formattedProposals = proposals.map((proposal) => ({
       ...proposal,
@@ -456,9 +461,9 @@ export async function approveUser(userId: string, role: string, tenantId?: strin
       .where('account_status', '=', 'pending')
       .executeTakeFirst();
 
-    if (!user) {      
+    if (!user) {
       throw new Error('User not found or not pending');
-    }    
+    }
 
     await db.updateTable('user')
       .set({
