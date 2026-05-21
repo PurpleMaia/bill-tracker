@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -19,6 +19,36 @@ export default function RegisterPage() {
   const { register } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Invite token state
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [inviteOrgName, setInviteOrgName] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+
+  // Check for invite token in URL on mount
+  useEffect(() => {
+    const token = searchParams.get('invite');
+    if (!token) return;
+
+    setInviteToken(token);
+
+    fetch(`/api/invites/validate?token=${token}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.valid) {
+          setInviteOrgName(data.orgName);
+          if (data.email) setEmail(data.email);
+        } else {
+          setInviteError(data.reason || 'This invite is no longer valid.');
+        }
+      })
+      .catch(() => {
+        setInviteError('Failed to validate invite. Please try again.');
+      });
+  }, [searchParams]);
+
+  const isInviteFlow = !!inviteToken;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,14 +58,17 @@ export default function RegisterPage() {
         email,
         username,
         password,
-        createOrg ? orgName.trim() : undefined
+        isInviteFlow ? undefined : (createOrg ? orgName.trim() : undefined),
+        inviteToken || undefined
       );
       if (result.success) {
         toast({
           title: "Welcome!",
-          description: createOrg
-            ? `Your account and organization "${orgName.trim()}" have been created.`
-            : "Your account has been created.",
+          description: inviteOrgName
+            ? `Account created. You've joined ${inviteOrgName}.`
+            : createOrg
+              ? `Your account and organization "${orgName.trim()}" have been created.`
+              : "Your account has been created.",
         });
         router.push("/");
       } else {
@@ -63,6 +96,23 @@ export default function RegisterPage() {
         <p className="mb-6 text-sm text-muted-foreground text-center">
           Register to track bills and collaborate with your organization.
         </p>
+
+        {/* Invite context banner */}
+        {isInviteFlow && inviteOrgName && (
+          <div className="rounded-md bg-blue-50 border border-blue-200 p-3 mb-4">
+            <p className="text-sm text-blue-800">
+              You&apos;ve been invited to join <strong>{inviteOrgName}</strong>
+            </p>
+          </div>
+        )}
+
+        {/* Invite error banner */}
+        {isInviteFlow && inviteError && (
+          <div className="rounded-md bg-red-50 border border-red-200 p-3 mb-4">
+            <p className="text-sm text-red-800">{inviteError}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="register-email">Email</Label>
@@ -100,41 +150,54 @@ export default function RegisterPage() {
             />
           </div>
 
-          <div className="border-t pt-4 mt-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="create-org" className="text-sm font-medium cursor-pointer">
-                  Create an organization
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Start a new org and become its admin
-                </p>
-              </div>
-              <Switch
-                id="create-org"
-                checked={createOrg}
-                onCheckedChange={setCreateOrg}
-              />
-            </div>
-
-            {createOrg && (
-              <div className="space-y-2">
-                <Label htmlFor="org-name">Organization Name</Label>
-                <Input
-                  id="org-name"
-                  type="text"
-                  value={orgName}
-                  onChange={(e) => setOrgName(e.target.value)}
-                  placeholder="e.g. Food Policy Council"
-                  required={createOrg}
-                  maxLength={100}
+          {/* Hide create-org section when registering via invite */}
+          {!isInviteFlow && (
+            <div className="border-t pt-4 mt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="create-org" className="text-sm font-medium cursor-pointer">
+                    Create an organization
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Start a new org and become its admin
+                  </p>
+                </div>
+                <Switch
+                  id="create-org"
+                  checked={createOrg}
+                  onCheckedChange={setCreateOrg}
                 />
               </div>
-            )}
-          </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Creating account..." : createOrg ? "Register & Create Org" : "Register"}
+              {createOrg && (
+                <div className="space-y-2">
+                  <Label htmlFor="org-name">Organization Name</Label>
+                  <Input
+                    id="org-name"
+                    type="text"
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                    placeholder="e.g. Food Policy Council"
+                    required={createOrg}
+                    maxLength={100}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isLoading || (isInviteFlow && !!inviteError)}
+          >
+            {isLoading
+              ? "Creating account..."
+              : isInviteFlow
+                ? `Register & Join ${inviteOrgName || 'Organization'}`
+                : createOrg
+                  ? "Register & Create Org"
+                  : "Register"}
           </Button>
         </form>
 

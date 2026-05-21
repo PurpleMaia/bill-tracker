@@ -40,7 +40,9 @@ export function UserMenu() {
             <p className="text-sm font-bold leading-none">{user ? user.username : ''}</p>
             <p className="text-sm font-medium leading-none">{user ? user.email : ''}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {activeTenant ? (activeTenant.orgRole === 'admin' ? 'Admin' : 'User') : 'Public'}
+              {activeTenant
+                && `${activeTenant.name} · ${activeTenant.orgRole === 'admin' ? 'Admin' : 'Member'}`                
+}
             </p>
           </div>
         </DropdownMenuLabel>
