@@ -5,7 +5,7 @@ import type { Bill, BillStatus, TempBill } from '@/types/legislation';
 import { KANBAN_COLUMNS, COLUMN_TITLES } from '@/lib/kanban-columns';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import * as ScrollAreaPrimitive from '@radix-ui/react-scroll-area';
-import { updateBillStatus, searchBills } from '@/services/data/legislation';
+import { searchBills } from '@/services/data/legislation';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useToast } from '@/hooks/use-toast';
@@ -30,7 +30,7 @@ interface KanbanBoardProps {
 export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: KanbanBoardProps) {
   const { searchQuery, selectedTagIds, selectedYears } = useKanbanBoard();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, activeTenant } = useAuth();
 
   const {
     loadingBills: loading,
@@ -264,11 +264,11 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
       const movedBill = bills.find((b) => b.id === draggableId);
       if (!movedBill) return;
 
-      // Interns (users with role 'user') propose (no direct commit)
-      if (user?.role === 'user') {
+      // Workers propose changes (no direct commit)
+      if (activeTenant?.orgRole === 'worker') {
         await proposeStatusChange(movedBill, destinationColumnId, {
-          userId: user.id,
-          role: 'intern',
+          userId: user!.id,
+          role: 'worker',
         });
         toast({
           title: 'Change proposed',
@@ -304,10 +304,18 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
       }
 
       try {
-        const updatedBillFromServer = await updateBillStatus(
-          draggableId,
-          destinationColumnId
-        );
+        const response = await fetch(`/api/bills/${draggableId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'updateStatus',
+            newStatus: destinationColumnId,
+            tenantId: activeTenant?.tenantId,
+          }),
+        });
+        if (!response.ok) throw new Error('Failed to update bill status on server.');
+        const data = await response.json();
+        const updatedBillFromServer = data.bill;
         if (!updatedBillFromServer) {
           throw new Error('Failed to update bill status on server.');
         }
@@ -324,7 +332,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
         if (billToRevertIndex > -1) {
           const revertedBill = {
             ...revertedBills[billToRevertIndex],
-            current_status: sourceColumnId,
+            current_bill_status: sourceColumnId,
           };
           revertedBills.splice(billToRevertIndex, 1, revertedBill);
           setBills(revertedBills);
@@ -336,7 +344,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
         });
       }
     },
-    [bills, readOnly, user, proposeStatusChange, toast, filteredBills, searchQuery, setBills]
+    [bills, readOnly, user, activeTenant, proposeStatusChange, toast, filteredBills, searchQuery, setBills]
   );
 
   // ===========================================================
@@ -419,7 +427,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
                       enableDnd={false}
 
                       pendingTempBills={tempBillsByColumn[column.id as BillStatus] || []}
-                      canModerate={user?.role === 'supervisor' || user?.role === 'admin'}
+                      canModerate={activeTenant?.orgRole === 'admin'}
                       onApproveTemp={(billId) => acceptTempChange(billId)}
                       onRejectTemp={(billId) => rejectTempChange(billId)}
                       onUndoProposal={(billId) => undoProposal(billId)}
@@ -472,7 +480,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
                             enableDnd={true}
                             /* pending proposals */
                             pendingTempBills={tempBillsByColumn[column.id as BillStatus] || []}
-                            canModerate={user?.role === 'supervisor' || user?.role === 'admin'}
+                            canModerate={activeTenant?.orgRole === 'admin'}
                             onApproveTemp={(billId) => acceptTempChange(billId)}
                             onRejectTemp={(billId) => rejectTempChange(billId)}
                             onUndoProposal={(billId) => undoProposal(billId)}

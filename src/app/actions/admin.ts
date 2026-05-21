@@ -6,6 +6,7 @@ import { Errors } from '@/lib/errors';
 import { BillWithInterns, InternWithBills, PendingProposal, PendingUser, SupervisorWithInterns } from '@/types/admin';
 import { User } from '@/types/user';
 import { revalidatePath } from 'next/cache';
+import { validateMembership } from '@/services/data/tenants';
 
 interface ActionResult<T = void> {
   success: boolean;
@@ -14,17 +15,27 @@ interface ActionResult<T = void> {
 }
 
 // Helper to verify admin access
-async function verifyAdminAccess(): Promise<{ userId: string }> {
+async function verifyAdminAccess(tenantId?: string): Promise<{ userId: string; tenantId?: string }> {
   const session = await auth();
 
   if (!session) throw Errors.NO_SESSION_COOKIE;
 
+  if (tenantId) {
+    // Tenant-scoped: validate org admin via membership
+    const orgRole = await validateMembership(session.user.id, tenantId);
+    if (orgRole !== 'admin') {
+      throw Errors.UNAUTHORIZED;
+    }
+    return { userId: session.user.id, tenantId };
+  }
+
+  // Legacy fallback: check global role
   if (session.user.role !== 'admin') {
     throw Errors.UNAUTHORIZED;
   }
 
-  const userId = session.user.id;  
-  
+  const userId = session.user.id;
+
   return { userId };
 }
 
@@ -32,10 +43,16 @@ async function verifyAdminAccess(): Promise<{ userId: string }> {
 // FETCH ACTIONS
 // ============================================
 
-export async function getPendingRequests(): Promise<ActionResult<PendingUser[]>> {
+export async function getPendingRequests(tenantId?: string): Promise<ActionResult<PendingUser[]>> {
   try {
     console.log('🔍 [PENDING REQUESTS] Verifying admin access...');
-    const admin = await verifyAdminAccess();    
+    const admin = await verifyAdminAccess(tenantId);
+
+    if (tenantId) {
+      // Tenant-scoped: no pending requests concept (accounts are active by default)
+      console.log('📋 [PENDING REQUESTS] Tenant-scoped: returning empty pending requests');
+      return { success: true, data: [] };
+    }
 
     console.log('📋 [PENDING REQUESTS] Loading pending user account requests');
 
@@ -54,18 +71,35 @@ export async function getPendingRequests(): Promise<ActionResult<PendingUser[]>>
   }
 }
 
-export async function getAllAccounts(): Promise<ActionResult<PendingUser[]>> {
+export async function getAllAccounts(tenantId?: string): Promise<ActionResult<PendingUser[]>> {
   try {
     console.log('🔍 [ALL ACCOUNTS] Verifying admin access...')
-    await verifyAdminAccess();
+    await verifyAdminAccess(tenantId);
 
     console.log('📋 [ALL ACCOUNTS] Loading all active user accounts')
-    
-    const activeUsers: PendingUser[] = await db.selectFrom('user')
-      .selectAll()
-      .where('account_status', '=', 'active')
-      .orderBy('created_at', 'desc')
-      .execute();
+
+    let activeUsers: PendingUser[];
+    if (tenantId) {
+      // Tenant-scoped: get members of this tenant
+      activeUsers = await db.selectFrom('user')
+        .innerJoin('members', 'user.id', 'members.user_id')
+        .select([
+          'user.id', 'user.email', 'user.username', 'user.created_at',
+          'user.requested_admin', 'user.requested_supervisor', 'user.account_status',
+          'members.org_role as role'
+        ])
+        .where('members.tenant_id', '=', tenantId)
+        .where('user.account_status', '=', 'active')
+        .orderBy('user.created_at', 'desc')
+        .execute();
+    } else {
+      // Legacy: all active users
+      activeUsers = await db.selectFrom('user')
+        .selectAll()
+        .where('account_status', '=', 'active')
+        .orderBy('created_at', 'desc')
+        .execute();
+    }
 
     console.log(`✅ [ALL ACCOUNTS] Successfully loaded ${activeUsers.length} active accounts`);
 
@@ -77,14 +111,14 @@ export async function getAllAccounts(): Promise<ActionResult<PendingUser[]>> {
 }
 
 // NOTE will be available to all not just admin
-export async function getPendingProposals(): Promise<ActionResult<PendingProposal[]>> {
+export async function getPendingProposals(tenantId?: string): Promise<ActionResult<PendingProposal[]>> {
   try {
     console.log('🔍 [PENDING REQUESTS] Verifying admin access...');
 
-    await verifyAdminAccess();
+    await verifyAdminAccess(tenantId);
 
     console.log('📋 [PENDING PROPOSALS] Admin loading all pending proposals...');
-    const proposals = await db
+    let query = db
       .selectFrom('pending_proposals')
       .leftJoin('user as proposer', (join: any) =>
         join.onRef('pending_proposals.proposed_by_user_id', '=', 'proposer.id')
@@ -100,8 +134,13 @@ export async function getPendingProposals(): Promise<ActionResult<PendingProposa
         'bills.bill_number',
         'bills.bill_title',
       ])
-      .where('pending_proposals.approval_status', '=', 'pending')
-      .execute();
+      .where('pending_proposals.approval_status', '=', 'pending');
+
+    if (tenantId) {
+      query = query.where('pending_proposals.tenant_id', '=', tenantId);
+    }
+
+    const proposals = await query.execute();
 
     const formattedProposals = proposals.map((proposal) => ({
       ...proposal,
@@ -123,41 +162,78 @@ export async function getPendingProposals(): Promise<ActionResult<PendingProposa
   }
 }
 
-export async function getAllInterns(): Promise<ActionResult<InternWithBills[]>> {
+export async function getAllInterns(tenantId?: string): Promise<ActionResult<InternWithBills[]>> {
   try {
     console.log('🔍 [PENDING REQUESTS] Verifying admin access...');
 
-    await verifyAdminAccess();    
+    await verifyAdminAccess(tenantId);
 
-    // Get all interns (users with role 'user')
+    // Get all interns (users with role 'user') or workers in tenant
     console.log('📋 [ALL INTERNS] Loading all interns with bills...');
 
-    const rows = await db
-      .selectFrom('user')
-      .leftJoin('supervisor_users', 'user.id', 'supervisor_users.user_id')
-      .leftJoin('user as supervisor', 'supervisor_users.supervisor_id', 'supervisor.id')
-      .leftJoin('user_bills', 'user.id', 'user_bills.user_id')
-      .leftJoin('bills', 'user_bills.bill_id', 'bills.id')
-      .select([
-        'user.id',
-        'user.email',
-        'user.username',
-        'user.created_at',
-        'user.account_status',
-        'supervisor.id as supervisor_id',
-        'supervisor.email as supervisor_email',
-        'supervisor.username as supervisor_username',
-        'bills.id as bill_id',
-        'bills.bill_number',
-        'bills.bill_title',
-        'bills.bill_status',
-        'user_bills.adopted_at'
-      ])
-      .where('user.role', '=', 'user')
-      .where('user.account_status', '!=', 'denied') 
-      .where('user.account_status', '!=', 'unverified')
-      .orderBy('account_status', 'asc')       
-      .execute();
+    let rows;
+    if (tenantId) {
+      // Tenant-scoped: workers in the tenant
+      rows = await db
+        .selectFrom('user')
+        .innerJoin('members', 'user.id', 'members.user_id')
+        .leftJoin('supervisor_users', 'user.id', 'supervisor_users.user_id')
+        .leftJoin('user as supervisor', 'supervisor_users.supervisor_id', 'supervisor.id')
+        .leftJoin('user_bills', (join) =>
+          join.onRef('user.id', '=', 'user_bills.user_id')
+            .on('user_bills.tenant_id', '=', tenantId)
+        )
+        .leftJoin('bills', 'user_bills.bill_id', 'bills.id')
+        .select([
+          'user.id',
+          'user.email',
+          'user.username',
+          'user.created_at',
+          'user.account_status',
+          'supervisor.id as supervisor_id',
+          'supervisor.email as supervisor_email',
+          'supervisor.username as supervisor_username',
+          'bills.id as bill_id',
+          'bills.bill_number',
+          'bills.bill_title',
+          'bills.bill_status',
+          'user_bills.adopted_at'
+        ])
+        .where('members.tenant_id', '=', tenantId)
+        .where('members.org_role', '=', 'worker')
+        .where('user.account_status', '!=', 'denied')
+        .where('user.account_status', '!=', 'unverified')
+        .orderBy('user.account_status', 'asc')
+        .execute();
+    } else {
+      // Legacy: all interns by global role
+      rows = await db
+        .selectFrom('user')
+        .leftJoin('supervisor_users', 'user.id', 'supervisor_users.user_id')
+        .leftJoin('user as supervisor', 'supervisor_users.supervisor_id', 'supervisor.id')
+        .leftJoin('user_bills', 'user.id', 'user_bills.user_id')
+        .leftJoin('bills', 'user_bills.bill_id', 'bills.id')
+        .select([
+          'user.id',
+          'user.email',
+          'user.username',
+          'user.created_at',
+          'user.account_status',
+          'supervisor.id as supervisor_id',
+          'supervisor.email as supervisor_email',
+          'supervisor.username as supervisor_username',
+          'bills.id as bill_id',
+          'bills.bill_number',
+          'bills.bill_title',
+          'bills.bill_status',
+          'user_bills.adopted_at'
+        ])
+        .where('user.role', '=', 'user')
+        .where('user.account_status', '!=', 'denied')
+        .where('user.account_status', '!=', 'unverified')
+        .orderBy('account_status', 'asc')
+        .execute();
+    }
 
     // Aggregate rows into nested structure
     const internMap = new Map<string, InternWithBills>();
@@ -199,30 +275,54 @@ export async function getAllInterns(): Promise<ActionResult<InternWithBills[]>> 
   }
 }
 
-export async function getAllSupervisors(): Promise<ActionResult<SupervisorWithInterns[]>> {
+export async function getAllSupervisors(tenantId?: string): Promise<ActionResult<SupervisorWithInterns[]>> {
   try {
     console.log('🔍 [PENDING REQUESTS] Verifying admin access...');
 
-    await verifyAdminAccess();
+    await verifyAdminAccess(tenantId);
 
     console.log('📋 [ALL SUPERVISORS] Loading all supervisors with interns...');
 
-   const rows = await db
-    .selectFrom('user as supervisor')
-    .leftJoin('supervisor_users', 'supervisor.id', 'supervisor_users.supervisor_id')
-    .leftJoin('user as intern', 'supervisor_users.user_id', 'intern.id')
-    .select([
-      'supervisor.id as supervisor_id',
-      'supervisor.email as supervisor_email',
-      'supervisor.username as supervisor_username',
-      'intern.id as intern_id',
-      'intern.email as intern_email',
-      'intern.username as intern_username',
-      'supervisor_users.created_at as adopted_at'
-    ])
-    .where('supervisor.role', '=', 'supervisor')
-    .where('supervisor.account_status', '=', 'active')
-    .execute();
+    let rows;
+    if (tenantId) {
+      // Tenant-scoped: supervisors are admin members in the tenant who have intern assignments
+      // For backward compatibility, we still use supervisor_users table but filter by tenant membership
+      rows = await db
+        .selectFrom('user as supervisor')
+        .innerJoin('members', 'supervisor.id', 'members.user_id')
+        .leftJoin('supervisor_users', 'supervisor.id', 'supervisor_users.supervisor_id')
+        .leftJoin('user as intern', 'supervisor_users.user_id', 'intern.id')
+        .select([
+          'supervisor.id as supervisor_id',
+          'supervisor.email as supervisor_email',
+          'supervisor.username as supervisor_username',
+          'intern.id as intern_id',
+          'intern.email as intern_email',
+          'intern.username as intern_username',
+          'supervisor_users.created_at as adopted_at'
+        ])
+        .where('members.tenant_id', '=', tenantId)
+        .where('supervisor.account_status', '=', 'active')
+        .execute();
+    } else {
+      // Legacy: supervisors by global role
+      rows = await db
+        .selectFrom('user as supervisor')
+        .leftJoin('supervisor_users', 'supervisor.id', 'supervisor_users.supervisor_id')
+        .leftJoin('user as intern', 'supervisor_users.user_id', 'intern.id')
+        .select([
+          'supervisor.id as supervisor_id',
+          'supervisor.email as supervisor_email',
+          'supervisor.username as supervisor_username',
+          'intern.id as intern_id',
+          'intern.email as intern_email',
+          'intern.username as intern_username',
+          'supervisor_users.created_at as adopted_at'
+        ])
+        .where('supervisor.role', '=', 'supervisor')
+        .where('supervisor.account_status', '=', 'active')
+        .execute();
+    }
 
   // Aggregate into nested structure
   const supervisorMap = new Map<string, SupervisorWithInterns>();
@@ -258,28 +358,51 @@ export async function getAllSupervisors(): Promise<ActionResult<SupervisorWithIn
   }
 }
 
-export async function getAllInternBills(): Promise<ActionResult<BillWithInterns[]>> {
+export async function getAllInternBills(tenantId?: string): Promise<ActionResult<BillWithInterns[]>> {
   try {
-    await verifyAdminAccess();    
+    await verifyAdminAccess(tenantId);
 
     console.log('📋 [ALL INTERN BILLS] Loading all bills tracked by users...');
 
-      const rows = await db
-      .selectFrom('bills')
-      .innerJoin('user_bills', 'bills.id', 'user_bills.bill_id')
-      .leftJoin('user', 'user_bills.user_id', 'user.id')
-      .select([
-        'bills.id as bill_id',
-        'bills.bill_number',
-        'bills.bill_title',
-        'bills.bill_status',
-        'user.id as intern_id',
-        'user.email as intern_email',
-        'user.username as intern_username',
-        'user_bills.adopted_at'
-      ])
-      .orderBy('bills.bill_number', 'asc')
-      .execute();
+    let rows;
+    if (tenantId) {
+      // Tenant-scoped: filter user_bills by tenant_id
+      rows = await db
+        .selectFrom('bills')
+        .innerJoin('user_bills', 'bills.id', 'user_bills.bill_id')
+        .leftJoin('user', 'user_bills.user_id', 'user.id')
+        .select([
+          'bills.id as bill_id',
+          'bills.bill_number',
+          'bills.bill_title',
+          'bills.bill_status',
+          'user.id as intern_id',
+          'user.email as intern_email',
+          'user.username as intern_username',
+          'user_bills.adopted_at'
+        ])
+        .where('user_bills.tenant_id', '=', tenantId)
+        .orderBy('bills.bill_number', 'asc')
+        .execute();
+    } else {
+      // Legacy: all user_bills
+      rows = await db
+        .selectFrom('bills')
+        .innerJoin('user_bills', 'bills.id', 'user_bills.bill_id')
+        .leftJoin('user', 'user_bills.user_id', 'user.id')
+        .select([
+          'bills.id as bill_id',
+          'bills.bill_number',
+          'bills.bill_title',
+          'bills.bill_status',
+          'user.id as intern_id',
+          'user.email as intern_email',
+          'user.username as intern_username',
+          'user_bills.adopted_at'
+        ])
+        .orderBy('bills.bill_number', 'asc')
+        .execute();
+    }
 
     // Aggregate into nested structure
     const billMap = new Map<string, BillWithInterns>();
@@ -320,9 +443,9 @@ export async function getAllInternBills(): Promise<ActionResult<BillWithInterns[
 // MUTATION ACTIONS
 // ============================================
 
-export async function approveUser(userId: string, role: string): Promise<ActionResult> {
+export async function approveUser(userId: string, role: string, tenantId?: string): Promise<ActionResult> {
   try {
-    await verifyAdminAccess();
+    await verifyAdminAccess(tenantId);
 
     if (!userId) {
       return { success: false, error: 'User ID is required' };
@@ -338,9 +461,9 @@ export async function approveUser(userId: string, role: string): Promise<ActionR
       .where('account_status', '=', 'pending')
       .executeTakeFirst();
 
-    if (!user) {      
+    if (!user) {
       throw new Error('User not found or not pending');
-    }    
+    }
 
     await db.updateTable('user')
       .set({
@@ -362,9 +485,9 @@ export async function approveUser(userId: string, role: string): Promise<ActionR
   }
 }
 
-export async function denyUser(userId: string): Promise<ActionResult> {
+export async function denyUser(userId: string, tenantId?: string): Promise<ActionResult> {
   try {
-    await verifyAdminAccess();
+    await verifyAdminAccess(tenantId);
 
     if (!userId) {
       return { success: false, error: 'User ID is required' };
@@ -389,13 +512,41 @@ export async function denyUser(userId: string): Promise<ActionResult> {
 }
 
 // Get all active users for role management
-export async function getAllActiveUsers(includeArchived: boolean = false): Promise<ActionResult<PendingUser[]>> {
+export async function getAllActiveUsers(includeArchived: boolean = false, tenantId?: string): Promise<ActionResult<PendingUser[]>> {
   try {
     console.log('🔍 [ALL USERS] Verifying admin access...');
-    const admin = await verifyAdminAccess();
+    const admin = await verifyAdminAccess(tenantId);
 
     console.log(`📋 [ALL USERS] Loading ${includeArchived ? 'all' : 'active'} users`);
 
+    if (tenantId) {
+      // Tenant-scoped: get members of this tenant
+      let query = db.selectFrom('user')
+        .innerJoin('members', 'user.id', 'members.user_id')
+        .select([
+          'user.id', 'user.email', 'user.username', 'user.created_at',
+          'user.requested_admin', 'user.requested_supervisor', 'user.account_status',
+          'members.org_role as role'
+        ])
+        .where('members.tenant_id', '=', tenantId)
+        .where('user.id', '!=', admin.userId);
+
+      if (includeArchived) {
+        query = query.where('user.account_status', 'in', ['active', 'archived']);
+      } else {
+        query = query.where('user.account_status', '=', 'active');
+      }
+
+      const users: PendingUser[] = await query
+        .orderBy('user.account_status', 'asc')
+        .orderBy('user.created_at', 'desc')
+        .execute();
+
+      console.log(`✅ [ALL USERS] Successfully loaded ${users.length} users`);
+      return { success: true, data: users };
+    }
+
+    // Legacy: all users
     let query = db.selectFrom('user')
       .select(['id', 'email', 'username', 'created_at', 'requested_admin', 'requested_supervisor', 'account_status', 'role'])
       .where('id', '!=', admin.userId); // Exclude current admin from the list
@@ -423,17 +574,39 @@ export async function getAllActiveUsers(includeArchived: boolean = false): Promi
 }
 
 // Update user role (admin only)
-export async function updateUserRole(userId: string, newRole: 'user' | 'supervisor' | 'admin'): Promise<ActionResult> {
+export async function updateUserRole(userId: string, newRole: string, tenantId?: string): Promise<ActionResult> {
   try {
     console.log(`🔍 [UPDATE ROLE] Verifying admin access...`);
-    const admin = await verifyAdminAccess();
+    const admin = await verifyAdminAccess(tenantId);
 
     // Prevent admin from changing their own role
     if (userId === admin.userId) {
       return { success: false, error: 'Cannot change your own role' };
     }
 
-    // Validate role
+    if (tenantId) {
+      // Tenant-scoped: validate org roles
+      const validOrgRoles = ['admin', 'worker'];
+      if (!validOrgRoles.includes(newRole)) {
+        return { success: false, error: 'Invalid role specified' };
+      }
+
+      console.log(`📋 [UPDATE ROLE] Updating member ${userId} to org_role: ${newRole} in tenant ${tenantId}`);
+
+      // Update the member's org_role
+      await db.updateTable('members')
+        .set({ org_role: newRole as 'admin' | 'worker' })
+        .where('user_id', '=', userId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      revalidatePath('/admin');
+
+      console.log(`✅ [UPDATE ROLE] Successfully updated member ${userId} to org_role ${newRole}`);
+      return { success: true };
+    }
+
+    // Legacy: validate global roles
     const validRoles = ['user', 'supervisor', 'admin'];
     if (!validRoles.includes(newRole)) {
       return { success: false, error: 'Invalid role specified' };
@@ -454,7 +627,7 @@ export async function updateUserRole(userId: string, newRole: 'user' | 'supervis
 
     // Update the user's role
     await db.updateTable('user')
-      .set({ role: newRole })
+      .set({ role: newRole as 'user' | 'supervisor' | 'admin' })
       .where('id', '=', userId)
       .where('account_status', '=', 'active')
       .executeTakeFirst();
@@ -470,10 +643,10 @@ export async function updateUserRole(userId: string, newRole: 'user' | 'supervis
 }
 
 // Archive user account (admin only)
-export async function archiveAccount(userId: string): Promise<ActionResult> {
+export async function archiveAccount(userId: string, tenantId?: string): Promise<ActionResult> {
   try {
     console.log(`🔍 [ARCHIVE ACCOUNT] Verifying admin access...`);
-    const admin = await verifyAdminAccess();
+    const admin = await verifyAdminAccess(tenantId);
 
     // Prevent admin from archiving their own account
     if (userId === admin.userId) {
@@ -513,11 +686,12 @@ export async function archiveAccount(userId: string): Promise<ActionResult> {
 // Assign multiple bills to multiple users (admin only)
 export async function assignMultipleBillsToUsers(
   billIds: string[],
-  userIds: string[]
+  userIds: string[],
+  tenantId?: string
 ): Promise<ActionResult<{ assignmentsCreated: number }>> {
   try {
     console.log(`🔍 [ASSIGN MULTIPLE BILLS] Verifying admin access...`);
-    await verifyAdminAccess();
+    await verifyAdminAccess(tenantId);
 
     // Validate inputs
     if (!billIds || billIds.length === 0) {
@@ -555,12 +729,17 @@ export async function assignMultipleBillsToUsers(
     }
 
     // Get existing assignments to avoid duplicates
-    const existingAssignments = await db
+    let existingQuery = db
       .selectFrom('user_bills')
       .select(['user_id', 'bill_id'])
       .where('bill_id', 'in', billIds)
-      .where('user_id', 'in', userIds)
-      .execute();
+      .where('user_id', 'in', userIds);
+
+    if (tenantId) {
+      existingQuery = existingQuery.where('tenant_id', '=', tenantId);
+    }
+
+    const existingAssignments = await existingQuery.execute();
 
     const existingSet = new Set(
       existingAssignments.map(a => `${a.user_id}-${a.bill_id}`)
@@ -575,6 +754,7 @@ export async function assignMultipleBillsToUsers(
           newAssignments.push({
             user_id: userId,
             bill_id: billId,
+            ...(tenantId ? { tenant_id: tenantId } : {}),
           });
         }
       }
@@ -602,10 +782,11 @@ export async function assignMultipleBillsToUsers(
 
 export async function assignSupervisorToIntern(
   supervisorId: string,
-  internIds: string[]
+  internIds: string[],
+  tenantId?: string
 ): Promise<ActionResult> {
   try {
-    await verifyAdminAccess();
+    await verifyAdminAccess(tenantId);
 
     if (!supervisorId) {
       return { success: false, error: 'Supervisor ID is required' };
@@ -671,9 +852,9 @@ export async function assignSupervisorToIntern(
   }
 }
 
-export async function unassignInternFromSupervisor(internId: string): Promise<ActionResult> {
+export async function unassignInternFromSupervisor(internId: string, tenantId?: string): Promise<ActionResult> {
   try {
-    await verifyAdminAccess();
+    await verifyAdminAccess(tenantId);
 
     if (!internId) {
       return { success: false, error: 'Intern ID is required' };
@@ -711,10 +892,11 @@ export async function unassignInternFromSupervisor(internId: string): Promise<Ac
 
 export async function removeBillFromIntern(
   internId: string,
-  billId: string
+  billId: string,
+  tenantId?: string
 ): Promise<ActionResult> {
   try {
-    await verifyAdminAccess();
+    await verifyAdminAccess(tenantId);
 
     if (!internId) {
       return { success: false, error: 'Intern ID is required' };
@@ -751,23 +933,33 @@ export async function removeBillFromIntern(
     }
 
     // Verify the relationship exists
-    const relationship = await db
+    let relationshipQuery = db
       .selectFrom('user_bills')
       .select(['user_id', 'bill_id'])
       .where('user_id', '=', internId)
-      .where('bill_id', '=', billId)
-      .executeTakeFirst();
+      .where('bill_id', '=', billId);
+
+    if (tenantId) {
+      relationshipQuery = relationshipQuery.where('tenant_id', '=', tenantId);
+    }
+
+    const relationship = await relationshipQuery.executeTakeFirst();
 
     if (!relationship) {
       return { success: false, error: 'Bill is not tracked by this intern' };
     }
 
     // Remove the bill from the intern's tracking list
-    await db
+    let deleteQuery = db
       .deleteFrom('user_bills')
       .where('user_id', '=', internId)
-      .where('bill_id', '=', billId)
-      .execute();
+      .where('bill_id', '=', billId);
+
+    if (tenantId) {
+      deleteQuery = deleteQuery.where('tenant_id', '=', tenantId);
+    }
+
+    await deleteQuery.execute();
 
     console.log(`✅ [REMOVE BILL] Successfully removed bill ${billId} from intern ${internId}`);
 

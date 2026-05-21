@@ -19,7 +19,7 @@ interface ProposalInput {
 
 interface UserContext {
   userId: string;
-  role: 'intern' | 'supervisor' | 'admin';
+  role: 'intern' | 'supervisor' | 'admin' | 'worker';
   username?: string;
   email?: string;
 }

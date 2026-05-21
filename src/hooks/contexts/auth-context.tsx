@@ -1,125 +1,176 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { User } from '@/types/user';
+import type { Membership, ActiveTenant } from '@/types/tenant';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (authString: string, password: string) => Promise<{ success: boolean, error?: string }>;
+
+  // Tenant state
+  activeTenant: ActiveTenant | null;
+  memberships: Membership[];
+  isPublicUser: boolean;
+  setActiveTenant: (tenantId: string) => void;
+
+  // Auth actions
+  login: (authString: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  register: (email: string, username: string, password: string) => Promise<{ success: boolean, error?: string }>;
+  register: (email: string, username: string, password: string, orgName?: string, inviteToken?: string) => Promise<{ success: boolean; error?: string }>;
   checkSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const ACTIVE_TENANT_KEY = 'activeTenantId';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [activeTenant, setActiveTenantState] = useState<ActiveTenant | null>(null);
 
-  // Check session on mount
-  useEffect(() => {
-    checkSession();
+  const isPublicUser = user !== null && memberships.length === 0;
+
+  const selectTenant = useCallback((tenantId: string, membershipList: Membership[]) => {
+    const membership = membershipList.find(m => m.tenantId === tenantId);
+    if (membership) {
+      setActiveTenantState({
+        tenantId: membership.tenantId,
+        slug: membership.slug,
+        name: membership.name,
+        orgRole: membership.orgRole,
+      });
+      localStorage.setItem(ACTIVE_TENANT_KEY, tenantId);
+    }
   }, []);
 
-  const checkSession = async () => {
+  const setActiveTenant = useCallback((tenantId: string) => {
+    selectTenant(tenantId, memberships);
+  }, [memberships, selectTenant]);
+
+  const initializeTenant = useCallback((membershipList: Membership[]) => {
+    if (membershipList.length === 0) {
+      setActiveTenantState(null);
+      localStorage.removeItem(ACTIVE_TENANT_KEY);
+      return;
+    }
+
+    // Try to restore from localStorage
+    const storedId = localStorage.getItem(ACTIVE_TENANT_KEY);
+    if (storedId && membershipList.some(m => m.tenantId === storedId)) {
+      selectTenant(storedId, membershipList);
+    } else {
+      // Auto-select first membership
+      selectTenant(membershipList[0].tenantId, membershipList);
+    }
+  }, [selectTenant]);
+
+  const checkSession = useCallback(async () => {
     try {
       const response = await fetch('/api/auth/session');
       if (response.ok) {
         const data = await response.json();
         if (data.user) {
           setUser(data.user);
+          const membershipList: Membership[] = data.memberships ?? [];
+          setMemberships(membershipList);
+          initializeTenant(membershipList);
         } else {
           setUser(null);
+          setMemberships([]);
+          setActiveTenantState(null);
         }
       } else {
         setUser(null);
+        setMemberships([]);
+        setActiveTenantState(null);
       }
     } catch (error) {
       console.error('Session check error:', error);
       setUser(null);
+      setMemberships([]);
+      setActiveTenantState(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [initializeTenant]);
 
-  /**
-   * Logs in a user with the given credentials.
-   * @param authString - The email/username of the user.
-   * @param password - The password of the user.
-   * @returns An object containing the success status and an optional error message.
-   */
-  const login = async (authString: string, password: string): Promise<{ success: boolean, error?: string }> => {
+  useEffect(() => {
+    checkSession();
+  }, [checkSession]);
+
+  const login = async (authString: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ authString, password }),
       });
 
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
-        return {
-          success: true
-        };
+        const membershipList: Membership[] = data.memberships ?? [];
+        setMemberships(membershipList);
+        initializeTenant(membershipList);
+        return { success: true };
       } else {
         const errorData = await response.json();
-        return {
-          success: false,
-          error: errorData.error
-        };
+        const errorMsg = typeof errorData.error === 'string'
+          ? errorData.error
+          : 'Login failed. Please check your credentials.';
+        return { success: false, error: errorMsg };
       }
     } catch (error) {
-      return {
-        success: false,
-        error: 'Login error'
-      };
+      return { success: false, error: 'Login error' };
     }
   };
 
-  /**
-   * Logs out the current user by calling the logout API and clearing the user state.
-   */
   const logout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
       setUser(null);
+      setMemberships([]);
+      setActiveTenantState(null);
+      localStorage.removeItem(ACTIVE_TENANT_KEY);
       window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
 
-  /**
-   * Registers a new user.
-   * @param email - The email of the user.
-   * @param username - The username of the user.
-   * @param password - The password of the user.
-   * @returns An object indicating whether the registration was successful and an optional error message.
-   */
-  const register = async (email: string, username: string, password: string): Promise<{ success: boolean, error?: string }> => {
+  const register = async (email: string, username: string, password: string, orgName?: string, inviteToken?: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, username, password }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          username,
+          password,
+          orgName: orgName || undefined,
+          inviteToken: inviteToken || undefined,
+        }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Registration successful:', data);
-        // setUser(data.user);
+        // Auto-login: set user + memberships from register response
+        if (data.user) {
+          setUser(data.user);
+          const membershipList: Membership[] = data.memberships ?? [];
+          setMemberships(membershipList);
+          initializeTenant(membershipList);
+        }
         return { success: true };
       } else {
         const errorData = await response.json();
-        console.error('Registration failed:', errorData.error);
-        return { success: false, error: errorData.error };
+        const errorMsg = typeof errorData.error === 'string'
+          ? errorData.error
+          : 'Registration failed. Please try again.';
+        return { success: false, error: errorMsg };
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -128,7 +179,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register, checkSession }}>
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      activeTenant,
+      memberships,
+      isPublicUser,
+      setActiveTenant,
+      login,
+      logout,
+      register,
+      checkSession,
+    }}>
       {children}
     </AuthContext.Provider>
   );
@@ -141,4 +203,3 @@ export function useAuth() {
   }
   return context;
 }
-

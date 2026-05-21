@@ -16,15 +16,22 @@ import { getBatchBillTags } from '@/services/data/tags';
  * Used for public view
  * @param showArchived Whether to include archived bills (default: false)
  */
-export async function getAllTrackedBills(showArchived: boolean = false): Promise<Bill[]> {
-    console.log('[BILLS FETCH (PUBLIC)] Fetching all food+ tracked bills for public view...');
+export async function getAllTrackedBills(showArchived: boolean = false, tenantId?: string, includeTrackedBy: boolean = false): Promise<Bill[]> {
+    console.log(`[BILLS FETCH (PUBLIC)] Fetching all food+ tracked bills, tenant: ${tenantId?.slice(0, 6) ?? 'public'}...`);
     try {
         // Fetch all bills that have been adopted at least once
         let query = db
           .selectFrom('bills as b')
           .innerJoin('user_bills as ub', 'b.id', 'ub.bill_id') // Only bills that have been adopted
-          .selectAll('b')
-          .where('food_related', '=', true); // Only food-related bills
+          .selectAll('b');
+
+        if (tenantId) {
+          // Tenant-scoped: show all bills tracked by anyone in this tenant
+          query = query.where('ub.tenant_id', '=', tenantId);
+        } else {
+          // Public: only food-related bills
+          query = query.where('food_related', '=', true);
+        }
 
         // Conditionally exclude archived bills
         if (!showArchived) {
@@ -43,7 +50,7 @@ export async function getAllTrackedBills(showArchived: boolean = false): Promise
         const billIds = bills.map(bill => bill.id);
 
         console.log(`[BILLS FETCH (PUBLIC)] Found ${billIds.length} food-related adopted bills, fetching status updates & tags...`);
-        const additionalData = await getAdditionalBillData(billIds);
+        const additionalData = await getAdditionalBillData(billIds, includeTrackedBy, tenantId);
 
         const billObjects = await mapBillDataToBillClient({
           bills,
@@ -63,7 +70,7 @@ export async function getAllTrackedBills(showArchived: boolean = false): Promise
  * Used for logged in Food+ members who want to see all bills
  * @param showArchived Whether to include archived bills (default: false)
  */
-export async function getAllFoodRelatedBills(showArchived: boolean = false, includeTrackedBy: boolean = false): Promise<Bill[]> {
+export async function getAllFoodRelatedBills(showArchived: boolean = false, includeTrackedBy: boolean = false, tenantId?: string): Promise<Bill[]> {
     console.log('[BILLS FETCH (ALL)] Fetching all food-related bills for member view...');
     try {
         let query = db
@@ -88,7 +95,7 @@ export async function getAllFoodRelatedBills(showArchived: boolean = false, incl
         const billIds = bills.map(bill => bill.id);
 
         console.log(`[BILLS FETCH (ALL)] Found ${billIds.length} food-related adopted bills, fetching status updates & tags...`);
-        const additionalData = await getAdditionalBillData(billIds, includeTrackedBy);
+        const additionalData = await getAdditionalBillData(billIds, includeTrackedBy, tenantId);
 
         const billObjects = await mapBillDataToBillClient({
           bills,
@@ -110,7 +117,7 @@ export async function getAllFoodRelatedBills(showArchived: boolean = false, incl
  * @param userId User ID to get tracked bills for
  * @param showArchived Whether to include archived bills (default: false)
  */
-export async function getUserTrackedBills(userId: string, showArchived: boolean = false, includeTrackedBy: boolean = false): Promise<Bill[]> {
+export async function getUserTrackedBills(userId: string, showArchived: boolean = false, includeTrackedBy: boolean = false, tenantId?: string): Promise<Bill[]> {
   console.log(`[BILLS FETCH (USER)] Fetching bills tracked by user: ${userId.slice(0, 6)}...`);
   try {
     // Check user role
@@ -131,6 +138,10 @@ export async function getUserTrackedBills(userId: string, showArchived: boolean 
       .innerJoin('user_bills as ub', 'b.id', 'ub.bill_id') // Only bills that have been adopted (bills that have a bill id in the user_bills table)
       .selectAll('b')
       .where('ub.user_id', '=', userId);
+
+    if (tenantId) {
+      userBillsQuery = userBillsQuery.where('ub.tenant_id', '=', tenantId);
+    }
 
     // Conditionally exclude archived bills
     if (!showArchived) {
@@ -165,6 +176,10 @@ export async function getUserTrackedBills(userId: string, showArchived: boolean 
           .innerJoin('user_bills as ub', 'b.id', 'ub.bill_id')
           .where('ub.user_id', 'in', internIds);
 
+        if (tenantId) {
+          internBillsQuery = internBillsQuery.where('ub.tenant_id', '=', tenantId);
+        }
+
         // Conditionally exclude archived bills
         if (!showArchived) {
           internBillsQuery = internBillsQuery.where('b.archived', '=', false);
@@ -189,7 +204,7 @@ export async function getUserTrackedBills(userId: string, showArchived: boolean 
 
     const billIds = bills.map(bill => bill.id);
     console.log(`[BILLS FETCH (USER)] Fetching status updates & tags for ${billIds.length} bills...`);
-    const { statusUpdates, tags, trackedBy, trackedCount } = await getAdditionalBillData(billIds, includeTrackedBy);
+    const { statusUpdates, tags, trackedBy, trackedCount, orgBillStatuses } = await getAdditionalBillData(billIds, includeTrackedBy, tenantId);
 
     const billObjects = await mapBillDataToBillClient({
       bills,
@@ -197,7 +212,8 @@ export async function getUserTrackedBills(userId: string, showArchived: boolean 
         statusUpdates,
         tags,
         trackedBy,
-        trackedCount
+        trackedCount,
+        orgBillStatuses,
       }
     });
 
@@ -212,18 +228,32 @@ export async function getUserTrackedBills(userId: string, showArchived: boolean 
 /**
  * Helper to fetch status updates and tags for fetched bills
  */
-async function getAdditionalBillData(billIds: string[], includeTrackedBy: boolean = false) {
+async function getAdditionalBillData(billIds: string[], includeTrackedBy: boolean = false, tenantId?: string) {
   // Batch fetch status updates for these bills
   const statusUpdates = await getBatchStatusUpdates(billIds);
 
   // Batch fetch tags for these bills
-  const tags = await getBatchBillTags(billIds);
+  const tags = await getBatchBillTags(billIds, tenantId);
 
-  const trackedBy = includeTrackedBy ? await getTrackedByForBills(billIds) : {};
+  const trackedBy = includeTrackedBy ? await getTrackedByForBills(billIds, tenantId) : {};
 
-  const trackedCount = await getTrackedCountForBills(billIds);
+  const trackedCount = await getTrackedCountForBills(billIds, tenantId);
 
-  return { statusUpdates, tags, trackedBy, trackedCount };
+  // Batch fetch org-specific statuses if tenant scoped
+  const orgBillStatuses: Record<string, string> = {};
+  if (tenantId && billIds.length > 0) {
+    const orgRows = await db
+      .selectFrom('org_bills')
+      .select(['bill_id', 'bill_status'])
+      .where('tenant_id', '=', tenantId)
+      .where('bill_id', 'in', billIds)
+      .execute();
+    for (const row of orgRows) {
+      orgBillStatuses[row.bill_id] = row.bill_status;
+    }
+  }
+
+  return { statusUpdates, tags, trackedBy, trackedCount, orgBillStatuses };
 }
 
 /**
@@ -318,10 +348,10 @@ async function getStatusUpdatesForBill(billId: string): Promise<StatusUpdate[]> 
     return updates;
 }
 
-async function getTrackedByForBills(billIds: string[]): Promise<Record<string, BillTracker[]>> {
+async function getTrackedByForBills(billIds: string[], tenantId?: string): Promise<Record<string, BillTracker[]>> {
   if (billIds.length === 0) return {};
 
-  const rows = await db
+  let query = db
     .selectFrom('user_bills as ub')
     .innerJoin('user as u', 'ub.user_id', 'u.id')
     .select([
@@ -331,7 +361,13 @@ async function getTrackedByForBills(billIds: string[]): Promise<Record<string, B
       'u.username as user_username',
       'ub.adopted_at as adopted_at',
     ])
-    .where('ub.bill_id', 'in', billIds)
+    .where('ub.bill_id', 'in', billIds);
+
+  if (tenantId) {
+    query = query.where('ub.tenant_id', '=', tenantId);
+  }
+
+  const rows = await query
     .orderBy('ub.adopted_at', 'desc')
     .execute();
 
@@ -353,16 +389,22 @@ async function getTrackedByForBills(billIds: string[]): Promise<Record<string, B
   return trackedBy;
 }
 
-async function getTrackedCountForBills(billIds: string[]): Promise<Record<string, number>> {
+async function getTrackedCountForBills(billIds: string[], tenantId?: string): Promise<Record<string, number>> {
   if (billIds.length === 0) return {};
 
-  const rows = await db
+  let query = db
     .selectFrom('user_bills as ub')
     .select([
       'ub.bill_id as bill_id',
       db.fn.countAll().as('tracked_count'),
     ])
-    .where('ub.bill_id', 'in', billIds)
+    .where('ub.bill_id', 'in', billIds);
+
+  if (tenantId) {
+    query = query.where('ub.tenant_id', '=', tenantId);
+  }
+
+  const rows = await query
     .groupBy('ub.bill_id')
     .execute();
 
@@ -387,8 +429,8 @@ async function getTrackedCountForBills(billIds: string[]): Promise<Record<string
  * @param newStatus The new status (Kanban column ID) for the bill.
  * @returns The updated Bill object.
  */
-export async function updateBillStatus(billId: string, newStatus: string): Promise<Bill> {
-    console.log(`[UPDATE STATUS] Updating bill ${billId.slice(0, 6)} to new status: ${newStatus}`);
+export async function updateBillStatus(billId: string, newStatus: string, tenantId?: string): Promise<Bill> {
+    console.log(`[UPDATE STATUS] Updating bill ${billId.slice(0, 6)} to new status: ${newStatus}, tenant: ${tenantId?.slice(0, 6) ?? 'public'}`);
 
     // Validate if newStatus is a valid column ID
     if (!KANBAN_COLUMNS.some(col => col.id === newStatus)) {
@@ -397,24 +439,45 @@ export async function updateBillStatus(billId: string, newStatus: string): Promi
     }
 
     try {
-        const updatedBill = await db.updateTable('bills')
-        .set({
-            bill_status: newStatus as BillStatus,
-            updated_at: new Date()
-        })
-        .where('id', '=', billId)
-        .returningAll()
-        .executeTakeFirst();
+        if (tenantId) {
+            // Write to org_bills for org-scoped status
+            await db
+                .insertInto('org_bills')
+                .values({
+                    tenant_id: tenantId,
+                    bill_id: billId,
+                    bill_status: newStatus as BillStatus,
+                    updated_at: new Date(),
+                })
+                .onConflict(oc =>
+                    oc.columns(['tenant_id', 'bill_id']).doUpdateSet({
+                        bill_status: newStatus as BillStatus,
+                        updated_at: new Date(),
+                    })
+                )
+                .execute();
 
-        if (updatedBill) {
-            console.log(`[UPDATE STATUS] Successfully updated bill ${billId.slice(0, 6)} to status ${newStatus} in database`);
-            const bill = await convertDataToBillShape(updatedBill);
-
-            return bill;
+            // Recompute derived public status
+            const { recomputeDerivedStatus } = await import('@/lib/derived-status');
+            await recomputeDerivedStatus(billId);
         } else {
-            console.error(`Bill with ID ${billId} not found in database.`);
+            // Public/legacy: write directly to bills table
+            await db.updateTable('bills')
+                .set({ bill_status: newStatus as BillStatus, updated_at: new Date() })
+                .where('id', '=', billId)
+                .execute();
+        }
+
+        const updatedBill = await db.selectFrom('bills')
+            .selectAll()
+            .where('id', '=', billId)
+            .executeTakeFirst();
+
+        if (!updatedBill) {
             throw new Error('Bill not found');
         }
+
+        return await convertDataToBillShape(updatedBill);
     } catch (error) {
         console.error('Database update failed:', error);
         throw new Error('Failed to update bill status');
@@ -662,7 +725,7 @@ export async function findExistingBillByURL(billURl: string): Promise<BillDetail
  * @param billUrl The URL of the bill to track.
  * @returns The tracked Bill object or null if tracking failed.
  */
-export async function trackBill(userId: string, billUrl: string): Promise<Bill> {
+export async function trackBill(userId: string, billUrl: string, tenantId?: string): Promise<Bill> {
   try {
 
     // Find bill by URL
@@ -703,15 +766,39 @@ export async function trackBill(userId: string, billUrl: string): Promise<Bill> 
     await db.insertInto('user_bills').values({
       user_id: userId,
       bill_id: billId,
-      adopted_at: new Date()
+      adopted_at: new Date(),
+      tenant_id: tenantId ?? null,
     }).executeTakeFirst();
+
+    // Create org_bills row if this is the first adoption in this org
+    if (tenantId) {
+      const existingOrgBill = await db
+        .selectFrom('org_bills')
+        .select('bill_id')
+        .where('tenant_id', '=', tenantId)
+        .where('bill_id', '=', billId)
+        .executeTakeFirst();
+
+      if (!existingOrgBill) {
+        const billData = await db.selectFrom('bills')
+          .select('ai_status')
+          .where('id', '=', billId)
+          .executeTakeFirst();
+
+        await db.insertInto('org_bills').values({
+          tenant_id: tenantId,
+          bill_id: billId,
+          bill_status: (billData?.ai_status as BillStatus) ?? 'unassigned',
+        }).execute();
+      }
+    }
 
     // Return the bill object
     const trackedBillResult = await db.selectFrom('bills')
       .selectAll()
       .where('id', '=', billId)
       .executeTakeFirstOrThrow();
-    
+
     const trackedBill = await convertDataToBillShape(trackedBillResult);
 
     console.log(`Successfully tracked bill ${billId} for user ${userId}`);
@@ -730,13 +817,18 @@ export async function trackBill(userId: string, billUrl: string): Promise<Bill> 
  * @param billId The ID of the bill to untrack
  * @returns A boolean indicating whether the untracking was successful
  */
-export async function untrackBill(userId: string, billId: string): Promise<boolean> {
+export async function untrackBill(userId: string, billId: string, tenantId?: string): Promise<boolean> {
   try {
-    console.log('untrackBill called with:', { userId, billId });
-    await db.deleteFrom('user_bills')
+    console.log('untrackBill called with:', { userId, billId, tenantId });
+    let query = db.deleteFrom('user_bills')
       .where('user_id', '=', userId)
-      .where('bill_id', '=', billId)
-      .executeTakeFirstOrThrow();
+      .where('bill_id', '=', billId);
+
+    if (tenantId) {
+      query = query.where('tenant_id', '=', tenantId);
+    }
+
+    await query.executeTakeFirstOrThrow();
 
     console.log(`Successfully untracked bill ${billId} for user ${userId}`);
     return true;
@@ -761,7 +853,7 @@ export async function untrackBill(userId: string, billId: string): Promise<boole
  * @param billUrl The URL of the bill to assign
  * @returns The assigned Bill object
  */
-async function validateAssignmentScope(assignerId: string, targetUserId: string) {
+async function validateAssignmentScope(assignerId: string, targetUserId: string, tenantId?: string) {
   const assigner = await db
     .selectFrom('user')
     .select(['id', 'role'])
@@ -772,7 +864,22 @@ async function validateAssignmentScope(assignerId: string, targetUserId: string)
     throw new Error('Assigner not found');
   }
 
-  if (assigner.role !== 'admin' && assigner.role !== 'supervisor') {
+  // Check org-level role if tenantId is provided
+  let orgRole: string | null = null;
+  if (tenantId) {
+    const membership = await db
+      .selectFrom('members')
+      .select('org_role')
+      .where('user_id', '=', assignerId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    orgRole = membership?.org_role ?? null;
+  }
+
+  const isAdmin = orgRole === 'admin' || assigner.role === 'admin';
+  const isSupervisor = assigner.role === 'supervisor';
+
+  if (!isAdmin && !isSupervisor) {
     throw new Error('Only admins and supervisors can assign bills');
   }
 
@@ -786,7 +893,7 @@ async function validateAssignmentScope(assignerId: string, targetUserId: string)
     throw new Error('Target user not found');
   }
 
-  if (assigner.role === 'supervisor') {
+  if (isSupervisor && !isAdmin) {
     const adoptionRelation = await db
       .selectFrom('supervisor_users')
       .selectAll()
@@ -802,9 +909,9 @@ async function validateAssignmentScope(assignerId: string, targetUserId: string)
   return { assigner, targetUser };
 }
 
-export async function assignBill(assignerId: string, targetUserId: string, bill: Bill) {
+export async function assignBill(assignerId: string, targetUserId: string, bill: Bill, tenantId?: string) {
   try {
-    await validateAssignmentScope(assignerId, targetUserId);
+    await validateAssignmentScope(assignerId, targetUserId, tenantId);
 
     // Check if already tracked by target user
     const alreadyTracked = await db
@@ -823,13 +930,37 @@ export async function assignBill(assignerId: string, targetUserId: string, bill:
     const relation = await db.insertInto('user_bills').values({
       user_id: targetUserId,
       bill_id: bill.id,
-      adopted_at: new Date()
+      adopted_at: new Date(),
+      tenant_id: tenantId ?? null,
     })
     .returningAll()
     .executeTakeFirst();
 
     if (!relation) {
       throw new Error('Failed to assign bill to user');
+    }
+
+    // Create org_bills row if this is the first adoption in this org
+    if (tenantId) {
+      const existingOrgBill = await db
+        .selectFrom('org_bills')
+        .select('bill_id')
+        .where('tenant_id', '=', tenantId)
+        .where('bill_id', '=', bill.id)
+        .executeTakeFirst();
+
+      if (!existingOrgBill) {
+        const billData = await db.selectFrom('bills')
+          .select('ai_status')
+          .where('id', '=', bill.id)
+          .executeTakeFirst();
+
+        await db.insertInto('org_bills').values({
+          tenant_id: tenantId,
+          bill_id: bill.id,
+          bill_status: (billData?.ai_status as BillStatus) ?? 'unassigned',
+        }).execute();
+      }
     }
     
     // Get user info for tracker object
@@ -856,9 +987,9 @@ export async function assignBill(assignerId: string, targetUserId: string, bill:
   }
 }
 
-export async function unassignBillFromUser(assignerId: string, targetUserId: string, billId: string) {
+export async function unassignBillFromUser(assignerId: string, targetUserId: string, billId: string, tenantId?: string) {
   try {
-    await validateAssignmentScope(assignerId, targetUserId);
+    await validateAssignmentScope(assignerId, targetUserId, tenantId);
 
     const deleted = await db
       .deleteFrom('user_bills')
@@ -881,9 +1012,9 @@ export async function unassignBillFromUser(assignerId: string, targetUserId: str
  * @param userId The ID of the user requesting assignable users
  * @returns Array of users that can be assigned bills
  */
-export async function getAssignableUsers(userId: string): Promise<Selectable<User>[]> {
+export async function getAssignableUsers(userId: string, tenantId?: string): Promise<Selectable<User>[]> {
   try {
-    // Get user role
+    // Get user info
     const user = await db
       .selectFrom('user')
       .select(['id', 'role'])
@@ -894,17 +1025,47 @@ export async function getAssignableUsers(userId: string): Promise<Selectable<Use
       throw new Error('User not found');
     }
 
-    if (user.role === 'admin') {
-      // Admins can assign to everyone
-      const users = await db
+    // Check org-level role if tenantId is provided
+    let orgRole: string | null = null;
+    if (tenantId) {
+      const membership = await db
+        .selectFrom('members')
+        .select('org_role')
+        .where('user_id', '=', userId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      orgRole = membership?.org_role ?? null;
+    }
+
+    const isAdmin = orgRole === 'admin' || user.role === 'admin';
+    const isSupervisor = user.role === 'supervisor';
+
+    if (isAdmin) {
+      if (tenantId) {
+        // Tenant-scoped: join members to get org role
+        const rows = await db
+          .selectFrom('user')
+          .innerJoin('members', (join) =>
+            join.onRef('members.user_id', '=', 'user.id').on('members.tenant_id', '=', tenantId)
+          )
+          .selectAll('user')
+          .select('members.org_role')
+          .where('user.account_status', '=', 'active')
+          .orderBy('user.username', 'asc')
+          .execute();
+
+        // Override legacy role field with org role so the UI displays correctly
+        return rows.map((r) => ({ ...r, role: r.org_role }));
+      }
+
+      // No tenant — return all active users with legacy roles
+      return await db
         .selectFrom('user')
         .selectAll()
         .where('account_status', '=', 'active')
         .orderBy('username', 'asc')
         .execute();
-
-      return users;
-    } else if (user.role === 'supervisor') {
+    } else if (isSupervisor) {
       // Supervisors can only assign to their adopted interns
       const supervisorRelations = await db
         .selectFrom('supervisor_users')
@@ -979,6 +1140,7 @@ interface AdditionalBillData {
   trackedBy?: Record<string, BillTracker[]>;
   trackedCount?: Record<string, number>;
   updates?: StatusUpdate[]; // For getBillDetails - direct updates array
+  orgBillStatuses?: Record<string, string>; // org-scoped bill statuses keyed by bill_id
 }
 
 /**
@@ -1043,9 +1205,10 @@ async function convertDataToBillShape(
   const baseBill: Bill = {
     // attributes from the database
     id: typeof bill.id === 'string' ? bill.id : '',
+    bill_url: bill.bill_url ?? '',
     bill_number: bill.bill_number ?? '',
     bill_title: bill.bill_title ?? '',
-    current_bill_status: typeof bill.bill_status === 'string' ? bill.bill_status : '',
+    current_bill_status: additionalData?.orgBillStatuses?.[bill.id] ?? (typeof bill.bill_status === 'string' ? bill.bill_status : ''),
     current_status_string: bill.current_status_string ?? '',
     description: bill.description ?? '',
     archived: bill.archived ?? false,

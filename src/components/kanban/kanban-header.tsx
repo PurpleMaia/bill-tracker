@@ -5,16 +5,17 @@ import { Switch } from '../ui/switch';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { Label } from '../ui/label';
 import NewBillButton from './new-bill/new-bill-button';
+import { TrackBillDialog } from './track-bill-dialog';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { TagFilterList } from '../tags/tag-filter-list';
 
 export function KanbanHeader() {
-  const { user } = useAuth();
+  const { user, activeTenant } = useAuth();
   const { viewMode, toggleViewMode, showArchived, toggleShowArchived } = useBills();
   const { selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears } = useKanbanBoard();
 
   const isPublic = !user;
-  const canAddRemoveBills = user?.role === 'admin' || user?.role === 'supervisor';
+  const canAddRemoveBills = activeTenant?.orgRole === 'admin';
 
   return (
     <div className='p-2 border-b bg-white flex items-center justify-between shadow-md'>
@@ -66,6 +67,7 @@ export function KanbanHeader() {
 
             {!isPublic && (
               <>
+                <TrackBillDialog />
                 {canAddRemoveBills && <NewBillButton />}
               </>
             )}

@@ -68,7 +68,7 @@ const getCurrentStageName = (status: BillStatus): string => {
 
 export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialogProps) {
   const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills();
-  const { user } = useAuth();
+  const { user, activeTenant } = useAuth();
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [, setSaving] = useState<boolean>(false);
   const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
@@ -108,7 +108,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
   const currentStageName = getCurrentStageName(currentStatus as BillStatus);
   const isInternInAllBillsView = user?.role === 'user' && viewMode === 'all-bills';
   const canEditBill = !isInternInAllBillsView;
-  const canSeeTracking = user?.role === 'admin' || user?.role === 'supervisor';
+  const canSeeTracking = activeTenant?.orgRole === 'admin';
 
   // Derive dead reason and deadline
   const committeeAssign = billDetails?.committee_assignment || bill.committee_assignment;

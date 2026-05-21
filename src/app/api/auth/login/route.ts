@@ -5,6 +5,7 @@ import { limitFixedWindow, retryAfterMs } from "@/lib/ratelimit-memory";
 import type { User } from "@/types/user";
 import { loginSchema } from "@/lib/validators";
 import { ApiError } from "@/lib/errors";
+import { getUserMemberships } from "@/services/data/tenants";
 
 const LOGIN_RATE_LIMIT = { limit: 5, windowMs: 5 * 60_000 };
 
@@ -63,7 +64,8 @@ export async function POST(request: NextRequest) {
     //validates input
     const validation = loginSchema.safeParse({ authString, password });
     if (!validation.success) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
+      const messages = validation.error.issues.map(i => i.message).join(', ');
+      return NextResponse.json({ error: messages }, { status: 400 });
     }
 
     // Authenticate user
@@ -72,11 +74,13 @@ export async function POST(request: NextRequest) {
 
       // Create session token for successfully authenticated user
       const token = await createSession(user.id);
-      console.log("Created session token:", token);
 
-      // Set session token in cookie and return user information
+      // Fetch memberships for the authenticated user
+      const memberships = await getUserMemberships(user.id);
+
+      // Set session token in cookie and return user information with memberships
       return NextResponse.json(
-        { success: true, user: user as User },
+        { success: true, user: user as User, memberships },
         {
           status: 200,
           headers: {
@@ -97,7 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Unknown error
-    console.error("[REGISTER]", error);
+    console.error("[LOGIN]", error);
     return NextResponse.json({ error: "Unknown Error" }, { status: 500 });
   }
 }

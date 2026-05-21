@@ -92,7 +92,7 @@ export interface TempBill {
   approval_status?: 'pending' | 'approved' | 'rejected';
   proposed_by?: {
     user_id: string;
-    role: 'intern' | 'supervisor' | 'admin';
+    role: 'intern' | 'supervisor' | 'admin' | 'worker';
     at: string;      // ISO timestamp
     note?: string;
     username?: string;

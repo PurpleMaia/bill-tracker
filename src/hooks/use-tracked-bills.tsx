@@ -9,7 +9,7 @@ import { useBills } from '@/hooks/contexts/bills-context';
 import { Bill } from '@/types/legislation';
 
 export function useTrackedBills() {
-  const { user } = useAuth();
+  const { user, activeTenant } = useAuth();
   const { setBills, addBill, updateBill } = useBills();
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -22,7 +22,7 @@ export function useTrackedBills() {
   const handleTrackBill = async (billUrl: string) => {
     if (!user) return false;
     try {
-      const trackedBill = await trackBill(user.id, billUrl);
+      const trackedBill = await trackBill(user.id, billUrl, activeTenant?.tenantId);
       if (trackedBill) {
         // Add the bill to the list
         console.log('Bill tracked successfully, adding to list...');
@@ -54,7 +54,7 @@ export function useTrackedBills() {
   const handleUntrackBill = useCallback(async (billId: string, options?: { suppressToast?: boolean; keepInList?: boolean }) => {
     if (!user) return false;
     try {
-      const success = await untrackBill(user.id, billId);
+      const success = await untrackBill(user.id, billId, activeTenant?.tenantId);
       if (success) {
         if (options?.keepInList) {
           setBills((prev) =>
@@ -97,7 +97,7 @@ export function useTrackedBills() {
   const handleAssignBill = async (targetUserId: string, bill: Bill) => {
     if (!user) return null;
     try {
-      const tracker = await assignBill(user.id, targetUserId, bill);
+      const tracker = await assignBill(user.id, targetUserId, bill, activeTenant?.tenantId);
       if (tracker) {
         console.log('Bill assigned successfully');
         toast({
@@ -133,7 +133,7 @@ export function useTrackedBills() {
   const handleUnassignBill = async (targetUserId: string, bill: Bill) => {
     if (!user) return null;
     try {
-      const success = await unassignBillFromUser(user.id, targetUserId, bill.id);
+      const success = await unassignBillFromUser(user.id, targetUserId, bill.id, activeTenant?.tenantId);
       if (success) {
         toast({
           title: 'Bill unassigned',

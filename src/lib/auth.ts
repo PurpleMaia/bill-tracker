@@ -7,6 +7,7 @@ import { Errors } from './errors';
 import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { User } from '@/types/user';
+import { SystemRole } from '@/types/tenant';
 
 /**
  * Fetches the cached authenticated user's session and details.
@@ -87,7 +88,7 @@ export async function validateSession(token: string | null): Promise<User> {
   const result = await db
     .selectFrom('sessions as s')
     .innerJoin('user as u', 's.user_id', 'u.id')
-    .select(['u.id', 'u.role', 'u.email', 'u.username', 'u.email_verified'])
+    .select(['u.id', 'u.role', 'u.email', 'u.username', 'u.email_verified', 'u.system_role'])
     .where('s.session_token', '=', hashedToken)
     .where('s.expires_at', '>', new Date())
     .executeTakeFirst();  
@@ -102,8 +103,9 @@ export async function validateSession(token: string | null): Promise<User> {
   return {
     id: result.id,
     email: result.email,
+    username: result.username,
+    systemRole: result.system_role as SystemRole,
     role: result.role,
-    username: result.username
   };
 }
 
@@ -129,7 +131,7 @@ export async function authenticateUser(identifier: string, password: string): Pr
   //1. Looks up user by email or username in user table
   const userResult = await db
     .selectFrom('user')
-    .select(['id', 'email', 'username', 'role', 'account_status', 'requested_admin', 'email_verified'])
+    .select(['id', 'email', 'username', 'role', 'account_status', 'requested_admin', 'email_verified', 'system_role'])
     .where((eb: any) => eb.or([
       eb('email', '=', identifier),
       eb('username', '=', identifier)  // using email parameter as it could be either email or username
@@ -141,7 +143,7 @@ export async function authenticateUser(identifier: string, password: string): Pr
   }
   
   // Only accounts with 'active' status can log in
-  // This ensures ALL users (both old and new) require admin approval before they can log in
+  // New users are active by default; org membership is controlled by invites
   // Note: Using snake_case because we're using (db as any) which returns raw DB column names
   if (userResult.account_status !== 'active') {
     // For new accounts: check if email is verified (for better error message)
@@ -181,7 +183,7 @@ export async function authenticateUser(identifier: string, password: string): Pr
     throw Errors.INVALID_CREDENTIALS;
   }
 
-  return { id: userResult.id, email: userResult.email, role: userResult.role, username: userResult.username };  //Success
+  return { id: userResult.id, email: userResult.email, username: userResult.username, systemRole: userResult.system_role as SystemRole, role: userResult.role };  //Success
 } 
 
 // NOTE; will return verificationToken for email sending at a later date
@@ -214,8 +216,8 @@ export async function registerUser(email: string, username: string, password: st
     const userResult = await db.insertInto('user').values({
       username: username,
       email: email, 
-      role: 'user',
-      account_status: 'pending', // NOTE: use ʻunverifiedʻ when implementing email verification
+      role: 'user', // Legacy field; org-level roles are managed via members table
+      account_status: 'active', // Public users are active by default; org membership is controlled by invites
       requested_admin: false,      
       // verification_token: verificationToken (NOTE: not storing verification token for now)
     }).returning('id').executeTakeFirst();
@@ -240,7 +242,7 @@ export async function registerUser(email: string, username: string, password: st
     }
 
     return {
-      user: { id: userId, email, role: 'user', username },
+      user: { id: userId, email, username, systemRole: 'user', role: 'user' },
       // verificationToken
-    };  
+    };
 }

@@ -28,6 +28,8 @@ export const Errors = {
     NO_SESSION_COOKIE: new ApiError('NO_SESSION', 401, 'No session cookie found. Please log in.'),
     
     INTERNAL_ERROR: new ApiError('INTERNAL_ERROR', 500, 'Internal server error. Please try again later.'),
+    NOT_A_MEMBER: new ApiError('NOT_A_MEMBER', 403, 'You are not a member of this organization.'),
+    TENANT_NOT_FOUND: new ApiError('TENANT_NOT_FOUND', 404, 'Organization not found.'),
 } as const;
 
 /**

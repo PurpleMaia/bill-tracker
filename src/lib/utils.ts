@@ -46,13 +46,15 @@ export function formatBillStatusName(status: string | null): string {
 
 /**
  * Checks if a user has permission to assign bills to others.
- * Only admins and supervisors can assign bills.
+ * Admins (legacy role or org role) and supervisors can assign bills.
  *
  * @param user User object with role property
+ * @param orgRole Optional org-level role from tenant membership
  * @returns True if user can assign bills, false otherwise
  */
-export function canAssignBills(user: { role: string } | null | undefined): boolean {
+export function canAssignBills(user: { role: string } | null | undefined, orgRole?: string): boolean {
   if (!user) return false;
+  if (orgRole === 'admin') return true;
   return user.role === 'admin' || user.role === 'supervisor';
 }
 

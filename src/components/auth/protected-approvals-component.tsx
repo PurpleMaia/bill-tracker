@@ -8,14 +8,14 @@ interface ProtectedApprovalsComponentProps {
 }
 
 export function ProtectedApprovalsComponent({ children }: ProtectedApprovalsComponentProps) {
-  const { user, loading } = useAuth();
+  const { user, activeTenant, loading } = useAuth();
 
   if (loading) {
     return null;
   }
 
-  // Only show for admins and supervisors
-  if (!user || (user.role !== 'admin' && user.role !== 'supervisor')) {
+  // Only show for org admins
+  if (!user || activeTenant?.orgRole !== 'admin') {
     return null;
   }
 

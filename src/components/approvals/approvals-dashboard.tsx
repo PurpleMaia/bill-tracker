@@ -1,3 +1,4 @@
+/** @deprecated Approvals tab removed from header nav. This component is kept for backwards compatibility but is no longer actively used. */
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -16,7 +17,7 @@ import type { User } from '@/types/user';
 
 export function ApprovalsDashboard() {
   const { tempBills, acceptTempChange, rejectTempChange, bills } = useBills();
-  const { user } = useAuth();
+  const { user, activeTenant } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'username' | 'date' | 'bill'>('username');
@@ -148,7 +149,7 @@ export function ApprovalsDashboard() {
   };
 
   // Check if user has permission to moderate
-  const canModerate = user?.role === 'admin' || user?.role === 'supervisor';
+  const canModerate = activeTenant?.orgRole === 'admin';
 
   if (!canModerate) {
     return (
