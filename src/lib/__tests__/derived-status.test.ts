@@ -88,5 +88,11 @@ describe('deriveBillStatus', () => {
       const result = deriveBillStatus(null, [bs('introduced')]);
       expect(result).toBe('introduced');
     });
+
+    it('handles unknown status gracefully by defaulting to index 0', () => {
+      // An unknown status falls back to index 0
+      const result = deriveBillStatus(bs('totallyFakeStatus'), [bs('introduced')]);
+      expect(result).toBe('introduced');
+    });
   });
 });
