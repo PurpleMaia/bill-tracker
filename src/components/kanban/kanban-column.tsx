@@ -21,7 +21,11 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 function getColumnPhaseBg(columnId: string): string {
   if (columnId === 'vetoList') return 'bg-[#f8d7d2]';
   if (columnId === 'governorSigns' || columnId === 'lawWithoutSignature') return 'bg-[#d6e8d4]';
-  if (columnId.startsWith('crossoverWaiting1') || columnId.startsWith('conference') || columnId === 'passedCommittees' || columnId === 'conferencePassed' || columnId === 'transmittedGovernor')
+  // Waiting columns (introduced, waiting, crossover waiting) get olive
+  if (columnId === 'introduced' || columnId === 'simpleWaiting' || columnId.startsWith('crossoverWaiting') || columnId === 'simpleCrossoverWaiting')
+    return 'bg-olive-soft';
+  // Passed committees and transmitted to governor get olive
+  if (columnId === 'passedCommittees' || columnId === 'transmittedGovernor')
     return 'bg-olive-soft';
   return 'bg-secondary/50';
 }
@@ -29,7 +33,11 @@ function getColumnPhaseBg(columnId: string): string {
 function getColumnPhaseHeaderBg(columnId: string): string {
   if (columnId === 'vetoList') return 'bg-[#f8d7d2]/95';
   if (columnId === 'governorSigns' || columnId === 'lawWithoutSignature') return 'bg-[#d6e8d4]/95';
-  if (columnId.startsWith('crossoverWaiting1') || columnId.startsWith('conference') || columnId === 'passedCommittees' || columnId === 'conferencePassed' || columnId === 'transmittedGovernor')
+  // Waiting columns (introduced, waiting, crossover waiting) get olive
+  if (columnId === 'introduced' || columnId === 'simpleWaiting' || columnId.startsWith('crossoverWaiting') || columnId === 'simpleCrossoverWaiting')
+    return 'bg-olive-soft/95';
+  // Passed committees and transmitted to governor get olive
+  if (columnId === 'passedCommittees' || columnId === 'transmittedGovernor')
     return 'bg-olive-soft/95';
   return 'bg-secondary/95';
 }
