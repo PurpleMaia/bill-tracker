@@ -5,6 +5,8 @@ import React, { createContext, useContext, useState, ReactNode, Dispatch, SetSta
 interface KanbanBoardContextType {
   view: 'kanban' | 'spreadsheet' | 'admin' | 'approvals' | 'supervisor';
   setView: Dispatch<SetStateAction<'kanban' | 'spreadsheet' | 'admin' | 'approvals' | 'supervisor'>>;
+  columnView: 'detailed' | 'simplified';
+  setColumnView: Dispatch<SetStateAction<'detailed' | 'simplified'>>;
   searchQuery: string;
   setSearchQuery: Dispatch<SetStateAction<string>>;
   selectedTagIds: string[];
@@ -18,11 +20,12 @@ const KanbanBoardContext = createContext<KanbanBoardContextType | undefined>(und
 export function KanbanBoardProvider({ children }: { children: ReactNode }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setView] = useState<'kanban' | 'spreadsheet' | 'admin' | 'approvals' | 'supervisor'>('kanban');
+  const [columnView, setColumnView] = useState<'detailed' | 'simplified'>('simplified');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedYears, setSelectedYears] = useState<number[]>([]);
 
   return (
-    <KanbanBoardContext.Provider value={{ searchQuery, setSearchQuery, view, setView, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears }}>
+    <KanbanBoardContext.Provider value={{ searchQuery, setSearchQuery, view, setView, columnView, setColumnView, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears }}>
       {children}
     </KanbanBoardContext.Provider>
   );
