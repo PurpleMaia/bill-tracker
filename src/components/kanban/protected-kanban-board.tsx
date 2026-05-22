@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { KanbanBoard } from './kanban-board';
 import { KanbanSpreadsheet } from './kanban-spreadsheet';
@@ -12,9 +12,15 @@ import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 
 export function ProtectedKanbanBoardOrSpreadsheet() {
   const { user, loading, activeTenant, isPublicUser } = useAuth();
-  const { view } = useKanbanBoard();
+  const { view, setColumnView } = useKanbanBoard();
   const { bills, loadingBills, viewMode } = useBills();
   const { untrackBill } = useTrackedBills();
+
+  useEffect(() => {
+    if (user && activeTenant) {
+      setColumnView('detailed');
+    }
+  }, [user, activeTenant, setColumnView]);
 
   if (loading) {
     return null
