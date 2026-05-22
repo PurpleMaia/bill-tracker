@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { KanbanBoard } from './kanban-board';
 import { KanbanSpreadsheet } from './kanban-spreadsheet';
@@ -16,9 +16,11 @@ export function ProtectedKanbanBoardOrSpreadsheet() {
   const { bills, loadingBills, viewMode } = useBills();
   const { untrackBill } = useTrackedBills();
 
+  const hasSetDefault = useRef(false);
   useEffect(() => {
-    if (user && activeTenant) {
+    if (user && activeTenant && !hasSetDefault.current) {
       setColumnView('detailed');
+      hasSetDefault.current = true;
     }
   }, [user, activeTenant, setColumnView]);
 
