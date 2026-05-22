@@ -59,3 +59,57 @@ export const COLUMN_INDEX: Record<string, number> = KANBAN_COLUMNS.reduce((acc, 
   acc[col.id] = idx;
   return acc;
 }, {} as Record<string, number>);
+
+export const SIMPLIFIED_COLUMNS: KanbanColumnData[] = [
+  { id: 'unassigned', title: 'Not Assigned' },
+  { id: 'simpleWaiting', title: 'INTRODUCED & WAITING' },
+  { id: 'simpleScheduled', title: 'SCHEDULED' },
+  { id: 'simpleCrossoverWaiting', title: 'CROSSOVER & WAITING' },
+  { id: 'simpleCrossoverScheduled', title: 'CROSSOVER SCHEDULED' },
+  { id: 'passedCommittees', title: 'CONFERENCE' },
+  { id: 'conferenceAssigned', title: 'AWAITING COMMITTEES' },
+  { id: 'conferenceScheduled', title: 'SCHEDULED' },
+  { id: 'conferencePassed', title: 'PASSED CONFERENCE' },
+  { id: 'transmittedGovernor', title: 'TRANSMITTED TO GOVERNOR' },
+  { id: 'vetoList', title: 'GOVERNOR VETOED' },
+  { id: 'governorSigns', title: 'GOVERNOR SIGNED INTO LAW' },
+  { id: 'lawWithoutSignature', title: 'LAW WITHOUT SIGNATURE' },
+];
+
+// Maps every BillStatus to the simplified column it belongs to
+export const STATUS_TO_SIMPLIFIED: Record<string, string> = {
+  unassigned: 'unassigned',
+  // Pre-crossover waiting
+  introduced: 'simpleWaiting',
+  waiting2: 'simpleWaiting',
+  waiting3: 'simpleWaiting',
+  // Pre-crossover scheduled (includes deferred)
+  scheduled1: 'simpleScheduled',
+  scheduled2: 'simpleScheduled',
+  scheduled3: 'simpleScheduled',
+  deferred1: 'simpleScheduled',
+  deferred2: 'simpleScheduled',
+  deferred3: 'simpleScheduled',
+  // Crossover waiting
+  crossoverWaiting1: 'simpleCrossoverWaiting',
+  crossoverWaiting2: 'simpleCrossoverWaiting',
+  crossoverWaiting3: 'simpleCrossoverWaiting',
+  // Crossover scheduled (includes deferred)
+  crossoverScheduled1: 'simpleCrossoverScheduled',
+  crossoverScheduled2: 'simpleCrossoverScheduled',
+  crossoverScheduled3: 'simpleCrossoverScheduled',
+  crossoverDeferred1: 'simpleCrossoverScheduled',
+  crossoverDeferred2: 'simpleCrossoverScheduled',
+  crossoverDeferred3: 'simpleCrossoverScheduled',
+  // Conference (1:1)
+  passedCommittees: 'passedCommittees',
+  conferenceAssigned: 'conferenceAssigned',
+  conferenceScheduled: 'conferenceScheduled',
+  conferenceDeferred: 'conferenceScheduled',
+  conferencePassed: 'conferencePassed',
+  // Governor (1:1)
+  transmittedGovernor: 'transmittedGovernor',
+  vetoList: 'vetoList',
+  governorSigns: 'governorSigns',
+  lawWithoutSignature: 'lawWithoutSignature',
+};
