@@ -12,7 +12,7 @@ import { TagFilterList } from '../tags/tag-filter-list';
 export function KanbanHeader() {
   const { user, activeTenant } = useAuth();
   const { viewMode, toggleViewMode, showArchived, toggleShowArchived } = useBills();
-  const { selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears } = useKanbanBoard();
+  const { columnView, setColumnView, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears } = useKanbanBoard();
 
   const isPublic = !user;
   const canAddRemoveBills = activeTenant?.orgRole === 'admin';
@@ -40,7 +40,16 @@ export function KanbanHeader() {
           )}
         </div>
 
-        <div className='flex items-center space-x-2 mr-4 py-2'>            
+        <div className='flex items-center space-x-2 mr-4 py-2'>
+
+            <div className='flex items-center space-x-2'>
+              <Switch
+                id='column-view'
+                checked={columnView === 'detailed'}
+                onCheckedChange={(checked) => setColumnView(checked ? 'detailed' : 'simplified')}
+              />
+              <Label htmlFor='column-view' className='text-md'>Detailed View</Label>
+            </div>
 
             <TagFilterList
               selectedTagIds={selectedTagIds}
