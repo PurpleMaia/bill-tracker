@@ -114,6 +114,7 @@ export interface Tag {
   id: string;
   name: string;
   color?: string | null;
+  tenant_id: string;
   created_at?: Date | string;
   updated_at?: Date | string;
 }
