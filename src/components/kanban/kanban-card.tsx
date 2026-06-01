@@ -78,7 +78,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const handleRemoveBill = async () => {
       setIsRemoving(true);
       try {
-        await updateFoodStatusOrCreateBill(bill, false);
+        await updateFoodStatusOrCreateBill(bill, false, activeTenant?.tenantId);
         removeBill(bill.id);
         toast({ title: 'Bill Removed', description: `${bill.bill_number} removed from the board.`, duration: 5000 });
         setShowRemoveDialog(false);

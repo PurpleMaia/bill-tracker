@@ -30,7 +30,7 @@ export function useTrackedBills() {
 
         // Fetch tags for the newly tracked bill
         console.log('Fetching tags for newly tracked bill...');
-        const tags = await getBillTags(trackedBill.id);
+        const tags = await getBillTags(trackedBill.id, activeTenant!.tenantId);
         updateBill(trackedBill.id, { tags });
 
         toast({

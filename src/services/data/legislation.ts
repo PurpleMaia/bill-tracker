@@ -233,7 +233,7 @@ async function getAdditionalBillData(billIds: string[], includeTrackedBy: boolea
   const statusUpdates = await getBatchStatusUpdates(billIds);
 
   // Batch fetch tags for these bills
-  const tags = await getBatchBillTags(billIds, tenantId);
+  const tags = tenantId ? await getBatchBillTags(billIds, tenantId) : {};
 
   const trackedBy = includeTrackedBy ? await getTrackedByForBills(billIds, tenantId) : {};
 
@@ -499,7 +499,7 @@ export async function updateBillDeadFlag(billId: string, dead: boolean): Promise
  * @returns The updated Bill object
  */
 
-export async function updateFoodStatusOrCreateBill(bill: Bill | BillDetails | null, foodState: boolean | null): Promise<Bill> {
+export async function updateFoodStatusOrCreateBill(bill: Bill | BillDetails | null, foodState: boolean | null, tenantId?: string): Promise<Bill> {
   try {    
     console.log(`[UPDATE FOOD STATUS] Updating food-related flag to ${foodState}`);
 
@@ -605,7 +605,7 @@ export async function updateFoodStatusOrCreateBill(bill: Bill | BillDetails | nu
     }    
 
     // includeTrackedBy = true since this feature is only available to admins and supervisors
-    const { statusUpdates, tags, trackedBy, trackedCount } = await getAdditionalBillData([result.id], true);
+    const { statusUpdates, tags, trackedBy, trackedCount } = await getAdditionalBillData([result.id], true, tenantId);
     const convertedBill = await convertDataToBillShape(result, {
       statusUpdates,
       tags,
