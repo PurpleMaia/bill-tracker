@@ -11,23 +11,17 @@ import type { Tag } from '@/types/legislation';
  * Fetches all tags from the database
  * @returns Array of all tags, ordered by name
  */
-export async function getAllTags(tenantId?: string): Promise<Tag[]> {
+export async function getAllTags(tenantId: string): Promise<Tag[]> {
   try {
-    let query = db
+    const tags = await db
       .selectFrom('tags')
-      .selectAll();
-
-    if (tenantId) {
-      query = query.where('tenant_id', '=', tenantId);
-    }
-
-    const tags = await query
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
       .orderBy('name', 'asc')
       .execute();
 
     return tags as Tag[];
   } catch (error: any) {
-    // If table doesn't exist, return empty array instead of error
     if (error?.message?.includes('does not exist') || error?.code === '42P01') {
       console.log('Tags table does not exist yet, returning empty array');
       return [];
@@ -44,20 +38,15 @@ export async function getAllTags(tenantId?: string): Promise<Tag[]> {
  * @returns The created tag
  * @throws Error if tag creation fails or tag with same name exists
  */
-export async function createTag(name: string, color?: string, tenantId?: string): Promise<Tag> {
+export async function createTag(name: string, color: string | undefined, tenantId: string): Promise<Tag> {
   try {
-    console.log('Creating new tag:', name, 'for tenant:', tenantId?.slice(0, 6) ?? 'global', '...');
-    // Check if tag with same name already exists in this tenant
-    let existingQuery = db
+    console.log('Creating new tag:', name, 'for tenant:', tenantId.slice(0, 6), '...');
+    const existingTag = await db
       .selectFrom('tags')
       .select('id')
-      .where('name', '=', name.trim());
-
-    if (tenantId) {
-      existingQuery = existingQuery.where('tenant_id', '=', tenantId);
-    }
-
-    const existingTag = await existingQuery.executeTakeFirst();
+      .where('name', '=', name.trim())
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
 
     if (existingTag) {
       throw new Error('Tag with this name already exists');
@@ -68,7 +57,7 @@ export async function createTag(name: string, color?: string, tenantId?: string)
       .values({
         name: name.trim(),
         color: color || null,
-        tenant_id: tenantId ?? null,
+        tenant_id: tenantId,
       })
       .returningAll()
       .executeTakeFirst();
@@ -92,55 +81,40 @@ export async function createTag(name: string, color?: string, tenantId?: string)
  * @returns The updated tag
  * @throws Error if tag not found or update fails
  */
-export async function updateTag(id: string, name: string, color?: string, tenantId?: string): Promise<Tag> {
+export async function updateTag(id: string, name: string, color: string | undefined, tenantId: string): Promise<Tag> {
   try {
-    // Check if tag exists and belongs to the caller's tenant
-    let existingQuery = db
+    const existingTag = await db
       .selectFrom('tags')
       .select(['id', 'tenant_id'])
-      .where('id', '=', id);
-
-    if (tenantId) {
-      existingQuery = existingQuery.where('tenant_id', '=', tenantId);
-    }
-
-    const existingTag = await existingQuery.executeTakeFirst();
+      .where('id', '=', id)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
 
     if (!existingTag) {
       throw new Error('Tag not found');
     }
 
-    // Check if another tag with same name exists within tenant scope
-    let duplicateQuery = db
+    const duplicateTag = await db
       .selectFrom('tags')
       .select('id')
       .where('name', '=', name.trim())
-      .where('id', '!=', id);
-
-    if (tenantId) {
-      duplicateQuery = duplicateQuery.where('tenant_id', '=', tenantId);
-    }
-
-    const duplicateTag = await duplicateQuery.executeTakeFirst();
+      .where('id', '!=', id)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
 
     if (duplicateTag) {
       throw new Error('Tag with this name already exists');
     }
 
-    let updateQuery = db
+    const updatedTag = await db
       .updateTable('tags')
       .set({
         name: name.trim(),
         color: color || null,
         updated_at: new Date(),
       })
-      .where('id', '=', id);
-
-    if (tenantId) {
-      updateQuery = updateQuery.where('tenant_id', '=', tenantId);
-    }
-
-    const updatedTag = await updateQuery
+      .where('id', '=', id)
+      .where('tenant_id', '=', tenantId)
       .returningAll()
       .executeTakeFirst();
 
@@ -161,29 +135,23 @@ export async function updateTag(id: string, name: string, color?: string, tenant
  * @param id - Tag ID
  * @throws Error if tag not found or deletion fails
  */
-export async function deleteTag(id: string, tenantId?: string): Promise<void> {
+export async function deleteTag(id: string, tenantId: string): Promise<void> {
   try {
-    // Check if tag exists and belongs to the caller's tenant
-    let existingQuery = db
+    const existingTag = await db
       .selectFrom('tags')
       .select('id')
-      .where('id', '=', id);
-
-    if (tenantId) {
-      existingQuery = existingQuery.where('tenant_id', '=', tenantId);
-    }
-
-    const existingTag = await existingQuery.executeTakeFirst();
+      .where('id', '=', id)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
 
     if (!existingTag) {
       throw new Error('Tag not found');
     }
 
-    let deleteQuery = db.deleteFrom('tags').where('id', '=', id);
-    if (tenantId) {
-      deleteQuery = deleteQuery.where('tenant_id', '=', tenantId);
-    }
-    await deleteQuery.execute();
+    await db.deleteFrom('tags')
+      .where('id', '=', id)
+      .where('tenant_id', '=', tenantId)
+      .execute();
   } catch (error) {
     console.error('Error deleting tag:', error);
     throw error instanceof Error ? error : new Error('Failed to delete tag');
@@ -199,25 +167,21 @@ export async function deleteTag(id: string, tenantId?: string): Promise<void> {
  * @param billId - Bill ID
  * @returns Array of tags for the bill, ordered by name
  */
-export async function getBillTags(billId: string, tenantId?: string): Promise<Tag[]> {
+export async function getBillTags(billId: string, tenantId: string): Promise<Tag[]> {
   try {
-    let query = db
+    const tags = await db
       .selectFrom('bill_tags as bt')
       .innerJoin('tags as t', 'bt.tag_id', 't.id')
       .select([
         't.id',
         't.name',
         't.color',
+        't.tenant_id',
         't.created_at',
         't.updated_at',
       ])
-      .where('bt.bill_id', '=', billId);
-
-    if (tenantId) {
-      query = query.where('t.tenant_id', '=', tenantId);
-    }
-
-    const tags = await query
+      .where('bt.bill_id', '=', billId)
+      .where('t.tenant_id', '=', tenantId)
       .orderBy('t.name', 'asc')
       .execute();
 
@@ -234,14 +198,13 @@ export async function getBillTags(billId: string, tenantId?: string): Promise<Ta
  * @param billIds - Array of bill IDs
  * @returns Object mapping bill IDs to their tag arrays
  */
-export async function getBatchBillTags(billIds: string[], tenantId?: string): Promise<Record<string, Tag[]>> {
+export async function getBatchBillTags(billIds: string[], tenantId: string): Promise<Record<string, Tag[]>> {
   try {
     if (!Array.isArray(billIds) || billIds.length === 0) {
       return {};
     }
 
-    // Fetch tags for all bills in a single query
-    let query = db
+    const billTags = await db
       .selectFrom('bill_tags as bt')
       .innerJoin('tags as t', 'bt.tag_id', 't.id')
       .select([
@@ -249,20 +212,15 @@ export async function getBatchBillTags(billIds: string[], tenantId?: string): Pr
         't.id',
         't.name',
         't.color',
+        't.tenant_id',
         't.created_at',
         't.updated_at',
       ])
-      .where('bt.bill_id', 'in', billIds);
-
-    if (tenantId) {
-      query = query.where('t.tenant_id', '=', tenantId);
-    }
-
-    const billTags = await query
+      .where('bt.bill_id', 'in', billIds)
+      .where('t.tenant_id', '=', tenantId)
       .orderBy('t.name', 'asc')
       .execute();
 
-    // Group tags by bill ID
     const tagsByBillId = billTags.reduce((acc, row) => {
       if (!acc[row.bill_id]) {
         acc[row.bill_id] = [];
@@ -271,13 +229,13 @@ export async function getBatchBillTags(billIds: string[], tenantId?: string): Pr
         id: row.id,
         name: row.name,
         color: row.color,
+        tenant_id: row.tenant_id,
         created_at: row.created_at,
         updated_at: row.updated_at,
       } as Tag);
       return acc;
     }, {} as Record<string, Tag[]>);
 
-    // Ensure all requested bill IDs have an entry (even if empty)
     billIds.forEach(billId => {
       if (!tagsByBillId[billId]) {
         tagsByBillId[billId] = [];
@@ -299,10 +257,9 @@ export async function getBatchBillTags(billIds: string[], tenantId?: string): Pr
  * @returns Array of tags now associated with the bill
  * @throws Error if bill not found or tag IDs are invalid
  */
-export async function updateBillTags(billId: string, tagIds: string[], tenantId?: string): Promise<Tag[]> {
+export async function updateBillTags(billId: string, tagIds: string[], tenantId: string): Promise<Tag[]> {
   try {
     console.log('Updating bill tags for billId:', billId.slice(0, 6), '...');
-    // Check if bill exists
     const bill = await db
       .selectFrom('bills')
       .select('id')
@@ -313,44 +270,27 @@ export async function updateBillTags(billId: string, tagIds: string[], tenantId?
       throw new Error('Bill not found');
     }
 
-    // Remove existing tags for this bill, scoped to the caller's tenant
-    if (tenantId) {
-      await db
-        .deleteFrom('bill_tags')
-        .where('bill_id', '=', billId)
-        .where('tag_id', 'in',
-          db.selectFrom('tags').select('id').where('tenant_id', '=', tenantId)
-        )
-        .execute();
-    } else {
-      await db
-        .deleteFrom('bill_tags')
-        .where('bill_id', '=', billId)
-        .where('tag_id', 'in',
-          db.selectFrom('tags').select('id').where('tenant_id', 'is', null)
-        )
-        .execute();
-    }
+    // Remove existing tags for this bill that belong to this tenant
+    await db
+      .deleteFrom('bill_tags')
+      .where('bill_id', '=', billId)
+      .where('tag_id', 'in',
+        db.selectFrom('tags').select('id').where('tenant_id', '=', tenantId)
+      )
+      .execute();
 
-    // Add new tags if any provided
     if (tagIds.length > 0) {
-      // Verify all tag IDs exist and belong to tenant
-      let validTagsQuery = db
+      const validTags = await db
         .selectFrom('tags')
         .select('id')
-        .where('id', 'in', tagIds);
-
-      if (tenantId) {
-        validTagsQuery = validTagsQuery.where('tenant_id', '=', tenantId);
-      }
-
-      const validTags = await validTagsQuery.execute();
+        .where('id', 'in', tagIds)
+        .where('tenant_id', '=', tenantId)
+        .execute();
 
       if (validTags.length !== tagIds.length) {
         throw new Error('One or more tag IDs are invalid');
       }
 
-      // Insert new bill_tags associations
       await db
         .insertInto('bill_tags')
         .values(
@@ -362,7 +302,6 @@ export async function updateBillTags(billId: string, tagIds: string[], tenantId?
         .execute();
     }
 
-    // Fetch and return updated tags
     const updatedTags = await db
       .selectFrom('bill_tags as bt')
       .innerJoin('tags as t', 'bt.tag_id', 't.id')
@@ -370,10 +309,12 @@ export async function updateBillTags(billId: string, tagIds: string[], tenantId?
         't.id',
         't.name',
         't.color',
+        't.tenant_id',
         't.created_at',
         't.updated_at',
       ])
       .where('bt.bill_id', '=', billId)
+      .where('t.tenant_id', '=', tenantId)
       .orderBy('t.name', 'asc')
       .execute();
 
