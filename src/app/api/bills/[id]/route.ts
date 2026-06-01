@@ -44,6 +44,9 @@ export async function PATCH(
         return NextResponse.json({ bill }, { status: 200 });
       }
       case 'updateTags': {
+        if (!tenantId) {
+          return NextResponse.json({ error: 'tenantId is required for tag updates' }, { status: 400 });
+        }
         const { tagIds } = body;
         const tags = await updateBillTags(billId, tagIds, tenantId);
         return NextResponse.json({ tags }, { status: 200 });
