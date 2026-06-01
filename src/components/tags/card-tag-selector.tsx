@@ -29,6 +29,8 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
   const { user, activeTenant } = useAuth();
   const { updateBill } = useBills();
 
+  if (!activeTenant) return null;
+
   const canManageTags = activeTenant?.orgRole === 'admin';
 
   // Use billTags prop directly for display - no local state sync needed
@@ -39,7 +41,7 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
       const loadData = async () => {
         setLoading(true);
         try {
-          const tags = await getAllTags();
+          const tags = await getAllTags(activeTenant.tenantId);
           setAllTags(tags);
         } catch (error) {
           console.error('Failed to load tags:', error);
@@ -68,7 +70,8 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
     try {
       const updatedTags = await updateBillTags(
         billId,
-        newSelectedTags.map(t => t.id)
+        newSelectedTags.map(t => t.id),
+        activeTenant.tenantId
       );
       toast({
         title: 'Success',

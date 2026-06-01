@@ -45,12 +45,16 @@ export function TagFilterList({
 
   useEffect(() => {
     loadTags();
-  }, []);
+  }, [activeTenant]);
 
   const loadTags = async () => {
     setLoading(true);
     try {
-      const fetchedTags = await getAllTags();
+      if (!activeTenant) {
+        setTags([]);
+        return;
+      }
+      const fetchedTags = await getAllTags(activeTenant.tenantId);
       setTags(fetchedTags);
     } catch (error) {
       console.error('Failed to load tags:', error);

@@ -24,19 +24,21 @@ export function TagSelector({ billId, onTagsChange, readOnly = false }: TagSelec
   const { user, activeTenant } = useAuth();
   const { updateBill } = useBills();
 
+  if (!activeTenant) return null;
+
   // Determine if user can manage tags (admin/supervisor only, unless explicitly read-only)
   const canManageTags = !readOnly && activeTenant?.orgRole === 'admin';
 
   useEffect(() => {
     loadData();
-  }, [billId]);
+  }, [billId, activeTenant]);
 
   const loadData = async () => {
     setLoading(true);
     try {
       const [tags, billTags] = await Promise.all([
-        getAllTags(),
-        getBillTags(billId),
+        getAllTags(activeTenant.tenantId),
+        getBillTags(billId, activeTenant.tenantId),
       ]);
       setAllTags(tags);
       setSelectedTags(billTags);
@@ -72,7 +74,8 @@ export function TagSelector({ billId, onTagsChange, readOnly = false }: TagSelec
     try {
       const updatedTags = await updateBillTags(
         billId,
-        newSelectedTags.map(t => t.id)
+        newSelectedTags.map(t => t.id),
+        activeTenant.tenantId
       );
       setSelectedTags(updatedTags);
       // Update the bill's tags in the context without refreshing everything
