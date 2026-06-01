@@ -16,6 +16,8 @@ interface TagFilterListProps {
   onTagToggle: (tagId: string) => void;
   selectedYears: number[];
   onYearToggle: (year: number) => void;
+  deadFilter: 'all' | 'dead' | 'alive';
+  onDeadFilterChange: (value: 'all' | 'dead' | 'alive') => void;
   onClearFilters: () => void;
 }
 
@@ -24,6 +26,8 @@ export function TagFilterList({
   onTagToggle,
   selectedYears,
   onYearToggle,
+  deadFilter,
+  onDeadFilterChange,
   onClearFilters,
 }: TagFilterListProps) {
   const [tags, setTags] = useState<Tag[]>([]);
@@ -60,7 +64,7 @@ export function TagFilterList({
   };
 
   const selectedTags = tags.filter(tag => selectedTagIds.includes(tag.id));
-  const totalFiltersCount = selectedTagIds.length + selectedYears.length;
+  const totalFiltersCount = selectedTagIds.length + selectedYears.length + (deadFilter !== 'all' ? 1 : 0);
 
   return (
     <>
@@ -120,6 +124,33 @@ export function TagFilterList({
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {/* Dead/Alive Status Section */}
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground mb-2">STATUS</h4>
+                    <div className="space-y-1">
+                      {(['all', 'alive', 'dead'] as const).map((value) => {
+                        const isSelected = deadFilter === value;
+                        const label = value === 'all' ? 'All Bills' : value === 'alive' ? 'Alive' : 'Dead';
+                        return (
+                          <div
+                            key={value}
+                            onClick={() => onDeadFilterChange(value)}
+                            className="flex items-center gap-2 p-2 rounded-md hover:bg-accent cursor-pointer transition-colors"
+                          >
+                            <div className="flex items-center justify-center w-4 h-4">
+                              {isSelected && <Check className="h-4 w-4 text-primary" />}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              {value === 'dead' && <span className="h-2 w-2 rounded-full bg-red-500 inline-block" />}
+                              {value === 'alive' && <span className="h-2 w-2 rounded-full bg-green-500 inline-block" />}
+                              <span className="text-sm">{label}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Years Section */}
                   {availableYears.length > 0 && (
                     <div>
