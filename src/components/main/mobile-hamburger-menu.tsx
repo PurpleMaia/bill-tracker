@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 
 export function MobileHamburgerMenu() {
   const { activeTenant, memberships, setActiveTenant, user } = useAuth();
-  const { columnView, setColumnView } = useKanbanBoard();
+  const { columnView, setColumnView, view, setView } = useKanbanBoard();
   const { viewMode, toggleViewMode, showArchived, toggleShowArchived } = useBills();
 
   const isPublic = !user;
@@ -68,6 +68,18 @@ export function MobileHamburgerMenu() {
               onCheckedChange={(checked) => setColumnView(checked ? 'detailed' : 'simplified')}
             />
           </div>
+
+          {/* Admin view toggle */}
+          {!isPublic && activeTenant?.orgRole === 'admin' && (
+            <div className="flex items-center justify-between border-t pt-3">
+              <Label htmlFor="mobile-admin-view" className="text-sm">Admin View</Label>
+              <Switch
+                id="mobile-admin-view"
+                checked={view === 'admin'}
+                onCheckedChange={(checked) => setView(checked ? 'admin' : 'kanban')}
+              />
+            </div>
+          )}
 
           {/* Auth */}
           <div className="flex justify-end border-t pt-3">

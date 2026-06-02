@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { KanbanSquareIcon, Plus, Table, Users2Icon } from 'lucide-react';
+import { KanbanSquareIcon, Plus, Table } from 'lucide-react';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { cn } from '@/lib/utils';
@@ -14,18 +14,13 @@ import { useTrackedBills } from '@/hooks/use-tracked-bills';
 
 export function BottomTabBar() {
   const { view, setView } = useKanbanBoard();
-  const { user, activeTenant } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const { trackBill } = useTrackedBills();
 
   const [trackOpen, setTrackOpen] = useState(false);
   const [billUrl, setBillUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  const orgRole = activeTenant?.orgRole;
-
-  const leftTabs = ['kanban', 'spreadsheet'] as const;
-  const rightTabs = user && orgRole === 'admin' ? (['admin'] as const) : ([] as const);
 
   const handleTrackBill = async () => {
     if (!user) return;
@@ -53,53 +48,44 @@ export function BottomTabBar() {
   return (
     <>
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t bg-background/95 backdrop-blur py-2">
-        {leftTabs.map((tab) => {
-          const isActive = view === tab;
-          return (
-            <button
-              key={tab}
-              onClick={() => setView(tab)}
-              className={cn(
-                'flex flex-col items-center gap-1 px-3 py-1 text-xs transition-colors',
-                isActive ? 'text-primary font-semibold' : 'text-muted-foreground'
-              )}
-            >
-              {tab === 'kanban' && <KanbanSquareIcon className="h-5 w-5" />}
-              {tab === 'spreadsheet' && <Table className="h-5 w-5" />}
-              <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
-            </button>
-          );
-        })}
+        {/* Kanban tab */}
+        <button
+          onClick={() => setView('kanban')}
+          className={cn(
+            'flex flex-col items-center gap-1 px-3 py-1 text-xs transition-colors',
+            view === 'kanban' ? 'text-primary font-semibold' : 'text-muted-foreground'
+          )}
+        >
+          <KanbanSquareIcon className="h-5 w-5" />
+          <span>Kanban</span>
+        </button>
 
-        {/* Track Bill — center action */}
-        {user && (
+        {/* Track Bill — raised center button */}
+        {user ? (
           <button
             onClick={() => setTrackOpen(true)}
-            className="flex flex-col items-center gap-1 px-3 py-1 text-xs text-muted-foreground transition-colors"
+            className="relative -top-4 flex flex-col items-center"
           >
-            <div className="flex items-center justify-center h-5 w-5 rounded-full bg-primary text-primary-foreground">
-              <Plus className="h-3.5 w-3.5" />
+            <div className="flex items-center justify-center h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg border-4 border-background">
+              <Plus className="h-6 w-6" />
             </div>
-            <span>Track</span>
+            <span className="text-xs text-muted-foreground mt-1">Track</span>
           </button>
+        ) : (
+          <div className="w-12" />
         )}
 
-        {rightTabs.map((tab) => {
-          const isActive = view === tab;
-          return (
-            <button
-              key={tab}
-              onClick={() => setView(tab)}
-              className={cn(
-                'flex flex-col items-center gap-1 px-3 py-1 text-xs transition-colors',
-                isActive ? 'text-primary font-semibold' : 'text-muted-foreground'
-              )}
-            >
-              {tab === 'admin' && <Users2Icon className="h-5 w-5" />}
-              <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
-            </button>
-          );
-        })}
+        {/* Spreadsheet tab */}
+        <button
+          onClick={() => setView('spreadsheet')}
+          className={cn(
+            'flex flex-col items-center gap-1 px-3 py-1 text-xs transition-colors',
+            view === 'spreadsheet' ? 'text-primary font-semibold' : 'text-muted-foreground'
+          )}
+        >
+          <Table className="h-5 w-5" />
+          <span>Spreadsheet</span>
+        </button>
       </nav>
 
       {/* Track Bill Dialog */}
