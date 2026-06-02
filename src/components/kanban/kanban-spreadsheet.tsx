@@ -99,7 +99,7 @@ function SortHeader({ label, columnKey, className, sticky, sortKey, sortDirectio
   const isActive = sortKey === columnKey;
   return (
     <TableHead
-      className={`${className ?? ''} ${sticky ? 'sticky left-0 z-20 bg-background' : ''} py-4 cursor-pointer select-none hover:bg-muted/50 transition-colors`}
+      className={`${className ?? ''} ${sticky ? 'sticky left-0 z-20 bg-background' : ''} py-2 md:py-4 cursor-pointer select-none hover:bg-muted/50 transition-colors`}
       onClick={() => onSort(columnKey)}
     >
       <div className="flex items-center gap-1">
@@ -191,19 +191,19 @@ export function KanbanSpreadsheet() {
 
   return (
     <div className="h-full w-full overflow-auto">
-      <div className="min-w-max p-4">
-        <Table className="min-w-max">
+      <div className="min-w-max p-2 md:p-4">
+        <Table className="min-w-max text-xs md:text-sm">
           <TableHeader>
             <TableRow>
-              <SortHeader label="Bill #" columnKey="bill_number" className="w-[8rem]" sticky sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
-              <SortHeader label="Current Status" columnKey="current_bill_status" className="w-[10rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
-              <SortHeader label="Bill Title" columnKey="bill_title" className="min-w-[20rem] max-w-[30rem] w-[30rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
-              <TableHead className="min-w-[15rem] max-w-[30rem] w-[30rem] py-4">Policy Description</TableHead>
-              <SortHeader label="Committee" columnKey="committee_assignment" className="w-[12rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
-              <SortHeader label="Introducer" columnKey="introducer" className="w-[12rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
-              <SortHeader label="Year" columnKey="year" className="w-[6rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
-              <SortHeader label="Next Deadline" columnKey="next_deadline" className="w-[10rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
-              <TableHead className="w-[15rem] py-4">Tags</TableHead>
+              <SortHeader label="Bill #" columnKey="bill_number" className="w-[6rem] md:w-[8rem]" sticky sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <SortHeader label="Current Status" columnKey="current_bill_status" className="w-[8rem] md:w-[10rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <SortHeader label="Bill Title" columnKey="bill_title" className="min-w-[12rem] md:min-w-[20rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <TableHead className="min-w-[10rem] md:min-w-[15rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem] py-2 md:py-4">Policy Description</TableHead>
+              <SortHeader label="Committee" columnKey="committee_assignment" className="w-[8rem] md:w-[12rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <SortHeader label="Introducer" columnKey="introducer" className="w-[8rem] md:w-[12rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <SortHeader label="Year" columnKey="year" className="w-[5rem] md:w-[6rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <SortHeader label="Next Deadline" columnKey="next_deadline" className="w-[8rem] md:w-[10rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <TableHead className="w-[10rem] md:w-[15rem] py-2 md:py-4">Tags</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -234,7 +234,7 @@ export function KanbanSpreadsheet() {
                     {/* Tag row — rendered above data row for bills with tags */}
                     {hasTags && (
                       <TableRow className="border-b-0 hover:bg-transparent">
-                        <TableCell colSpan={totalColumns} className="py-1 px-4">
+                        <TableCell colSpan={totalColumns} className="py-1 px-2 md:px-4">
                           <div className="flex flex-wrap gap-1">
                             {bill.tags!.map((tag) => (
                               <Badge
@@ -261,7 +261,7 @@ export function KanbanSpreadsheet() {
                       style={firstTagColor ? { backgroundColor: `${firstTagColor}14` } : undefined}
                     >
                       {/* Bill # with dead/alive dot */}
-                      <TableCell className="sticky left-0 z-20 w-[8rem] py-4" style={firstTagColor ? { backgroundColor: `${firstTagColor}14` } : undefined}>
+                      <TableCell className="sticky left-0 z-20 w-[6rem] md:w-[8rem] py-2 md:py-4" style={firstTagColor ? { backgroundColor: `${firstTagColor}14` } : undefined}>
                         <div className="flex items-center gap-2">
                           {bill.dead ? (
                             <span className="h-2.5 w-2.5 rounded-full bg-red-500 flex-shrink-0" />
@@ -272,32 +272,32 @@ export function KanbanSpreadsheet() {
                         </div>
                       </TableCell>
 
-                      <TableCell className="w-[10rem] py-4">
+                      <TableCell className="w-[8rem] md:w-[10rem] py-2 md:py-4">
                         {formatBillStatusName(bill.current_bill_status)}
                       </TableCell>
 
-                      <TableCell className="text-wrap min-w-[20rem] max-w-[30rem] w-[30rem] py-4">
+                      <TableCell className="text-wrap min-w-[12rem] md:min-w-[20rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem] py-2 md:py-4">
                         {bill.bill_title}
                       </TableCell>
 
-                      <TableCell className="text-wrap min-w-[15rem] max-w-[30rem] w-[30rem] py-4">
+                      <TableCell className="text-wrap min-w-[10rem] md:min-w-[15rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem] py-2 md:py-4">
                         {bill.description}
                       </TableCell>
 
-                      <TableCell className="text-wrap w-[12rem] py-4">
+                      <TableCell className="text-wrap w-[8rem] md:w-[12rem] py-2 md:py-4">
                         {bill.committee_assignment || 'N/A'}
                       </TableCell>
 
-                      <TableCell className="text-wrap w-[12rem] py-4">
+                      <TableCell className="text-wrap w-[8rem] md:w-[12rem] py-2 md:py-4">
                         {bill.introducer || 'N/A'}
                       </TableCell>
 
-                      <TableCell className="w-[6rem] py-4">
+                      <TableCell className="w-[5rem] md:w-[6rem] py-2 md:py-4">
                         {bill.year ?? 'N/A'}
                       </TableCell>
 
                       {/* Next Deadline */}
-                      <TableCell className="w-[10rem] py-4">
+                      <TableCell className="w-[8rem] md:w-[10rem] py-2 md:py-4">
                         {deadline ? (
                           <div className={`flex items-center gap-1 text-sm ${isUrgent ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
                             <Clock className="h-3.5 w-3.5 flex-shrink-0" />
@@ -312,7 +312,7 @@ export function KanbanSpreadsheet() {
                       </TableCell>
 
                       {/* Tags cell — shows "No tags" placeholder for bills without tags */}
-                      <TableCell className="w-[15rem] py-4">
+                      <TableCell className="w-[10rem] md:w-[15rem] py-2 md:py-4">
                         {!hasTags && (
                           <span className="text-muted-foreground text-sm">No tags</span>
                         )}
