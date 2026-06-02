@@ -12,7 +12,7 @@ import { TagFilterList } from '../tags/tag-filter-list';
 export function KanbanHeader() {
   const { user, activeTenant } = useAuth();
   const { viewMode, toggleViewMode, showArchived, toggleShowArchived } = useBills();
-  const { columnView, setColumnView, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears } = useKanbanBoard();
+  const { columnView, setColumnView, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter } = useKanbanBoard();
 
   const isPublic = !user;
   const canAddRemoveBills = activeTenant?.orgRole === 'admin';
@@ -68,9 +68,12 @@ export function KanbanHeader() {
                     : [...prev, year]
                 );
               }}
+              deadFilter={deadFilter}
+              onDeadFilterChange={setDeadFilter}
               onClearFilters={() => {
                 setSelectedTagIds([]);
                 setSelectedYears([]);
+                setDeadFilter('all');
               }}
             />
 

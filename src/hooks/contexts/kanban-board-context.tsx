@@ -13,6 +13,8 @@ interface KanbanBoardContextType {
   setSelectedTagIds: Dispatch<SetStateAction<string[]>>;
   selectedYears: number[];
   setSelectedYears: Dispatch<SetStateAction<number[]>>;
+  deadFilter: 'all' | 'dead' | 'alive';
+  setDeadFilter: Dispatch<SetStateAction<'all' | 'dead' | 'alive'>>;
 }
 
 const KanbanBoardContext = createContext<KanbanBoardContextType | undefined>(undefined);
@@ -23,9 +25,10 @@ export function KanbanBoardProvider({ children }: { children: ReactNode }) {
   const [columnView, setColumnView] = useState<'detailed' | 'simplified'>('simplified');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedYears, setSelectedYears] = useState<number[]>([]);
+  const [deadFilter, setDeadFilter] = useState<'all' | 'dead' | 'alive'>('all');
 
   return (
-    <KanbanBoardContext.Provider value={{ searchQuery, setSearchQuery, view, setView, columnView, setColumnView, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears }}>
+    <KanbanBoardContext.Provider value={{ searchQuery, setSearchQuery, view, setView, columnView, setColumnView, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter }}>
       {children}
     </KanbanBoardContext.Provider>
   );

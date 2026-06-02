@@ -50,6 +50,7 @@ export interface Bill {
   archived: boolean;
   dead: boolean;
   committee_assignment: string | null;
+  introducer?: string;
 
   // client side attributes
   latest_update: StatusUpdate | null;
