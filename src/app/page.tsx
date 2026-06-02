@@ -1,5 +1,4 @@
-'use client'
-
+'use client';
 
 import { Header } from '@/components/main/header';
 import { ProtectedKanbanBoardOrSpreadsheet } from '@/components/kanban/protected-kanban-board';
@@ -8,14 +7,7 @@ import { ApprovalsDashboard } from '@/components/approvals/approvals-dashboard';
 import { SupervisorDashboard } from '@/components/supervisor/supervisor-dashboard';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
-
-
-
-
-//Adds login/logout button in top-right
-// Protects NewBillButton (only shows when logged in)
-// Replaces your old kanban component with protected version
-
+import { BottomTabBar } from '@/components/main/bottom-tab-bar';
 
 export default function Home() {
   const { view, setView } = useKanbanBoard();
@@ -24,20 +16,22 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-          
-      <main className="flex-1 overflow-auto">
-          { view === 'admin' ? (
-              <AdminDashboard />
-          ) : view === 'supervisor' ? (
-              <SupervisorDashboard />
-          ) : view === 'approvals' ? (
-              <ApprovalsDashboard />
-          ) : view === 'spreadsheet' ? (
-            <ProtectedKanbanBoardOrSpreadsheet />          
-          ) : (
-            <ProtectedKanbanBoardOrSpreadsheet />          
-          )}
+
+      <main className="flex-1 overflow-auto pb-14 md:pb-0">
+        {view === 'admin' ? (
+          <AdminDashboard />
+        ) : view === 'supervisor' ? (
+          <SupervisorDashboard />
+        ) : view === 'approvals' ? (
+          <ApprovalsDashboard />
+        ) : view === 'spreadsheet' ? (
+          <ProtectedKanbanBoardOrSpreadsheet />
+        ) : (
+          <ProtectedKanbanBoardOrSpreadsheet />
+        )}
       </main>
+
+      <BottomTabBar />
     </div>
   );
 }
