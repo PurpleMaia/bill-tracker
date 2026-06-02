@@ -1,24 +1,25 @@
 'use client';
 
-import { Menu, Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Menu } from 'lucide-react';
 import { AuthHeader } from '@/components/auth/auth-header';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { useBills } from '@/hooks/contexts/bills-context';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 export function MobileHamburgerMenu() {
-  const { setSearchQuery } = useKanbanBoard();
-  const { activeTenant, memberships, setActiveTenant } = useAuth();
+  const { activeTenant, memberships, setActiveTenant, user } = useAuth();
+  const { columnView, setColumnView } = useKanbanBoard();
+  const { viewMode, toggleViewMode, showArchived, toggleShowArchived } = useBills();
 
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value);
-  };
+  const isPublic = !user;
 
   return (
     <Popover>
@@ -29,7 +30,7 @@ export function MobileHamburgerMenu() {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-3" align="end">
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           {/* Tenant selector */}
           {memberships.length > 1 && (
             <select
@@ -45,20 +46,31 @@ export function MobileHamburgerMenu() {
             </select>
           )}
 
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search bills..."
-              className="pl-9"
-              onChange={handleSearchChange}
-              aria-label="Search bills"
+          {/* Toggles */}
+          {!isPublic && (
+            <div className="flex flex-col gap-3 border-t pt-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="mobile-all-bills" className="text-sm">All Bills</Label>
+                <Switch id="mobile-all-bills" checked={viewMode === 'all-bills'} onCheckedChange={toggleViewMode} />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="mobile-show-archived" className="text-sm">Show Archived</Label>
+                <Switch id="mobile-show-archived" checked={showArchived} onCheckedChange={toggleShowArchived} />
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between border-t pt-3">
+            <Label htmlFor="mobile-detailed-view" className="text-sm">Detailed View</Label>
+            <Switch
+              id="mobile-detailed-view"
+              checked={columnView === 'detailed'}
+              onCheckedChange={(checked) => setColumnView(checked ? 'detailed' : 'simplified')}
             />
           </div>
 
           {/* Auth */}
-          <div className="flex justify-end">
+          <div className="flex justify-end border-t pt-3">
             <AuthHeader />
           </div>
         </div>
