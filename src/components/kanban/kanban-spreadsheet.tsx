@@ -19,7 +19,7 @@ import deadlinesJson from '@/data/session-deadlines-2026.json';
 import { ArrowUp, ArrowDown, ArrowUpDown, Clock } from 'lucide-react';
 
 // ─── Sort Types ──────────────────────────────────────────────
-type SortKey = 'bill_number' | 'current_bill_status' | 'bill_title' | 'description' | 'committee_assignment' | 'introducer' | 'year' | 'next_deadline';
+type SortKey = 'bill_number' | 'current_bill_status' | 'bill_title' | 'committee_assignment' | 'introducer' | 'year' | 'next_deadline';
 type SortDirection = 'asc' | 'desc';
 
 // ─── Helpers ─────────────────────────────────────────────────
@@ -198,7 +198,7 @@ export function KanbanSpreadsheet() {
               <SortHeader label="Bill #" columnKey="bill_number" className="w-[8rem]" sticky sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Current Status" columnKey="current_bill_status" className="w-[10rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Bill Title" columnKey="bill_title" className="min-w-[20rem] max-w-[30rem] w-[30rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
-              <SortHeader label="Policy Description" columnKey="description" className="min-w-[15rem] max-w-[30rem] w-[30rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <TableHead className="min-w-[15rem] max-w-[30rem] w-[30rem] py-4">Policy Description</TableHead>
               <SortHeader label="Committee" columnKey="committee_assignment" className="w-[12rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Introducer" columnKey="introducer" className="w-[12rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Year" columnKey="year" className="w-[6rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
