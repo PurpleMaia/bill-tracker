@@ -5,13 +5,11 @@ import { ProtectedKanbanBoardOrSpreadsheet } from '@/components/kanban/protected
 import { AdminDashboard } from '@/components/admin/admin-dashboard';
 import { ApprovalsDashboard } from '@/components/approvals/approvals-dashboard';
 import { SupervisorDashboard } from '@/components/supervisor/supervisor-dashboard';
-import { useAuth } from '@/hooks/contexts/auth-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { BottomTabBar } from '@/components/main/bottom-tab-bar';
 
 export default function Home() {
-  const { view, setView } = useKanbanBoard();
-  const { user } = useAuth();
+  const { view } = useKanbanBoard();
 
   return (
     <div className="flex min-h-screen flex-col">
