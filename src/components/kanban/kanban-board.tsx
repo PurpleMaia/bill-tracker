@@ -15,6 +15,7 @@ import { useBills } from '@/hooks/contexts/bills-context';
 import KanbanBoardSkeleton from './skeletons/skeleton-board';
 import { KanbanColumn } from './kanban-column';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { KanbanPillStrip } from './kanban-pill-strip';
 
 
 interface KanbanBoardProps {
@@ -428,8 +429,15 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
 
   return (
     <>
+      <KanbanPillStrip
+        onScrollToIntroduced={scrollToIntroduced}
+        onScrollToCrossover={scrollToCrossover}
+        onScrollToConference={scrollToConference}
+        onScrollToGovernor={scrollToGovernor}
+      />
+
       {(readOnly || isSimplified) ? (
-        <ScrollArea className="h-full w-full whitespace-nowrap p-4">
+        <ScrollArea className="h-full w-full whitespace-nowrap p-2 md:p-4">
           <ScrollAreaPrimitive.Viewport
             ref={viewportRef}
             className="h-full w-full max-w-[100vw] rounded-[inherit]"
@@ -438,7 +446,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
             {loading ? (
               <KanbanBoardSkeleton />
             ) : (
-              <div className="flex space-x-4 pb-4">
+              <div className="flex space-x-2 md:space-x-4 pb-4">
                 {activeColumns.map((column, idx) => (
                   <div
                     key={column.id}
@@ -478,7 +486,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
         </ScrollArea>
       ) : (
         <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
-          <ScrollArea className="h-full w-full whitespace-nowrap p-4">
+          <ScrollArea className="h-full w-full whitespace-nowrap p-2 md:p-4">
             <ScrollAreaPrimitive.Viewport
               ref={viewportRef}
               className="h-full w-full max-w-[100vw] rounded-[inherit]"
@@ -487,7 +495,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
               {loading ? (
                 <KanbanBoardSkeleton />
               ) : (
-                <div className="flex space-x-4 pb-4">
+                <div className="flex space-x-2 md:space-x-4 pb-4">
                   {activeColumns.map((column, idx) => (
                     <div
                       key={column.id}
@@ -537,7 +545,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
       )}
 
       {/* Bottom scroll bar */}
-      <div className="fixed bottom-0 left-0 w-full flex justify-center gap-4 bg-background/90 p-2 z-20 border-t">
+      <div className="hidden md:flex fixed bottom-0 left-0 w-full justify-center gap-4 bg-background/90 p-2 z-20 border-t">
         <Button variant="secondary" onClick={scrollToIntroduced}>
           Introduced
         </Button>
