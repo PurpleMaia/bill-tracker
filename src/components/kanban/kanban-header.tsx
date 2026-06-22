@@ -14,7 +14,7 @@ import { Search } from 'lucide-react';
 export function KanbanHeader() {
   const { user, activeTenant } = useAuth();
   const { viewMode, toggleViewMode, showArchived, toggleShowArchived } = useBills();
-  const { columnView, setColumnView, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter, setSearchQuery } = useKanbanBoard();
+  const { view, columnView, setColumnView, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter, setSearchQuery } = useKanbanBoard();
 
   const isPublic = !user;
   const canAddRemoveBills = activeTenant?.orgRole === 'admin';
@@ -43,6 +43,7 @@ export function KanbanHeader() {
       }}
       deadFilter={deadFilter}
       onDeadFilterChange={setDeadFilter}
+      showStatusFilter={view === 'spreadsheet'}
       onClearFilters={() => {
         setSelectedTagIds([]);
         setSelectedYears([]);

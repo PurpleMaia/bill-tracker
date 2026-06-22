@@ -261,7 +261,18 @@ export function KanbanSpreadsheet() {
                       style={firstTagColor ? { backgroundColor: `${firstTagColor}14` } : undefined}
                     >
                       {/* Bill # with dead/alive dot */}
-                      <TableCell className="sticky left-0 z-20 w-[6rem] md:w-[8rem] py-2 md:py-4" style={firstTagColor ? { backgroundColor: `${firstTagColor}14` } : undefined}>
+                      <TableCell
+                        className={`sticky left-0 z-20 w-[6rem] md:w-[8rem] py-2 md:py-4 ${firstTagColor ? '' : 'bg-background'}`}
+                        style={
+                          firstTagColor
+                            ? {
+                                // Opaque base hides scrolling content; tint layer matches the row's translucent color
+                                backgroundColor: 'hsl(var(--background))',
+                                backgroundImage: `linear-gradient(${firstTagColor}14, ${firstTagColor}14)`,
+                              }
+                            : undefined
+                        }
+                      >
                         <div className="flex items-center gap-2">
                           {bill.dead ? (
                             <span className="h-2.5 w-2.5 rounded-full bg-red-500 flex-shrink-0" />
