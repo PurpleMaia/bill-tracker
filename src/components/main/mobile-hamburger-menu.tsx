@@ -13,6 +13,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { ExportCsvDialog } from '@/components/kanban/export-csv-dialog';
+import { Download } from 'lucide-react';
 
 export function MobileHamburgerMenu() {
   const { activeTenant, memberships, setActiveTenant, user } = useAuth();
@@ -78,6 +80,17 @@ export function MobileHamburgerMenu() {
                 checked={view === 'admin'}
                 onCheckedChange={(checked) => setView(checked ? 'admin' : 'kanban')}
               />
+            </div>
+          )}
+
+          {/* Export CSV */}
+          {!isPublic && (
+            <div className="border-t pt-3">
+              <ExportCsvDialog>
+                <Button variant="outline" className="w-full justify-start">
+                  <Download className="h-4 w-4" /> Export CSV
+                </Button>
+              </ExportCsvDialog>
             </div>
           )}
 

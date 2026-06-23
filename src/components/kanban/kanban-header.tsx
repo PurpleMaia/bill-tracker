@@ -6,6 +6,7 @@ import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { Label } from '../ui/label';
 import NewBillButton from './new-bill/new-bill-button';
 import { TrackBillDialog } from './track-bill-dialog';
+import { ExportCsvDialog } from './export-csv-dialog';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { TagFilterList } from '../tags/tag-filter-list';
 import { Input } from '../ui/input';
@@ -107,6 +108,7 @@ export function KanbanHeader() {
             <>
               <TrackBillDialog />
               {canAddRemoveBills && <NewBillButton />}
+              <ExportCsvDialog />
             </>
           )}
         </div>
