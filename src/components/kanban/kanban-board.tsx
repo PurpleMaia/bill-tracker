@@ -15,6 +15,7 @@ import { useBills } from '@/hooks/contexts/bills-context';
 import KanbanBoardSkeleton from './skeletons/skeleton-board';
 import { KanbanColumn } from './kanban-column';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { KanbanPillStrip } from './kanban-pill-strip';
 
 
 interface KanbanBoardProps {
@@ -75,6 +76,80 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
   // Store refs to all bill cards across all columns
   const billCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const columnScrollViewportRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+  // ----- Mobile edge-hold auto-pan during drag -----
+  // Columns are 85vw on mobile, so the library's built-in autoscroll barely
+  // triggers. We pan viewportRef.scrollLeft directly via rAF while the drag
+  // pointer is held near the left/right edge. Mobile only.
+  const EDGE_ZONE = 180; // px from edge that activates panning
+  const MAX_PAN_PER_FRAME = 1; // px/frame at the very edge
+  const MIN_PAN_PER_FRAME = 1; // px/frame floor when entering the zone
+  const dragPointerXRef = useRef<number | null>(null);
+  const autoPanRafRef = useRef<number | null>(null);
+  const isMobileDragRef = useRef<boolean>(false);
+
+  const autoPanTick = useCallback(() => {
+    const viewport = viewportRef.current;
+    const pointerX = dragPointerXRef.current;
+    if (viewport && pointerX !== null) {
+      const rect = viewport.getBoundingClientRect();
+      const distFromLeft = pointerX - rect.left;
+      const distFromRight = rect.right - pointerX;
+      let velocity = 0;
+      if (distFromLeft < EDGE_ZONE) {
+        const intensity = (EDGE_ZONE - Math.max(distFromLeft, 0)) / EDGE_ZONE;
+        velocity = -(MIN_PAN_PER_FRAME + (MAX_PAN_PER_FRAME - MIN_PAN_PER_FRAME) * intensity);
+      } else if (distFromRight < EDGE_ZONE) {
+        const intensity = (EDGE_ZONE - Math.max(distFromRight, 0)) / EDGE_ZONE;
+        velocity = MIN_PAN_PER_FRAME + (MAX_PAN_PER_FRAME - MIN_PAN_PER_FRAME) * intensity;
+      }
+      if (velocity !== 0) {
+        const maxScroll = viewport.scrollWidth - viewport.clientWidth;
+        viewport.scrollLeft = Math.max(0, Math.min(maxScroll, viewport.scrollLeft + velocity));
+      }
+    }
+    autoPanRafRef.current = requestAnimationFrame(autoPanTick);
+  }, []);
+
+  const handleDragPointerMove = useCallback((e: PointerEvent | TouchEvent) => {
+    const clientX =
+      'touches' in e
+        ? e.touches[0]?.clientX ?? null
+        : (e as PointerEvent).clientX;
+    if (clientX !== null && clientX !== undefined) {
+      dragPointerXRef.current = clientX;
+    }
+  }, []);
+
+  const startAutoPan = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    isMobileDragRef.current = window.matchMedia('(max-width: 767px)').matches;
+    if (!isMobileDragRef.current) return;
+    dragPointerXRef.current = null;
+    // Per-frame scrollLeft writes fight the inline scrollBehavior: 'smooth'.
+    if (viewportRef.current) viewportRef.current.style.scrollBehavior = 'auto';
+    window.addEventListener('pointermove', handleDragPointerMove, { passive: true });
+    window.addEventListener('touchmove', handleDragPointerMove, { passive: true });
+    if (autoPanRafRef.current === null) {
+      autoPanRafRef.current = requestAnimationFrame(autoPanTick);
+    }
+  }, [handleDragPointerMove, autoPanTick]);
+
+  const stopAutoPan = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    window.removeEventListener('pointermove', handleDragPointerMove);
+    window.removeEventListener('touchmove', handleDragPointerMove);
+    if (autoPanRafRef.current !== null) {
+      cancelAnimationFrame(autoPanRafRef.current);
+      autoPanRafRef.current = null;
+    }
+    dragPointerXRef.current = null;
+    isMobileDragRef.current = false;
+    if (viewportRef.current) viewportRef.current.style.scrollBehavior = 'smooth';
+  }, [handleDragPointerMove]);
+
+  // Tear down listeners/rAF if a drag is interrupted by unmount.
+  useEffect(() => stopAutoPan, [stopAutoPan]);
 
   const scrollToIntroduced = () => scrollToColumnByIndex(introducedIdx);
   const scrollToCrossover = () => scrollToColumnByIndex(crossoverIdx);
@@ -275,10 +350,12 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
 
   const onDragStart = useCallback((start: any) => {
     setDraggingBillId(start.draggableId);
-  }, []);
+    startAutoPan();
+  }, [startAutoPan]);
 
   const onDragEnd = useCallback(
     async (result: DropResult) => {
+      stopAutoPan();
       if (readOnly) return;
 
       setDraggingBillId(null);
@@ -371,7 +448,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
         });
       }
     },
-    [bills, readOnly, user, activeTenant, proposeStatusChange, toast, filteredBills, searchQuery, setBills]
+    [bills, readOnly, user, activeTenant, proposeStatusChange, toast, filteredBills, searchQuery, setBills, stopAutoPan]
   );
 
   // ===========================================================
@@ -428,8 +505,15 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
 
   return (
     <>
+      <KanbanPillStrip
+        onScrollToIntroduced={scrollToIntroduced}
+        onScrollToCrossover={scrollToCrossover}
+        onScrollToConference={scrollToConference}
+        onScrollToGovernor={scrollToGovernor}
+      />
+
       {(readOnly || isSimplified) ? (
-        <ScrollArea className="h-full w-full whitespace-nowrap p-4">
+        <ScrollArea className="h-full w-full whitespace-nowrap p-2 md:p-4">
           <ScrollAreaPrimitive.Viewport
             ref={viewportRef}
             className="h-full w-full max-w-[100vw] rounded-[inherit]"
@@ -438,7 +522,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
             {loading ? (
               <KanbanBoardSkeleton />
             ) : (
-              <div className="flex space-x-4 pb-4">
+              <div className="flex space-x-2 md:space-x-4 pb-4">
                 {activeColumns.map((column, idx) => (
                   <div
                     key={column.id}
@@ -478,7 +562,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
         </ScrollArea>
       ) : (
         <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
-          <ScrollArea className="h-full w-full whitespace-nowrap p-4">
+          <ScrollArea className="h-full w-full whitespace-nowrap p-2 md:p-4">
             <ScrollAreaPrimitive.Viewport
               ref={viewportRef}
               className="h-full w-full max-w-[100vw] rounded-[inherit]"
@@ -487,7 +571,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
               {loading ? (
                 <KanbanBoardSkeleton />
               ) : (
-                <div className="flex space-x-4 pb-4">
+                <div className="flex space-x-2 md:space-x-4 pb-4">
                   {activeColumns.map((column, idx) => (
                     <div
                       key={column.id}
@@ -537,7 +621,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
       )}
 
       {/* Bottom scroll bar */}
-      <div className="fixed bottom-0 left-0 w-full flex justify-center gap-4 bg-background/90 p-2 z-20 border-t">
+      <div className="hidden md:flex fixed bottom-0 left-0 w-full justify-center gap-4 bg-background/90 p-2 z-20 border-t">
         <Button variant="secondary" onClick={scrollToIntroduced}>
           Introduced
         </Button>

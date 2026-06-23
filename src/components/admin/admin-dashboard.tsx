@@ -88,7 +88,7 @@ function AccountsTab(
 
   if (isLoading) {
     return (
-      <TabsContent value="pending-requests" className="mx-8 space-y-8 mt-6">
+      <TabsContent value="pending-requests" className="mx-4 sm:mx-8 space-y-8 mt-6">
         <div className="p-8">
           <Skeleton className="h-8 w-1/3 mb-4 rounded-md" />
           <Skeleton className="h-[600px] w-full rounded-md" />
@@ -98,7 +98,7 @@ function AccountsTab(
   }
 
   return (
-    <TabsContent value="pending-requests" className="mx-8 mt-6">
+    <TabsContent value="pending-requests" className="mx-4 sm:mx-8 mt-6">
         <div className="space-y-8">
           {/* All Accounts Section */}
           <AllAccountsSection allAccounts={allAccounts} />
@@ -116,12 +116,12 @@ function AccountsTab(
                 </Card>
               ) : (
                 pendingUsers.map((user) => (
-                  <Card key={user.id} className="p-6 bg-white shadow-md">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2">
+                  <Card key={user.id} className="p-4 sm:p-6 bg-white shadow-md">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                      <div className="space-y-2 min-w-0">
                         <h3 className="font-semibold">{user.username}</h3>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                        <div className="flex gap-2 text-sm text-muted-foreground items-center">
+                        <p className="text-sm text-muted-foreground break-all">{user.email}</p>
+                        <div className="flex flex-wrap gap-2 text-sm text-muted-foreground items-center">
                           Joined: <span className='text-foreground'>{user.created_at ? user.created_at.toLocaleDateString() : 'Unknown'}</span>
 
                           {user.requested_admin
@@ -132,7 +132,7 @@ function AccountsTab(
                           }
                         </div>
                       </div>
-                      <div className="space-x-2">
+                      <div className="flex flex-wrap gap-2 shrink-0">
                         {isApproving || isRejecting ? (
                           <Skeleton className="h-8 w-24 rounded-md" />
                         ) : (
@@ -300,7 +300,7 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
 
       {/* Filter Controls */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg space-y-4">
-        <div className="flex items-center gap-6 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 sm:flex-wrap">
           {/* Show Archived Toggle */}
           <div className="flex items-center gap-2">
             <Switch
@@ -339,7 +339,7 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
           </div>
 
           {/* Username Search */}
-          <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+          <div className="flex items-center gap-2 w-full sm:flex-1 sm:min-w-[200px]">
             <Label htmlFor="username-search">Search:</Label>
             <Input
               id="username-search"
@@ -373,11 +373,11 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
 
             return (
               <React.Fragment key={user.id}>
-                <Card className={`p-6 shadow-md ${isArchived ? 'bg-gray-100 opacity-75' : 'bg-white'}`}>
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2 flex-1">
+                <Card className={`p-4 sm:p-6 shadow-md ${isArchived ? 'bg-gray-100 opacity-75' : 'bg-white'}`}>
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div className="space-y-2 flex-1 min-w-0">
                       <h3 className="font-semibold">{user.username}</h3>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                      <p className="text-sm text-muted-foreground break-all">{user.email}</p>
                       <div className="flex gap-2 text-sm text-muted-foreground items-center flex-wrap">
                         Joined: <span className='text-foreground'>{user.created_at ? user.created_at.toLocaleDateString() : 'Unknown'}</span>
                         <Badge variant="secondary" className={getRoleBadgeColor(user.role || 'user')}>
@@ -390,7 +390,7 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
                       {!isArchived && (
                         <>
                           <select
@@ -504,7 +504,7 @@ function AllInternsTab(
 
   if (isLoadingInterns) {
     return (
-      <TabsContent value="all-interns" className="mx-8 space-y-8 mt-6">
+      <TabsContent value="all-interns" className="mx-4 sm:mx-8 space-y-8 mt-6">
         <div className="p-8">
           <Skeleton className="h-8 w-1/3 mb-4 rounded-md" />
           <Skeleton className="h-[600px] w-full rounded-md" />
@@ -514,7 +514,7 @@ function AllInternsTab(
   }
 
   return (
-    <TabsContent value="all-interns" className="mx-8 space-y-8 mt-6">
+    <TabsContent value="all-interns" className="mx-4 sm:mx-8 space-y-8 mt-6">
           {/* All Interns */}
           <div>
             <h1 className="text-2xl font-bold mb-1 ">All Users</h1>
@@ -527,14 +527,15 @@ function AllInternsTab(
                     </p>
                   </Card>
                 ) : (
-                  <Table className='border bg-white shadow-sm'>
+                  <div className="overflow-x-auto rounded-md border">
+                  <Table className='bg-white shadow-sm min-w-[640px]'>
                     <TableHeader>
                       <TableRow className='bg-gray-100'>
                         <TableHead className='font-bold'>User</TableHead>
                         <TableHead className='font-bold'>Supervisor</TableHead>
                         <TableHead className='font-bold'>Status</TableHead>
                         <TableHead className='font-bold'>Joined</TableHead>
-                        <TableHead className='font-bold'>Tracked Bills</TableHead>                        
+                        <TableHead className='font-bold'>Tracked Bills</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -596,7 +597,8 @@ function AllInternsTab(
                                   {intern.adopted_bills.length === 0 ? (
                                     <p className="text-sm text-muted-foreground">No adopted bills</p>
                                   ) : (
-                                    <Table>
+                                    <div className="overflow-x-auto">
+                                    <Table className="min-w-[560px]">
                                       <TableHeader>
                                         <TableRow className="bg-gray-100">
                                           <TableHead>Bill Number</TableHead>
@@ -643,15 +645,17 @@ function AllInternsTab(
                                         ))}
                                       </TableBody>
                                     </Table>
+                                    </div>
                                   )}
                                 </div>
                               </TableCell>
                             </TableRow>
                           )}
                         </React.Fragment>
-                      ))}                      
+                      ))}
                     </TableBody>
                   </Table>
+                  </div>
                 )}
                </div>
           </div>
@@ -701,7 +705,7 @@ function AllSupervisorsTab(
 
   if (isLoadingRelationships) {
     return (
-      <TabsContent value="all-supervisors" className="mx-8 space-y-8 mt-6">
+      <TabsContent value="all-supervisors" className="mx-4 sm:mx-8 space-y-8 mt-6">
         <div className="p-8">
           <Skeleton className="h-8 w-1/3 mb-4 rounded-md" />
           <Skeleton className="h-[600px] w-full rounded-md" />
@@ -730,7 +734,7 @@ function AllSupervisorsTab(
   };
 
   return (
-    <TabsContent value="all-supervisors" className="mx-8 space-y-8 mt-6">
+    <TabsContent value="all-supervisors" className="mx-4 sm:mx-8 space-y-8 mt-6">
       <div>
         <h1 className="text-2xl font-bold mb-1 ">All Supervisors</h1>
         <h2 className="text-sm mb-6 text-muted-foreground">View all supervisor accounts and their users</h2>
@@ -857,7 +861,7 @@ function AllInternBillsTab(
   
   if (isLoadingBills) {
     return (
-      <TabsContent value="all-tracked-bills" className="mx-8 space-y-8 mt-6">
+      <TabsContent value="all-tracked-bills" className="mx-4 sm:mx-8 space-y-8 mt-6">
         <div className="p-8">
           <Skeleton className="h-8 w-1/3 mb-4 rounded-md" />
           <Skeleton className="h-[600px] w-full rounded-md" />
@@ -867,7 +871,7 @@ function AllInternBillsTab(
   }
 
   return (
-    <TabsContent value="all-tracked-bills" className="mx-8 space-y-8 mt-6">
+    <TabsContent value="all-tracked-bills" className="mx-4 sm:mx-8 space-y-8 mt-6">
       <div>
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -895,17 +899,18 @@ function AllInternBillsTab(
               </Card>
             ) : (
               bills && bills.map((bill) => (
-                <Card key={bill.bill_id} className="p-6 bg-white shadow-md">
-                  <div className="flex items-start justify-between">
-                    <div className="">
+                <Card key={bill.bill_id} className="p-4 sm:p-6 bg-white shadow-md">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div className="min-w-0">
                       <p className="text-md font-semibold text-foreground">{bill.bill_number}</p>
                       <p className="text-sm text-muted-foreground">{bill.bill_title || 'No Title'}</p>
                       <div className='mt-2 flex text-muted-foreground gap-2'>
                         <Badge variant='outline'>{formatBillStatusName(bill.current_status)}</Badge>
                       </div>
                     </div>
-                    <div className="space-x-2">
-                      <p className="text-sm text-muted-foreground mb-2">Tracked by:</p>
+                    <div className="flex flex-col items-start gap-2 shrink-0 sm:max-w-[50%]">
+                      <p className="text-sm text-muted-foreground">Tracked by:</p>
+                      <div className="flex flex-wrap gap-2">
                       {bill.tracked_by.length === 0 ? (
                         <p className="text-sm text-muted-foreground">No users tracking this bill</p>
                       ) : (
@@ -930,6 +935,7 @@ function AllInternBillsTab(
                           </Badge>
                         ))
                       )}
+                      </div>
                     </div>
                   </div>
                 </Card>

@@ -113,7 +113,7 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
       <div
         ref={ref}
         className={cn(
-          'flex h-[calc(100vh-10rem)] w-80 shrink-0 flex-col rounded-lg border shadow-sm',
+          'flex h-[calc(100vh-12rem)] md:h-[calc(100vh-10rem)] w-[85vw] md:w-80 shrink-0 flex-col rounded-lg border shadow-sm',
           getColumnPhaseBg(columnId),
           isDraggingOver ? 'bg-accent/20' : '',
           className
