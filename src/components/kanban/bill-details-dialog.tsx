@@ -32,6 +32,8 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { updateBillStatus, updateBillDeadFlag, getBillDetails } from '@/services/data/legislation';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/dead-bill';
 import type { SessionDeadlines } from '@/lib/dead-bill';
@@ -69,6 +71,7 @@ const getCurrentStageName = (status: BillStatus): string => {
 export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialogProps) {
   const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills();
   const { user, activeTenant } = useAuth();
+  const isMobile = useIsMobile();
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [, setSaving] = useState<boolean>(false);
   const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
@@ -180,9 +183,9 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[95vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-[100vw] sm:max-w-6xl h-[100dvh] sm:h-[95vh] flex flex-col p-0 gap-0 rounded-none sm:rounded-lg">
         {/* Header — compact, with progress */}
-        <DialogHeader className="px-6 pt-5 pb-4 border-b shrink-0">
+        <DialogHeader className="px-4 sm:px-6 pt-5 pb-4 border-b shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
@@ -212,8 +215,12 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                 <TooltipContent><p>{currentStageName} ({Math.round(progressValue)}%)</p></TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+            {/* Full stage labels on desktop; single current-stage label on mobile */}
+            <div className="hidden sm:flex justify-between text-[10px] text-muted-foreground mt-1">
               {PROGRESS_STAGES.map(s => <span key={s.name}>{s.name}</span>)}
+            </div>
+            <div className="sm:hidden text-[10px] text-muted-foreground mt-1">
+              {currentStageName}
             </div>
           </div>
         </DialogHeader>
@@ -239,9 +246,9 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex min-h-0">
-            {/* LEFT PANEL — Bill info, controls */}
-            <div className="w-[55%] border-r flex flex-col">
+          (() => {
+            const leftPanel = (
+            <div className={cn("flex flex-col min-h-0", isMobile ? "h-full" : "w-[55%] border-r")}>
               <ScrollArea className="flex-1">
                 <div className="p-6 space-y-5">
 
@@ -322,7 +329,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                       <p className="text-sm leading-relaxed">{billDetails?.description || bill.description}</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Committees</h3>
                         <p className="text-sm">{billDetails?.committee_assignment || bill.committee_assignment || 'Not Assigned'}</p>
@@ -403,9 +410,10 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                 </div>
               </div>
             </div>
+            );
 
-            {/* RIGHT PANEL — Status updates timeline */}
-            <div className="w-[45%] flex flex-col bg-muted/20">
+            const rightPanel = (
+            <div className={cn("flex flex-col bg-muted/20 min-h-0", isMobile ? "h-full" : "w-[45%]")}>
               <div className="px-5 pt-5 pb-3 border-b shrink-0 flex items-center justify-between">
                 <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Status Updates
@@ -459,7 +467,37 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                 </div>
               </ScrollArea>
             </div>
-          </div>
+            );
+
+            if (isMobile) {
+              return (
+                <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
+                  <TabsList className="mx-4 mt-3 shrink-0 grid grid-cols-2">
+                    <TabsTrigger value="details">Details</TabsTrigger>
+                    <TabsTrigger value="activity">
+                      Activity
+                      {billDetails?.updates && billDetails.updates.length > 0 && (
+                        <span className="ml-1 text-muted-foreground/70">({billDetails.updates.length})</span>
+                      )}
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="details" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
+                    {leftPanel}
+                  </TabsContent>
+                  <TabsContent value="activity" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
+                    {rightPanel}
+                  </TabsContent>
+                </Tabs>
+              );
+            }
+
+            return (
+              <div className="flex-1 flex min-h-0">
+                {leftPanel}
+                {rightPanel}
+              </div>
+            );
+          })()
         )}
       </DialogContent>
     </Dialog>

@@ -130,7 +130,8 @@ export function PendingInvitesSection() {
           </p>
         </Card>
       ) : (
-        <Table className="border bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-md border">
+        <Table className="bg-white shadow-sm min-w-[720px]">
           <TableHeader>
             <TableRow className="bg-gray-100">
               <TableHead className="font-bold">Email</TableHead>
@@ -180,6 +181,7 @@ export function PendingInvitesSection() {
             ))}
           </TableBody>
         </Table>
+        </div>
       )}
 
       <AlertDialog open={!!revokeDialogId} onOpenChange={(open) => !open && setRevokeDialogId(null)}>

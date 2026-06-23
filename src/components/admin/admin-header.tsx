@@ -14,9 +14,9 @@ interface AdminHeaderProps {
 export default function AdminHeader({ count }: AdminHeaderProps) {
   const activeStyle = 'data-[state=active]:bg-accent data-[state=active]:text-white'
   return (
-    <div className='px-6 py-2 border-b bg-white flex items-center justify-between shadow-md'>
-        <div className=''>
-            <TabsList className="space-x-4 shadow-sm border">
+    <div className='px-4 sm:px-6 py-2 border-b bg-white flex items-center justify-between shadow-md'>
+        <div className='w-full overflow-x-auto'>
+            <TabsList className="space-x-2 sm:space-x-4 shadow-sm border w-max">
                 <TabsTrigger value="pending-requests" className={activeStyle}>
                   Accounts <Badge className='ml-1 bg-red-100 text-red-800'>{count.accounts}</Badge>
                 </TabsTrigger>
@@ -25,9 +25,6 @@ export default function AdminHeader({ count }: AdminHeaderProps) {
                 </TabsTrigger>
                 <TabsTrigger value="all-interns" className={activeStyle}>
                   Users <Badge className='ml-1 bg-blue-100 text-blue-800'>{count.allInterns}</Badge>
-                </TabsTrigger>
-                <TabsTrigger value="all-supervisors" className={activeStyle}>
-                  Supervisors <Badge className='ml-1 bg-green-100 text-green-800'>{count.allSupervisors}</Badge>
                 </TabsTrigger>
             </TabsList>
         </div>
