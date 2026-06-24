@@ -99,7 +99,7 @@ function SortHeader({ label, columnKey, className, sticky, sortKey, sortDirectio
   const isActive = sortKey === columnKey;
   return (
     <TableHead
-      className={`${className ?? ''} ${sticky ? 'sticky left-0 z-20 bg-background' : ''} py-2 md:py-4 cursor-pointer select-none hover:bg-muted/50 transition-colors`}
+      className={`${className ?? ''} ${sticky ? 'sticky left-0 z-[5] bg-background' : ''} py-2 md:py-4 cursor-pointer select-none hover:bg-muted/50 transition-colors`}
       onClick={() => onSort(columnKey)}
     >
       <div className="flex items-center gap-1">
@@ -262,7 +262,7 @@ export function KanbanSpreadsheet() {
                     >
                       {/* Bill # with dead/alive dot */}
                       <TableCell
-                        className={`sticky left-0 z-20 w-[6rem] md:w-[8rem] py-2 md:py-4 ${firstTagColor ? '' : 'bg-background'}`}
+                        className={`sticky left-0 z-[5] w-[6rem] md:w-[8rem] py-2 md:py-4 ${firstTagColor ? '' : 'bg-background'}`}
                         style={
                           firstTagColor
                             ? {
