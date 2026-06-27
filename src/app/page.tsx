@@ -3,7 +3,6 @@
 import { Header } from '@/components/main/header';
 import { ProtectedKanbanBoardOrSpreadsheet } from '@/components/kanban/protected-kanban-board';
 import { AdminDashboard } from '@/components/admin/admin-dashboard';
-import { ApprovalsDashboard } from '@/components/approvals/approvals-dashboard';
 import { SupervisorDashboard } from '@/components/supervisor/supervisor-dashboard';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { BottomTabBar } from '@/components/main/bottom-tab-bar';
@@ -20,10 +19,6 @@ export default function Home() {
           <AdminDashboard />
         ) : view === 'supervisor' ? (
           <SupervisorDashboard />
-        ) : view === 'approvals' ? (
-          <ApprovalsDashboard />
-        ) : view === 'spreadsheet' ? (
-          <ProtectedKanbanBoardOrSpreadsheet />
         ) : (
           <ProtectedKanbanBoardOrSpreadsheet />
         )}

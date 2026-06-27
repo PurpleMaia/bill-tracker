@@ -1,7 +1,7 @@
 'use client';
 
 import { Input } from '@/components/ui/input';
-import { KanbanSquareIcon, ListCheck, Search, Table, Users2Icon } from 'lucide-react';
+import { KanbanSquareIcon, Search, Table, Users2Icon } from 'lucide-react';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { AuthHeader } from '../auth/auth-header';
@@ -57,7 +57,7 @@ export function Header() {
         <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 justify-center w-fit">
           <Tabs
             value={currentView}
-            onValueChange={(v) => setView(v as "kanban" | "spreadsheet" | "admin" | "approvals" | "supervisor")}
+            onValueChange={(v) => setView(v as "kanban" | "spreadsheet" | "admin" | "supervisor")}
             className="rounded-md shadow-sm"
           >
             <TabsList className="bg-secondary">
@@ -100,8 +100,6 @@ function getIconForView(view: string) {
       return <KanbanSquareIcon className="h-5 w-5 mr-2" />;
     case 'spreadsheet':
       return <Table className="h-5 w-5 mr-2" />;
-    case 'approvals':
-      return <ListCheck className="h-5 w-5 mr-2" />;
     case 'admin':
       return <Users2Icon className="h-5 w-5 mr-2" />;
     default:
