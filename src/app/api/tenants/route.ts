@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/lib/auth';
 import { getSessionCookie } from '@/lib/cookies';
-import { getUserMemberships, createTenant } from '@/services/data/tenants';
+import { getUserMemberships, createTenant } from '@/db/queries/tenants';
 
 export async function GET(request: NextRequest) {
   try {

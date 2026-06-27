@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/lib/auth';
 import { getSessionCookie } from '@/lib/cookies';
-import { validateMembership } from '@/services/data/tenants';
-import { updateBillStatus, untrackBill } from '@/services/data/bills-write';
-import { getBillDetails } from '@/services/data/bills-read';
-import { updateBillTags } from '@/services/data/tags';
+import { validateMembership } from '@/db/queries/tenants';
+import { updateBillStatus, untrackBill } from '@/db/queries/bills-write';
+import { getBillDetails } from '@/db/queries/bills-read';
+import { updateBillTags } from '@/db/queries/tags';
 
 export async function GET(
   request: NextRequest,

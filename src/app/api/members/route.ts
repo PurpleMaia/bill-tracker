@@ -7,7 +7,7 @@ import {
   addMember,
   removeMember,
   updateMemberRole,
-} from '@/services/data/tenants';
+} from '@/db/queries/tenants';
 import { db } from '@/db/kysely/client';
 import { uuidSchema, emailSchema } from '@/lib/validators';
 import type { OrgRole } from '@/types/tenant';

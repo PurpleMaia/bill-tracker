@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { updateFoodStatusOrCreateBill } from '@/services/data/bills-write';
+import { updateFoodStatusOrCreateBill } from '@/db/queries/bills-write';
 import { toast } from '@/hooks/use-toast';
 
 interface KanbanCardProps extends React.HTMLAttributes<HTMLDivElement> {

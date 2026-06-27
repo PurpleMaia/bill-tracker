@@ -4,8 +4,8 @@ import type { Bill, BillDetails } from '@/types/legislation';
 import { KANBAN_COLUMNS } from '@/lib/kanban-columns';
 import { db } from '@/db/kysely/client';
 import { BillStatus } from '@/db/types';
-import { convertDataToBillShape } from '@/services/data/bill-mappers';
-import { getAdditionalBillData, getStatusUpdatesForBill, findExistingBillByURL } from '@/services/data/bills-read';
+import { convertDataToBillShape } from '@/db/queries/bill-mappers';
+import { getAdditionalBillData, getStatusUpdatesForBill, findExistingBillByURL } from '@/db/queries/bills-read';
 
 // ==============================================
 // BILL UPDATE FUNCTIONS

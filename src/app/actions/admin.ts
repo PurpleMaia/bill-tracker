@@ -6,7 +6,7 @@ import { Errors } from '@/lib/errors';
 import { BillWithInterns, InternWithBills, PendingProposal, PendingUser, SupervisorWithInterns } from '@/types/admin';
 import { User } from '@/types/user';
 import { revalidatePath } from 'next/cache';
-import { validateMembership } from '@/services/data/tenants';
+import { validateMembership } from '@/db/queries/tenants';
 
 interface ActionResult<T = void> {
   success: boolean;

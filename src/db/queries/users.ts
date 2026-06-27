@@ -1,7 +1,14 @@
-import { db } from '../../db/kysely/client';
-import type { User } from '@/lib/auth';
+import { db } from '@/db/kysely/client';
 
-export async function getUserById(userId: string): Promise<User | null> {
+/** The subset of user fields these lookups return. */
+export interface BasicUser {
+  id: string;
+  email: string;
+  username: string;
+  role: string;
+}
+
+export async function getUserById(userId: string): Promise<BasicUser | null> {
   try {
     const user = await db
       .selectFrom('user')
@@ -25,7 +32,7 @@ export async function getUserById(userId: string): Promise<User | null> {
   }
 }
 
-export async function getUsersByIds(userIds: string[]): Promise<User[]> {
+export async function getUsersByIds(userIds: string[]): Promise<BasicUser[]> {
   try {
     if (userIds.length === 0) {
       return [];

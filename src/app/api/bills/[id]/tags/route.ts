@@ -3,7 +3,7 @@ import { db } from '../../../../../db/kysely/client';
 import { validateSession } from '@/lib/auth';
 import { getSessionCookie } from '@/lib/cookies';
 import { tagsSchema } from '@/lib/validators';
-import { validateMembership } from '@/services/data/tenants';
+import { validateMembership } from '@/db/queries/tenants';
 
 // GET - Get tags for a specific bill (requires tenant context)
 export async function GET(

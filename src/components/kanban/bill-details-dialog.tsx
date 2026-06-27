@@ -30,8 +30,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from '@/hooks/use-toast';
-import { updateBillStatus, updateBillDeadFlag } from '@/services/data/bills-write';
-import { getBillDetails } from '@/services/data/bills-read';
+import { updateBillStatus, updateBillDeadFlag } from '@/db/queries/bills-write';
+import { getBillDetails } from '@/db/queries/bills-read';
 import { Switch } from '@/components/ui/switch';
 import { TagSelector } from '../tags/tag-selector';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/dead-bill';

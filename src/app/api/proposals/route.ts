@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/lib/auth';
 import { getSessionCookie } from '@/lib/cookies';
-import { validateMembership } from '@/services/data/tenants';
+import { validateMembership } from '@/db/queries/tenants';
 import { db } from '@/db/kysely/client';
 import { sql } from 'kysely';
-import { updateBillStatus } from '@/services/data/bills-write';
+import { updateBillStatus } from '@/db/queries/bills-write';
 import { proposalSchema, uuidSchema } from '@/lib/validators';
 import crypto from 'crypto';
 

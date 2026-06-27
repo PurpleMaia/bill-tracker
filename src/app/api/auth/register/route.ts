@@ -3,7 +3,7 @@ import { registerUser, createSession } from '@/lib/auth';
 import { db } from '@/db/kysely/client';
 import { registerSchema } from '@/lib/validators';
 import { setSessionCookie } from '@/lib/cookies';
-import { createTenant, addMember, getUserMemberships } from '@/services/data/tenants';
+import { createTenant, addMember, getUserMemberships } from '@/db/queries/tenants';
 import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
 import { ApiError } from '@/lib/errors';
 

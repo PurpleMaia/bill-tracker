@@ -4,8 +4,8 @@ import type { Bill, BillTracker, BillDetails, StatusUpdate } from '@/types/legis
 import { db } from '@/db/kysely/client';
 import { StatusUpdates } from '@/db/types';
 import { Selectable, sql } from 'kysely';
-import { getBatchBillTags } from '@/services/data/tags';
-import { mapBillDataToBillClient, convertDataToBillShape } from '@/services/data/bill-mappers';
+import { getBatchBillTags } from '@/db/queries/tags';
+import { mapBillDataToBillClient, convertDataToBillShape } from '@/db/queries/bill-mappers';
 
 // ==============================================
 // BILL FETCH FUNCTIONS
