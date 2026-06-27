@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSession } from '@/lib/auth';
-import { getSessionCookie } from '@/lib/cookies';
-import { validateMembership } from '@/db/queries/tenants';
+import { requireAdmin } from '@/lib/auth-guards';
 import { db } from '@/db/kysely/client';
 import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
 import { emailSchema } from '@/lib/validators';
@@ -28,16 +26,8 @@ export async function POST(
       );
     }
 
-    // Auth
-    const sessionToken = getSessionCookie(request);
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const user = await validateSession(sessionToken);
-    const orgRole = await validateMembership(user.id, tenantId);
-    if (orgRole !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Auth — org admin only
+    const { user } = await requireAdmin.fromRequest(request, tenantId);
 
     // Validate email
     const body = await request.json();

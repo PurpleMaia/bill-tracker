@@ -1,10 +1,8 @@
 'use server';
 
-import { auth } from '@/lib/auth';
-import { Errors } from '@/lib/errors';
 import { BillWithInterns, InternWithBills, PendingProposal, PendingUser, SupervisorWithInterns } from '@/types/admin';
 import { revalidatePath } from 'next/cache';
-import { validateMembership } from '@/db/queries/tenants';
+import { requireAdmin } from '@/lib/auth-guards';
 import * as adminQueries from '@/db/queries/admin';
 
 interface ActionResult<T = void> {
@@ -13,27 +11,12 @@ interface ActionResult<T = void> {
   data?: T;
 }
 
-// Helper to verify admin access
+// Admin auth now lives in the shared requireAdmin guard (@/lib/auth-guards),
+// which enforces org-admin when tenant-scoped and legacy global-admin otherwise.
+// Returns the admin's user id for the few actions that exclude self.
 async function verifyAdminAccess(tenantId?: string): Promise<{ userId: string; tenantId?: string }> {
-  const session = await auth();
-
-  if (!session) throw Errors.NO_SESSION_COOKIE;
-
-  if (tenantId) {
-    // Tenant-scoped: validate org admin via membership
-    const orgRole = await validateMembership(session.user.id, tenantId);
-    if (orgRole !== 'admin') {
-      throw Errors.UNAUTHORIZED;
-    }
-    return { userId: session.user.id, tenantId };
-  }
-
-  // Legacy fallback: check global role
-  if (session.user.role !== 'admin') {
-    throw Errors.UNAUTHORIZED;
-  }
-
-  return { userId: session.user.id };
+  const { user } = await requireAdmin.fromAction(tenantId);
+  return { userId: user.id, tenantId };
 }
 
 // ============================================

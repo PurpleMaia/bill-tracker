@@ -1,20 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSession } from '@/lib/auth';
-import { getSessionCookie } from '@/lib/cookies';
+import { requireSession } from '@/lib/auth-guards';
 import { db } from '../../../../db/kysely/client';
 import crypto from 'crypto';
 import { nicknameSchema } from '@/lib/validators';
 
 export async function POST(request: NextRequest) {
   try {
-    const sessionToken = getSessionCookie(request);
-    const user = await validateSession(sessionToken);
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { user } = await requireSession.fromRequest(request);
 
     const { billId, nickname } = await request.json();
     const validation = nicknameSchema.safeParse({ nickname });
@@ -88,7 +80,10 @@ export async function POST(request: NextRequest) {
       success: true,
       nickname: trimmedNickname,
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.statusCode) {
+      return NextResponse.json({ success: false, error: error.message }, { status: error.statusCode });
+    }
     console.error('Failed to save nickname:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to save nickname' },
