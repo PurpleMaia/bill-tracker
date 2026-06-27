@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/contexts/auth-context';
-import { trackBill, untrackBill, assignBill, unassignBillFromUser } from '@/services/data/legislation';
+import { trackBill, untrackBill } from '@/services/data/bills-write';
+import { assignBill, unassignBillFromUser } from '@/services/data/bill-assignment';
 import { getBillTags } from '@/services/data/tags';
 import { useToast } from '@/hooks/use-toast';
 import { useBills } from '@/hooks/contexts/bills-context';

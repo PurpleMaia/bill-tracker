@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/lib/auth';
 import { getSessionCookie } from '@/lib/cookies';
 import { validateMembership } from '@/services/data/tenants';
-import { updateBillStatus, untrackBill, getBillDetails } from '@/services/data/legislation';
+import { updateBillStatus, untrackBill } from '@/services/data/bills-write';
+import { getBillDetails } from '@/services/data/bills-read';
 import { updateBillTags } from '@/services/data/tags';
 
 export async function GET(

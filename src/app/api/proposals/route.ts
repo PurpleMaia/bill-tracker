@@ -4,7 +4,7 @@ import { getSessionCookie } from '@/lib/cookies';
 import { validateMembership } from '@/services/data/tenants';
 import { db } from '@/db/kysely/client';
 import { sql } from 'kysely';
-import { updateBillStatus } from '@/services/data/legislation';
+import { updateBillStatus } from '@/services/data/bills-write';
 import { proposalSchema, uuidSchema } from '@/lib/validators';
 import crypto from 'crypto';
 

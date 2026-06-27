@@ -6,8 +6,8 @@ import {
   getAllTrackedBills,
   getAllFoodRelatedBills,
   getUserTrackedBills,
-  trackBill,
-} from '@/services/data/legislation';
+} from '@/services/data/bills-read';
+import { trackBill } from '@/services/data/bills-write';
 
 export async function GET(request: NextRequest) {
   try {

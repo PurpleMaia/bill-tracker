@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useTrackedBills } from '@/hooks/use-tracked-bills';
 import { UserPlus } from 'lucide-react';
-import { getAssignableUsers } from '@/services/data/legislation';
+import { getAssignableUsers } from '@/services/data/bill-assignment';
 import { User } from '@/db/types';
 import { Selectable } from 'kysely';
 import { Bill } from '@/types/legislation';

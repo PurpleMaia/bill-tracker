@@ -72,7 +72,7 @@ export function AssignMultipleBillsDialog({ trigger, onSuccess }: AssignMultiple
   const fetchBills = async () => {
     setIsLoadingBills(true);
     try {
-      const { getAllFoodRelatedBills } = await import('@/services/data/legislation');
+      const { getAllFoodRelatedBills } = await import('@/services/data/bills-read');
       const bills = await getAllFoodRelatedBills(false, false);
       setAllBills(bills);
       setFilteredBills(bills);
