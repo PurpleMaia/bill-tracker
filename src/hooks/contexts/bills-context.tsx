@@ -15,6 +15,7 @@ import type { Bill, BillStatus, TempBill } from '@/types/legislation';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { canCommitStatus } from '@/lib/permissions';
+import { data } from '@/lib/data-client';
 
 interface BillsContextType {
   // State
@@ -82,27 +83,9 @@ export function BillsProvider({ children }: { children: ReactNode }) {
    */
   const reloadProposalsFromServer = useCallback(async () => {
     try {
-      console.log('🔄 [SYNC] Fetching proposals from API...');
-
-      const params = new URLSearchParams();
-      if (activeTenant?.tenantId) params.set('tenantId', activeTenant.tenantId);
-
-      const response = await fetch(`/api/proposals?${params}`);
-      if (!response.ok) {
-        console.error('❌ [SYNC] API response not OK:', response.status);
-        return null;
-      }
-
-      const data = await response.json();
-      if (data.success && Array.isArray(data.proposals)) {
-        console.log(`✅ [SYNC] Synced ${data.proposals.length} proposals from API`);
-        setTempBills(data.proposals);
-        return data.proposals as TempBill[];
-      }
-
-      console.warn('⚠️ [SYNC] Unexpected proposals payload:', data);
-      setTempBills([]);
-      return [];
+      const proposals = await data.proposals.list({ tenantId: activeTenant?.tenantId });
+      setTempBills(proposals);
+      return proposals;
     } catch (error) {
       console.error('❌ [SYNC] Error reloading proposals:', error);
       return null;
@@ -118,17 +101,13 @@ export function BillsProvider({ children }: { children: ReactNode }) {
     const mode = viewModeOverride ?? viewMode;
     const archived = showArchivedOverride ?? showArchived;
 
-    const params = new URLSearchParams();
-    if (activeTenant?.tenantId) params.set('tenantId', activeTenant.tenantId);
-    params.set('viewMode', mode);
-    params.set('showArchived', String(archived));
+    const results = await data.bills.getBills({
+      tenantId: activeTenant?.tenantId,
+      viewMode: mode,
+      showArchived: archived,
+    });
 
-    const response = await fetch(`/api/bills?${params}`);
-    if (!response.ok) throw new Error('Failed to fetch bills');
-    const data = await response.json();
-    const results = (data.bills ?? []) as Bill[];
-
-    console.log(`Bills fetched via API (${mode}):`, results.length);
+    console.log(`Bills fetched (${mode}):`, results.length);
     return results;
   }, [activeTenant, viewMode, showArchived]);
 
@@ -144,16 +123,11 @@ export function BillsProvider({ children }: { children: ReactNode }) {
     if (!bill || !bill.llm_suggested) return;
 
     try {
-      const response = await fetch(`/api/bills/${billId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'updateStatus',
-          newStatus: bill.current_bill_status,
-          tenantId: activeTenant?.tenantId,
-        }),
+      await data.bills.updateStatus({
+        billId,
+        newStatus: bill.current_bill_status,
+        tenantId: activeTenant?.tenantId,
       });
-      if (!response.ok) throw new Error('Failed to update bill status');
 
       setBills((prevBills) =>
         prevBills.map((b) =>
@@ -286,28 +260,13 @@ export function BillsProvider({ children }: { children: ReactNode }) {
     };
 
     try {
-      const requestBody = {
+      await data.proposals.create({
         billId: bill.id,
-        currentStatus: currentStatus,
+        currentStatus,
         proposedStatus: proposed_status,
         note: meta.note || undefined,
         tenantId: activeTenant?.tenantId ?? undefined,
-      };
-
-      console.log('🟣 Sending proposal request:', requestBody);
-
-      const response = await fetch('/api/proposals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMsg = errorData.details || errorData.error || 'Failed to save proposal';
-        console.error('❌ Save proposal error:', errorMsg, errorData);
-        throw new Error(errorMsg);
-      }
 
       const proposals = await reloadProposalsFromServer();
       if (proposals === null) {
@@ -364,15 +323,7 @@ export function BillsProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const response = await fetch('/api/proposals', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ proposalId, action: 'approve', tenantId: activeTenant?.tenantId }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to approve proposal');
-      }
+      await data.proposals.decide({ proposalId, action: 'approve', tenantId: activeTenant?.tenantId });
 
       setBills((prev) =>
         prev.map((b) =>
@@ -437,15 +388,7 @@ export function BillsProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const response = await fetch('/api/proposals', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ proposalId, action: 'reject', tenantId: activeTenant?.tenantId }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to reject proposal');
-      }
+      await data.proposals.decide({ proposalId, action: 'reject', tenantId: activeTenant?.tenantId });
 
       // Revert the bill's status back to the original status
       setBills((prev) =>
@@ -537,18 +480,8 @@ export function BillsProvider({ children }: { children: ReactNode }) {
     try {
       console.log('🗑️ [UNDO] Deleting proposal for bill:', billId);
 
-      const response = await fetch('/api/proposals', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ billId, tenantId: activeTenant?.tenantId }),
-      });
+      await data.proposals.remove({ billId, tenantId: activeTenant?.tenantId });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to delete proposal');
-      }
-
-      const data = await response.json();
       console.log('✅ [UNDO] Proposal deleted successfully');
 
       // Revert the bill's status back to the original status
@@ -730,24 +663,11 @@ export function BillsProvider({ children }: { children: ReactNode }) {
 
           // Load proposals only for logged-in users
           if (user) {
-            console.log('🔄 [INITIAL LOAD] Fetching proposals from API...');
-            const proposalParams = new URLSearchParams();
-            if (activeTenant?.tenantId) proposalParams.set('tenantId', activeTenant.tenantId);
-            const proposalsResponse = await fetch(`/api/proposals?${proposalParams}`);
-            if (proposalsResponse.ok) {
-              const data = await proposalsResponse.json();
-              if (data.success && data.proposals) {
-                console.log('🔄 [INITIAL LOAD] Received', data.proposals.length, 'proposals from API');
-                data.proposals.forEach((p: any, idx: number) => {
-                  console.log(`  [${idx + 1}] Bill ID: ${p.id}, Status: ${p.current_status} → ${p.suggested_status}`);
-                });
-                setTempBills(data.proposals);
-                console.log('✅ [INITIAL LOAD] Updated tempBills state with', data.proposals.length, 'proposals');
-              } else {
-                console.warn('⚠️ [INITIAL LOAD] API returned success but no proposals:', data);
-              }
-            } else {
-              console.error('❌ [INITIAL LOAD] API response not OK:', proposalsResponse.status);
+            try {
+              const proposals = await data.proposals.list({ tenantId: activeTenant?.tenantId });
+              if (!cancelled) setTempBills(proposals);
+            } catch (err) {
+              console.error('❌ [INITIAL LOAD] Failed to load proposals:', err);
             }
           }
         }

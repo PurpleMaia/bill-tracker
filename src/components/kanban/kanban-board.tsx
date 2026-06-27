@@ -6,6 +6,7 @@ import { KANBAN_COLUMNS, COLUMN_TITLES, SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import * as ScrollAreaPrimitive from '@radix-ui/react-scroll-area';
 import { searchBills } from '@/db/queries/bills-read';
+import { data as dataClient } from '@/lib/data-client';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useToast } from '@/hooks/use-toast';
@@ -332,21 +333,11 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
       }
 
       try {
-        const response = await fetch(`/api/bills/${draggableId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'updateStatus',
-            newStatus: destinationColumnId,
-            tenantId: activeTenant?.tenantId,
-          }),
+        await dataClient.bills.updateStatus({
+          billId: draggableId,
+          newStatus: destinationColumnId,
+          tenantId: activeTenant?.tenantId,
         });
-        if (!response.ok) throw new Error('Failed to update bill status on server.');
-        const data = await response.json();
-        const updatedBillFromServer = data.bill;
-        if (!updatedBillFromServer) {
-          throw new Error('Failed to update bill status on server.');
-        }
         toast({
           title: 'Bill Status Updated',
           description: `${movedBill.bill_title} moved to ${COLUMN_TITLES[destinationColumnId]}.`,
