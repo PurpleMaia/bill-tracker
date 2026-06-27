@@ -14,6 +14,7 @@ import React, {
 import type { Bill, BillStatus, TempBill } from '@/types/legislation';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { canCommitStatus } from '@/lib/permissions';
 
 interface BillsContextType {
   // State
@@ -64,9 +65,6 @@ interface BillsContextType {
 }
 
 const BillsContext = createContext<BillsContextType | undefined>(undefined);
-
-const canCommitStatus = (orgRole?: string) =>
-  orgRole === 'admin';
 
 export function BillsProvider({ children }: { children: ReactNode }) {
 

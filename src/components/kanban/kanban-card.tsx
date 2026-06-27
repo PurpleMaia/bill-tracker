@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { cn, formatBillStatusName, canAssignBills } from '@/lib/utils';
+import { cn, formatBillStatusName } from '@/lib/utils';
+import { canAssignBills } from '@/lib/permissions';
 import { Sparkles, X, Check, Users, Clock, Info } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
