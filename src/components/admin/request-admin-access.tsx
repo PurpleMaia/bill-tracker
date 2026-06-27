@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { data } from "@/lib/data-client";
 
 interface RequestAdminAccessButtonProps {
   email: string;
@@ -11,34 +12,22 @@ interface RequestAdminAccessButtonProps {
 }
 
 export function RequestAdminAccessButton({ email, adminRequested, setRequested }: RequestAdminAccessButtonProps) {
-  const [isRequesting, setIsRequesting] = useState(false); 
+  const [isRequesting, setIsRequesting] = useState(false);
   const { toast } = useToast();
 
   const handleRequest = async () => {
     setIsRequesting(true);
     try {
-      const res = await fetch("/api/admin/request-admin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+      await data.access.requestAdmin({ email });
+      toast({
+        title: "Request sent!",
+        description: "Your request for Admin access has been submitted. Please wait for approval.",
       });
-      if (res.ok) {
-        toast({
-          title: "Request sent!",
-          description: "Your request for Admin access has been submitted. Please wait for approval.",
-        });
-        setRequested?.(true);
-      } else {
-        toast({
-          title: "Request failed",
-          description: "Could not send your request. Please try again later.",
-          variant: "destructive",
-        });
-      }
+      setRequested?.(true);
     } catch (e) {
       toast({
-        title: "Error",
-        description: "An unexpected error occurred.",
+        title: "Request failed",
+        description: "Could not send your request. Please try again later.",
         variant: "destructive",
       });
     } finally {
