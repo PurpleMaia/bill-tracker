@@ -1,4 +1,3 @@
-import { db } from '@/db/kysely/client';
 import { KANBAN_COLUMNS, COLUMN_INDEX } from '@/lib/kanban-columns';
 import type { BillStatus } from '@/db/types';
 
@@ -76,38 +75,5 @@ export function deriveBillStatus(
   return consensus;
 }
 
-/**
- * Side-effect function: recomputes the derived status for a bill and writes it to bills.bill_status.
- * Call this after any org updates their status in org_bills, or after the scraper updates ai_status.
- */
-export async function recomputeDerivedStatus(billId: string): Promise<void> {
-  // 1. Get AI status
-  const bill = await db
-    .selectFrom('bills')
-    .select('ai_status')
-    .where('id', '=', billId)
-    .executeTakeFirst();
-
-  if (!bill) return;
-
-  // 2. Get all org statuses
-  const orgRows = await db
-    .selectFrom('org_bills')
-    .select('bill_status')
-    .where('bill_id', '=', billId)
-    .execute();
-
-  const orgStatuses = orgRows
-    .map(r => r.bill_status)
-    .filter((s): s is BillStatus => s != null);
-
-  // 3. Compute derived status
-  const derived = deriveBillStatus(bill.ai_status as BillStatus | null, orgStatuses);
-
-  // 4. Write back
-  await db
-    .updateTable('bills')
-    .set({ bill_status: derived, updated_at: new Date() })
-    .where('id', '=', billId)
-    .execute();
-}
+// The DB-backed recomputeDerivedStatus() lives in @/db/queries/derived-status
+// so this module stays pure (no DB import) and unit-testable.

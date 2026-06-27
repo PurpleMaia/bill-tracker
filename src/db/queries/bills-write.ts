@@ -48,7 +48,7 @@ export async function updateBillStatus(billId: string, newStatus: string, tenant
                 .execute();
 
             // Recompute derived public status
-            const { recomputeDerivedStatus } = await import('@/lib/derived-status');
+            const { recomputeDerivedStatus } = await import('@/db/queries/derived-status');
             await recomputeDerivedStatus(billId);
         } else {
             // Public/legacy: write directly to bills table
