@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { X, Plus, Edit2, Trash2 } from 'lucide-react';
-import { getAllTags, createTag, updateTag, deleteTag } from '@/services/data/tags';
+import { getAllTags, createTag, updateTag, deleteTag } from '@/db/queries/tags';
 import type { Tag } from '@/types/legislation';
 import { toast } from '@/hooks/use-toast';
 import { useBills } from '@/hooks/contexts/bills-context';

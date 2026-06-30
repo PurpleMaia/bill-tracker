@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { cn, formatBillStatusName, canAssignBills } from '@/lib/utils';
+import { cn, formatBillStatusName } from '@/lib/utils';
+import { canAssignBills } from '@/lib/permissions';
 import { Sparkles, X, Check, Users, Clock, Info } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { updateFoodStatusOrCreateBill } from '@/services/data/legislation';
+import { updateFoodStatusOrCreateBill } from '@/db/queries/bills-write';
 import { toast } from '@/hooks/use-toast';
 
 interface KanbanCardProps extends React.HTMLAttributes<HTMLDivElement> {

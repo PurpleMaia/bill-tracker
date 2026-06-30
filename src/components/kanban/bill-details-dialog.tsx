@@ -30,7 +30,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from '@/hooks/use-toast';
-import { updateBillStatus, updateBillDeadFlag, getBillDetails } from '@/services/data/legislation';
+import { updateBillStatus, updateBillDeadFlag } from '@/db/queries/bills-write';
+import { getBillDetails } from '@/db/queries/bills-read';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';

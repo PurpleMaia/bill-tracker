@@ -5,7 +5,7 @@ import { limitFixedWindow, retryAfterMs } from "@/lib/ratelimit-memory";
 import type { User } from "@/types/user";
 import { loginSchema } from "@/lib/validators";
 import { ApiError } from "@/lib/errors";
-import { getUserMemberships } from "@/services/data/tenants";
+import { getUserMemberships } from "@/db/queries/tenants";
 
 const LOGIN_RATE_LIMIT = { limit: 5, windowMs: 5 * 60_000 };
 

@@ -195,15 +195,15 @@ export function KanbanSpreadsheet() {
         <Table className="min-w-max text-xs md:text-sm">
           <TableHeader>
             <TableRow>
-              <SortHeader label="Bill #" columnKey="bill_number" className="w-[6rem] md:w-[8rem]" sticky sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <SortHeader label="Bill #" columnKey="bill_number" className="w-[6rem] md:w-[8rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Current Status" columnKey="current_bill_status" className="w-[8rem] md:w-[10rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Bill Title" columnKey="bill_title" className="min-w-[12rem] md:min-w-[20rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
-              <TableHead className="min-w-[10rem] md:min-w-[15rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem] py-2 md:py-4">Policy Description</TableHead>
+              <TableHead className="sticky top-0 z-0 bg-background min-w-[10rem] md:min-w-[15rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem] py-2 md:py-4">Policy Description</TableHead>
               <SortHeader label="Committee" columnKey="committee_assignment" className="w-[8rem] md:w-[12rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Introducer" columnKey="introducer" className="w-[8rem] md:w-[12rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Year" columnKey="year" className="w-[5rem] md:w-[6rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Next Deadline" columnKey="next_deadline" className="w-[8rem] md:w-[10rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
-              <TableHead className="w-[10rem] md:w-[15rem] py-2 md:py-4">Tags</TableHead>
+              <TableHead className="sticky top-0 z-0 bg-background w-[10rem] md:w-[15rem] py-2 md:py-4">Tags</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -262,7 +262,7 @@ export function KanbanSpreadsheet() {
                     >
                       {/* Bill # with dead/alive dot */}
                       <TableCell
-                        className={`sticky left-0 z-[5] w-[6rem] md:w-[8rem] py-2 md:py-4 ${firstTagColor ? '' : 'bg-background'}`}
+                        className={`sticky left-0 z-0 w-[6rem] md:w-[8rem] py-2 md:py-4 ${firstTagColor ? '' : 'bg-background'}`}
                         style={
                           firstTagColor
                             ? {

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSession } from '@/lib/auth';
-import { getSessionCookie } from '@/lib/cookies';
-import { validateMembership } from '@/services/data/tenants';
+import { requireAdmin } from '@/lib/auth-guards';
 import { db } from '@/db/kysely/client';
 
 export async function DELETE(
@@ -11,15 +9,7 @@ export async function DELETE(
   try {
     const { id: tenantId, tokenId } = await params;
 
-    const sessionToken = getSessionCookie(request);
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const user = await validateSession(sessionToken);
-    const orgRole = await validateMembership(user.id, tenantId);
-    if (orgRole !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    await requireAdmin.fromRequest(request, tenantId);
 
     const result = await db
       .updateTable('invite_tokens')

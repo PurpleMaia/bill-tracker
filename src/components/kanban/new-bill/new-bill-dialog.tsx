@@ -15,7 +15,8 @@ import { useEffect, useState } from "react";
 import { Bill, BillDetails } from "@/types/legislation";
 import { findBill } from "@/services/scraper";
 import { toast } from "@/hooks/use-toast";
-import { findExistingBillByURL, updateFoodStatusOrCreateBill } from "@/services/data/legislation";
+import { findExistingBillByURL } from "@/db/queries/bills-read";
+import { updateFoodStatusOrCreateBill } from "@/db/queries/bills-write";
 import { useBills } from "@/hooks/contexts/bills-context";
 import { useAuth } from "@/hooks/contexts/auth-context";
 

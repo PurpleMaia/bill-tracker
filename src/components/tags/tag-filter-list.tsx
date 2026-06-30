@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { X, Settings, Filter, Check } from 'lucide-react';
-import { getAllTags } from '@/services/data/tags';
+import { getAllTags } from '@/db/queries/tags';
 import type { Tag } from '@/types/legislation';
 import { TagManagementDialog } from './tag-management-dialog';
 import { useAuth } from '@/hooks/contexts/auth-context';

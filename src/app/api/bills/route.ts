@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/lib/auth';
 import { getSessionCookie } from '@/lib/cookies';
-import { validateMembership } from '@/services/data/tenants';
+import { validateMembership } from '@/db/queries/tenants';
 import {
   getAllTrackedBills,
   getAllFoodRelatedBills,
   getUserTrackedBills,
-  trackBill,
-} from '@/services/data/legislation';
+} from '@/db/queries/bills-read';
+import { trackBill } from '@/db/queries/bills-write';
 
 export async function GET(request: NextRequest) {
   try {

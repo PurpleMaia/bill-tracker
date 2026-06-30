@@ -212,9 +212,15 @@ function RegisterForm() {
   );
 }
 
+// useSearchParams() requires a Suspense boundary during prerender (Next 15),
+// so the form (which reads the ?invite= param) is wrapped here at the page level.
 export default function RegisterPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-50" />
+      }
+    >
       <RegisterForm />
     </Suspense>
   );

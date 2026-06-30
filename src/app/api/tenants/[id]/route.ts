@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSession } from '@/lib/auth';
-import { getSessionCookie } from '@/lib/cookies';
-import { validateMembership } from '@/services/data/tenants';
+import { requireSession, requireMembership, requireAdmin } from '@/lib/auth-guards';
 import { db } from '@/db/kysely/client';
 
 export async function GET(
@@ -10,12 +8,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const sessionToken = getSessionCookie(request);
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const user = await validateSession(sessionToken);
-    await validateMembership(user.id, id);
+    await requireMembership.fromRequest(request, id);
     const tenant = await db
       .selectFrom('tenants')
       .selectAll()
@@ -40,15 +33,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const sessionToken = getSessionCookie(request);
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const user = await validateSession(sessionToken);
-    const orgRole = await validateMembership(user.id, id);
-    if (orgRole !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    await requireAdmin.fromRequest(request, id);
     const body = await request.json();
     const { brandingConfig } = body;
     const tenant = await db
@@ -76,11 +61,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const sessionToken = getSessionCookie(request);
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const user = await validateSession(sessionToken);
+    const { user } = await requireSession.fromRequest(request);
     if (user.systemRole !== 'sysadmin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
