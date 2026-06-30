@@ -195,7 +195,7 @@ export function KanbanSpreadsheet() {
         <Table className="min-w-max text-xs md:text-sm">
           <TableHeader>
             <TableRow>
-              <SortHeader label="Bill #" columnKey="bill_number" className="w-[6rem] md:w-[8rem]" sticky sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <SortHeader label="Bill #" columnKey="bill_number" className="w-[6rem] md:w-[8rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Current Status" columnKey="current_bill_status" className="w-[8rem] md:w-[10rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Bill Title" columnKey="bill_title" className="min-w-[12rem] md:min-w-[20rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <TableHead className="sticky top-0 z-0 bg-background min-w-[10rem] md:min-w-[15rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem] py-2 md:py-4">Policy Description</TableHead>
