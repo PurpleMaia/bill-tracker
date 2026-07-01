@@ -77,22 +77,30 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   <ul className="list-disc pl-4 space-y-1">
                     <li>
                       <span className="font-medium">Bill summaries</span> — plain-language
-                      summaries of long or complex bills.
+                      summaries of bills, translating legal text and summarizing key status .
                     </li>
                     <li>
                       <span className="font-medium">Testimony assistance</span> — drafting
                       help and suggestions for written testimony.
                     </li>
                   </ul>
-                  {/* PLACEHOLDER: user-provided copy about the specific models used and how they are hosted. */}
-                  <p className="font-medium text-foreground pt-1">How our models are hosted</p>
+
+                  <p className="font-medium text-foreground pt-1">How
+                    our models are hosted</p>
                   <p>
-                    [PLACEHOLDER — replace with your own description of which models are
-                    used and how they are hosted.]
+                    Inference runs locally on our Maui cluster — your
+                    data never leaves to a mainland data center, and 
+                    your testimonies are never used to train models.
                   </p>
                   <p>
-                    AI output can be inaccurate — always review before relying on it or
-                    submitting testimony. You can turn this off at any time.
+                    We reuse an existing open model rather than training our own, so we add
+                    nothing to that one-time training footprint, and we keep our own carbon
+                    use low through caching and smaller models.
+                  </p>
+                  <p>
+                    AI only assists — humans decide and write. AI output can be inaccurate,
+                    so always review before relying on it or submitting testimony. You can 
+                    turn this off at anytime.
                   </p>
                 </AccordionContent>
               </AccordionItem>
