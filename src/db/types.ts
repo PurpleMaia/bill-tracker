@@ -190,6 +190,14 @@ export interface UserBillPreferences {
   user_id: string;
 }
 
+export interface UserPreferences {
+  user_id: string;
+  ai_opt_in: Generated<boolean>;
+  kanban_detailed_view: Generated<boolean>;
+  created_at: Generated<Timestamp>;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface UserBills {
   adopted_at: Generated<Timestamp | null>;
   bill_id: string | null;
@@ -216,4 +224,5 @@ export interface DB {
   user: User;
   user_bill_preferences: UserBillPreferences;
   user_bills: UserBills;
+  user_preferences: UserPreferences;
 }
