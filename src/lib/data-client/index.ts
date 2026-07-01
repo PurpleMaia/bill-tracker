@@ -9,11 +9,13 @@
 import { billsClient } from './bills.client';
 import { proposalsClient } from './proposals.client';
 import { accessClient } from './access.client';
+import { preferencesClient } from './preferences.client';
 
 export const data = {
   bills: billsClient,
   proposals: proposalsClient,
   access: accessClient,
+  preferences: preferencesClient,
 };
 
 export type { Transport } from './transport';
