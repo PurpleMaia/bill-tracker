@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { KanbanBoard } from './kanban-board';
 import { KanbanSpreadsheet } from './kanban-spreadsheet';
@@ -11,18 +11,19 @@ import { KanbanHeader } from './kanban-header';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 
 export function ProtectedKanbanBoardOrSpreadsheet() {
-  const { user, loading, activeTenant, isPublicUser } = useAuth();
+  const { user, loading, activeTenant, isPublicUser, preferences } = useAuth();
   const { view, setColumnView } = useKanbanBoard();
   const { bills, loadingBills, viewMode } = useBills();
   const { untrackBill } = useTrackedBills();
 
-  const hasSetDefault = useRef(false);
+  // Drive the board's column view from the user's saved preference. Seeds on
+  // load and live-syncs whenever the preference changes (e.g. via the settings
+  // dialog). Public/logged-out users have no preferences and keep the context
+  // default ('simplified').
   useEffect(() => {
-    if (user && activeTenant && !hasSetDefault.current) {
-      setColumnView('detailed');
-      hasSetDefault.current = true;
-    }
-  }, [user, activeTenant, setColumnView]);
+    if (!preferences) return;
+    setColumnView(preferences.kanban_detailed_view ? 'detailed' : 'simplified');
+  }, [preferences, setColumnView]);
 
   if (loading) {
     return null

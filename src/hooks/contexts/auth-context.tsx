@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { User } from '@/types/user';
 import type { Membership, ActiveTenant } from '@/types/tenant';
+import { data as dataClient } from '@/lib/data-client';
+import type { UserPreferences } from '@/types/preferences';
 
 interface AuthContextType {
   user: User | null;
@@ -19,6 +21,10 @@ interface AuthContextType {
   logout: () => Promise<void>;
   register: (email: string, username: string, password: string, orgName?: string, inviteToken?: string) => Promise<{ success: boolean; error?: string }>;
   checkSession: () => Promise<void>;
+
+  // User preferences
+  preferences: UserPreferences | null;
+  updatePreferences: (patch: Partial<UserPreferences>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [activeTenant, setActiveTenantState] = useState<ActiveTenant | null>(null);
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
 
   const isPublicUser = user !== null && memberships.length === 0;
 
@@ -77,21 +84,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const membershipList: Membership[] = data.memberships ?? [];
           setMemberships(membershipList);
           initializeTenant(membershipList);
+          try {
+            const prefs = await dataClient.preferences.get();
+            setPreferences(prefs);
+          } catch (e) {
+            console.error('Failed to load preferences:', e);
+            setPreferences(null);
+          }
         } else {
           setUser(null);
           setMemberships([]);
           setActiveTenantState(null);
+          setPreferences(null);
         }
       } else {
         setUser(null);
         setMemberships([]);
         setActiveTenantState(null);
+        setPreferences(null);
       }
     } catch (error) {
       console.error('Session check error:', error);
       setUser(null);
       setMemberships([]);
       setActiveTenantState(null);
+      setPreferences(null);
     } finally {
       setLoading(false);
     }
@@ -115,6 +132,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const membershipList: Membership[] = data.memberships ?? [];
         setMemberships(membershipList);
         initializeTenant(membershipList);
+        try {
+          const prefs = await dataClient.preferences.get();
+          setPreferences(prefs);
+        } catch (e) {
+          console.error('Failed to load preferences:', e);
+          setPreferences(null);
+        }
         return { success: true };
       } else {
         const errorData = await response.json();
@@ -134,6 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setMemberships([]);
       setActiveTenantState(null);
+      setPreferences(null);
       localStorage.removeItem(ACTIVE_TENANT_KEY);
       window.location.href = '/';
     } catch (error) {
@@ -163,6 +188,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const membershipList: Membership[] = data.memberships ?? [];
           setMemberships(membershipList);
           initializeTenant(membershipList);
+          try {
+            const prefs = await dataClient.preferences.get();
+            setPreferences(prefs);
+          } catch (e) {
+            console.error('Failed to load preferences:', e);
+            setPreferences(null);
+          }
         }
         return { success: true };
       } else {
@@ -178,6 +210,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updatePreferences = useCallback(async (patch: Partial<UserPreferences>) => {
+    const updated = await dataClient.preferences.update(patch);
+    setPreferences(updated);
+  }, []);
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -190,6 +227,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout,
       register,
       checkSession,
+      preferences,
+      updatePreferences,
     }}>
       {children}
     </AuthContext.Provider>

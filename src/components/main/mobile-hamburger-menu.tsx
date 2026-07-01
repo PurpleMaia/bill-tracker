@@ -1,6 +1,7 @@
 'use client';
 
-import { Menu } from 'lucide-react';
+import { useState } from 'react';
+import { Download, Menu, Settings } from 'lucide-react';
 import { AuthHeader } from '@/components/auth/auth-header';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -14,16 +15,18 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ExportCsvDialog } from '@/components/kanban/export-csv-dialog';
-import { Download } from 'lucide-react';
+import { SettingsDialog } from '@/components/settings/settings-dialog';
 
 export function MobileHamburgerMenu() {
   const { activeTenant, memberships, setActiveTenant, user } = useAuth();
-  const { columnView, setColumnView, view, setView } = useKanbanBoard();
+  const { view, setView } = useKanbanBoard();
   const { viewMode, toggleViewMode, showArchived, toggleShowArchived } = useBills();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const isPublic = !user;
 
   return (
+    <>
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/10">
@@ -62,15 +65,6 @@ export function MobileHamburgerMenu() {
             </div>
           )}
 
-          <div className="flex items-center justify-between border-t pt-3">
-            <Label htmlFor="mobile-detailed-view" className="text-sm">Detailed View</Label>
-            <Switch
-              id="mobile-detailed-view"
-              checked={columnView === 'detailed'}
-              onCheckedChange={(checked) => setColumnView(checked ? 'detailed' : 'simplified')}
-            />
-          </div>
-
           {/* Admin view toggle */}
           {!isPublic && activeTenant?.orgRole === 'admin' && (
             <div className="flex items-center justify-between border-t pt-3">
@@ -94,6 +88,19 @@ export function MobileHamburgerMenu() {
             </div>
           )}
 
+          {/* Settings */}
+          {!isPublic && (
+            <div className="border-t pt-3">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => setSettingsOpen(true)}
+              >
+                <Settings className="h-4 w-4" /> Settings
+              </Button>
+            </div>
+          )}
+
           {/* Auth */}
           <div className="flex justify-end border-t pt-3">
             <AuthHeader />
@@ -101,5 +108,7 @@ export function MobileHamburgerMenu() {
         </div>
       </PopoverContent>
     </Popover>
+    <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+    </>
   );
 }
