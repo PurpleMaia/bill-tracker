@@ -9,7 +9,7 @@ CREATE TABLE bill_versions (
   original_text    text,
   ai_summary  text,
   created_at  timestamptz DEFAULT now(),
-  updated_at  timestamptz DEFAULT now(),r
+  updated_at  timestamptz DEFAULT now(),
   UNIQUE (bill_id, label)
 );
 
