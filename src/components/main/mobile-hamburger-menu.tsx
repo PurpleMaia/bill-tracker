@@ -19,7 +19,7 @@ import { SettingsDialog } from '@/components/settings/settings-dialog';
 
 export function MobileHamburgerMenu() {
   const { activeTenant, memberships, setActiveTenant, user } = useAuth();
-  const { columnView, setColumnView, view, setView } = useKanbanBoard();
+  const { view, setView } = useKanbanBoard();
   const { viewMode, toggleViewMode, showArchived, toggleShowArchived } = useBills();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -64,15 +64,6 @@ export function MobileHamburgerMenu() {
               </div>
             </div>
           )}
-
-          <div className="flex items-center justify-between border-t pt-3">
-            <Label htmlFor="mobile-detailed-view" className="text-sm">Detailed View</Label>
-            <Switch
-              id="mobile-detailed-view"
-              checked={columnView === 'detailed'}
-              onCheckedChange={(checked) => setColumnView(checked ? 'detailed' : 'simplified')}
-            />
-          </div>
 
           {/* Admin view toggle */}
           {!isPublic && activeTenant?.orgRole === 'admin' && (

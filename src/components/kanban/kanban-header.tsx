@@ -15,7 +15,7 @@ import { Search } from 'lucide-react';
 export function KanbanHeader() {
   const { user, activeTenant } = useAuth();
   const { viewMode, toggleViewMode, showArchived, toggleShowArchived } = useBills();
-  const { view, columnView, setColumnView, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter, setSearchQuery } = useKanbanBoard();
+  const { view, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter, setSearchQuery } = useKanbanBoard();
 
   const isPublic = !user;
   const canAddRemoveBills = activeTenant?.orgRole === 'admin';
@@ -93,15 +93,6 @@ export function KanbanHeader() {
         </div>
 
         <div className="flex items-center space-x-2 mr-4 py-2">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="column-view"
-              checked={columnView === 'detailed'}
-              onCheckedChange={(checked) => setColumnView(checked ? 'detailed' : 'simplified')}
-            />
-            <Label htmlFor="column-view" className="text-md">Detailed View</Label>
-          </div>
-
           {filterControls}
 
           {!isPublic && (
