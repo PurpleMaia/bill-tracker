@@ -1,16 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { KanbanSquareIcon, Search, Table, Users2Icon } from 'lucide-react';
+import { KanbanSquareIcon, Search, Settings, Table, Users2Icon } from 'lucide-react';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { AuthHeader } from '../auth/auth-header';
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 import { MobileHamburgerMenu } from './mobile-hamburger-menu';
+import { SettingsDialog } from '@/components/settings/settings-dialog';
 
 export function Header() {
   const { view: currentView, setView } = useKanbanBoard();
   const { user, activeTenant, memberships, setActiveTenant } = useAuth();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const publicViews = ['kanban', 'spreadsheet'];
 
   const orgRole = activeTenant?.orgRole;
@@ -82,6 +85,16 @@ export function Header() {
             onChange={handleSearchChange}
             aria-label="Search bills"
           />
+          {user && (
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Open settings"
+              className="flex items-center justify-center rounded-md p-2 text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <Settings className="h-5 w-5" />
+            </button>
+          )}
           <AuthHeader />
         </div>
 
@@ -90,6 +103,7 @@ export function Header() {
           <MobileHamburgerMenu />
         </div>
       </header>
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </>
   );
 }
