@@ -188,6 +188,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const membershipList: Membership[] = data.memberships ?? [];
           setMemberships(membershipList);
           initializeTenant(membershipList);
+          try {
+            const prefs = await dataClient.preferences.get();
+            setPreferences(prefs);
+          } catch (e) {
+            console.error('Failed to load preferences:', e);
+            setPreferences(null);
+          }
         }
         return { success: true };
       } else {
