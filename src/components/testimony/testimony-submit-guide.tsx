@@ -11,8 +11,8 @@ interface TestimonySubmitGuideProps {
 
 const STEPS: Array<{ title: string; body: string }> = [
   {
-    title: 'Sign in to the Hawaii State Legislature website',
-    body: 'Go to capitol.hawaii.gov and click "Sign In" (top right). If you don\'t have an account yet, register with your email — it\'s free and takes a minute.',
+    title: 'Log in to the Hawaii State Legislature website',
+    body: 'Go to capitol.hawaii.gov and click "Log In" (top right). If you don\'t have an account yet, register with your email — it\'s free and takes a minute.',
   },
   {
     title: 'Find this measure',
@@ -20,11 +20,11 @@ const STEPS: Array<{ title: string; body: string }> = [
   },
   {
     title: 'Wait for a hearing notice',
-    body: 'Testimony can only be submitted once a committee schedules a hearing. When one is scheduled, a "Submit Testimony" option appears for the measure. Check the Status Updates panel here for hearing notices.',
+    body: 'Testimony can only be submitted once a committee schedules a hearing. When one is scheduled, a "Submit Testimony" option appears for the measure. Check the Status Updates panel here for hearing notices or wait for a notification email.',
   },
   {
     title: 'Submit your testimony',
-    body: 'On the Submit Testimony form, select the measure and hearing, indicate your position (support/oppose/comments) and whether you will testify in person, remotely, or written-only, then upload the PDF or DOCX file you downloaded — or paste your text.',
+    body: 'On their Submit Testimony form, select the measure and hearing, indicate your position (support/oppose/comments) and whether you will testify in person, remotely, or written-only, then upload the PDF or DOCX file you downloaded — or paste your text.',
   },
   {
     title: 'Beat the deadline',
