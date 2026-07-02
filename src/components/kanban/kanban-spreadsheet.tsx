@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { formatBillStatusName } from '@/lib/utils';
+import { searchBillsLocal } from '@/lib/bill-search';
 import { getNextDeadline } from '@/lib/dead-bill';
 import type { SessionDeadlines, DeadlineEntry } from '@/lib/dead-bill';
 import type { BillStatus as DBBillStatus } from '@/db/types';
@@ -146,14 +147,9 @@ export function KanbanSpreadsheet() {
   const displayBills = useMemo(() => {
     let items = bills;
 
-    // Search filter
+    // Search filter (shared ranked search — src/lib/bill-search.ts)
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      items = items.filter(bill =>
-        bill.bill_number.toLowerCase().includes(q) ||
-        bill.bill_title.toLowerCase().includes(q) ||
-        bill.description.toLowerCase().includes(q)
-      );
+      items = searchBillsLocal(items, searchQuery);
     }
 
     // Tag filter
