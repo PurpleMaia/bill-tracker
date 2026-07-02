@@ -2,28 +2,17 @@
 
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { KanbanSquareIcon, Search, Settings, Table, Users2Icon } from 'lucide-react';
+import { Search, Settings } from 'lucide-react';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { AuthHeader } from '../auth/auth-header';
-import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
+import { HeaderNav } from './header-nav';
 import { MobileHamburgerMenu } from './mobile-hamburger-menu';
 import { SettingsDialog } from '@/components/settings/settings-dialog';
 
 export function Header() {
-  const { view: currentView, setView } = useKanbanBoard();
   const { user, activeTenant, memberships, setActiveTenant } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const publicViews = ['kanban', 'spreadsheet'];
-
-  const orgRole = activeTenant?.orgRole;
-  const views = user
-    ? orgRole === 'admin'
-      ? ['kanban', 'spreadsheet', 'admin']
-      : orgRole === 'worker'
-        ? ['kanban', 'spreadsheet']
-        : ['kanban', 'spreadsheet']
-    : publicViews;
 
   const { setSearchQuery } = useKanbanBoard();
 
@@ -56,23 +45,9 @@ export function Header() {
           )}
         </div>
 
-        {/* View tabs — desktop only, absolutely centered */}
+        {/* Nav tabs — desktop only, absolutely centered */}
         <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 justify-center w-fit">
-          <Tabs
-            value={currentView}
-            onValueChange={(v) => setView(v as "kanban" | "spreadsheet" | "admin" | "supervisor")}
-            className="rounded-md shadow-sm"
-          >
-            <TabsList className="bg-secondary">
-              {views.map(v => (
-                <TabsTrigger key={v} value={v}
-                  className="data-[state=active]:bg-primary data-[state=active]:text-white text-secondary-foreground"
-                >
-                  {getIconForView(v)} {v.charAt(0).toUpperCase() + v.slice(1)}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          <HeaderNav />
         </div>
 
         {/* Search and Auth — desktop only */}
@@ -106,17 +81,4 @@ export function Header() {
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </>
   );
-}
-
-function getIconForView(view: string) {
-  switch (view) {
-    case 'kanban':
-      return <KanbanSquareIcon className="h-5 w-5 mr-2" />;
-    case 'spreadsheet':
-      return <Table className="h-5 w-5 mr-2" />;
-    case 'admin':
-      return <Users2Icon className="h-5 w-5 mr-2" />;
-    default:
-      return null;
-  }
 }
