@@ -22,18 +22,20 @@ const HEADING_LEVELS = {
 const NUMBERING_REF = 'testimony-ordered';
 
 function docxRuns(runs: TextRun[]): DocxTextRun[] {
-  return runs.map(
-    (run) =>
-      new DocxTextRun({
-        text: run.text,
-        bold: run.bold,
-        italics: run.italic,
-        underline: run.underline ? {} : undefined,
-        strike: run.strike,
-        // Word wants a single family name, not a CSS stack.
-        font: run.font ? run.font.split(',')[0].replace(/["']/g, '').trim() : undefined,
-      }),
-  );
+  return runs.map((run) => {
+    if (run.break) {
+      return new DocxTextRun({ break: 1 });
+    }
+    return new DocxTextRun({
+      text: run.text,
+      bold: run.bold,
+      italics: run.italic,
+      underline: run.underline ? {} : undefined,
+      strike: run.strike,
+      // Word wants a single family name, not a CSS stack.
+      font: run.font ? run.font.split(',')[0].replace(/["']/g, '').trim() : undefined,
+    });
+  });
 }
 
 export async function generateTestimonyDocx(

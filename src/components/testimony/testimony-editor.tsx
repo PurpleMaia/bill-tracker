@@ -78,7 +78,12 @@ function MarkButton({
 
 export function TestimonyEditor({ initialContent, onChange }: TestimonyEditorProps) {
   const editor = useEditor({
-    extensions: [StarterKit, Underline, TextStyle, FontFamily],
+    extensions: [
+      StarterKit.configure({ blockquote: false, codeBlock: false, code: false, horizontalRule: false }),
+      Underline,
+      TextStyle,
+      FontFamily,
+    ],
     content: (initialContent as object) ?? '',
     immediatelyRender: false,
     onUpdate: ({ editor: instance }) => onChange(instance.getJSON()),

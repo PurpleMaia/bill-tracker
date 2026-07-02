@@ -13,13 +13,18 @@ const HEADING_SIZES = { 1: 18, 2: 15, 3: 13 } as const;
 function pdfRuns(runs: TextRun[]): Content {
   if (runs.length === 0) return { text: ' ' }; // keep empty paragraphs as blank lines
   return {
-    text: runs.map((run) => ({
-      text: run.text,
-      bold: run.bold,
-      italics: run.italic,
-      // pdfmake takes one decoration; underline wins if both are set.
-      decoration: run.underline ? ('underline' as const) : run.strike ? ('lineThrough' as const) : undefined,
-    })),
+    text: runs.map((run) => {
+      if (run.break) {
+        return { text: '\n' };
+      }
+      return {
+        text: run.text,
+        bold: run.bold,
+        italics: run.italic,
+        // pdfmake takes one decoration; underline wins if both are set.
+        decoration: run.underline ? ('underline' as const) : run.strike ? ('lineThrough' as const) : undefined,
+      };
+    }),
   };
 }
 
@@ -63,7 +68,11 @@ export async function generateTestimonyPdf(
     content,
   };
 
-  return new Promise<Blob>((resolve) => {
-    pdfMake.createPdf(definition).getBlob((blob: Blob) => resolve(blob));
+  return new Promise<Blob>((resolve, reject) => {
+    try {
+      pdfMake.createPdf(definition).getBlob((blob: Blob) => resolve(blob));
+    } catch (err) {
+      reject(err);
+    }
   });
 }

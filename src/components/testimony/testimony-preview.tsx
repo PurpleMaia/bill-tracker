@@ -19,7 +19,7 @@ export function TestimonyPreview({ meta, contentJson }: TestimonyPreviewProps) {
   const bodyHtml = useMemo(() => {
     try {
       return generateHTML(contentJson as Record<string, unknown>, [
-        StarterKit,
+        StarterKit.configure({ blockquote: false, codeBlock: false, code: false, horizontalRule: false }),
         Underline,
         TextStyle,
         FontFamily,

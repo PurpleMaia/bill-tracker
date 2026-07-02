@@ -14,6 +14,8 @@ export interface TextRun {
   strike?: boolean;
   /** CSS font-family from the editor's textStyle mark, e.g. 'Georgia, serif'. */
   font?: string;
+  /** A hard line break (Shift+Enter); text is ''. */
+  break?: true;
 }
 
 export type TestimonyBlock =
@@ -37,6 +39,10 @@ interface TiptapNode {
 function textRuns(node: TiptapNode): TextRun[] {
   const runs: TextRun[] = [];
   for (const child of node.content ?? []) {
+    if (child.type === 'hardBreak') {
+      runs.push({ text: '', break: true });
+      continue;
+    }
     if (child.type !== 'text' || typeof child.text !== 'string') continue;
     const run: TextRun = { text: child.text };
     for (const mark of child.marks ?? []) {
@@ -51,11 +57,23 @@ function textRuns(node: TiptapNode): TextRun[] {
   return runs;
 }
 
-function listItemRuns(item: TiptapNode): TextRun[] {
-  // A listItem wraps one or more paragraphs; join their runs in order.
-  return (item.content ?? [])
+/**
+ * Converts a single listItem into one or more items (TextRun[][]).
+ * The first entry is the item's own paragraph runs; nested bulletList/orderedList
+ * children are recursively flattened as additional entries.
+ */
+function listItemToItems(item: TiptapNode): TextRun[][] {
+  const ownRuns = (item.content ?? [])
     .filter((child) => child.type === 'paragraph')
     .flatMap((child) => textRuns(child));
+  const nested = (item.content ?? [])
+    .filter((child) => child.type === 'bulletList' || child.type === 'orderedList')
+    .flatMap((list) =>
+      (list.content ?? [])
+        .filter((child) => child.type === 'listItem')
+        .flatMap(listItemToItems),
+    );
+  return [ownRuns, ...nested];
 }
 
 /** Converts a Tiptap document JSON into neutral testimony blocks. */
@@ -79,7 +97,7 @@ export function tiptapToBlocks(doc: unknown): TestimonyBlock[] {
       case 'orderedList': {
         const items = (node.content ?? [])
           .filter((child) => child.type === 'listItem')
-          .map(listItemRuns);
+          .flatMap(listItemToItems);
         blocks.push({ type: 'list', ordered: node.type === 'orderedList', items });
         break;
       }

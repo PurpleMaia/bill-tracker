@@ -146,6 +146,67 @@ describe('tiptapToBlocks', () => {
     });
     expect(blocks).toEqual([{ type: 'paragraph', runs: [{ text: 'hi' }] }]);
   });
+
+  it('emits a break run for hardBreak nodes inside a paragraph', () => {
+    const blocks = tiptapToBlocks({
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'first line' },
+            { type: 'hardBreak' },
+            { type: 'text', text: 'second line' },
+          ],
+        },
+      ],
+    });
+    expect(blocks[0]).toEqual({
+      type: 'paragraph',
+      runs: [{ text: 'first line' }, { text: '', break: true }, { text: 'second line' }],
+    });
+  });
+
+  it('flattens nested lists into items of the parent list block', () => {
+    const blocks = tiptapToBlocks({
+      type: 'doc',
+      content: [
+        {
+          type: 'bulletList',
+          content: [
+            {
+              type: 'listItem',
+              content: [
+                { type: 'paragraph', content: [{ type: 'text', text: 'parent item' }] },
+                {
+                  type: 'bulletList',
+                  content: [
+                    {
+                      type: 'listItem',
+                      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'nested one' }] }],
+                    },
+                    {
+                      type: 'listItem',
+                      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'nested two' }] }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(blocks[0]).toEqual({
+      type: 'list',
+      ordered: false,
+      items: [
+        [{ text: 'parent item' }],
+        [{ text: 'nested one' }],
+        [{ text: 'nested two' }],
+      ],
+    });
+  });
 });
 
 describe('positionLabel', () => {
