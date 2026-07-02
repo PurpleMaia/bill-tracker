@@ -17,6 +17,7 @@ import { TestimonyReferencePanel } from '@/components/testimony/testimony-refere
 import { TestimonyHeaderForm, type TestimonyHeaderValue } from '@/components/testimony/testimony-header-form';
 import { TestimonyEditor } from '@/components/testimony/testimony-editor';
 import { TestimonyExportStep } from '@/components/testimony/testimony-export-step';
+import { TestimonySubmitGuide } from '@/components/testimony/testimony-submit-guide';
 import { ArrowLeft, ArrowRight, Info, Loader2, Lock } from 'lucide-react';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -243,20 +244,10 @@ export default function TestimonyPage() {
               />
             )}
 
-            {step === 3 && <TestimonySubmitStep bill={bill} onBack={() => setStep(2)} />}
+            {step === 3 && <TestimonySubmitGuide bill={bill} onBack={() => setStep(2)} />}
           </div>
         </main>
       </div>
-    </div>
-  );
-}
-
-// Placeholder step body — replaced with real component in the next task.
-function TestimonySubmitStep(props: { bill: BillDetails; onBack: () => void }) {
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Submission guide coming next.</p>
-      <Button variant="outline" onClick={props.onBack}>Back</Button>
     </div>
   );
 }
