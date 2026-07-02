@@ -5,7 +5,7 @@ import type { Bill, BillStatus, TempBill } from '@/types/legislation';
 import { KANBAN_COLUMNS, COLUMN_TITLES, SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED } from '@/lib/kanban-columns';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import * as ScrollAreaPrimitive from '@radix-ui/react-scroll-area';
-import { searchBills } from '@/db/queries/bills-read';
+import { searchBillsLocal } from '@/lib/bill-search';
 import { data as dataClient } from '@/lib/data-client';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
@@ -32,7 +32,6 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
 
   const {
     loadingBills: loading,
-    setLoadingBills: setLoading,
     bills,
     setBills,
     tempBills,
@@ -46,7 +45,10 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
   const [draggingBillId, setDraggingBillId] = useState<string | null>(null);
   const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
-  const [filteredBills, setFilteredBills] = useState<Bill[] | null>();
+  const filteredBills = useMemo<Bill[] | null>(
+    () => (searchQuery.trim() ? searchBillsLocal(bills, searchQuery) : null),
+    [bills, searchQuery]
+  );
   // const [highlightedBillId, //setHighlightedBillId] = useState<string | null>(null);
 
   const activeColumns = columnView === 'simplified' ? SIMPLIFIED_COLUMNS : KANBAN_COLUMNS;
@@ -184,35 +186,6 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
   // =======================================================
   // ==================== Effects ==========================
   // =======================================================
-
-  // Debounced search effect
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredBills(null);
-      //setHighlightedBillId(null);
-      return;
-    }
-
-    setError(null);
-    const handler = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const results = await searchBills(bills, searchQuery);
-        setFilteredBills(results);
-      } catch (err) {
-        console.error('Error searching bills:', err);
-        setError('Failed to search bills.');
-        setFilteredBills(null);
-        //setHighlightedBillId(null);
-      } finally {
-        setLoading(false);
-      }
-    }, 300);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [searchQuery, setLoading, bills]);
 
   // Navigate to first search result
   useEffect(() => {
@@ -394,15 +367,6 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
         };
         newBills.splice(billIndex, 1, updatedBill);
         setBills(newBills);
-
-        if (filteredBills && searchQuery.trim()) {
-          const newFilteredBills = Array.from(filteredBills);
-          const filteredBillIndex = newFilteredBills.findIndex((b) => b.id === draggableId);
-          if (filteredBillIndex > -1) {
-            newFilteredBills.splice(filteredBillIndex, 1, updatedBill);
-            setFilteredBills(newFilteredBills);
-          }
-        }
       } else {
         console.error('Bill not found for optimistic update');
         return;
@@ -439,7 +403,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
         });
       }
     },
-    [bills, readOnly, user, activeTenant, proposeStatusChange, toast, filteredBills, searchQuery, setBills, stopAutoPan]
+    [bills, readOnly, user, activeTenant, proposeStatusChange, toast, setBills, stopAutoPan]
   );
 
   // ===========================================================

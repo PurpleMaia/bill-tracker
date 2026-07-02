@@ -422,27 +422,6 @@ async function getTrackedCountForBills(billIds: string[], tenantId?: string): Pr
 // ==============================================
 
 /**
- * Asynchronously searches for bills based on a query (ID, bill_title, or description).
- *
- * @param query The search query.
- * @returns A promise that resolves to an array of matching Bill objects.
- */
-export async function searchBills(bills: Bill[], query: string): Promise<Bill[]> {
-
-  if (!query) {
-    return bills; // Return all sorted bills if query is empty
-  }
-  const lowerCaseQuery = query.toLowerCase();
-
-  return bills.filter(bill =>
-    bill.id.toLowerCase().includes(lowerCaseQuery) ||
-    bill.bill_number.toLowerCase().includes(lowerCaseQuery) ||
-    bill.bill_title.toLowerCase().includes(lowerCaseQuery) ||
-    bill.description.toLowerCase().includes(lowerCaseQuery)
-  );
-}
-
-/**
  * Finds an existing bill in the database by its URL used in adding/removing a bill manually ONLY
  *
  * @param billURL The URL of the bill to find.
