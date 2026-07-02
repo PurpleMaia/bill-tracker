@@ -41,6 +41,8 @@ export default function TestimonyPage() {
 
   const hydrated = useRef(false); // true once bill + draft are loaded (enables autosave)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const formRef = useRef(form);
+  const contentRef = useRef(contentJson);
 
   // Load bill + draft together.
   useEffect(() => {
@@ -58,17 +60,23 @@ export default function TestimonyPage() {
         );
         setBill(details);
         if (draft) {
-          setForm({
+          const nextForm: TestimonyHeaderValue = {
             authorName: draft.authorName,
             organization: draft.organization,
             position: draft.position,
-          });
+          };
           const hasContent =
             draft.contentJson && typeof draft.contentJson === 'object' &&
             Array.isArray((draft.contentJson as { content?: unknown[] }).content);
-          setContentJson(hasContent ? draft.contentJson : EMPTY_DOC);
+          const nextContent = hasContent ? draft.contentJson : EMPTY_DOC;
+          setForm(nextForm);
+          setContentJson(nextContent);
+          formRef.current = nextForm;
+          contentRef.current = nextContent;
         } else {
-          setForm((prev) => ({ ...prev, authorName: user.username || '' }));
+          const nextForm: TestimonyHeaderValue = { ...formRef.current, authorName: user.username || '' };
+          setForm(nextForm);
+          formRef.current = nextForm;
         }
         hydrated.current = true;
       } catch {
@@ -86,20 +94,24 @@ export default function TestimonyPage() {
   }, [billId, authLoading, user, router]);
 
   // Debounced autosave (1.5s after the last change).
+  // Reads formRef/contentRef inside the callback so it always sees the latest values,
+  // avoiding stale-closure data loss when both halves change within the debounce window.
   const scheduleSave = useCallback(
-    (nextForm: TestimonyHeaderValue, nextContent: unknown) => {
+    () => {
       if (!hydrated.current || !billId) return;
       setSaveState('saving');
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
+        const f = formRef.current;
+        const c = contentRef.current;
         try {
           await data.testimony.saveDraft({
             billId,
             tenantId: activeTenant?.tenantId ?? null,
-            authorName: nextForm.authorName,
-            organization: nextForm.organization,
-            position: nextForm.position,
-            contentJson: nextContent,
+            authorName: f.authorName,
+            organization: f.organization,
+            position: f.position,
+            contentJson: c,
           });
           setSaveState('saved');
         } catch {
@@ -115,12 +127,14 @@ export default function TestimonyPage() {
 
   const handleFormChange = (next: TestimonyHeaderValue) => {
     setForm(next);
-    scheduleSave(next, contentJson);
+    formRef.current = next;
+    scheduleSave();
   };
 
   const handleContentChange = (json: unknown) => {
     setContentJson(json);
-    scheduleSave(form, json);
+    contentRef.current = json;
+    scheduleSave();
   };
 
   if (authLoading || (user && loading)) {
