@@ -1,7 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Download, Menu, Settings } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { isNavItemActive, NAV_ITEMS } from './header-nav';
 import { AuthHeader } from '@/components/auth/auth-header';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -22,12 +26,14 @@ export function MobileHamburgerMenu() {
   const { view, setView } = useKanbanBoard();
   const { viewMode, toggleViewMode, showArchived, toggleShowArchived } = useBills();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const isPublic = !user;
 
   return (
     <>
-    <Popover>
+    <Popover open={menuOpen} onOpenChange={setMenuOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/10">
           <Menu className="h-5 w-5" />
@@ -36,6 +42,26 @@ export function MobileHamburgerMenu() {
       </PopoverTrigger>
       <PopoverContent className="w-72 p-3" align="end">
         <div className="flex flex-col gap-4">
+          {/* Top-level navigation */}
+          <nav className="flex flex-col gap-1">
+            {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMenuOpen(false)}
+                className={cn(
+                  'flex items-center gap-2 rounded-md px-2 py-2 text-sm',
+                  isNavItemActive(href, pathname)
+                    ? 'bg-primary text-primary-foreground font-medium'
+                    : 'hover:bg-muted'
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </Link>
+            ))}
+          </nav>
+
           {/* Tenant selector */}
           {memberships.length > 1 && (
             <select
