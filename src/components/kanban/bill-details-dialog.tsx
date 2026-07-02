@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { cn } from '@/lib/utils';
-import { FileText, Lock, Loader2, ExternalLink, Clock, Users, PenLine } from 'lucide-react';
+import { FileText, Loader2, ExternalLink, Clock, Users, PenLine } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
@@ -421,36 +421,33 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                 </div>
               </ScrollArea>
 
-              {/* Status change — pinned to bottom of left panel */}
-              <div className="border-t p-4 shrink-0 bg-muted/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Change Status</h3>
-                  {!user && (
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <Lock className="h-2.5 w-2.5" />
-                      <span>Login required</span>
-                    </div>
-                  )}
+              {/* Status change — pinned to bottom of left panel; org members only
+                  (org statuses are tenant-scoped, so public users have nothing to set) */}
+              {activeTenant && (
+                <div className="border-t p-4 shrink-0 bg-muted/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Change Status</h3>
+                  </div>
+                  <div className="flex gap-2">
+                    <Select value={selectedStatus} onValueChange={setSelectedStatus} disabled={!canEditBill}>
+                      <SelectTrigger className="flex-1 h-9 text-sm">
+                        <SelectValue placeholder={!canEditBill ? "Only in 'My Bills'" : "Select status"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {KANBAN_COLUMNS.map((col) => (
+                          <SelectItem key={col.id} value={col.id} className="cursor-pointer text-sm">
+                            {col.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={handleSave} disabled={!selectedStatus || !canEditBill} size="sm" className="px-6 h-9">
+                      Save
+                    </Button>
+                    <AIUpdateSingleButton bill={bill} />
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Select value={selectedStatus} onValueChange={setSelectedStatus} disabled={!user || !canEditBill}>
-                    <SelectTrigger className="flex-1 h-9 text-sm">
-                      <SelectValue placeholder={!user ? "Login to edit" : !canEditBill ? "Only in 'My Bills'" : "Select status"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {KANBAN_COLUMNS.map((col) => (
-                        <SelectItem key={col.id} value={col.id} className="cursor-pointer text-sm">
-                          {col.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button onClick={handleSave} disabled={!user || !selectedStatus || !canEditBill} size="sm" className="px-6 h-9">
-                    Save
-                  </Button>
-                  {user && <AIUpdateSingleButton bill={bill} />}
-                </div>
-              </div>
+              )}
             </div>
             );
 
