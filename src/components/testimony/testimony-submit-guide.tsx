@@ -24,8 +24,8 @@ const STEPS: Array<{ title: string; body: string }> = [
     body: 'Testimony can only be submitted once a committee schedules a hearing. When one is scheduled, a "Submit Testimony" option appears for the measure. Check the Status Updates panel here for hearing notices or wait for a notification email.',
   },
   {
-    title: 'Submit your testimony',
-    body: 'On their Submit Testimony form, select the measure and hearing, indicate your position (support/oppose/comments) and whether you will testify in person, remotely, or written-only, then upload the PDF or DOCX file you downloaded — or paste your text.',
+    title: 'Submit your testimony', 
+    body: 'On their Submit Testimony form, select the measure and hearing, indicate your position (support/oppose/comments) and whether you will testify in person, remotely, or written-only, then upload the PDF or DOCX file you downloaded or paste your text in their text box.',
   },
   {
     title: 'Beat the deadline',
