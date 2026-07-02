@@ -1,8 +1,9 @@
 'use client';
 
 import type { BillDetails } from '@/types/legislation';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ExternalLink, SquareKanban } from 'lucide-react';
 
 interface TestimonySubmitGuideProps {
   bill: BillDetails;
@@ -33,6 +34,8 @@ const STEPS: Array<{ title: string; body: string }> = [
 ];
 
 export function TestimonySubmitGuide({ bill, onBack }: TestimonySubmitGuideProps) {
+  const router = useRouter();
+
   return (
     <div className="space-y-4">
       <div className="rounded-lg border bg-card p-5">
@@ -71,10 +74,16 @@ export function TestimonySubmitGuide({ bill, onBack }: TestimonySubmitGuideProps
         </div>
       </div>
 
-      <Button variant="outline" onClick={onBack}>
-        <ArrowLeft className="mr-1.5 h-4 w-4" />
-        Back: Review
-      </Button>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button variant="outline" onClick={onBack}>
+          <ArrowLeft className="mr-1.5 h-4 w-4" />
+          Back: Review
+        </Button>
+        <Button onClick={() => router.push('/')}>
+          <SquareKanban className="mr-1.5 h-4 w-4" />
+          Back to Kanban Board
+        </Button>
+      </div>
     </div>
   );
 }
