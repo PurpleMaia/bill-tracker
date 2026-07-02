@@ -15,7 +15,7 @@ import { Search } from 'lucide-react';
 export function KanbanHeader() {
   const { user, activeTenant } = useAuth();
   const { viewMode, toggleViewMode, showArchived, toggleShowArchived } = useBills();
-  const { view, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter, setSearchQuery } = useKanbanBoard();
+  const { view, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter, searchQuery, setSearchQuery } = useKanbanBoard();
 
   const isPublic = !user;
   const canAddRemoveBills = activeTenant?.orgRole === 'admin';
@@ -63,6 +63,7 @@ export function KanbanHeader() {
             type="search"
             placeholder="Search bills..."
             className="pl-9"
+            value={searchQuery}
             onChange={handleSearchChange}
             aria-label="Search bills"
           />
@@ -90,6 +91,19 @@ export function KanbanHeader() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Search — centered between switches and controls */}
+        <div className="relative flex-1 max-w-md mx-6">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search bills..."
+            className="pl-9"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            aria-label="Search bills"
+          />
         </div>
 
         <div className="flex items-center space-x-2 mr-4 py-2">
