@@ -1,25 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Search, Settings } from 'lucide-react';
-import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
+import { Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { AuthHeader } from '../auth/auth-header';
 import { HeaderNav } from './header-nav';
+import { HeaderSubNav } from './header-subnav';
 import { MobileHamburgerMenu } from './mobile-hamburger-menu';
 import { SettingsDialog } from '@/components/settings/settings-dialog';
 
 export function Header() {
   const { user, activeTenant, memberships, setActiveTenant } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
-
-  const { setSearchQuery } = useKanbanBoard();
-
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const query = event.target.value;
-    setSearchQuery(query);
-  };
 
   return (
     <>
@@ -45,21 +37,14 @@ export function Header() {
           )}
         </div>
 
-        {/* Nav tabs — desktop only, absolutely centered */}
+        {/* Contextual sub-nav — desktop only, absolutely centered */}
         <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 justify-center w-fit">
-          <HeaderNav />
+          <HeaderSubNav />
         </div>
 
-        {/* Search and Auth — desktop only */}
-        <div className="hidden md:flex relative max-w-md gap-4 flex-shrink-0 ml-auto">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-white/60" />
-          <Input
-            type="search"
-            placeholder="Search..."
-            className="w-full rounded-md bg-white/10 border border-white/20 text-white placeholder:text-white/60 pl-9 focus:bg-white/20 shadow-sm"
-            onChange={handleSearchChange}
-            aria-label="Search bills"
-          />
+        {/* Nav links, settings, auth — desktop only */}
+        <div className="hidden md:flex items-center gap-4 flex-shrink-0 ml-auto">
+          <HeaderNav />
           {user && (
             <button
               type="button"

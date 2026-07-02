@@ -6,7 +6,6 @@ import { SupervisorDashboard } from '@/components/supervisor/supervisor-dashboar
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { BottomTabBar } from '@/components/main/bottom-tab-bar';
-import { ViewToggle } from '@/components/main/view-toggle';
 import { LoginWall } from '@/components/auth/login-wall';
 
 export default function Home() {
@@ -19,9 +18,6 @@ export default function Home() {
 
   return (
     <>
-      <div className="hidden md:flex justify-center pt-4">
-        <ViewToggle />
-      </div>
       {view === 'admin' ? (
         <AdminDashboard />
       ) : view === 'supervisor' ? (

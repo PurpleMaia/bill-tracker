@@ -8,8 +8,8 @@ import { cn } from '@/lib/utils';
 export const NAV_ITEMS = [
   { href: '/search', label: 'Search', icon: Search },
   { href: '/', label: 'Your Bills', icon: KanbanSquareIcon },
-  { href: '/testimonies', label: 'Your Testimonies', icon: FileText },
-  { href: '/boards', label: 'View Active Boards', icon: LayoutGrid },
+  { href: '/testimonies', label: 'Testimonies', icon: FileText },
+  { href: '/boards', label: 'Active Boards', icon: LayoutGrid },
 ] as const;
 
 export function isNavItemActive(href: string, pathname: string) {
@@ -20,19 +20,18 @@ export function HeaderNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-1 rounded-md bg-secondary p-1 shadow-sm">
-      {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
+    <nav className="flex items-center gap-5">
+      {NAV_ITEMS.map(({ href, label }) => (
         <Link
           key={href}
           href={href}
           className={cn(
-            'flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-colors',
+            'whitespace-nowrap text-sm font-medium underline-offset-8 transition-colors duration-150',
             isNavItemActive(href, pathname)
-              ? 'bg-primary text-white'
-              : 'text-secondary-foreground hover:bg-white/50'
+              ? 'text-white underline decoration-olive decoration-2'
+              : 'text-primary-foreground/70 hover:text-white'
           )}
         >
-          <Icon className="h-4 w-4" />
           {label}
         </Link>
       ))}
