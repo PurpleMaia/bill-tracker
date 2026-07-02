@@ -1,0 +1,35 @@
+import { defineClient } from './define-client';
+import {
+  getTestimonyDraftAction,
+  saveTestimonyDraftAction,
+} from '@/app/actions/testimony';
+import type { TestimonyDraft, TestimonyDraftInput } from '@/types/testimony';
+
+// ---- fetch arm (hits /api/bills/[id]/testimony) ----
+
+async function getTestimonyDraftFetch(billId: string): Promise<TestimonyDraft | null> {
+  const res = await fetch(`/api/bills/${billId}/testimony`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to load testimony draft');
+  }
+  return res.json();
+}
+
+async function saveTestimonyDraftFetch(input: TestimonyDraftInput): Promise<TestimonyDraft> {
+  const res = await fetch(`/api/bills/${input.billId}/testimony`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to save testimony draft');
+  }
+  return res.json();
+}
+
+export const testimonyClient = defineClient('testimony', {
+  getDraft: { action: getTestimonyDraftAction, fetch: getTestimonyDraftFetch },
+  saveDraft: { action: saveTestimonyDraftAction, fetch: saveTestimonyDraftFetch },
+});
