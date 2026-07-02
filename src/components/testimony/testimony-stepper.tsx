@@ -5,7 +5,7 @@ import { Check } from 'lucide-react';
 
 const STEPS = [
   { number: 1, title: 'Write' },
-  { number: 2, title: 'Export' },
+  { number: 2, title: 'Review' },
   { number: 3, title: 'Submit' },
 ] as const;
 

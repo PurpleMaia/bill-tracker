@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   tiptapToBlocks,
   composeHeaderLines,
+  blocksToPlainText,
   positionLabel,
 } from '@/lib/testimony-export/blocks';
 
@@ -255,5 +256,43 @@ describe('composeHeaderLines', () => {
       'Submitted by: Jane Doe',
       'July 2, 2026',
     ]);
+  });
+});
+
+describe('blocksToPlainText', () => {
+  it('renders headings and paragraphs as lines separated by blank lines', () => {
+    expect(
+      blocksToPlainText([
+        { type: 'heading', level: 2, runs: [{ text: 'Aloha Chair' }] },
+        { type: 'paragraph', runs: [{ text: 'I ' }, { text: 'strongly', bold: true }, { text: ' support this bill.' }] },
+      ]),
+    ).toBe('Aloha Chair\n\nI strongly support this bill.');
+  });
+
+  it('renders hard breaks as newlines within a paragraph', () => {
+    expect(
+      blocksToPlainText([
+        { type: 'paragraph', runs: [{ text: 'line one' }, { text: '', break: true }, { text: 'line two' }] },
+      ]),
+    ).toBe('line one\nline two');
+  });
+
+  it('prefixes bullet items with a bullet and ordered items with numbers', () => {
+    expect(
+      blocksToPlainText([
+        { type: 'list', ordered: false, items: [[{ text: 'Food security' }], [{ text: 'Local farms' }]] },
+        { type: 'list', ordered: true, items: [[{ text: 'First' }], [{ text: 'Second' }]] },
+      ]),
+    ).toBe('• Food security\n• Local farms\n\n1. First\n2. Second');
+  });
+
+  it('skips empty paragraphs without stacking blank lines', () => {
+    expect(
+      blocksToPlainText([
+        { type: 'paragraph', runs: [{ text: 'before' }] },
+        { type: 'paragraph', runs: [] },
+        { type: 'paragraph', runs: [{ text: 'after' }] },
+      ]),
+    ).toBe('before\n\nafter');
   });
 });

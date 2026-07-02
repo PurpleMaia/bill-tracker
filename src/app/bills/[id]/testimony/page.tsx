@@ -268,7 +268,7 @@ export default function TestimonyPage() {
                 <TestimonyEditor initialContent={contentJson} onChange={handleContentChange} />
                 <div className="flex justify-end">
                   <Button onClick={() => setStep(2)}>
-                    Next: Export
+                    Next: Review
                     <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
                 </div>

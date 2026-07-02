@@ -1,15 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { BillDetails } from '@/types/legislation';
 import type { TestimonyMeta } from '@/lib/testimony-export/blocks';
-import { tiptapToBlocks } from '@/lib/testimony-export/blocks';
+import { blocksToPlainText, composeHeaderLines, tiptapToBlocks } from '@/lib/testimony-export/blocks';
 import { downloadBlob } from '@/lib/testimony-export/download';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { TestimonyPreview } from './testimony-preview';
 import type { TestimonyHeaderValue } from './testimony-header-form';
-import { ArrowLeft, ArrowRight, FileDown, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Copy, FileDown, Loader2 } from 'lucide-react';
 
 interface TestimonyExportStepProps {
   bill: BillDetails;
@@ -21,6 +21,13 @@ interface TestimonyExportStepProps {
 
 export function TestimonyExportStep({ bill, form, contentJson, onBack, onNext }: TestimonyExportStepProps) {
   const [generating, setGenerating] = useState<'pdf' | 'docx' | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
 
   const meta: TestimonyMeta = {
     billNumber: bill.bill_number,
@@ -52,13 +59,33 @@ export function TestimonyExportStep({ bill, form, contentJson, onBack, onNext }:
     }
   };
 
+  const handleCopy = async () => {
+    try {
+      const text = [
+        composeHeaderLines(meta).join('\n'),
+        blocksToPlainText(tiptapToBlocks(contentJson)),
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch (error) {
+      console.error('Testimony copy failed:', error);
+      toast({ title: 'Copy failed', description: 'Could not copy the testimony text to the clipboard.', variant: 'destructive' });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          Review your testimony, then download it. The PDF uses a standard font; the DOCX keeps your chosen fonts.
+          Review your testimony, then copy the text or download a file. The PDF uses a standard font; the DOCX keeps your chosen fonts.
         </p>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleCopy} aria-live="polite">
+            {copied ? <Check className="mr-1.5 h-3.5 w-3.5 text-green-600" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
+            {copied ? 'Copied' : 'Copy text'}
+          </Button>
           <Button variant="outline" size="sm" disabled={generating !== null} onClick={() => handleDownload('pdf')}>
             {generating === 'pdf' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <FileDown className="mr-1.5 h-3.5 w-3.5" />}
             Download PDF

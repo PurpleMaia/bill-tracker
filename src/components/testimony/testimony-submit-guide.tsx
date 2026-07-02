@@ -73,7 +73,7 @@ export function TestimonySubmitGuide({ bill, onBack }: TestimonySubmitGuideProps
 
       <Button variant="outline" onClick={onBack}>
         <ArrowLeft className="mr-1.5 h-4 w-4" />
-        Back: Export
+        Back: Review
       </Button>
     </div>
   );

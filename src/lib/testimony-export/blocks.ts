@@ -143,3 +143,29 @@ export function composeHeaderLines(meta: TestimonyMeta): string[] {
   );
   return lines;
 }
+
+function runsToText(runs: TextRun[]): string {
+  return runs.map((run) => (run.break ? '\n' : run.text)).join('');
+}
+
+/**
+ * Renders blocks as plain text for copy-to-clipboard: blocks separated by blank
+ * lines, list items one per line ('• ' bullets, '1.' numbering), hard breaks as
+ * newlines. Empty paragraphs are skipped so blank lines never stack.
+ */
+export function blocksToPlainText(blocks: TestimonyBlock[]): string {
+  const parts: string[] = [];
+  for (const block of blocks) {
+    if (block.type === 'list') {
+      parts.push(
+        block.items
+          .map((item, index) => `${block.ordered ? `${index + 1}.` : '•'} ${runsToText(item)}`)
+          .join('\n'),
+      );
+    } else {
+      const text = runsToText(block.runs);
+      if (text.trim()) parts.push(text);
+    }
+  }
+  return parts.join('\n\n');
+}
