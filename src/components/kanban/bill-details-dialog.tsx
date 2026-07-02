@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Bill, BillStatus, BillDetails, StatusUpdate } from '@/types/legislation';
 import {
   Dialog,
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { cn } from '@/lib/utils';
-import { FileText, Lock, Loader2, ExternalLink, Clock, Users } from 'lucide-react';
+import { FileText, Lock, Loader2, ExternalLink, Clock, Users, PenLine } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
@@ -73,6 +74,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
   const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills();
   const { user, activeTenant } = useAuth();
   const isMobile = useIsMobile();
+  const router = useRouter();
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [, setSaving] = useState<boolean>(false);
   const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
@@ -341,17 +343,31 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                       </div>
                     </div>
 
-                    {billDetails?.bill_url && (
-                      <a
-                        href={billDetails.bill_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                    <div className="flex flex-wrap items-center gap-3">
+                      {billDetails?.bill_url && (
+                        <a
+                          href={billDetails.bill_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          View on Hawaii State Legislature
+                        </a>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8"
+                        onClick={() => {
+                          onClose();
+                          router.push(`/bills/${bill.id}/testimony`);
+                        }}
                       >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        View on Hawaii State Legislature
-                      </a>
-                    )}
+                        <PenLine className="mr-1.5 h-3.5 w-3.5" />
+                        Write Testimony
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Tags */}
