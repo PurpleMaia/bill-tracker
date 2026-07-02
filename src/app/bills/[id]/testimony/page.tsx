@@ -45,6 +45,8 @@ export default function TestimonyPage() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const formRef = useRef(form);
   const contentRef = useRef(contentJson);
+  const dirtyRef = useRef(false); // edits not yet persisted
+  const inFlightRef = useRef(false); // a saveDraft request is running
 
   // Load bill + draft together.
   useEffect(() => {
@@ -95,37 +97,76 @@ export default function TestimonyPage() {
     };
   }, [billId, authLoading, user, router]);
 
-  // Debounced autosave (1.5s after the last change).
+  // Serialized save: only one saveDraft request runs at a time, so slow responses
+  // can never complete out of order and overwrite newer content. Edits that arrive
+  // while a request is in flight set dirtyRef and trigger a follow-up save.
   // Reads formRef/contentRef inside the callback so it always sees the latest values,
   // avoiding stale-closure data loss when both halves change within the debounce window.
-  const scheduleSave = useCallback(
-    () => {
-      if (!hydrated.current || !billId) return;
-      setSaveState('saving');
+  const performSave = useCallback(async () => {
+    if (!billId || inFlightRef.current || !dirtyRef.current) return;
+    inFlightRef.current = true;
+    dirtyRef.current = false;
+    const f = formRef.current;
+    const c = contentRef.current;
+    try {
+      await data.testimony.saveDraft({
+        billId,
+        tenantId: activeTenant?.tenantId ?? null,
+        authorName: f.authorName,
+        organization: f.organization,
+        position: f.position,
+        contentJson: c,
+      });
+      inFlightRef.current = false;
+      if (dirtyRef.current) {
+        void performSaveRef.current();
+      } else {
+        setSaveState('saved');
+      }
+    } catch {
+      inFlightRef.current = false;
+      dirtyRef.current = true;
+      setSaveState('error');
+      toast({ title: 'Save failed', description: 'Your draft could not be saved. Retrying on next edit.', variant: 'destructive' });
+    }
+  }, [billId, activeTenant?.tenantId]);
+
+  const performSaveRef = useRef(performSave);
+  performSaveRef.current = performSave;
+
+  // Debounced autosave (1.5s after the last change).
+  const scheduleSave = useCallback(() => {
+    if (!hydrated.current || !billId) return;
+    dirtyRef.current = true;
+    setSaveState('saving');
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      void performSaveRef.current();
+    }, 1500);
+  }, [billId]);
+
+  // On unmount (e.g. the Back button), flush any pending edits immediately instead
+  // of dropping the debounce — the request keeps running after navigation.
+  useEffect(
+    () => () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(async () => {
-        const f = formRef.current;
-        const c = contentRef.current;
-        try {
-          await data.testimony.saveDraft({
-            billId,
-            tenantId: activeTenant?.tenantId ?? null,
-            authorName: f.authorName,
-            organization: f.organization,
-            position: f.position,
-            contentJson: c,
-          });
-          setSaveState('saved');
-        } catch {
-          setSaveState('error');
-          toast({ title: 'Save failed', description: 'Your draft could not be saved. Retrying on next edit.', variant: 'destructive' });
-        }
-      }, 1500);
+      void performSaveRef.current();
     },
-    [billId, activeTenant?.tenantId],
+    [],
   );
 
-  useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
+  // Warn on hard unload (tab close / refresh) while edits are unsaved or a save is
+  // still in flight — the browser can't be forced to wait, but it can ask.
+  useEffect(() => {
+    const warnUnsaved = (event: BeforeUnloadEvent) => {
+      if (dirtyRef.current || inFlightRef.current) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', warnUnsaved);
+    return () => window.removeEventListener('beforeunload', warnUnsaved);
+  }, []);
 
   const handleFormChange = (next: TestimonyHeaderValue) => {
     setForm(next);
