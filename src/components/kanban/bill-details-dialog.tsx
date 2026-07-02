@@ -39,6 +39,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/dead-bill';
 import type { SessionDeadlines } from '@/lib/dead-bill';
+import { getTestimonyEligibility } from '@/lib/testimony-eligibility';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import deadlinesJson from '@/data/session-deadlines-2026.json';
 
@@ -149,6 +150,14 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
   const isUrgent = deadlineDaysAway !== null && deadlineDaysAway <= 7;
   const fiscal = committeeAssign ? isFiscalBill(committeeAssign) : false;
 
+  const testimonyEligibility = getTestimonyEligibility({
+    dead: bill.dead,
+    billStatus: currentStatus as DBBillStatus,
+    committeeAssignment: committeeAssign ?? null,
+    deadlines: deadlinesJson as SessionDeadlines,
+    today,
+  });
+
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -206,17 +215,36 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                 {bill.bill_title}
               </DialogDescription>
             </div>
-            <Button
-              size="sm"
-              className="shrink-0 mr-8"
-              onClick={() => {
-                onClose();
-                router.push(`/bills/${bill.id}/testimony`);
-              }}
-            >
-              <PenLine className="mr-1.5 h-3.5 w-3.5" />
-              Write Testimony
-            </Button>
+            {testimonyEligibility.allowed ? (
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0"
+                onClick={() => {
+                  onClose();
+                  router.push(`/bills/${bill.id}/testimony`);
+                }}
+              >
+                <PenLine className="mr-1.5 h-3.5 w-3.5" />
+                Write Testimony
+              </Button>
+            ) : (
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="shrink-0 inline-block cursor-not-allowed">
+                      <Button size="sm" variant="outline" disabled className="pointer-events-none">
+                        <PenLine className="mr-1.5 h-3.5 w-3.5" />
+                        Write Testimony
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{testimonyEligibility.reason} — testimony is closed.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
 
           {/* Progress bar */}
