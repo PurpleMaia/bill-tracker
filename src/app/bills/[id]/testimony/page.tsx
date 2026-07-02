@@ -16,6 +16,7 @@ import { TestimonyStepper, type TestimonyStep } from '@/components/testimony/tes
 import { TestimonyReferencePanel } from '@/components/testimony/testimony-reference-panel';
 import { TestimonyHeaderForm, type TestimonyHeaderValue } from '@/components/testimony/testimony-header-form';
 import { TestimonyEditor } from '@/components/testimony/testimony-editor';
+import { TestimonyExportStep } from '@/components/testimony/testimony-export-step';
 import { ArrowLeft, ArrowRight, Info, Loader2, Lock } from 'lucide-react';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -250,25 +251,7 @@ export default function TestimonyPage() {
   );
 }
 
-// Placeholder step bodies — replaced with real components in the next task.
-function TestimonyExportStep(props: {
-  bill: BillDetails;
-  form: TestimonyHeaderValue;
-  contentJson: unknown;
-  onBack: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Export step coming next.</p>
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={props.onBack}>Back</Button>
-        <Button onClick={props.onNext}>Next: Submit</Button>
-      </div>
-    </div>
-  );
-}
-
+// Placeholder step body — replaced with real component in the next task.
 function TestimonySubmitStep(props: { bill: BillDetails; onBack: () => void }) {
   return (
     <div className="space-y-4">
