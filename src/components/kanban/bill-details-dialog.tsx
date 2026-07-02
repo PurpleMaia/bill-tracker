@@ -206,6 +206,17 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                 {bill.bill_title}
               </DialogDescription>
             </div>
+            <Button
+              size="sm"
+              className="shrink-0 mr-8"
+              onClick={() => {
+                onClose();
+                router.push(`/bills/${bill.id}/testimony`);
+              }}
+            >
+              <PenLine className="mr-1.5 h-3.5 w-3.5" />
+              Write Testimony
+            </Button>
           </div>
 
           {/* Progress bar */}
@@ -343,31 +354,17 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
-                      {billDetails?.bill_url && (
-                        <a
-                          href={billDetails.bill_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          View on Hawaii State Legislature
-                        </a>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8"
-                        onClick={() => {
-                          onClose();
-                          router.push(`/bills/${bill.id}/testimony`);
-                        }}
+                    {billDetails?.bill_url && (
+                      <a
+                        href={billDetails.bill_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline"
                       >
-                        <PenLine className="mr-1.5 h-3.5 w-3.5" />
-                        Write Testimony
-                      </Button>
-                    </div>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        View on Hawaii State Legislature
+                      </a>
+                    )}
                   </div>
 
                   {/* Tags */}
