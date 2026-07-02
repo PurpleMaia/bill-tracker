@@ -164,6 +164,21 @@ export interface Tenants {
   slug: string;
 }
 
+export type TestimonyPosition = "comments" | "oppose" | "support";
+
+export interface Testimonies {
+  author_name: Generated<string>;
+  bill_id: string;
+  content_json: Generated<Json>;
+  created_at: Generated<Timestamp>;
+  id: Generated<string>;
+  organization: Generated<string>;
+  position: Generated<TestimonyPosition>;
+  tenant_id: string | null;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface User {
   account_status: string;
   auth_provider: Generated<string | null>;
@@ -221,6 +236,7 @@ export interface DB {
   supervisor_users: SupervisorUsers;
   tags: Tags;
   tenants: Tenants;
+  testimonies: Testimonies;
   user: User;
   user_bill_preferences: UserBillPreferences;
   user_bills: UserBills;
