@@ -40,6 +40,7 @@ import { TagSelector } from '../tags/tag-selector';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/dead-bill';
 import type { SessionDeadlines } from '@/lib/dead-bill';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony-eligibility';
+import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/hearing-schedule';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import deadlinesJson from '@/data/session-deadlines-2026.json';
 
@@ -159,6 +160,14 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
   });
   const testimonyUrgent =
     testimonyEligibility.allowed && isTestimonyUrgent(currentStatus as DBBillStatus);
+  const latestUpdateText =
+    billDetails?.updates?.[0]?.statustext ?? bill.latest_update?.statustext ?? null;
+  const hearingAt =
+    testimonyUrgent && latestUpdateText ? parseHearingDatetime(latestUpdateText) : null;
+  const testimonyCountdown = hearingAt ? getTestimonyCountdownLabel(hearingAt, new Date()) : null;
+  const urgentTooltip = hearingAt
+    ? `Hearing ${hearingAt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${testimonyCountdown ? ` — testimony ${testimonyCountdown}` : ''}. Submit at least 24 hours before the hearing.`
+    : 'Hearing scheduled — submit testimony at least 24 hours before the hearing.';
 
   const handleSave = async () => {
     try {
@@ -242,7 +251,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                   </TooltipTrigger>
                   {testimonyUrgent && (
                     <TooltipContent>
-                      <p>Hearing scheduled — submit testimony at least 24 hours before the hearing.</p>
+                      <p>{urgentTooltip}</p>
                     </TooltipContent>
                   )}
                 </Tooltip>
