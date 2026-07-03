@@ -1,19 +1,20 @@
 {
   "session": 2026,
+  "_note": "TESTING: deadlines hardcoded into late 2026 so bills stay alive and testimony stays open mid-year. Restore real session dates before production.",
   "deadlines": {
-    "first_triple_referral_filing": { "HB": "2026-02-11", "SB": "2026-02-12" },
-    "first_lateral_filing": "2026-02-19",
-    "first_lateral": "2026-02-20",
-    "single_referral_filing": { "SB": "2026-03-05", "HB": "2026-04-09" },
-    "first_decking": "2026-03-06",
-    "first_crossover": "2026-03-12",
-    "second_triple_referral_filing": "2026-03-19",
-    "second_lateral_filing": "2026-03-27",
-    "second_lateral": "2026-03-30",
-    "second_decking": "2026-04-10",
-    "second_crossover": "2026-04-16",
-    "final_decking_non_fiscal": "2026-04-29",
-    "final_decking_fiscal": "2026-05-01",
-    "adjournment_sine_die": "2026-05-08"
+    "first_triple_referral_filing": { "HB": "2026-11-11", "SB": "2026-11-12" },
+    "first_lateral_filing": "2026-11-19",
+    "first_lateral": "2026-11-20",
+    "single_referral_filing": { "SB": "2026-11-25", "HB": "2026-12-09" },
+    "first_decking": "2026-11-26",
+    "first_crossover": "2026-11-30",
+    "second_triple_referral_filing": "2026-12-03",
+    "second_lateral_filing": "2026-12-04",
+    "second_lateral": "2026-12-07",
+    "second_decking": "2026-12-10",
+    "second_crossover": "2026-12-14",
+    "final_decking_non_fiscal": "2026-12-18",
+    "final_decking_fiscal": "2026-12-21",
+    "adjournment_sine_die": "2026-12-31"
   }
 }
