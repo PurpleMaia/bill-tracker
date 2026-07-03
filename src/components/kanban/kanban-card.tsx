@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { cn, formatBillStatusName } from '@/lib/utils';
 import { canAssignBills } from '@/lib/permissions';
-import { Sparkles, X, Check, Users, Clock, Info } from 'lucide-react';
+import { Sparkles, X, Check, Users, Clock, Info, PenLine } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTagSelector } from '../tags/card-tag-selector';
 import { getNextDeadline } from '@/lib/dead-bill';
+import { isTestimonyUrgent } from '@/lib/testimony-eligibility';
 import type { SessionDeadlines } from '@/lib/dead-bill';
 import { DeadBillInfoPopover } from './dead-bill-info-popover';
 import type { BillStatus as DBBillStatus } from '@/db/types';
@@ -95,6 +96,9 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
       ? Math.ceil((new Date(nextDeadline.date + 'T00:00:00').getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
       : null;
     const isUrgent = deadlineDaysAway !== null && deadlineDaysAway <= 7;
+
+    // Hearing scheduled — testimony is due within the 24-hour window
+    const testimonyDue = !bill.dead && isTestimonyUrgent(bill.current_bill_status as DBBillStatus);
 
     return (
         <div
@@ -219,6 +223,19 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
 
                 {/* Status badges footer */}
                 <div className="flex items-center flex-wrap gap-1.5 mt-2.5">
+                    {testimonyDue && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 h-5 text-[10px] font-medium text-red-700 shrink-0"
+                        title="Hearing scheduled — submit testimony at least 24 hours before the hearing"
+                      >
+                        <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+                          <span className="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 motion-safe:animate-ping" />
+                          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-600" />
+                        </span>
+                        <PenLine className="h-2.5 w-2.5" />
+                        Testimony due
+                      </span>
+                    )}
                     <Badge variant="outline" className="text-[10px] h-5 px-2 text-muted-foreground rounded-full">
                       {formatBillStatusName(bill.current_bill_status)}
                     </Badge>

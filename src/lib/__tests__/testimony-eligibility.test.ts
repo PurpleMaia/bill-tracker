@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getTestimonyEligibility } from '@/lib/testimony-eligibility';
+import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony-eligibility';
 import type { SessionDeadlines } from '@/lib/dead-bill';
 
 const DEADLINES: SessionDeadlines = {
@@ -87,5 +87,35 @@ describe('getTestimonyEligibility', () => {
     expect(
       getTestimonyEligibility({ ...base, billStatus: 'governorSigns', today: '2026-06-01' }),
     ).toEqual({ allowed: false, reason: 'This bill has been enacted into law' });
+  });
+});
+
+describe('isTestimonyUrgent', () => {
+  it('is urgent for every scheduled-hearing status', () => {
+    for (const status of [
+      'scheduled1',
+      'scheduled2',
+      'scheduled3',
+      'crossoverScheduled1',
+      'crossoverScheduled2',
+      'crossoverScheduled3',
+      'conferenceScheduled',
+    ] as const) {
+      expect(isTestimonyUrgent(status)).toBe(true);
+    }
+  });
+
+  it('is not urgent for waiting, deferred, or terminal statuses', () => {
+    for (const status of [
+      'introduced',
+      'waiting2',
+      'deferred1',
+      'crossoverWaiting1',
+      'passedCommittees',
+      'transmittedGovernor',
+      'governorSigns',
+    ] as const) {
+      expect(isTestimonyUrgent(status)).toBe(false);
+    }
   });
 });

@@ -39,7 +39,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/dead-bill';
 import type { SessionDeadlines } from '@/lib/dead-bill';
-import { getTestimonyEligibility } from '@/lib/testimony-eligibility';
+import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony-eligibility';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import deadlinesJson from '@/data/session-deadlines-2026.json';
 
@@ -157,6 +157,8 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
     deadlines: deadlinesJson as SessionDeadlines,
     today,
   });
+  const testimonyUrgent =
+    testimonyEligibility.allowed && isTestimonyUrgent(currentStatus as DBBillStatus);
 
   const handleSave = async () => {
     try {
@@ -216,18 +218,35 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
               </DialogDescription>
             </div>
             {testimonyEligibility.allowed ? (
-              <Button
-                size="sm"
-                variant="outline"
-                className="shrink-0"
-                onClick={() => {
-                  onClose();
-                  router.push(`/bills/${bill.id}/testimony`);
-                }}
-              >
-                <PenLine className="mr-1.5 h-3.5 w-3.5" />
-                Write Testimony
-              </Button>
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant={testimonyUrgent ? 'destructive' : 'outline'}
+                      className="shrink-0 relative"
+                      onClick={() => {
+                        onClose();
+                        router.push(`/bills/${bill.id}/testimony`);
+                      }}
+                    >
+                      {testimonyUrgent && (
+                        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5" aria-hidden="true">
+                          <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 motion-safe:animate-ping" />
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                        </span>
+                      )}
+                      <PenLine className="mr-1.5 h-3.5 w-3.5" />
+                      Write Testimony
+                    </Button>
+                  </TooltipTrigger>
+                  {testimonyUrgent && (
+                    <TooltipContent>
+                      <p>Hearing scheduled — submit testimony at least 24 hours before the hearing.</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             ) : (
               <TooltipProvider delayDuration={100}>
                 <Tooltip>

@@ -12,6 +12,24 @@ import { isFiscalBill } from '@/lib/dead-bill';
 
 const ENACTED_STATUSES: BillStatus[] = ['governorSigns', 'lawWithoutSignature'];
 
+const SCHEDULED_STATUSES: BillStatus[] = [
+  'scheduled1',
+  'scheduled2',
+  'scheduled3',
+  'crossoverScheduled1',
+  'crossoverScheduled2',
+  'crossoverScheduled3',
+  'conferenceScheduled',
+];
+
+/**
+ * True when a hearing is scheduled for the bill — testimony should be
+ * submitted at least 24 hours before the hearing, so the window is closing.
+ */
+export function isTestimonyUrgent(billStatus: BillStatus): boolean {
+  return SCHEDULED_STATUSES.includes(billStatus);
+}
+
 export interface TestimonyEligibility {
   allowed: boolean;
   /** Human-readable reason testimony is closed; null when allowed. */
