@@ -1,6 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSession, requireMembership } from '@/lib/auth-guards';
-import { getTestimonyDraft, upsertTestimonyDraft } from '@/db/queries/testimony';
+import { getTestimonyDraft, markTestimonySubmitted, upsertTestimonyDraft } from '@/db/queries/testimony';
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { user } = await requireSession.fromRequest(request);
+    const { id: billId } = await params;
+    const draft = await markTestimonySubmitted(user.id, billId);
+    return NextResponse.json(draft, { status: 200 });
+  } catch (error: any) {
+    if (error?.statusCode) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    }
+    console.error('Error in testimony PATCH:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
 
 export async function GET(
   request: NextRequest,

@@ -39,6 +39,7 @@ export default function TestimonyPage() {
     position: 'comments' as TestimonyPosition,
   });
   const [contentJson, setContentJson] = useState<unknown>(EMPTY_DOC);
+  const [submitted, setSubmitted] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
 
   const hydrated = useRef(false); // true once bill + draft are loaded (enables autosave)
@@ -75,6 +76,7 @@ export default function TestimonyPage() {
           const nextContent = hasContent ? draft.contentJson : EMPTY_DOC;
           setForm(nextForm);
           setContentJson(nextContent);
+          setSubmitted(draft.submittedAt !== null);
           formRef.current = nextForm;
           contentRef.current = nextContent;
         } else {
@@ -285,7 +287,14 @@ export default function TestimonyPage() {
               />
             )}
 
-            {step === 3 && <TestimonySubmitGuide bill={bill} onBack={() => setStep(2)} />}
+            {step === 3 && (
+              <TestimonySubmitGuide
+                bill={bill}
+                submitted={submitted}
+                onMarkSubmitted={() => setSubmitted(true)}
+                onBack={() => setStep(2)}
+              />
+            )}
           </div>
         </main>
       </div>

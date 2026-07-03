@@ -45,7 +45,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const [isProcessing, setIsProcessing] = useState(false);
     const [isRemoving, setIsRemoving] = useState(false);
     const [showRemoveDialog, setShowRemoveDialog] = useState(false);
-    const { acceptLLMChange, rejectLLMChange, removeBill } = useBills();
+    const { acceptLLMChange, rejectLLMChange, removeBill, testimonyStatuses } = useBills();
     const { user, activeTenant } = useAuth();
 
     const canSeeTracking = activeTenant?.orgRole === 'admin';
@@ -98,8 +98,10 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
       : null;
     const isUrgent = deadlineDaysAway !== null && deadlineDaysAway <= 7;
 
-    // Hearing scheduled — testimony is due within the 24-hour window
-    const testimonyDue = !bill.dead && isTestimonyUrgent(bill.current_bill_status as DBBillStatus);
+    // Testimony progress: submitted > draft written > due (hearing scheduled)
+    const testimonyState = testimonyStatuses[bill.id]; // undefined | 'draft' | 'submitted'
+    const testimonyDue =
+      !testimonyState && !bill.dead && isTestimonyUrgent(bill.current_bill_status as DBBillStatus);
     const hearingAt = testimonyDue && bill.latest_update
       ? parseHearingDatetime(bill.latest_update.statustext)
       : null;
@@ -231,6 +233,24 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
 
                 {/* Status badges footer */}
                 <div className="flex items-center flex-wrap gap-1.5 mt-2.5">
+                    {testimonyState === 'submitted' && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 h-5 text-[10px] font-medium text-green-700 shrink-0"
+                        title="You submitted testimony for this bill"
+                      >
+                        <Check className="h-2.5 w-2.5" />
+                        Submitted
+                      </span>
+                    )}
+                    {testimonyState === 'draft' && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 h-5 text-[10px] font-medium text-blue-700 shrink-0"
+                        title="You have a testimony draft for this bill"
+                      >
+                        <PenLine className="h-2.5 w-2.5" />
+                        Draft written
+                      </span>
+                    )}
                     {testimonyDue && (
                       <span
                         className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 h-5 text-[10px] font-medium text-red-700 shrink-0"
@@ -244,9 +264,9 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                         {countdownLabel ? `Testimony ${countdownLabel}` : 'Testimony due'}
                       </span>
                     )}
-                    <Badge variant="outline" className="text-[10px] h-5 px-2 text-muted-foreground rounded-full">
+                    {/* <Badge variant="outline" className="text-[10px] h-5 px-2 text-muted-foreground rounded-full">
                       {formatBillStatusName(bill.current_bill_status)}
-                    </Badge>
+                    </Badge> */}
                     {canSeeTracking && (
                       <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
                         <Users className="h-2.5 w-2.5" />

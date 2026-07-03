@@ -11,6 +11,14 @@ export interface TestimonyDraft {
   /** Tiptap document JSON ({ type: 'doc', content: [...] }). */
   contentJson: unknown;
   updatedAt: string | null;
+  /** When the user marked this testimony as submitted on the capitol site. */
+  submittedAt: string | null;
+}
+
+/** Per-bill testimony progress for the current user (board badges). */
+export interface TestimonyStatus {
+  billId: string;
+  submitted: boolean;
 }
 
 /** Payload for saving a draft. */

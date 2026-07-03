@@ -1,9 +1,11 @@
 import { defineClient } from './define-client';
 import {
   getTestimonyDraftAction,
+  getTestimonyStatusesAction,
+  markTestimonySubmittedAction,
   saveTestimonyDraftAction,
 } from '@/app/actions/testimony';
-import type { TestimonyDraft, TestimonyDraftInput } from '@/types/testimony';
+import type { TestimonyDraft, TestimonyDraftInput, TestimonyStatus } from '@/types/testimony';
 
 // ---- fetch arm (hits /api/bills/[id]/testimony) ----
 
@@ -29,7 +31,27 @@ async function saveTestimonyDraftFetch(input: TestimonyDraftInput): Promise<Test
   return res.json();
 }
 
+async function markTestimonySubmittedFetch(billId: string): Promise<TestimonyDraft> {
+  const res = await fetch(`/api/bills/${billId}/testimony`, { method: 'PATCH' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to mark testimony as submitted');
+  }
+  return res.json();
+}
+
+async function getTestimonyStatusesFetch(): Promise<TestimonyStatus[]> {
+  const res = await fetch('/api/testimony');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to load testimony statuses');
+  }
+  return res.json();
+}
+
 export const testimonyClient = defineClient('testimony', {
   getDraft: { action: getTestimonyDraftAction, fetch: getTestimonyDraftFetch },
   saveDraft: { action: saveTestimonyDraftAction, fetch: saveTestimonyDraftFetch },
+  markSubmitted: { action: markTestimonySubmittedAction, fetch: markTestimonySubmittedFetch },
+  getStatuses: { action: getTestimonyStatusesAction, fetch: getTestimonyStatusesFetch },
 });

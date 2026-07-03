@@ -166,7 +166,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
     testimonyUrgent && latestUpdateText ? parseHearingDatetime(latestUpdateText) : null;
   const testimonyCountdown = hearingAt ? getTestimonyCountdownLabel(hearingAt, new Date()) : null;
   const urgentTooltip = hearingAt
-    ? `Hearing ${hearingAt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${testimonyCountdown ? ` — testimony ${testimonyCountdown}` : ''}. Submit at least 24 hours before the hearing.`
+    ? `Hearing ${hearingAt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Submit testimony at least 24 hours before the hearing.`
     : 'Hearing scheduled — submit testimony at least 24 hours before the hearing.';
 
   const handleSave = async () => {
@@ -227,35 +227,42 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
               </DialogDescription>
             </div>
             {testimonyEligibility.allowed ? (
-              <TooltipProvider delayDuration={100}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant={testimonyUrgent ? 'destructive' : 'outline'}
-                      className="shrink-0 relative"
-                      onClick={() => {
-                        onClose();
-                        router.push(`/bills/${bill.id}/testimony`);
-                      }}
-                    >
-                      {testimonyUrgent && (
-                        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5" aria-hidden="true">
-                          <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 motion-safe:animate-ping" />
-                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
-                        </span>
-                      )}
-                      <PenLine className="mr-1.5 h-3.5 w-3.5" />
-                      Write Testimony
-                    </Button>
-                  </TooltipTrigger>
-                  {testimonyUrgent && (
-                    <TooltipContent>
-                      <p>{urgentTooltip}</p>
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
+              <div className="flex shrink-0 items-center gap-2">
+                {testimonyUrgent && testimonyCountdown && (
+                  <span className="text-xs font-medium text-red-600 whitespace-nowrap">
+                    Testimony {testimonyCountdown}
+                  </span>
+                )}
+                <TooltipProvider delayDuration={100}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="relative"
+                        onClick={() => {
+                          onClose();
+                          router.push(`/bills/${bill.id}/testimony`);
+                        }}
+                      >
+                        {testimonyUrgent && (
+                          <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5" aria-hidden="true">
+                            <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 motion-safe:animate-ping" />
+                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                          </span>
+                        )}
+                        <PenLine className="mr-1.5 h-3.5 w-3.5" />
+                        Write Testimony
+                      </Button>
+                    </TooltipTrigger>
+                    {testimonyUrgent && (
+                      <TooltipContent>
+                        <p>{urgentTooltip}</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             ) : (
               <TooltipProvider delayDuration={100}>
                 <Tooltip>

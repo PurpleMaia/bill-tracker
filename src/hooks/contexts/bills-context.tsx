@@ -11,6 +11,7 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
+import { usePathname } from 'next/navigation';
 import type { Bill, BillStatus, TempBill } from '@/types/legislation';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { data } from '@/lib/data-client';
@@ -64,6 +65,10 @@ interface BillsContextType {
   // Data Operations
   resetBills: () => Promise<void>;
   refreshBills: () => Promise<void>;
+
+  // Testimony progress (current user): billId -> 'draft' | 'submitted'
+  testimonyStatuses: Record<string, 'draft' | 'submitted'>;
+  refreshTestimonyStatuses: () => Promise<void>;
 }
 
 const BillsContext = createContext<BillsContextType | undefined>(undefined);
@@ -77,6 +82,7 @@ export function BillsProvider({ children }: { children: ReactNode }) {
   const [viewMode, setViewMode] = useState<'my-bills' | 'all-bills'>('my-bills');
   const [showArchived, setShowArchived] = useState(false);
   const { user, loading: userLoading, activeTenant } = useAuth();
+  const pathname = usePathname();
 
   /**
    * Reloads proposals from the server and updates local state
@@ -286,6 +292,37 @@ export function BillsProvider({ children }: { children: ReactNode }) {
   }, [user, userLoading, viewMode, activeTenant, fetchBillsWithTags]);
 
   // ---------------------------------------------------------------------------
+  // TESTIMONY PROGRESS (per current user)
+  // ---------------------------------------------------------------------------
+
+  const [testimonyStatuses, setTestimonyStatuses] = useState<
+    Record<string, 'draft' | 'submitted'>
+  >({});
+
+  const refreshTestimonyStatuses = useCallback(async () => {
+    if (!user) {
+      setTestimonyStatuses({});
+      return;
+    }
+    try {
+      const statuses = await data.testimony.getStatuses();
+      setTestimonyStatuses(
+        Object.fromEntries(statuses.map((s) => [s.billId, s.submitted ? 'submitted' : 'draft'])),
+      );
+    } catch (err) {
+      console.error('Failed to load testimony statuses:', err);
+    }
+  }, [user]);
+
+  // Refetch on login/logout and whenever the user lands back on the board,
+  // so a draft written on the testimony page shows up without a full reload.
+  useEffect(() => {
+    if (userLoading) return;
+    if (pathname !== '/') return;
+    refreshTestimonyStatuses();
+  }, [userLoading, pathname, refreshTestimonyStatuses]);
+
+  // ---------------------------------------------------------------------------
   // CONTEXT VALUE
   // ---------------------------------------------------------------------------
 
@@ -332,6 +369,10 @@ export function BillsProvider({ children }: { children: ReactNode }) {
       // Data Operations
       resetBills,
       refreshBills,
+
+      // Testimony progress
+      testimonyStatuses,
+      refreshTestimonyStatuses,
     }),
     [
       bills,
@@ -359,6 +400,8 @@ export function BillsProvider({ children }: { children: ReactNode }) {
       removeBill,
       resetBills,
       refreshBills,
+      testimonyStatuses,
+      refreshTestimonyStatuses,
     ]
   );
 

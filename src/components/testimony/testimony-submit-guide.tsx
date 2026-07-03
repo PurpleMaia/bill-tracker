@@ -1,12 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import type { BillDetails } from '@/types/legislation';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle2, ExternalLink, SquareKanban } from 'lucide-react';
+import { data } from '@/lib/data-client';
+import { toast } from '@/hooks/use-toast';
+import { ArrowLeft, Check, CheckCircle2, ExternalLink, Loader2, SquareKanban } from 'lucide-react';
 
 interface TestimonySubmitGuideProps {
   bill: BillDetails;
+  /** Whether the user already marked this testimony as submitted. */
+  submitted: boolean;
+  onMarkSubmitted: () => void;
   onBack: () => void;
 }
 
@@ -33,8 +39,22 @@ const STEPS: Array<{ title: string; body: string }> = [
   },
 ];
 
-export function TestimonySubmitGuide({ bill, onBack }: TestimonySubmitGuideProps) {
+export function TestimonySubmitGuide({ bill, submitted, onMarkSubmitted, onBack }: TestimonySubmitGuideProps) {
   const router = useRouter();
+  const [marking, setMarking] = useState(false);
+
+  const handleMarkSubmitted = async () => {
+    setMarking(true);
+    try {
+      await data.testimony.markSubmitted(bill.id);
+      onMarkSubmitted();
+      toast({ title: 'Testimony submitted', description: `Marked your ${bill.bill_number} testimony as submitted.` });
+    } catch {
+      toast({ title: 'Error', description: 'Could not mark the testimony as submitted.', variant: 'destructive' });
+    } finally {
+      setMarking(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -71,6 +91,26 @@ export function TestimonySubmitGuide({ bill, onBack }: TestimonySubmitGuideProps
               Go to Submit Testimony
             </a>
           </Button>
+        </div>
+
+        {/* Done submitting on the capitol site? Record it so the board shows progress. */}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 p-3">
+          <p className="text-sm text-muted-foreground">
+            {submitted
+              ? `Your ${bill.bill_number} testimony is marked as submitted.`
+              : 'Finished submitting on the capitol website?'}
+          </p>
+          {submitted ? (
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-700">
+              <Check className="h-4 w-4" />
+              Submitted
+            </span>
+          ) : (
+            <Button size="sm" onClick={handleMarkSubmitted} disabled={marking}>
+              {marking ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5" />}
+              I submitted my testimony
+            </Button>
+          )}
         </div>
       </div>
 

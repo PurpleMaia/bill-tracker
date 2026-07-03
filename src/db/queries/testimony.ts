@@ -1,5 +1,10 @@
 import { db } from '@/db/kysely/client';
-import type { TestimonyDraft, TestimonyDraftInput, TestimonyPosition } from '@/types/testimony';
+import type {
+  TestimonyDraft,
+  TestimonyDraftInput,
+  TestimonyPosition,
+  TestimonyStatus,
+} from '@/types/testimony';
 
 const POSITIONS: TestimonyPosition[] = ['support', 'oppose', 'comments'];
 
@@ -14,7 +19,7 @@ export async function getTestimonyDraft(
 ): Promise<TestimonyDraft | null> {
   const row = await db
     .selectFrom('testimonies')
-    .select(['bill_id', 'author_name', 'organization', 'position', 'content_json', 'updated_at'])
+    .select(['bill_id', 'author_name', 'organization', 'position', 'content_json', 'updated_at', 'submitted_at'])
     .where('user_id', '=', userId)
     .where('bill_id', '=', billId)
     .executeTakeFirst();
@@ -27,6 +32,7 @@ export async function getTestimonyDraft(
     position: normalizePosition(row.position),
     contentJson: row.content_json,
     updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+    submittedAt: row.submitted_at ? new Date(row.submitted_at).toISOString() : null,
   };
 }
 
@@ -64,4 +70,34 @@ export async function upsertTestimonyDraft(
   const saved = await getTestimonyDraft(userId, input.billId);
   if (!saved) throw new Error('Failed to save testimony draft');
   return saved;
+}
+
+/** Marks the user's testimony for a bill as submitted (creates the row if needed). */
+export async function markTestimonySubmitted(
+  userId: string,
+  billId: string,
+): Promise<TestimonyDraft> {
+  const now = new Date();
+  await db
+    .insertInto('testimonies')
+    .values({ user_id: userId, bill_id: billId, submitted_at: now, updated_at: now })
+    .onConflict((oc) =>
+      oc.columns(['user_id', 'bill_id']).doUpdateSet({ submitted_at: now, updated_at: now }),
+    )
+    .execute();
+
+  const saved = await getTestimonyDraft(userId, billId);
+  if (!saved) throw new Error('Failed to mark testimony as submitted');
+  return saved;
+}
+
+/** Per-bill testimony progress for the user — one entry per draft. */
+export async function getTestimonyStatuses(userId: string): Promise<TestimonyStatus[]> {
+  const rows = await db
+    .selectFrom('testimonies')
+    .select(['bill_id', 'submitted_at'])
+    .where('user_id', '=', userId)
+    .execute();
+
+  return rows.map((row) => ({ billId: row.bill_id, submitted: row.submitted_at !== null }));
 }

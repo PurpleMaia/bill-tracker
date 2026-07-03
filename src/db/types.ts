@@ -174,6 +174,7 @@ export interface Testimonies {
   id: Generated<string>;
   organization: Generated<string>;
   position: Generated<TestimonyPosition>;
+  submitted_at: Timestamp | null;
   tenant_id: string | null;
   updated_at: Generated<Timestamp>;
   user_id: string;
