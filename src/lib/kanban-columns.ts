@@ -4,7 +4,7 @@ export interface KanbanColumnData {
 }
 
 export const KANBAN_COLUMNS: KanbanColumnData[] = [
-  { id: 'unassigned', title: 'Not Assigned' },
+  // { id: 'unassigned', title: 'Not Assigned' },
   // { id: 'introduced', title: 'Introduced/Waiting to be Scheduled for First Committee Hearing' },
   { id: 'introduced', title: 'INTRODUCED & WAITING 1ST' },
   // { id: 'scheduled1', title: 'Scheduled for First Committee Hearing' },
@@ -61,7 +61,7 @@ export const COLUMN_INDEX: Record<string, number> = KANBAN_COLUMNS.reduce((acc, 
 }, {} as Record<string, number>);
 
 export const SIMPLIFIED_COLUMNS: KanbanColumnData[] = [
-  { id: 'unassigned', title: 'Not Assigned' },
+  // { id: 'unassigned', title: 'Not Assigned' },
   { id: 'simpleWaiting', title: 'INTRODUCED & WAITING' },
   { id: 'simpleScheduled', title: 'SCHEDULED' },
   { id: 'simpleCrossoverWaiting', title: 'CROSSOVER & WAITING' },

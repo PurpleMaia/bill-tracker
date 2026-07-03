@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Bill, BillStatus, BillDetails, StatusUpdate } from '@/types/legislation';
 import {
   Dialog,
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { cn } from '@/lib/utils';
-import { FileText, Lock, Loader2, ExternalLink, Clock, Users } from 'lucide-react';
+import { FileText, Loader2, ExternalLink, Clock, PenLine } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
@@ -38,6 +39,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/dead-bill';
 import type { SessionDeadlines } from '@/lib/dead-bill';
+import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony-eligibility';
+import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/hearing-schedule';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import deadlinesJson from '@/data/session-deadlines-2026.json';
 
@@ -73,6 +76,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
   const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills();
   const { user, activeTenant } = useAuth();
   const isMobile = useIsMobile();
+  const router = useRouter();
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [, setSaving] = useState<boolean>(false);
   const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
@@ -147,6 +151,24 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
   const isUrgent = deadlineDaysAway !== null && deadlineDaysAway <= 7;
   const fiscal = committeeAssign ? isFiscalBill(committeeAssign) : false;
 
+  const testimonyEligibility = getTestimonyEligibility({
+    dead: bill.dead,
+    billStatus: currentStatus as DBBillStatus,
+    committeeAssignment: committeeAssign ?? null,
+    deadlines: deadlinesJson as SessionDeadlines,
+    today,
+  });
+  const testimonyUrgent =
+    testimonyEligibility.allowed && isTestimonyUrgent(currentStatus as DBBillStatus);
+  const latestUpdateText =
+    billDetails?.updates?.[0]?.statustext ?? bill.latest_update?.statustext ?? null;
+  const hearingAt =
+    testimonyUrgent && latestUpdateText ? parseHearingDatetime(latestUpdateText) : null;
+  const testimonyCountdown = hearingAt ? getTestimonyCountdownLabel(hearingAt, new Date()) : null;
+  const urgentTooltip = hearingAt
+    ? `Hearing ${hearingAt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Submit testimony at least 24 hours before the hearing.`
+    : 'Hearing scheduled — submit testimony at least 24 hours before the hearing.';
+
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -204,6 +226,60 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                 {bill.bill_title}
               </DialogDescription>
             </div>
+            {testimonyEligibility.allowed ? (
+              <div className="flex shrink-0 items-center gap-2">
+                {testimonyUrgent && testimonyCountdown && (
+                  <span className="text-xs font-medium text-red-600 whitespace-nowrap">
+                    Testimony {testimonyCountdown}
+                  </span>
+                )}
+                <TooltipProvider delayDuration={100}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="relative"
+                        onClick={() => {
+                          onClose();
+                          router.push(`/bills/${bill.id}/testimony`);
+                        }}
+                      >
+                        {testimonyUrgent && (
+                          <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5" aria-hidden="true">
+                            <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 motion-safe:animate-ping" />
+                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                          </span>
+                        )}
+                        <PenLine className="mr-1.5 h-3.5 w-3.5" />
+                        Write Testimony
+                      </Button>
+                    </TooltipTrigger>
+                    {testimonyUrgent && (
+                      <TooltipContent>
+                        <p>{urgentTooltip}</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            ) : (
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="shrink-0 inline-block cursor-not-allowed">
+                      <Button size="sm" variant="outline" disabled className="pointer-events-none">
+                        <PenLine className="mr-1.5 h-3.5 w-3.5" />
+                        Write Testimony
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{testimonyEligibility.reason} — testimony is closed.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
 
           {/* Progress bar */}
@@ -380,36 +456,33 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                 </div>
               </ScrollArea>
 
-              {/* Status change — pinned to bottom of left panel */}
-              <div className="border-t p-4 shrink-0 bg-muted/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Change Status</h3>
-                  {!user && (
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <Lock className="h-2.5 w-2.5" />
-                      <span>Login required</span>
-                    </div>
-                  )}
+              {/* Status change — pinned to bottom of left panel; org members only
+                  (org statuses are tenant-scoped, so public users have nothing to set) */}
+              {activeTenant && (
+                <div className="border-t p-4 shrink-0 bg-muted/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Change Status</h3>
+                  </div>
+                  <div className="flex gap-2">
+                    <Select value={selectedStatus} onValueChange={setSelectedStatus} disabled={!canEditBill}>
+                      <SelectTrigger className="flex-1 h-9 text-sm">
+                        <SelectValue placeholder={!canEditBill ? "Only in 'My Bills'" : "Select status"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {KANBAN_COLUMNS.map((col) => (
+                          <SelectItem key={col.id} value={col.id} className="cursor-pointer text-sm">
+                            {col.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={handleSave} disabled={!selectedStatus || !canEditBill} size="sm" className="px-6 h-9">
+                      Save
+                    </Button>
+                    <AIUpdateSingleButton bill={bill} />
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Select value={selectedStatus} onValueChange={setSelectedStatus} disabled={!user || !canEditBill}>
-                    <SelectTrigger className="flex-1 h-9 text-sm">
-                      <SelectValue placeholder={!user ? "Login to edit" : !canEditBill ? "Only in 'My Bills'" : "Select status"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {KANBAN_COLUMNS.map((col) => (
-                        <SelectItem key={col.id} value={col.id} className="cursor-pointer text-sm">
-                          {col.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button onClick={handleSave} disabled={!user || !selectedStatus || !canEditBill} size="sm" className="px-6 h-9">
-                    Save
-                  </Button>
-                  {user && <AIUpdateSingleButton bill={bill} />}
-                </div>
-              </div>
+              )}
             </div>
             );
 

@@ -6,8 +6,9 @@ describe('KANBAN_COLUMNS', () => {
     expect(KANBAN_COLUMNS.length).toBeGreaterThan(0);
   });
 
-  it('starts with unassigned', () => {
-    expect(KANBAN_COLUMNS[0].id).toBe('unassigned');
+  it('starts with introduced (unassigned is not a board column)', () => {
+    expect(KANBAN_COLUMNS[0].id).toBe('introduced');
+    expect(KANBAN_COLUMNS.some((c) => c.id === 'unassigned')).toBe(false);
   });
 
   it('ends with lawWithoutSignature', () => {
@@ -35,7 +36,7 @@ describe('KANBAN_COLUMNS', () => {
     const passedCommittees = ids.indexOf('passedCommittees');
     const governorSigns = ids.indexOf('governorSigns');
 
-    expect(introduced).toBeGreaterThan(0); // after unassigned
+    expect(introduced).toBe(0); // first board column
     expect(crossover).toBeGreaterThan(introduced);
     expect(passedCommittees).toBeGreaterThan(crossover);
     expect(governorSigns).toBeGreaterThan(passedCommittees);
@@ -61,8 +62,9 @@ describe('COLUMN_INDEX', () => {
     }
   });
 
-  it('unassigned is index 0', () => {
-    expect(COLUMN_INDEX['unassigned']).toBe(0);
+  it('introduced is index 0 and unassigned has no index', () => {
+    expect(COLUMN_INDEX['introduced']).toBe(0);
+    expect(COLUMN_INDEX['unassigned']).toBeUndefined();
   });
 
   it('indices are monotonically increasing', () => {
@@ -78,12 +80,12 @@ describe('COLUMN_INDEX', () => {
 });
 
 describe('SIMPLIFIED_COLUMNS', () => {
-  it('has exactly 13 columns', () => {
-    expect(SIMPLIFIED_COLUMNS.length).toBe(13);
+  it('has exactly 12 columns', () => {
+    expect(SIMPLIFIED_COLUMNS.length).toBe(12);
   });
 
-  it('starts with unassigned and ends with lawWithoutSignature', () => {
-    expect(SIMPLIFIED_COLUMNS[0].id).toBe('unassigned');
+  it('starts with simpleWaiting and ends with lawWithoutSignature', () => {
+    expect(SIMPLIFIED_COLUMNS[0].id).toBe('simpleWaiting');
     expect(SIMPLIFIED_COLUMNS[SIMPLIFIED_COLUMNS.length - 1].id).toBe('lawWithoutSignature');
   });
 
@@ -110,7 +112,7 @@ describe('SIMPLIFIED_COLUMNS', () => {
     const conference = ids.indexOf('passedCommittees');
     const governor = ids.indexOf('transmittedGovernor');
 
-    expect(waiting).toBeGreaterThan(0);
+    expect(waiting).toBe(0); // first simplified column
     expect(scheduled).toBeGreaterThan(waiting);
     expect(crossoverWaiting).toBeGreaterThan(scheduled);
     expect(crossoverScheduled).toBeGreaterThan(crossoverWaiting);
@@ -120,10 +122,10 @@ describe('SIMPLIFIED_COLUMNS', () => {
 });
 
 describe('STATUS_TO_SIMPLIFIED', () => {
-  it('maps every BillStatus to a valid simplified column', () => {
+  it('maps every board BillStatus to a valid simplified column', () => {
     const simplifiedIds = new Set(SIMPLIFIED_COLUMNS.map((c) => c.id));
     const allStatuses = [
-      'unassigned', 'introduced', 'scheduled1', 'scheduled2', 'scheduled3',
+      'introduced', 'scheduled1', 'scheduled2', 'scheduled3',
       'waiting2', 'waiting3', 'deferred1', 'deferred2', 'deferred3',
       'crossoverWaiting1', 'crossoverWaiting2', 'crossoverWaiting3',
       'crossoverScheduled1', 'crossoverScheduled2', 'crossoverScheduled3',
@@ -137,6 +139,11 @@ describe('STATUS_TO_SIMPLIFIED', () => {
       expect(STATUS_TO_SIMPLIFIED[status]).toBeDefined();
       expect(simplifiedIds.has(STATUS_TO_SIMPLIFIED[status])).toBe(true);
     }
+  });
+
+  it('does not surface unassigned bills on the simplified board', () => {
+    const simplifiedIds = new Set(SIMPLIFIED_COLUMNS.map((c) => c.id));
+    expect(simplifiedIds.has(STATUS_TO_SIMPLIFIED['unassigned'])).toBe(false);
   });
 
   it('maps waiting statuses to simpleWaiting', () => {
