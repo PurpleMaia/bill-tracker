@@ -73,14 +73,14 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   What does AI do &amp; how are models hosted?
                 </AccordionTrigger>
                 <AccordionContent className="text-xs text-muted-foreground space-y-2">
-                  <p className="font-medium text-foreground">When enabled, AI helps you:</p>
+                  <p className="font-medium text-foreground">When enabled, AI provides:</p>
                   <ul className="list-disc pl-4 space-y-1">
                     <li>
-                      <span className="font-medium">Bill summaries</span> — plain-language
-                      summaries of bills, translating legal text and summarizing key status .
+                      <span className="font-medium">Bill summaries</span>: plain-language
+                      summaries of bills, translating legal text and summarizing key status.
                     </li>
                     <li>
-                      <span className="font-medium">Testimony assistance</span> — drafting
+                      <span className="font-medium">Testimony assistance</span>: drafting
                       help and suggestions for written testimony.
                     </li>
                   </ul>
@@ -88,17 +88,17 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   <p className="font-medium text-foreground pt-1">How
                     our models are hosted</p>
                   <p>
-                    Inference runs locally on our Maui cluster — your
+                    Inference runs locally on our Maui cluster. Your
                     data never leaves to a mainland data center, and 
                     your testimonies are never used to train models.
                   </p>
                   <p>
                     We reuse an existing open model rather than training our own, so we add
-                    nothing to that one-time training footprint, and we keep our own carbon
+                    nothing to that one-time training footprint, and we keep our own carbon-
                     use low through caching and smaller models.
                   </p>
                   <p>
-                    AI only assists — humans decide and write. AI output can be inaccurate,
+                    AI output can be inaccurate,
                     so always review before relying on it or submitting testimony. You can 
                     turn this off at anytime.
                   </p>
