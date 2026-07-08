@@ -19,10 +19,16 @@ export function isTestimoniesTabActive(href: string, pathname: string) {
 /**
  * Sub-navigation for the Testimonies section — link-based tabs styled to
  * match the board's ViewToggle, with live counts from the shared testimony
- * cache. Rendered in the header's center slot on desktop and inline at the
- * top of the page on mobile.
+ * cache. `compact` renders icon-only tabs (counts kept, accessible labels)
+ * for tight spots like the mobile header's center slot.
  */
-export function TestimoniesSubNav({ className }: { className?: string }) {
+export function TestimoniesSubNav({
+  compact = false,
+  className,
+}: {
+  compact?: boolean;
+  className?: string;
+}) {
   const pathname = usePathname();
   const { items } = useTestimonies();
 
@@ -38,7 +44,7 @@ export function TestimoniesSubNav({ className }: { className?: string }) {
   return (
     <nav
       aria-label="Testimony views"
-      className={cn('inline-flex items-center rounded-md bg-secondary p-1 shadow-sm', className)}
+      className={cn('inline-flex h-10 items-center rounded-md bg-secondary p-1 shadow-sm', className)}
     >
       {TABS.map(({ href, label, icon: Icon, count }) => {
         const active = isTestimoniesTabActive(href, pathname);
@@ -47,21 +53,24 @@ export function TestimoniesSubNav({ className }: { className?: string }) {
             key={href}
             href={href}
             aria-current={active ? 'page' : undefined}
+            aria-label={compact ? `${label} testimonies` : undefined}
+            title={compact ? `${label} testimonies` : undefined}
             className={cn(
-              // py-2 on mobile keeps taps near the 44px minimum; tighter in the desktop header
-              'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium transition-all md:py-1.5',
+              'inline-flex items-center justify-center whitespace-nowrap rounded-sm py-1.5 text-sm font-medium transition-all',
+              compact ? 'px-2' : 'px-3',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background',
               active
                 ? 'bg-primary text-white shadow-sm'
                 : 'text-secondary-foreground hover:bg-white/50',
             )}
           >
-            <Icon className="h-4 w-4 mr-2" />
-            {label}
+            <Icon className={cn(compact ? 'h-5 w-5' : 'h-4 w-4 mr-2')} />
+            {!compact && label}
             {counts !== null && (
               <span
                 className={cn(
-                  'ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none',
+                  'rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none',
+                  compact ? 'ml-1' : 'ml-1.5',
                   active ? 'bg-white/20 text-white' : 'bg-background text-muted-foreground',
                 )}
               >

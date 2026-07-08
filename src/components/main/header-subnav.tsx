@@ -32,7 +32,16 @@ export function HeaderSubNav() {
   }
 
   if (pathname.startsWith('/testimonies') && user) {
-    return <TestimoniesSubNav />;
+    return (
+      <>
+        <div className="hidden md:block">
+          <TestimoniesSubNav />
+        </div>
+        <div className="md:hidden flex justify-center">
+          <TestimoniesSubNav compact />
+        </div>
+      </>
+    );
   }
 
   return null;

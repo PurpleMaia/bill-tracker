@@ -54,7 +54,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { TestimoniesSubNav } from './testimonies-subnav';
 import { TestimoniesSidebar } from './testimonies-sidebar';
 
 export type TestimoniesFilter = 'all' | 'drafts' | 'submitted';
@@ -196,11 +195,6 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
-      {/* Mobile sub-nav — the desktop tabs live in the header's center slot */}
-      <div className="mb-4 flex justify-center md:hidden">
-        <TestimoniesSubNav />
-      </div>
-
       {/* Page heading + summary */}
       <div className="mb-6">
         <h2 className="text-2xl font-semibold tracking-tight">Your Testimonies</h2>
