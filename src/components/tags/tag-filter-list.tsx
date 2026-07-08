@@ -50,7 +50,7 @@ function FilterOptionRow({
       onClick={onToggle}
       {...(multiSelect ? { role: 'checkbox', 'aria-checked': selected } : { 'aria-pressed': selected })}
       className={cn(
-        'w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent cursor-pointer transition-colors text-left',
+        'w-full flex items-center gap-2 p-2 rounded-md hover:bg-secondary cursor-pointer transition-colors text-left',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
       )}
     >
@@ -113,11 +113,11 @@ export function TagFilterList({
     <>
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" >
-            <Filter className="h-4 w-4 mr-2" />
-            Filters
+          <Button variant="outline" aria-label="Filters" className="shrink-0">
+            <Filter className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Filters</span>
             {totalFiltersCount > 0 && (
-              <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+              <Badge variant="secondary" className="ml-1.5 sm:ml-2 h-5 px-1.5">
                 {totalFiltersCount}
               </Badge>
             )}
@@ -186,7 +186,7 @@ export function TagFilterList({
                   <h4 className="text-xs font-medium text-muted-foreground mb-2">STATUS</h4>
                   <div className="space-y-1">
                     {(['all', 'alive', 'dead'] as const).map((value) => {
-                      const label = value === 'all' ? 'All Bills' : value === 'alive' ? 'Alive' : 'Dead';
+                      const label = value === 'all' ? 'All Bills' : value === 'alive' ? 'Active' : 'Failed';
                       return (
                         <FilterOptionRow
                           key={value}

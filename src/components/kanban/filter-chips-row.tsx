@@ -106,7 +106,7 @@ export function FilterChipsRow({
           {deadFilter !== 'all' && (
             <Chip
               onRemove={() => onDeadFilterChange('all')}
-              removeLabel={`Remove ${deadFilter === 'dead' ? 'dead' : 'alive'} bills filter`}
+              removeLabel={`Remove ${deadFilter === 'dead' ? 'failed' : 'active'} bills filter`}
               className="bg-transparent text-foreground"
             >
               <span
@@ -116,7 +116,7 @@ export function FilterChipsRow({
                 )}
                 aria-hidden="true"
               />
-              {deadFilter === 'dead' ? 'Dead bills' : 'Alive bills'}
+              {deadFilter === 'dead' ? 'Failed bills' : 'Active bills'}
             </Chip>
           )}
 
