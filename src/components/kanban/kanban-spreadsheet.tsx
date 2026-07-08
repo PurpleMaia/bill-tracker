@@ -11,7 +11,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
-import { formatBillStatusName } from '@/lib/utils';
+import { BillDetailsDialog } from './bill-details-dialog';
+import { cn, formatBillStatusName, todayHawaii } from '@/lib/utils';
 import { filterBills } from '@/lib/bill-filters';
 import { getNextDeadline } from '@/lib/dead-bill';
 import type { SessionDeadlines, DeadlineEntry } from '@/lib/dead-bill';
@@ -100,17 +101,22 @@ function SortHeader({ label, columnKey, className, sticky, sortKey, sortDirectio
   const isActive = sortKey === columnKey;
   return (
     <TableHead
-      className={`${className ?? ''} ${sticky ? 'sticky left-0 z-[5] bg-background' : ''} py-2 md:py-4 cursor-pointer select-none hover:bg-muted/50 transition-colors`}
-      onClick={() => onSort(columnKey)}
+      aria-sort={isActive ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+      className={`${className ?? ''} sticky top-0 bg-background ${sticky ? 'left-0 z-20' : 'z-10'} py-2 md:py-4 select-none`}
     >
-      <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => onSort(columnKey)}
+        className="flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={`Sort by ${label}`}
+      >
         {label}
         {isActive ? (
           sortDirection === 'asc' ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />
         ) : (
           <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/50" />
         )}
-      </div>
+      </button>
     </TableHead>
   );
 }
@@ -123,6 +129,13 @@ export function KanbanSpreadsheet() {
 
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+
+  const openBillDetails = useCallback((billId: string) => {
+    setSelectedBillId(billId);
+    setIsDialogOpen(true);
+  }, []);
 
   const handleSort = useCallback((key: SortKey) => {
     if (sortKey === key) {
@@ -133,7 +146,7 @@ export function KanbanSpreadsheet() {
     }
   }, [sortKey]);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayHawaii();
 
   // Pre-compute deadlines for all bills so sorting can access them
   const deadlineCache = useMemo(() => {
@@ -158,20 +171,23 @@ export function KanbanSpreadsheet() {
   const totalColumns = 9;
 
   return (
-    <div className="h-full w-full overflow-auto">
+    // Single scroll surface for BOTH axes: sticky top-0 headers and the
+    // sticky left-0 bill column both resolve against this container, and the
+    // horizontal scrollbar stays reachable without scrolling to the bottom.
+    <div className="min-h-0 w-full flex-1 overflow-auto">
       <div className="min-w-max p-2 md:p-4">
         <Table className="min-w-max text-xs md:text-sm">
           <TableHeader>
             <TableRow>
-              <SortHeader label="Bill #" columnKey="bill_number" className="w-[6rem] md:w-[8rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <SortHeader label="Bill #" columnKey="bill_number" sticky className="w-[6rem] md:w-[8rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Current Status" columnKey="current_bill_status" className="w-[8rem] md:w-[10rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Bill Title" columnKey="bill_title" className="min-w-[12rem] md:min-w-[20rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
-              <TableHead className="sticky top-0 z-0 bg-background min-w-[10rem] md:min-w-[15rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem] py-2 md:py-4">Policy Description</TableHead>
+              <TableHead className="sticky top-0 z-10 bg-background min-w-[10rem] md:min-w-[15rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem] py-2 md:py-4">Policy Description</TableHead>
               <SortHeader label="Committee" columnKey="committee_assignment" className="w-[8rem] md:w-[12rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Introducer" columnKey="introducer" className="w-[8rem] md:w-[12rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Year" columnKey="year" className="w-[5rem] md:w-[6rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Next Deadline" columnKey="next_deadline" className="w-[8rem] md:w-[10rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
-              <TableHead className="sticky top-0 z-0 bg-background w-[10rem] md:w-[15rem] py-2 md:py-4">Tags</TableHead>
+              <TableHead className="sticky top-0 z-10 bg-background w-[10rem] md:w-[15rem] py-2 md:py-4">Tags</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -224,30 +240,61 @@ export function KanbanSpreadsheet() {
                       </TableRow>
                     )}
 
-                    {/* Data row */}
+                    {/* Data row — click or Enter/Space opens the bill details dialog.
+                        Tag tint lives in CSS vars (not inline background) so the
+                        hover state can deepen it; the sticky cell mirrors both via
+                        group-hover. */}
                     <TableRow
-                      style={firstTagColor ? { backgroundColor: `${firstTagColor}14` } : undefined}
-                    >
-                      {/* Bill # with dead/alive dot */}
-                      <TableCell
-                        className={`sticky left-0 z-0 w-[6rem] md:w-[8rem] py-2 md:py-4 ${firstTagColor ? '' : 'bg-background'}`}
-                        style={
-                          firstTagColor
-                            ? {
-                                // Opaque base hides scrolling content; tint layer matches the row's translucent color
-                                backgroundColor: 'hsl(var(--background))',
-                                backgroundImage: `linear-gradient(${firstTagColor}14, ${firstTagColor}14)`,
-                              }
-                            : undefined
+                      style={
+                        firstTagColor
+                          ? ({
+                              '--row-tint': `${firstTagColor}14`,
+                              '--row-tint-hover': `${firstTagColor}2e`,
+                              // Opaque equivalents for the sticky cell: same tint
+                              // composited over the page background, as plain
+                              // background-color so hover can transition (a
+                              // gradient layer can't animate).
+                              '--cell-tint': `color-mix(in srgb, ${firstTagColor} 8%, hsl(var(--background)))`,
+                              '--cell-tint-hover': `color-mix(in srgb, ${firstTagColor} 18%, hsl(var(--background)))`,
+                            } as React.CSSProperties)
+                          : undefined
+                      }
+                      className={cn(
+                        'group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+                        firstTagColor
+                          ? 'bg-[var(--row-tint)] hover:bg-[var(--row-tint-hover)]'
+                          : 'hover:bg-secondary'
+                      )}
+                      tabIndex={0}
+                      aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
+                      onClick={() => openBillDetails(bill.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          openBillDetails(bill.id);
                         }
+                      }}
+                    >
+                      {/* Bill # with dead badge */}
+                      <TableCell
+                        className={cn(
+                          'sticky left-0 z-0 w-[6rem] md:w-[8rem] py-2 md:py-4',
+                          // Opaque backgrounds (mask scrolling content) that mirror
+                          // the row's tint/hover, with the same 150ms fade so the
+                          // whole row highlights as one unit.
+                          'transition-colors',
+                          firstTagColor
+                            ? 'bg-[var(--cell-tint)] group-hover:bg-[var(--cell-tint-hover)]'
+                            : 'bg-background group-hover:bg-secondary'
+                        )}
                       >
                         <div className="flex items-center gap-2">
-                          {bill.dead ? (
-                            <span className="h-2.5 w-2.5 rounded-full bg-red-500 flex-shrink-0" />
-                          ) : (
-                            <span className="h-2.5 w-2.5 rounded-full bg-green-500 flex-shrink-0 animate-pulse" />
-                          )}
                           {bill.bill_number}
+                          {bill.dead && (
+                            <Badge variant="destructive" className="text-[10px] h-5 px-2 text-white rounded-full shrink-0">
+                              Failed
+                            </Badge>
+                          )}
                         </div>
                       </TableCell>
 
@@ -304,6 +351,13 @@ export function KanbanSpreadsheet() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Details dialog (portal — renders outside the scroll container) */}
+      <BillDetailsDialog
+        billID={selectedBillId}
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+      />
     </div>
   );
 }

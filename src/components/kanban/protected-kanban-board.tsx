@@ -66,9 +66,9 @@ export function ProtectedKanbanBoardOrSpreadsheet() {
   if (view === 'spreadsheet') {
     // Show adopted bills in spreadsheet view
     return (
-      <div className="space-y-4">           
+      <div className="flex h-full min-h-0 flex-col">
         <KanbanHeader />
-        <KanbanSpreadsheet />      
+        <KanbanSpreadsheet />
       </div>
     );
   }
