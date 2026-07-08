@@ -9,7 +9,6 @@ import { isNavItemActive, NAV_ITEMS } from './header-nav';
 import { AuthHeader } from '@/components/auth/auth-header';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
-import { useBills } from '@/hooks/contexts/bills-context';
 import {
   Popover,
   PopoverContent,
@@ -19,12 +18,12 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ExportCsvDialog } from '@/components/kanban/export-csv-dialog';
+import { ViewScopeToggle } from '@/components/kanban/view-scope-toggle';
 import { SettingsDialog } from '@/components/settings/settings-dialog';
 
 export function MobileHamburgerMenu() {
   const { activeTenant, memberships, setActiveTenant, user } = useAuth();
   const { view, setView } = useKanbanBoard();
-  const { viewMode, toggleViewMode, showArchived, toggleShowArchived } = useBills();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -77,17 +76,11 @@ export function MobileHamburgerMenu() {
             </select>
           )}
 
-          {/* Toggles */}
-          {!isPublic && (
-            <div className="flex flex-col gap-3 border-t pt-3">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="mobile-all-bills" className="text-sm">All Bills</Label>
-                <Switch id="mobile-all-bills" checked={viewMode === 'all-bills'} onCheckedChange={toggleViewMode} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="mobile-show-archived" className="text-sm">Show Archived</Label>
-                <Switch id="mobile-show-archived" checked={showArchived} onCheckedChange={toggleShowArchived} />
-              </div>
+          {/* View scope (org members only) */}
+          {activeTenant && (
+            <div className="flex flex-col gap-2 border-t pt-3">
+              <Label className="text-sm">Viewing</Label>
+              <ViewScopeToggle className="w-full justify-stretch [&>button]:flex-1 [&>button]:justify-center" />
             </div>
           )}
 
