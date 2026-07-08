@@ -5,6 +5,7 @@ import type { BillDetails } from '@/types/legislation';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { data } from '@/lib/data-client';
+import { invalidateTestimonies } from '@/hooks/use-testimonies';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Check, CheckCircle2, ExternalLink, Loader2, SquareKanban } from 'lucide-react';
 
@@ -47,6 +48,7 @@ export function TestimonySubmitGuide({ bill, submitted, onMarkSubmitted, onBack 
     setMarking(true);
     try {
       await data.testimony.markSubmitted(bill.id);
+      invalidateTestimonies();
       onMarkSubmitted();
       toast({ title: 'Testimony submitted', description: `Marked your ${bill.bill_number} testimony as submitted.` });
     } catch {

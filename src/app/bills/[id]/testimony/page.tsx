@@ -8,6 +8,7 @@ import type { TestimonyPosition } from '@/types/testimony';
 import { getBillDetails } from '@/db/queries/bills-read';
 import { data } from '@/lib/data-client';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { invalidateTestimonies } from '@/hooks/use-testimonies';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -120,6 +121,7 @@ export default function TestimonyPage() {
         contentJson: c,
       });
       inFlightRef.current = false;
+      invalidateTestimonies();
       if (dirtyRef.current) {
         void performSaveRef.current();
       } else {

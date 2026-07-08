@@ -9,7 +9,7 @@ CREATE TABLE testimonies (
   content_json  jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now(),
-  submitted_at  timestamptz NOT NULL DEFAULT now(),
+  submitted_at  timestamptz DEFAULT now(),
   UNIQUE (user_id, bill_id)
 );
 
