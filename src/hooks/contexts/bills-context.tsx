@@ -238,9 +238,7 @@ export function BillsProvider({ children }: { children: ReactNode }) {
         console.error('Error refreshing bills on archived toggle:', err);
         setError('Failed to refresh bills.');
       } finally {
-        setTimeout(() => {
-          setLoadingBills(false);
-        }, 500);
+        setLoadingBills(false);
       }
     })();
   }, [showArchived, fetchBillsWithTags]);
