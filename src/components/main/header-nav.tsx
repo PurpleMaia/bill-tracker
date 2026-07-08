@@ -21,20 +21,25 @@ export function HeaderNav() {
 
   return (
     <nav className="flex items-center gap-5">
-      {NAV_ITEMS.map(({ href, label }) => (
-        <Link
-          key={href}
-          href={href}
-          className={cn(
-            'whitespace-nowrap text-sm font-medium underline-offset-8 transition-colors duration-150',
-            isNavItemActive(href, pathname)
-              ? 'text-white underline decoration-olive decoration-2'
-              : 'text-primary-foreground/70 hover:text-white'
-          )}
-        >
-          {label}
-        </Link>
-      ))}
+      {NAV_ITEMS.map(({ href, label }) => {
+        const active = isNavItemActive(href, pathname);
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={active ? 'page' : undefined}
+            className={cn(
+              'whitespace-nowrap text-sm font-medium underline-offset-8 transition-colors duration-150',
+              'rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
+              active
+                ? 'text-white underline decoration-olive decoration-2'
+                : 'text-primary-foreground/80 hover:text-white'
+            )}
+          >
+            {label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }

@@ -1,69 +1,42 @@
 'use client';
 
-import { useState } from 'react';
-import { Settings } from 'lucide-react';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { AuthHeader } from '../auth/auth-header';
 import { HeaderNav } from './header-nav';
 import { HeaderSubNav } from './header-subnav';
-import { MobileHamburgerMenu } from './mobile-hamburger-menu';
-import { SettingsDialog } from '@/components/settings/settings-dialog';
 
 export function Header() {
-  const { user, activeTenant, memberships, setActiveTenant } = useAuth();
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { activeTenant } = useAuth();
 
   return (
-    <>
-      <header className="sticky top-0 z-10 flex items-center px-3 md:px-8 py-3 md:py-4 border-b-[3px] border-olive bg-primary text-primary-foreground">
-        {/* Title — always visible */}
-        <div className="flex-shrink-0 flex items-center gap-3">
-          <h1 className="text-lg md:text-xl font-semibold text-primary-foreground">
-            {activeTenant?.name ?? 'Food+'} Bill Tracker
-          </h1>
-          {/* Tenant selector — desktop only */}
-          {memberships.length > 1 && (
-            <select
-              value={activeTenant?.tenantId ?? ''}
-              onChange={(e) => setActiveTenant(e.target.value)}
-              className="hidden md:block text-sm bg-white/10 border border-white/20 text-white rounded-md px-2 py-1"
-            >
-              {memberships.map((m) => (
-                <option key={m.tenantId} value={m.tenantId} className="text-black">
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
+    <header className="sticky top-0 z-10 flex items-center gap-4 px-3 md:px-8 py-3 md:py-4 border-b-[3px] border-olive bg-primary text-primary-foreground">
+      {/* Brand — links home, truncates so it can't collide with the center slot */}
+      <h1 className="min-w-0 shrink text-lg md:text-xl font-semibold text-primary-foreground">
+        <Link
+          href="/"
+          className="block truncate rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+        >
+          {activeTenant?.name ?? 'Food+'} Bill Tracker
+        </Link>
+      </h1>
 
-        {/* Contextual sub-nav — desktop only, absolutely centered */}
-        <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 justify-center w-fit">
-          <HeaderSubNav />
-        </div>
+      {/* Contextual sub-nav — flex sibling, so long titles push it instead of
+          overlapping it */}
+      <div className="flex flex-1 min-w-0 justify-center px-2">
+        <HeaderSubNav />
+      </div>
 
-        {/* Nav links, settings, auth — desktop only */}
-        <div className="hidden md:flex items-center gap-4 flex-shrink-0 ml-auto">
-          <HeaderNav />
-          {user && (
-            <button
-              type="button"
-              onClick={() => setSettingsOpen(true)}
-              aria-label="Open settings"
-              className="flex items-center justify-center rounded-md p-2 text-white/80 hover:bg-white/10 hover:text-white transition-colors"
-            >
-              <Settings className="h-5 w-5" />
-            </button>
-          )}
-          <AuthHeader />
-        </div>
+      {/* Nav links + auth — desktop only */}
+      <div className="hidden md:flex items-center gap-4 shrink-0">
+        <HeaderNav />
+        <AuthHeader />
+      </div>
 
-        {/* Hamburger menu — mobile only */}
-        <div className="md:hidden ml-auto">
-          <MobileHamburgerMenu />
-        </div>
-      </header>
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
-    </>
+      {/* Avatar / login — mobile only (page nav lives in the bottom tab bar) */}
+      <div className="md:hidden ml-auto">
+        <AuthHeader />
+      </div>
+    </header>
   );
 }

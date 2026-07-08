@@ -48,6 +48,7 @@ export function MobileHamburgerMenu() {
                 key={href}
                 href={href}
                 onClick={() => setMenuOpen(false)}
+                aria-current={isNavItemActive(href, pathname) ? 'page' : undefined}
                 className={cn(
                   'flex items-center gap-2 rounded-md px-2 py-2 text-sm',
                   isNavItemActive(href, pathname)
@@ -66,6 +67,7 @@ export function MobileHamburgerMenu() {
             <select
               value={activeTenant?.tenantId ?? ''}
               onChange={(e) => setActiveTenant(e.target.value)}
+              aria-label="Switch organization"
               className="text-sm border border-input bg-background rounded-md px-2 py-1.5 w-full"
             >
               {memberships.map((m) => (
