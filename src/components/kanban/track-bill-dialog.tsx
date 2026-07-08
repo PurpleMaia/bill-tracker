@@ -11,7 +11,12 @@ import { useTrackedBills } from '@/hooks/use-tracked-bills';
 import { UserPlus } from 'lucide-react';
 import { DialogDescription } from '@radix-ui/react-dialog';
 
-export function TrackBillDialog() {
+interface TrackBillDialogProps {
+  /** Optional custom trigger. Defaults to a standard primary "Track Bill" button. */
+  children?: React.ReactNode;
+}
+
+export function TrackBillDialog({ children }: TrackBillDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [billUrl, setBillUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -78,9 +83,11 @@ export function TrackBillDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <UserPlus /> Track Bill
-        </Button>
+        {children ?? (
+          <Button>
+            <UserPlus /> Track Bill
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="">
         <DialogHeader>

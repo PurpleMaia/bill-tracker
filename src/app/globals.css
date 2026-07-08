@@ -51,6 +51,8 @@ body {
     --olive-soft: 72 38% 91%; /* #EAEED4 */
     --teal-light: 181 46% 33%; /* #2C7A7C */
     --coral: 0 40% 62%; /* #C97474 */
+    --ochre: 36 55% 35%; /* Warm ochre #8A6228 — urgency text/icons */
+    --ochre-soft: 40 60% 92%; /* Warm ochre tint — urgency chip background */
 
     /* Sidebar variables */
     --sidebar-background: 34 33% 97%;

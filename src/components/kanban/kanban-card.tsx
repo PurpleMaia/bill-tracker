@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { cn, formatBillStatusName } from '@/lib/utils';
+import { cn, formatBillStatusName, todayHawaii } from '@/lib/utils';
 import { canAssignBills } from '@/lib/permissions';
-import { Sparkles, X, Check, Users, Clock, Info, PenLine } from 'lucide-react';
+import { Sparkles, X, Check, Users, Clock, Info, PenLine, UserPlus } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTagSelector } from '../tags/card-tag-selector';
@@ -52,7 +52,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const trackedBy = bill.tracked_by ?? [];
     const trackedCount = bill.tracked_count ?? trackedBy.length;
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayHawaii();
     const nextDeadline = !bill.dead && bill.committee_assignment && bill.current_bill_status
       ? getNextDeadline(
           bill.bill_number,
@@ -114,13 +114,13 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
         <div
             ref={ref}
             className={cn(
-                "group relative rounded-lg border bg-card text-card-foreground transition-all duration-200 w-full max-w-[300px]",
+                "group relative rounded-lg border bg-card text-card-foreground transition-all duration-200 w-full",
                 "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
                 "flex flex-col overflow-hidden",
                 isDragging
                   ? "opacity-80 shadow-xl rotate-2 scale-105 cursor-grabbing"
                   : "shadow-sm hover:shadow-md cursor-grab",
-                isHighlighted && "ring-2 ring-blue-500 ring-offset-2 border-blue-300",
+                isHighlighted && "ring-2 ring-ring ring-offset-2",
                 className
             )}
             style={style}
@@ -132,16 +132,6 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
               "flex flex-col",
               bill.dead && "opacity-50 grayscale-[50%]"
             )}>
-
-            {/* Status color strip — top edge */}
-            <div className={cn(
-              "h-1 w-full",
-              bill.dead
-                ? "bg-red-400"
-                : isUrgent
-                  ? "bg-amber-400"
-                  : "bg-emerald-400"
-            )} />
 
             {/* Main clickable area */}
             <div
@@ -175,59 +165,75 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                     </Badge>
                   )}
                   {canAssignBills(user, activeTenant?.orgRole) && (
-                    <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="cursor-pointer h-5 w-5 p-0 shrink-0 ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500"
-                          onClick={(e) => { e.stopPropagation(); setShowRemoveDialog(true); }}
-                          disabled={isRemoving}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Remove Bill from Board?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will set the bill as not food-related. You can re-add it later.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={(e) => { e.stopPropagation(); handleRemoveBill(); }}
-                            className="bg-red-600 hover:bg-red-700"
+                    <div className="ml-auto flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {!bill.dead && (
+                        <AssignBillDialog
+                          bill={bill}
+                          trigger={
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="cursor-pointer h-5 w-5 p-0 text-muted-foreground hover:text-primary"
+                              onClick={(e) => e.stopPropagation()}
+                              title="Assign to user"
+                              aria-label={`Assign ${bill.bill_number} to a user`}
+                            >
+                              <UserPlus className="h-3 w-3" />
+                            </Button>
+                          }
+                        />
+                      )}
+                      <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="cursor-pointer h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); setShowRemoveDialog(true); }}
                             disabled={isRemoving}
+                            title="Remove from board"
+                            aria-label={`Remove ${bill.bill_number} from the board`}
                           >
-                            {isRemoving ? 'Removing...' : 'Remove'}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove Bill from Board?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will set the bill as not food-related. You can re-add it later.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={(e) => { e.stopPropagation(); handleRemoveBill(); }}
+                              className="bg-destructive hover:bg-destructive/90"
+                              disabled={isRemoving}
+                            >
+                              {isRemoving ? 'Removing...' : 'Remove'}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   )}
                 </div>
 
                 {/* Description — 2 lines with ellipsis */}
-                <p className="text-sm text-foreground line-clamp-2 mt-1 leading-relaxed truncate">
+                <p className="text-sm text-foreground line-clamp-2 mt-1 leading-relaxed">
                   {bill.description}
                 </p>
 
                 {/* Latest update + committee referral */}
                 {bill.latest_update && (
                   <div className="mt-1.5 space-y-0.5">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full flex-shrink-0" />
-                      <span className="text-xs text-muted-foreground">
-                        Latest update &middot; {new Date(bill.latest_update.date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
-                      </span>
-                    </div>
-                    {bill.latest_update && (
-                      <p className="text-xs text-muted-foreground pl-[14px] truncate">
-                        {bill.latest_update.statustext}
-                      </p>
-                    )}
+                    <span className="text-xs text-muted-foreground">
+                      Latest update &middot; {new Date(bill.latest_update.date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                    </span>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {bill.latest_update.statustext}
+                    </p>
                   </div>
                 )}
 
@@ -235,7 +241,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                 <div className="flex items-center flex-wrap gap-1.5 mt-2.5">
                     {testimonyState === 'submitted' && (
                       <span
-                        className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 h-5 text-[10px] font-medium text-green-700 shrink-0"
+                        className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 h-5 text-[10px] font-medium text-primary shrink-0"
                         title="You submitted testimony for this bill"
                       >
                         <Check className="h-2.5 w-2.5" />
@@ -244,7 +250,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                     )}
                     {testimonyState === 'draft' && (
                       <span
-                        className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 h-5 text-[10px] font-medium text-blue-700 shrink-0"
+                        className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 h-5 text-[10px] font-medium text-secondary-foreground shrink-0"
                         title="You have a testimony draft for this bill"
                       >
                         <PenLine className="h-2.5 w-2.5" />
@@ -253,12 +259,12 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                     )}
                     {testimonyDue && (
                       <span
-                        className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 h-5 text-[10px] font-medium text-red-700 shrink-0"
+                        className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 h-5 text-[10px] font-medium text-destructive shrink-0"
                         title={testimonyChipTitle}
                       >
                         <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
-                          <span className="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 motion-safe:animate-ping" />
-                          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-600" />
+                          <span className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75 motion-safe:animate-ping" />
+                          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-destructive" />
                         </span>
                         <PenLine className="h-2.5 w-2.5" />
                         {countdownLabel ? `Testimony ${countdownLabel}` : 'Testimony due'}
@@ -274,13 +280,18 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                       </div>
                     )}
 
-                  {/* Deadline */}
+                  {/* Deadline — plain text normally, promoted to an ochre chip when ≤7 days out */}
                   <div className="flex items-center gap-2 ml-auto">
                     {nextDeadline && (
-                      <div className={cn(
-                        "flex items-center gap-0.5 text-[10px]",
-                        isUrgent ? "text-amber-600" : "text-muted-foreground"
-                      )}>
+                      <div
+                        className={cn(
+                          "flex items-center gap-1 text-[10px]",
+                          isUrgent
+                            ? "rounded-full border border-ochre/40 bg-ochre-soft px-2 h-5 font-medium text-ochre shrink-0"
+                            : "gap-0.5 text-muted-foreground"
+                        )}
+                        title={isUrgent ? `Next deadline in ${deadlineDaysAway} day${deadlineDaysAway === 1 ? '' : 's'}` : 'Next deadline'}
+                      >
                         <Clock className="h-2.5 w-2.5" />
                         <span>
                           {new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -290,7 +301,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
 
                     {bill.dead && (
                     <Badge variant="destructive" className="text-[10px] h-5 px-2 text-white rounded-full shrink-0">
-                      Dead
+                      Failed
                     </Badge>
                   )}
                   </div>
@@ -299,16 +310,16 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
 
             {/* LLM Action Buttons */}
             {bill.llm_suggested && !bill.llm_processing && (
-              <div className="px-3 pb-3 flex gap-2 pt-2 border-t border-blue-100">
+              <div className="px-3 pb-3 flex gap-2 pt-2 border-t border-border">
                 <Button
                   size="sm" variant="outline" onClick={handleAccept} disabled={isProcessing}
-                  className="flex-1 text-xs h-7 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                  className="flex-1 text-xs h-7 bg-olive-soft border-olive/60 text-foreground hover:bg-olive/30"
                 >
                   <Check className="h-3 w-3 mr-1" /> Accept
                 </Button>
                 <Button
                   size="sm" variant="outline" onClick={handleReject} disabled={isProcessing}
-                  className="flex-1 text-xs h-7 bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+                  className="flex-1 text-xs h-7 bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20"
                 >
                   <X className="h-3 w-3 mr-1" /> Reject
                 </Button>
@@ -316,29 +327,11 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
             )}
 
             {bill.llm_processing && (
-              <div className="px-3 pb-3 pt-2 border-t border-blue-100">
-                <div className="flex items-center justify-center text-xs text-blue-600 gap-1">
+              <div className="px-3 pb-3 pt-2 border-t border-border">
+                <div className="flex items-center justify-center text-xs text-primary gap-1">
                   <Sparkles className="h-3 w-3 animate-pulse" />
                   <span className="animate-pulse">AI Processing...</span>
                 </div>
-              </div>
-            )}
-
-            {/* Assign Bill — visible on hover, hidden for dead bills */}
-            {canAssignBills(user, activeTenant?.orgRole) && !bill.dead && (
-              <div className="px-3 pb-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <AssignBillDialog
-                  bill={bill}
-                  trigger={
-                    <Button
-                      size="sm" variant="outline"
-                      className="w-full text-[10px] h-6 text-muted-foreground"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      Assign to User
-                    </Button>
-                  }
-                />
               </div>
             )}
             </div>{/* end grayed-out content layer */}
@@ -354,9 +347,9 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                   latestUpdate={bill.latest_update}
                 >
                   <button
-                    className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm"
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-sm"
                     onClick={(e) => e.stopPropagation()}
-                    aria-label="Why did this bill die?"
+                    aria-label="Why did this bill fail?"
                   >
                     <Info className="h-5 w-5" />
                   </button>

@@ -10,6 +10,7 @@ import {
   parseCommittees,
 } from '@/lib/dead-bill';
 import type { SessionDeadlines, StatusUpdate, DeadBillResult } from '@/lib/dead-bill';
+import { todayHawaii } from '@/lib/utils';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import deadlinesJson from '@/data/session-deadlines-2026.json';
 
@@ -33,7 +34,7 @@ export function DeadBillInfoPopover({
   billUrl,
   children,
 }: DeadBillInfoPopoverProps) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayHawaii();
   const committees = committeeAssignment ? parseCommittees(committeeAssignment) : [];
   const committeeList = committees.join(', ');
 
@@ -69,14 +70,14 @@ export function DeadBillInfoPopover({
 
   // Build the summary sentence
   const summary = isDeferral
-    ? `This bill died because it was permanently deferred by a committee.`
-    : `This bill died because it was not scheduled for a committee hearing before its ${deadlineName} deadline.`;
+    ? `This bill failed because it was permanently deferred by a committee.`
+    : `This bill failed because it was not scheduled for a committee hearing before its ${deadlineName} deadline.`;
 
   // Build the committee explanation
   const committeeExplanation = isDeferral
     ? `The committee permanently deferred this bill, ending its progress this session.`
     : committees.length > 1
-      ? `Bills referred to multiple committees must be scheduled by the ${deadlineName} deadline to remain alive in this session. This bill was referred to ${committeeList} but neither chair scheduled it for a hearing in time.`
+      ? `Bills referred to multiple committees must be scheduled by the ${deadlineName} deadline to remain active in this session. This bill was referred to ${committeeList} but neither chair scheduled it for a hearing in time.`
       : `This bill was referred to ${committeeList || 'committee'} but was not scheduled for a hearing before the deadline.`;
 
   return (
@@ -96,7 +97,7 @@ export function DeadBillInfoPopover({
           <div className="flex items-center justify-center w-7 h-7 rounded-full bg-red-100">
             <Info className="h-4 w-4 text-red-700" />
           </div>
-          <h3 className="font-semibold text-[15px] text-red-800">Why did this bill die?</h3>
+          <h3 className="font-semibold text-[15px] text-red-800">Why did this bill fail?</h3>
         </div>
 
         {/* Body */}
@@ -122,7 +123,7 @@ export function DeadBillInfoPopover({
 
           {/* Revival note */}
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Bills that die in committee can sometimes be revived in subsequent sessions or attached to other bills as amendments. This is procedural — not always a final stop.
+            Bills that fail in committee can sometimes be revived in subsequent sessions or attached to other bills as amendments. This is procedural — not always a final stop.
           </p>
         </div>
 

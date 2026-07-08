@@ -20,6 +20,19 @@ export function toDate(val: unknown): Date | null {
   return null;
 }
 
+/**
+ * Today's date (YYYY-MM-DD) in Hawaii Standard Time.
+ *
+ * `new Date().toISOString()` yields the UTC date, which rolls over to
+ * "tomorrow" at 2:00 PM HST — making deadline math (urgency flags, next
+ * deadline, dead-bill checks) up to a day early. All legislative deadlines
+ * are Hawaii dates, so compare against Hawaii's today.
+ */
+export function todayHawaii(now: Date = new Date()): string {
+  // en-CA formats as YYYY-MM-DD; Pacific/Honolulu has no DST.
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Honolulu' }).format(now);
+}
+
 export function formatBillStatusName(status: string | null): string {
   if (!status) return 'No Assigned Status';
   const lowerStatus = status.toLowerCase();

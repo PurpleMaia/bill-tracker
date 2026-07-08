@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toDate, formatBillStatusName } from '../utils';
+import { toDate, formatBillStatusName, todayHawaii } from '../utils';
 
 describe('toDate', () => {
   it('returns null for null/undefined', () => {
@@ -86,5 +86,28 @@ describe('formatBillStatusName', () => {
 
   it('is case-insensitive', () => {
     expect(formatBillStatusName('INTRODUCED')).toBe('Introduced');
+  });
+});
+
+describe('todayHawaii', () => {
+  it('returns YYYY-MM-DD format', () => {
+    expect(todayHawaii()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('matches the UTC date when both are on the same day', () => {
+    // 08:00 UTC = 22:00 HST the previous day — dates differ
+    // 20:00 UTC = 10:00 HST the same day — dates match
+    expect(todayHawaii(new Date('2026-07-07T20:00:00Z'))).toBe('2026-07-07');
+  });
+
+  it('stays on the previous day when UTC has rolled over', () => {
+    // 2026-07-08 02:00 UTC is still 2026-07-07 16:00 in Hawaii.
+    // toISOString() would say 2026-07-08 — the bug this helper fixes.
+    expect(todayHawaii(new Date('2026-07-08T02:00:00Z'))).toBe('2026-07-07');
+  });
+
+  it('rolls to the next Hawaii day at 10:00 UTC', () => {
+    expect(todayHawaii(new Date('2026-07-08T09:59:00Z'))).toBe('2026-07-07');
+    expect(todayHawaii(new Date('2026-07-08T10:00:00Z'))).toBe('2026-07-08');
   });
 });

@@ -60,6 +60,64 @@ export const COLUMN_INDEX: Record<string, number> = KANBAN_COLUMNS.reduce((acc, 
   return acc;
 }, {} as Record<string, number>);
 
+// Plain-language explanation of what each board column (status) means,
+// shown in the column header's help popover. Keyed by column id, covering
+// both detailed and simplified views.
+export const COLUMN_DESCRIPTIONS: Record<string, string> = {
+  // Detailed view — originating chamber
+  introduced:
+    'The bill has been introduced and passed First Reading in its originating chamber. It is waiting to be scheduled for a hearing by its first assigned committee.',
+  scheduled1:
+    'The bill has been scheduled for its first committee hearing. Public testimony can be submitted until 24 hours before the hearing.',
+  waiting2:
+    'The bill passed its first committee and is waiting to be scheduled for a hearing by its second assigned committee.',
+  scheduled2:
+    'The bill has been scheduled for its second committee hearing. Public testimony can be submitted until 24 hours before the hearing.',
+  waiting3:
+    'The bill passed its second committee and is waiting to be scheduled by its final committee, typically Finance or Ways and Means.',
+  scheduled3:
+    'The bill has been scheduled for its final committee hearing in this chamber. Public testimony can be submitted until 24 hours before the hearing.',
+  // Detailed view — after crossover to the second chamber
+  crossoverWaiting1:
+    'The bill passed Third Reading and crossed over to the other chamber, where it is waiting to be scheduled by its first assigned committee.',
+  crossoverScheduled1:
+    'The bill has been scheduled for its first committee hearing in the second chamber. Public testimony can be submitted until 24 hours before the hearing.',
+  crossoverWaiting2:
+    'The bill passed its first committee in the second chamber and is waiting to be scheduled by its second committee.',
+  crossoverScheduled2:
+    'The bill has been scheduled for its second committee hearing in the second chamber. Public testimony can be submitted until 24 hours before the hearing.',
+  crossoverWaiting3:
+    'The bill passed its second committee in the second chamber and is waiting to be scheduled by its final committee.',
+  crossoverScheduled3:
+    'The bill has been scheduled for its final committee hearing in the second chamber. Public testimony can be submitted until 24 hours before the hearing.',
+  // Conference and beyond (shared by both views)
+  passedCommittees:
+    'The bill passed all of its committees, but the House and Senate passed different versions. It heads to a conference committee to reconcile the differences.',
+  conferenceAssigned:
+    'The bill is in conference and waiting for conferees — negotiators from both chambers — to be appointed to work out a single compromise version.',
+  conferenceScheduled:
+    'A conference committee meeting has been scheduled to negotiate the differences between the House and Senate versions of the bill.',
+  conferencePassed:
+    'The conference committee agreed on a final compromise draft and both chambers passed it on Final Reading.',
+  transmittedGovernor:
+    'The bill has been sent to the Governor, who can sign it into law, let it become law without a signature, or veto it.',
+  vetoList:
+    'The Governor vetoed the bill or placed it on the intent-to-veto list. The legislature can override a veto with a two-thirds vote in each chamber.',
+  governorSigns:
+    'The Governor signed the bill into law. It is now an Act.',
+  lawWithoutSignature:
+    'The Governor allowed the deadline to pass without signing or vetoing, so the bill became law without a signature.',
+  // Simplified view
+  simpleWaiting:
+    'The bill has been introduced in its originating chamber and is waiting to be scheduled for its next committee hearing.',
+  simpleScheduled:
+    'The bill has been scheduled for a committee hearing in its originating chamber. Public testimony can be submitted until 24 hours before the hearing.',
+  simpleCrossoverWaiting:
+    'The bill passed its originating chamber and crossed over to the other chamber, where it is waiting to be scheduled for its next committee hearing.',
+  simpleCrossoverScheduled:
+    'The bill has been scheduled for a committee hearing in the second chamber. Public testimony can be submitted until 24 hours before the hearing.',
+};
+
 export const SIMPLIFIED_COLUMNS: KanbanColumnData[] = [
   // { id: 'unassigned', title: 'Not Assigned' },
   { id: 'simpleWaiting', title: 'INTRODUCED & WAITING' },

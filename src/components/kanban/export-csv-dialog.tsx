@@ -15,6 +15,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Download } from 'lucide-react';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { useBills } from '@/hooks/contexts/bills-context';
+import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
+import { useToast } from '@/hooks/use-toast';
+import { filterBills, hasActiveFilters } from '@/lib/bill-filters';
 import { billsToCsv, billsToRows, type ExportFormat } from '@/lib/bills-csv';
 import type { Bill } from '@/types/legislation';
 
@@ -36,13 +40,38 @@ function downloadBlob(blob: Blob, filename: string) {
 
 export function ExportCsvDialog({ children }: ExportCsvDialogProps) {
   const { activeTenant, memberships } = useAuth();
+  const { viewMode, showArchived } = useBills();
+  const { searchQuery, selectedTagIds, selectedYears, deadFilter, view } = useKanbanBoard();
+  const { toast } = useToast();
   const belongsToOrg = memberships.length > 0;
+
+  const boardFilters = {
+    searchQuery,
+    selectedTagIds,
+    selectedYears,
+    // The failed/active filter is only exposed (and only applied) in the
+    // spreadsheet view — don't let a stale value narrow a kanban export.
+    deadFilter: view === 'spreadsheet' ? deadFilter : ('all' as const),
+  };
+  const filtersActive = hasActiveFilters(boardFilters);
 
   const [isOpen, setIsOpen] = useState(false);
   const [format, setFormat] = useState<ExportFormat>('csv');
   const [includeAllOrg, setIncludeAllOrg] = useState(false);
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [applyBoardFilters, setApplyBoardFilters] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Seed the options from the current board view so the default is
+  // "export what I'm looking at"; users can still widen before download.
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setIncludeAllOrg(belongsToOrg && viewMode === 'all-bills');
+      setIncludeArchived(showArchived);
+      setApplyBoardFilters(true);
+    }
+    setIsOpen(open);
+  };
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -61,7 +90,11 @@ export function ExportCsvDialog({ children }: ExportCsvDialogProps) {
         throw new Error(`Failed to fetch bills: ${res.status}`);
       }
       const { bills } = (await res.json()) as { bills: Bill[] };
-      const safeBills = bills ?? [];
+      let safeBills = bills ?? [];
+      if (filtersActive && applyBoardFilters) {
+        // Same predicate the board uses, so the file matches what's on screen.
+        safeBills = filterBills(safeBills, boardFilters);
+      }
 
       if (format === 'xlsx') {
         // Dynamically import SheetJS so it stays out of the main bundle.
@@ -84,16 +117,25 @@ export function ExportCsvDialog({ children }: ExportCsvDialogProps) {
         );
       }
 
+      toast({
+        title: 'Export ready',
+        description: `Downloaded ${safeBills.length} bill${safeBills.length === 1 ? '' : 's'}.`,
+      });
       setIsOpen(false);
     } catch (error) {
       console.error('Error exporting bills:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Export failed',
+        description: 'Could not fetch bills. Please try again.',
+      });
     } finally {
       setIsExporting(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {children ?? (
           <Button>
@@ -133,6 +175,18 @@ export function ExportCsvDialog({ children }: ExportCsvDialogProps) {
           </div>
 
           <div className="space-y-3 border-t pt-3">
+            {filtersActive && (
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="export-apply-filters"
+                  checked={applyBoardFilters}
+                  onCheckedChange={(checked) => setApplyBoardFilters(checked === true)}
+                />
+                <Label htmlFor="export-apply-filters" className="text-sm font-normal leading-tight">
+                  Apply current search &amp; filters
+                </Label>
+              </div>
+            )}
             {belongsToOrg && (
               <div className="flex items-start gap-2">
                 <Checkbox

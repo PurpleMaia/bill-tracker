@@ -66,7 +66,11 @@ export default {
   				soft: 'hsl(var(--olive-soft))'
   			},
   			'teal-light': 'hsl(var(--teal-light))',
-  			coral: 'hsl(var(--coral))'
+  			coral: 'hsl(var(--coral))',
+  			ochre: {
+  				DEFAULT: 'hsl(var(--ochre))',
+  				soft: 'hsl(var(--ochre-soft))'
+  			}
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

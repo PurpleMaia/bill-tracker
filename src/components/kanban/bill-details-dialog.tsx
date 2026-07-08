@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
-import { cn } from '@/lib/utils';
+import { cn, todayHawaii } from '@/lib/utils';
 import { FileText, Loader2, ExternalLink, Clock, PenLine } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -120,7 +120,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
 
   // Derive dead reason and deadline
   const committeeAssign = billDetails?.committee_assignment || bill.committee_assignment;
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayHawaii();
 
   const deadReason = (bill.dead && committeeAssign && billDetails)
     ? isBillDead(
@@ -206,9 +206,9 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[100vw] sm:max-w-6xl h-[100dvh] sm:h-[95vh] flex flex-col p-0 gap-0 rounded-none sm:rounded-lg">
+      <DialogContent className="max-w-[100vw] sm:max-w-6xl h-[100dvh] sm:h-[95vh] flex flex-col p-0 gap-0 rounded-none sm:rounded-lg [&>button]:p-2 [&>button]:rounded-md sm:[&>button]:p-0 sm:[&>button]:rounded-sm">
         {/* Header — compact, with progress */}
-        <DialogHeader className="px-4 sm:px-6 pt-5 pb-4 border-b shrink-0">
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
@@ -216,18 +216,20 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                   {bill.bill_number}
                 </DialogTitle>
                 {bill.dead && (
-                  <Badge variant="destructive" className="text-[10px] h-5 text-white">Dead</Badge>
+                  <Badge variant="destructive" className="text-[10px] h-5 text-white">Failed</Badge>
                 )}
                 {fiscal && (
                   <Badge variant="secondary" className="text-[10px] h-5">Fiscal</Badge>
                 )}
               </div>
-              <DialogDescription className="text-sm text-muted-foreground line-clamp-1">
+              <DialogDescription className="text-sm text-muted-foreground line-clamp-2 sm:line-clamp-1">
                 {bill.bill_title}
               </DialogDescription>
             </div>
+            {/* Desktop only — on mobile the testimony CTA lives in the sticky
+                bottom action bar where the thumb can reach it */}
             {testimonyEligibility.allowed ? (
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="hidden sm:flex shrink-0 items-center gap-2">
                 {testimonyUrgent && testimonyCountdown && (
                   <span className="text-xs font-medium text-red-600 whitespace-nowrap">
                     Testimony {testimonyCountdown}
@@ -267,7 +269,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
               <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span className="shrink-0 inline-block cursor-not-allowed">
+                    <span className="hidden sm:inline-block shrink-0 cursor-not-allowed">
                       <Button size="sm" variant="outline" disabled className="pointer-events-none">
                         <PenLine className="mr-1.5 h-3.5 w-3.5" />
                         Write Testimony
@@ -327,7 +329,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
             const leftPanel = (
             <div className={cn("flex flex-col min-h-0", isMobile ? "h-full" : "w-[55%] border-r")}>
               <ScrollArea className="flex-1">
-                <div className="p-6 space-y-5">
+                <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
 
                   {/* Dead / Deadline alert */}
                   {bill.dead ? (
@@ -335,7 +337,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-sm text-red-700">Bill is Dead</span>
+                            <span className="font-medium text-sm text-red-700">Bill Failed</span>
                           </div>
                           {deadReason && (
                             <p className="text-xs text-red-600">{deadReason}</p>
@@ -349,7 +351,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                                 await updateBillDeadFlag(bill.id, checked);
                                 updateBill(bill.id, { dead: checked });
                                 toast({
-                                  title: checked ? 'Marked Dead' : 'Marked Alive',
+                                  title: checked ? 'Marked Failed' : 'Marked Active',
                                   description: `${bill.bill_number} updated.`,
                                 });
                               } catch {
@@ -388,7 +390,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                               try {
                                 await updateBillDeadFlag(bill.id, checked);
                                 updateBill(bill.id, { dead: checked });
-                                toast({ title: checked ? 'Marked Dead' : 'Marked Alive', description: `${bill.bill_number} updated.` });
+                                toast({ title: checked ? 'Marked Failed' : 'Marked Active', description: `${bill.bill_number} updated.` });
                               } catch {
                                 toast({ title: 'Error', description: 'Failed to update.', variant: 'destructive' });
                               }
@@ -488,7 +490,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
 
             const rightPanel = (
             <div className={cn("flex flex-col bg-muted/20 min-h-0", isMobile ? "h-full" : "w-[45%]")}>
-              <div className="px-5 pt-5 pb-3 border-b shrink-0 flex items-center justify-between">
+              <div className="px-4 sm:px-5 pt-4 sm:pt-5 pb-3 border-b shrink-0 flex items-center justify-between">
                 <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Status Updates
                   {billDetails?.updates && (
@@ -500,7 +502,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
                 )}
               </div>
               <ScrollArea className="flex-1">
-                <div className="p-5">
+                <div className="p-4 sm:p-5">
                   {billDetails?.updates && billDetails.updates.length > 0 ? (
                     <div className="space-y-3">
                       {billDetails.updates.map((update, index) => (
@@ -545,23 +547,51 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
 
             if (isMobile) {
               return (
-                <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-                  <TabsList className="mx-4 mt-3 shrink-0 grid grid-cols-2">
-                    <TabsTrigger value="details">Details</TabsTrigger>
-                    <TabsTrigger value="activity">
-                      Activity
-                      {billDetails?.updates && billDetails.updates.length > 0 && (
-                        <span className="ml-1 text-muted-foreground/70">({billDetails.updates.length})</span>
-                      )}
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="details" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
-                    {leftPanel}
-                  </TabsContent>
-                  <TabsContent value="activity" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
-                    {rightPanel}
-                  </TabsContent>
-                </Tabs>
+                <>
+                  <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
+                    <TabsList className="mx-4 mt-3 shrink-0 grid grid-cols-2">
+                      <TabsTrigger value="details">Details</TabsTrigger>
+                      <TabsTrigger value="activity">
+                        Activity
+                        {billDetails?.updates && billDetails.updates.length > 0 && (
+                          <span className="ml-1 text-muted-foreground/70">({billDetails.updates.length})</span>
+                        )}
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="details" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
+                      {leftPanel}
+                    </TabsContent>
+                    <TabsContent value="activity" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
+                      {rightPanel}
+                    </TabsContent>
+                  </Tabs>
+
+                  {/* Sticky action bar — the testimony CTA in thumb reach; the
+                      disabled reason is visible text (tooltips don't work on touch) */}
+                  <div className="shrink-0 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-1.5">
+                    <Button
+                      className="w-full h-11"
+                      disabled={!testimonyEligibility.allowed}
+                      onClick={() => {
+                        onClose();
+                        router.push(`/bills/${bill.id}/testimony`);
+                      }}
+                    >
+                      <PenLine className="mr-2 h-4 w-4" />
+                      Write Testimony
+                    </Button>
+                    {testimonyEligibility.allowed && testimonyUrgent && testimonyCountdown && (
+                      <p className="text-center text-xs font-medium text-red-600">
+                        Testimony {testimonyCountdown}
+                      </p>
+                    )}
+                    {!testimonyEligibility.allowed && (
+                      <p className="text-center text-xs text-muted-foreground">
+                        {testimonyEligibility.reason} — testimony is closed.
+                      </p>
+                    )}
+                  </div>
+                </>
               );
             }
 
