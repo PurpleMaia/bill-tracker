@@ -74,7 +74,7 @@ export const TempBillCard: React.FC<TempBillCardProps> = ({
                     "relative transition-all duration-300",
                     "border-2 border-dashed border-gray-300 bg-gray-50/80",
                     "hover:border-blue-300 hover:bg-blue-50/50",
-                    "opacity-75 w-full max-w-[300px]",
+                    "opacity-75 w-full",
                     className
                 )}>
 
