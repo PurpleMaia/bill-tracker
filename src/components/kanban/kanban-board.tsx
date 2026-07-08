@@ -167,8 +167,13 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
 
       const targetRect = target.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
-      const scrollLeft = container.scrollLeft + (targetRect.left - containerRect.left);
-      container.scrollLeft = scrollLeft;
+      // Explicit behavior — a bare scrollLeft assignment depends on the
+      // viewport's inline scroll-behavior, which the drag auto-pan toggles
+      // to 'auto' and may leave there.
+      container.scrollTo({
+        left: container.scrollLeft + (targetRect.left - containerRect.left),
+        behavior: 'smooth',
+      });
     }
   };
 
