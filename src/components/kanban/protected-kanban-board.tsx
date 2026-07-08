@@ -9,6 +9,7 @@ import { TrackBillDialog } from './track-bill-dialog';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { KanbanHeader } from './kanban-header';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
+import KanbanBoardSkeleton from './skeletons/skeleton-board';
 
 export function ProtectedKanbanBoardOrSpreadsheet() {
   const { user, loading, activeTenant, isPublicUser, preferences } = useAuth();
@@ -26,7 +27,11 @@ export function ProtectedKanbanBoardOrSpreadsheet() {
   }, [preferences, setColumnView]);
 
   if (loading) {
-    return null
+    return (
+      <div className="min-h-0 w-full flex-1 overflow-hidden p-2 md:p-4">
+        <KanbanBoardSkeleton />
+      </div>
+    );
   }
 
   // If not authenticated, show read-only view of all bills

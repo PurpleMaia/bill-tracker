@@ -464,7 +464,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
             style={{ scrollBehavior: 'smooth' }}
           >
             {loading ? (
-              <KanbanBoardSkeleton />
+              <KanbanBoardSkeleton columns={activeColumns.length} />
             ) : (
               <div className="flex h-full space-x-2 md:space-x-4 pb-4">
                 {activeColumns.map((column, idx) => (
@@ -513,7 +513,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
               style={{ scrollBehavior: 'smooth' }}
             >
               {loading ? (
-                <KanbanBoardSkeleton />
+                <KanbanBoardSkeleton columns={activeColumns.length} />
               ) : (
                 <div className="flex h-full space-x-2 md:space-x-4 pb-4">
                   {activeColumns.map((column, idx) => (
