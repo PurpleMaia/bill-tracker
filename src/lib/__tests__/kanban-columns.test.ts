@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { KANBAN_COLUMNS, COLUMN_TITLES, COLUMN_INDEX, SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED } from '../kanban-columns';
+import { KANBAN_COLUMNS, COLUMN_TITLES, COLUMN_INDEX, SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED, COLUMN_DESCRIPTIONS } from '../kanban-columns';
 
 describe('KANBAN_COLUMNS', () => {
   it('is a non-empty array', () => {
@@ -186,5 +186,19 @@ describe('STATUS_TO_SIMPLIFIED', () => {
     expect(STATUS_TO_SIMPLIFIED['vetoList']).toBe('vetoList');
     expect(STATUS_TO_SIMPLIFIED['governorSigns']).toBe('governorSigns');
     expect(STATUS_TO_SIMPLIFIED['lawWithoutSignature']).toBe('lawWithoutSignature');
+  });
+});
+
+describe('COLUMN_DESCRIPTIONS', () => {
+  it('has a non-empty description for every detailed column', () => {
+    for (const col of KANBAN_COLUMNS) {
+      expect(COLUMN_DESCRIPTIONS[col.id], `missing description for ${col.id}`).toBeTruthy();
+    }
+  });
+
+  it('has a non-empty description for every simplified column', () => {
+    for (const col of SIMPLIFIED_COLUMNS) {
+      expect(COLUMN_DESCRIPTIONS[col.id], `missing description for ${col.id}`).toBeTruthy();
+    }
   });
 });

@@ -2,17 +2,16 @@
 
 'use client';
 
-import React, { useState, useRef, use } from 'react';
+import React, { useRef } from 'react';
 import type { Bill, TempBill } from '@/types/legislation';
 import { KanbanCard } from './kanban-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Draggable } from '@hello-pangea/dnd';
 import { cn } from '@/lib/utils';
 import { TempBillCard } from './temp-card';
-import { ListRestart, MoreVertical, TriangleAlert } from 'lucide-react';
-import ColumnOptionsMenu from './column-options-menu';
-import { KanbanCardSkeleton } from './skeletons/skeleton-board';
-import { useAuth } from '@/hooks/contexts/auth-context';
+import { HelpCircle } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { COLUMN_DESCRIPTIONS } from '@/lib/kanban-columns';
 
 // Adds readOnly prop to control card rendering
 // When readOnly=true, cards aren't wrapped in Draggable components
@@ -28,18 +27,6 @@ function getColumnPhaseBg(columnId: string): string {
   if (columnId === 'passedCommittees' || columnId === 'transmittedGovernor')
     return 'bg-olive-soft';
   return 'bg-secondary/50';
-}
-
-function getColumnPhaseHeaderBg(columnId: string): string {
-  if (columnId === 'vetoList') return 'bg-[#f8d7d2]/95';
-  if (columnId === 'governorSigns' || columnId === 'lawWithoutSignature') return 'bg-[#d6e8d4]/95';
-  // Waiting columns (introduced, waiting, crossover waiting) get olive
-  if (columnId === 'introduced' || columnId === 'simpleWaiting' || columnId.startsWith('crossoverWaiting') || columnId === 'simpleCrossoverWaiting')
-    return 'bg-olive-soft/95';
-  // Passed committees and transmitted to governor get olive
-  if (columnId === 'passedCommittees' || columnId === 'transmittedGovernor')
-    return 'bg-olive-soft/95';
-  return 'bg-secondary/95';
 }
 
 export interface KanbanColumnProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -99,9 +86,6 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
     },
     ref
   ) => {
-    const { user } = useAuth();
-    const [refreshing, setRefreshing] = useState<boolean>(false);
-
     // Use shared refs from parent, or create local ones if not provided
     const localBillCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -113,15 +97,20 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
       <div
         ref={ref}
         className={cn(
-          'flex h-[calc(100vh-12rem)] md:h-[calc(100vh-10rem)] w-[85vw] md:w-80 shrink-0 flex-col rounded-lg border shadow-sm',
+          // Column width = (viewport − board padding − gaps) / N so an exact
+          // number of columns is visible per breakpoint: 1 phone, 2 sm/md,
+          // 3 lg (small laptop), 4 xl (laptop), 5 2xl (desktop).
+          'flex h-full shrink-0 flex-col rounded-lg',
+          'w-[calc(100vw-1rem)] sm:w-[calc((100vw-1.5rem)/2)] md:w-[calc((100vw-3rem)/2)]',
+          'lg:w-[calc((100vw-4rem)/3)] xl:w-[calc((100vw-5rem)/4)] 2xl:w-[calc((100vw-6rem)/5)]',
           getColumnPhaseBg(columnId),
           isDraggingOver ? 'bg-accent/20' : '',
           className
         )}
         {...props}
       >
-        {/* Header */}
-        <div className={cn("sticky top-0 z-10 rounded-t-lg backdrop-blur p-3 shadow-sm border-b", getColumnPhaseHeaderBg(columnId))}>
+        {/* Header — sits above the column's own scroll area, so no sticky/blur needed */}
+        <div className="rounded-t-lg p-3">
           <h2
             className="flex items-center justify-between gap-2 text-sm font-semibold text-secondary-foreground"
             title={title}
@@ -138,24 +127,30 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
               )}
             </span>
 
-            { user && (
-              <ColumnOptionsMenu
-                bills={bills}
-                onRefreshStart={() => setRefreshing(true)}
-                onRefreshEnd={() => setRefreshing(false)}
-              />
-            )}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className="shrink-0 rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={`What does "${title}" mean?`}
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72" align="end">
+                <h3 className="text-sm font-semibold mb-1">{title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {COLUMN_DESCRIPTIONS[columnId] ?? 'No description available for this stage.'}
+                </p>
+              </PopoverContent>
+            </Popover>
           </h2>
-
-          {bills.length >= 20 && (
-            <p className="mt-2 text-xs text-gray-600 flex items-center gap-2">
-              <TriangleAlert className="h-4 w-4 text-yellow-600" />
-              Using Actions in <MoreVertical className="h-3 w-3" /> will take a while
-            </p>
-          )}
         </div>
 
-        <ScrollArea className="flex-1 p-2">
+        {/* Radix wraps viewport content in an inline-styled `display: table` div,
+            which refuses to shrink below nowrap text (e.g. truncated status lines)
+            and pushes cards past the column edge. Force it to block — this scroll
+            area is vertical-only, so table shrink-wrap sizing isn't needed. */}
+        <ScrollArea className="flex-1 p-2 [&_[data-radix-scroll-area-viewport]>div]:!block">
           <div
             className="flex flex-col gap-2"
             ref={(el) => {
@@ -167,11 +162,7 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
           >
             {/* REAL BILL CARDS */}
             {bills.map((bill, index) =>
-              refreshing ? (
-                <div key={bill.id}>
-                  <KanbanCardSkeleton />
-                </div>
-              ) : readOnly ? (
+              readOnly ? (
                 <KanbanCard
                   key={bill.id}
                   ref={(el) => {

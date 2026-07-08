@@ -5,11 +5,13 @@ export const KanbanColumnSkeleton = () => {
     return (
     <div
     className={cn(
-        "flex h-[calc(100vh-10rem)] w-80 shrink-0 flex-col rounded-lg border bg-secondary/50 shadow-sm animate-pulse",          
+        "flex h-full shrink-0 flex-col rounded-lg bg-secondary/50 animate-pulse",
+        "w-[calc(100vw-1rem)] sm:w-[calc((100vw-1.5rem)/2)] md:w-[calc((100vw-3rem)/2)]",
+        "lg:w-[calc((100vw-4rem)/3)] xl:w-[calc((100vw-5rem)/4)] 2xl:w-[calc((100vw-6rem)/5)]",
     )}
     >
         {/* Header skeleton */}
-        <div className="sticky top-0 z-[1] rounded-t-lg bg-secondary p-3 shadow-sm">
+        <div className="rounded-t-lg p-3">
           <div className="h-5 w-32 bg-muted rounded animate-pulse"></div>
         </div>
   
@@ -49,7 +51,7 @@ export const KanbanCardSkeleton = () => {
 export default function KanbanBoardSkeleton() {
     return (
         <>
-            <div className="flex gap-4 p-4 overflow-x-auto">
+            <div className="flex h-full gap-4 p-4 overflow-x-auto">
                 {KANBAN_COLUMNS.map((column, index) => (
                     <KanbanColumnSkeleton 
                     key={`column-skeleton-${index}`}
