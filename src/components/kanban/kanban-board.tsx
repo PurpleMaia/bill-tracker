@@ -3,9 +3,10 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Bill, BillStatus, TempBill } from '@/types/legislation';
 import { KANBAN_COLUMNS, COLUMN_TITLES, SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED } from '@/lib/kanban-columns';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollBar } from '@/components/ui/scroll-area';
 import * as ScrollAreaPrimitive from '@radix-ui/react-scroll-area';
 import { searchBillsLocal } from '@/lib/bill-search';
+import { filterBills } from '@/lib/bill-filters';
 import { data as dataClient } from '@/lib/data-client';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
@@ -81,9 +82,9 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
   const columnScrollViewportRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   // ----- Mobile edge-hold auto-pan during drag -----
-  // Columns are 85vw on mobile, so the library's built-in autoscroll barely
-  // triggers. We pan viewportRef.scrollLeft directly via rAF while the drag
-  // pointer is held near the left/right edge. Mobile only.
+  // Columns are near full-viewport width on mobile, so the library's built-in
+  // autoscroll barely triggers. We pan viewportRef.scrollLeft directly via rAF
+  // while the drag pointer is held near the left/right edge. Mobile only.
   const EDGE_ZONE = 180; // px from edge that activates panning
   const MAX_PAN_PER_FRAME = 1; // px/frame at the very edge
   const MIN_PAN_PER_FRAME = 1; // px/frame floor when entering the zone
@@ -232,27 +233,10 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
       activeColumns.map(c => [c.id, [] as Bill[]])
     ) as Record<string, Bill[]>;
 
-    let items = (searchQuery.trim() && filteredBills) ? filteredBills : bills;
-
-    // Filter by selected tags if any are selected
-    if (selectedTagIds && selectedTagIds.length > 0) {
-      items = items.filter((bill) => {
-        const billTagIds = bill.tags?.map(tag => tag.id) || [];
-        return billTagIds.some(tagId => selectedTagIds.includes(tagId));
-      });
-    }
-
-    // Filter by selected years if any are selected
-    if (selectedYears && selectedYears.length > 0) {
-      items = items.filter((bill) => {
-        const billYear = bill.year;
-        if (billYear === null || billYear === undefined) {
-          return false;
-        }
-        const normalizedBillYear = typeof billYear === 'string' ? parseInt(billYear, 10) : billYear;
-        return selectedYears.includes(normalizedBillYear);
-      });
-    }
+    // Search already ran in the filteredBills memo; apply the remaining
+    // narrowing through the shared predicate (src/lib/bill-filters.ts).
+    const base = (searchQuery.trim() && filteredBills) ? filteredBills : bills;
+    const items = filterBills(base, { searchQuery: '', selectedTagIds, selectedYears, deadFilter: 'all' });
 
     const fallbackId = activeColumns.find(c => c.id === 'unassigned')?.id
                      ?? activeColumns[0].id;
@@ -468,23 +452,23 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
       />
 
       {(readOnly || isSimplified) ? (
-        <ScrollArea className="h-full w-full whitespace-nowrap p-2 md:p-4">
+        <ScrollAreaPrimitive.Root className="relative min-h-0 w-full flex-1 overflow-hidden p-2 md:p-4">
           <ScrollAreaPrimitive.Viewport
             ref={viewportRef}
-            className="h-full w-full max-w-[100vw] rounded-[inherit]"
+            className="h-full w-full max-w-[100vw] rounded-[inherit] [&>div]:!flex [&>div]:h-full"
             style={{ scrollBehavior: 'smooth' }}
           >
             {loading ? (
               <KanbanBoardSkeleton />
             ) : (
-              <div className="flex space-x-2 md:space-x-4 pb-4">
+              <div className="flex h-full space-x-2 md:space-x-4 pb-4">
                 {activeColumns.map((column, idx) => (
                   <div
                     key={column.id}
                     ref={(el) => {
                       columnRefs.current[idx] = el;
                     }}
-                    className="inline-block"
+                    className="h-full shrink-0"
                   >
                     <KanbanColumn
                       columnId={column.id as BillStatus}
@@ -514,26 +498,26 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
             )}
           </ScrollAreaPrimitive.Viewport>
           <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </ScrollAreaPrimitive.Root>
       ) : (
         <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
-          <ScrollArea className="h-full w-full whitespace-nowrap p-2 md:p-4">
+          <ScrollAreaPrimitive.Root className="relative min-h-0 w-full flex-1 overflow-hidden p-2 md:p-4">
             <ScrollAreaPrimitive.Viewport
               ref={viewportRef}
-              className="h-full w-full max-w-[100vw] rounded-[inherit]"
+              className="h-full w-full max-w-[100vw] rounded-[inherit] [&>div]:!flex [&>div]:h-full"
               style={{ scrollBehavior: 'smooth' }}
             >
               {loading ? (
                 <KanbanBoardSkeleton />
               ) : (
-                <div className="flex space-x-2 md:space-x-4 pb-4">
+                <div className="flex h-full space-x-2 md:space-x-4 pb-4">
                   {activeColumns.map((column, idx) => (
                     <div
                       key={column.id}
                       ref={(el) => {
                         columnRefs.current[idx] = el;
                       }}
-                      className="inline-block"
+                      className="h-full shrink-0"
                     >
                       <Droppable droppableId={column.id}>
                         {(provided, snapshot) => (
@@ -571,12 +555,12 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
               )}
             </ScrollAreaPrimitive.Viewport>
             <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+          </ScrollAreaPrimitive.Root>
         </DragDropContext>
       )}
 
       {/* Bottom scroll bar */}
-      <div className="hidden md:flex fixed bottom-0 left-0 w-full justify-center gap-4 bg-background/90 p-2 z-20 border-t">
+      <div className="hidden md:flex w-full shrink-0 justify-center gap-4 bg-background/90 p-2 z-20 border-t">
         <Button variant="secondary" onClick={scrollToIntroduced}>
           Introduced
         </Button>
