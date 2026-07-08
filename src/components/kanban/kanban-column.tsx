@@ -2,16 +2,18 @@
 
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import type { Bill, TempBill } from '@/types/legislation';
 import { KanbanCard } from './kanban-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Draggable } from '@hello-pangea/dnd';
 import { cn } from '@/lib/utils';
 import { TempBillCard } from './temp-card';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, Loader2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { COLUMN_DESCRIPTIONS } from '@/lib/kanban-columns';
+import ColumnOptionsMenu from './column-options-menu';
+import { useAuth } from '@/hooks/contexts/auth-context';
 
 // Adds readOnly prop to control card rendering
 // When readOnly=true, cards aren't wrapped in Draggable components
@@ -86,6 +88,9 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
     },
     ref
   ) => {
+    const { activeTenant } = useAuth();
+    const [refreshing, setRefreshing] = useState(false);
+
     // Use shared refs from parent, or create local ones if not provided
     const localBillCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -127,22 +132,35 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
               )}
             </span>
 
-            <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  className="shrink-0 rounded-full text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={`What does "${title}" mean?`}
-                >
-                  <HelpCircle className="h-4 w-4" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-72" align="end">
-                <h3 className="text-sm font-semibold mb-1">{title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {COLUMN_DESCRIPTIONS[columnId] ?? 'No description available for this stage.'}
-                </p>
-              </PopoverContent>
-            </Popover>
+            <span className="flex shrink-0 items-center gap-1">
+              {refreshing && (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Updating column" />
+              )}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    className="shrink-0 rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={`What does "${title}" mean?`}
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72" align="end">
+                  <h3 className="text-sm font-semibold mb-1">{title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {COLUMN_DESCRIPTIONS[columnId] ?? 'No description available for this stage.'}
+                  </p>
+                </PopoverContent>
+              </Popover>
+              {/* Scraper/LLM column actions are org workflows — org members only */}
+              {activeTenant && (
+                <ColumnOptionsMenu
+                  bills={bills}
+                  onRefreshStart={() => setRefreshing(true)}
+                  onRefreshEnd={() => setRefreshing(false)}
+                />
+              )}
+            </span>
           </h2>
         </div>
 
