@@ -41,11 +41,18 @@ function downloadBlob(blob: Blob, filename: string) {
 export function ExportCsvDialog({ children }: ExportCsvDialogProps) {
   const { activeTenant, memberships } = useAuth();
   const { viewMode, showArchived } = useBills();
-  const { searchQuery, selectedTagIds, selectedYears, deadFilter } = useKanbanBoard();
+  const { searchQuery, selectedTagIds, selectedYears, deadFilter, view } = useKanbanBoard();
   const { toast } = useToast();
   const belongsToOrg = memberships.length > 0;
 
-  const boardFilters = { searchQuery, selectedTagIds, selectedYears, deadFilter };
+  const boardFilters = {
+    searchQuery,
+    selectedTagIds,
+    selectedYears,
+    // The failed/active filter is only exposed (and only applied) in the
+    // spreadsheet view — don't let a stale value narrow a kanban export.
+    deadFilter: view === 'spreadsheet' ? deadFilter : ('all' as const),
+  };
   const filtersActive = hasActiveFilters(boardFilters);
 
   const [isOpen, setIsOpen] = useState(false);
