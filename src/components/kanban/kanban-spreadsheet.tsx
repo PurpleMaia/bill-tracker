@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { formatBillStatusName } from '@/lib/utils';
-import { searchBillsLocal } from '@/lib/bill-search';
+import { filterBills } from '@/lib/bill-filters';
 import { getNextDeadline } from '@/lib/dead-bill';
 import type { SessionDeadlines, DeadlineEntry } from '@/lib/dead-bill';
 import type { BillStatus as DBBillStatus } from '@/db/types';
@@ -145,35 +145,7 @@ export function KanbanSpreadsheet() {
   }, [bills, today]);
 
   const displayBills = useMemo(() => {
-    let items = bills;
-
-    // Search filter (shared ranked search — src/lib/bill-search.ts)
-    if (searchQuery.trim()) {
-      items = searchBillsLocal(items, searchQuery);
-    }
-
-    // Tag filter
-    if (selectedTagIds.length > 0) {
-      items = items.filter(bill => {
-        const billTagIds = bill.tags?.map(tag => tag.id) || [];
-        return billTagIds.some(tagId => selectedTagIds.includes(tagId));
-      });
-    }
-
-    // Year filter
-    if (selectedYears.length > 0) {
-      items = items.filter(bill => {
-        if (bill.year === null || bill.year === undefined) return false;
-        return selectedYears.includes(bill.year);
-      });
-    }
-
-    // Dead filter
-    if (deadFilter === 'dead') {
-      items = items.filter(bill => bill.dead);
-    } else if (deadFilter === 'alive') {
-      items = items.filter(bill => !bill.dead);
-    }
+    let items = filterBills(bills, { searchQuery, selectedTagIds, selectedYears, deadFilter });
 
     // Sort
     if (sortKey) {
