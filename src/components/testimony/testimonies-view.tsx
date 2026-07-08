@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertCircle,
@@ -20,9 +20,9 @@ import { data } from '@/lib/data-client';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useTestimonies } from '@/hooks/use-testimonies';
 import { toast } from '@/hooks/use-toast';
-import { tiptapExcerpt } from '@/lib/tiptap-text';
-import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony-eligibility';
-import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/hearing-schedule';
+import { tiptapPlainText } from '@/lib/tiptap-text';
+import { getTestimonyEligibility } from '@/lib/testimony-eligibility';
+import { getTestimonyDeadline } from '@/lib/hearing-schedule';
 import { getNextDeadline } from '@/lib/dead-bill';
 import type { DeadlineEntry, SessionDeadlines } from '@/lib/dead-bill';
 import type { BillStatus } from '@/db/types';
@@ -57,9 +57,6 @@ import { TestimoniesSubNav } from './testimonies-subnav';
 import { TestimoniesSidebar } from './testimonies-sidebar';
 
 export type TestimoniesFilter = 'all' | 'drafts' | 'submitted';
-
-const HOUR_MS = 60 * 60 * 1000;
-const TESTIMONY_WINDOW_MS = 24 * HOUR_MS;
 
 interface DecoratedTestimony {
   item: TestimonyListItem;
@@ -97,22 +94,22 @@ function decorate(item: TestimonyListItem, now: Date): DecoratedTestimony {
       today: now.toISOString().split('T')[0],
     });
 
-    if (isTestimonyUrgent(item.billStatus as BillStatus) && item.latestStatusText) {
-      hearingAt = parseHearingDatetime(item.latestStatusText);
-    }
-
     if (!eligibility.allowed) {
       closed = true;
       // The Dead badge already explains dead bills — no need to say it twice.
       closedNote = item.dead ? null : eligibility.reason;
-      hearingAt = null;
-    } else if (hearingAt) {
-      countdown = getTestimonyCountdownLabel(hearingAt, now);
-      if (countdown) {
-        urgent = hearingAt.getTime() - TESTIMONY_WINDOW_MS - now.getTime() <= 48 * HOUR_MS;
-      } else if (now.getTime() >= hearingAt.getTime()) {
+    } else {
+      const deadline = getTestimonyDeadline({
+        billStatus: item.billStatus as BillStatus,
+        latestStatusText: item.latestStatusText,
+        now,
+      });
+      hearingAt = deadline.hearingAt;
+      countdown = deadline.countdown;
+      urgent = deadline.urgent;
+      if (deadline.hearingPassed && deadline.hearingAt) {
         closed = true;
-        closedNote = `Hearing held ${formatHearing(hearingAt)} — submission window closed`;
+        closedNote = `Hearing held ${formatHearing(deadline.hearingAt)} — submission window closed`;
       }
     }
 
@@ -139,14 +136,18 @@ interface DecoratedProspect {
 
 /** Null when the hearing has already happened — nothing actionable to show. */
 function decorateProspect(item: TestimonyProspect, now: Date): DecoratedProspect | null {
-  const hearingAt = item.latestStatusText ? parseHearingDatetime(item.latestStatusText) : null;
-  if (hearingAt && now.getTime() >= hearingAt.getTime()) return null;
-  const countdown = hearingAt ? getTestimonyCountdownLabel(hearingAt, now) : null;
-  const urgent =
-    !!hearingAt &&
-    !!countdown &&
-    hearingAt.getTime() - TESTIMONY_WINDOW_MS - now.getTime() <= 48 * HOUR_MS;
-  return { item, hearingAt, countdown, urgent };
+  const deadline = getTestimonyDeadline({
+    billStatus: item.billStatus as BillStatus,
+    latestStatusText: item.latestStatusText,
+    now,
+  });
+  if (deadline.hearingPassed) return null;
+  return {
+    item,
+    hearingAt: deadline.hearingAt,
+    countdown: deadline.countdown,
+    urgent: deadline.urgent,
+  };
 }
 
 function compareProspects(a: DecoratedProspect, b: DecoratedProspect): number {
@@ -169,8 +170,15 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
   const { user, loading: authLoading } = useAuth();
   const { items, prospects, error, refetch, removeItem } = useTestimonies();
 
+  // Coarse clock so countdowns/urgency/closed states stay live while the
+  // page sits open — deadline info frozen at mount time would silently lie.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
   const { needed, drafts, submitted } = useMemo(() => {
-    const now = new Date();
     const decorated = (items ?? []).map((item) => decorate(item, now));
     return {
       needed: (prospects ?? [])
@@ -180,7 +188,7 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
       drafts: decorated.filter((d) => d.isDraft).sort(compareDrafts),
       submitted: decorated.filter((d) => !d.isDraft),
     };
-  }, [items, prospects]);
+  }, [items, prospects, now]);
 
   const dueSoonCount = drafts.filter((d) => d.urgent).length;
   const hasAnything = (items?.length ?? 0) > 0 || needed.length > 0;
@@ -381,6 +389,41 @@ function TestimonyCardList({
   );
 }
 
+/** Countdown pill + hearing datetime, shared by testimony and prospect cards. */
+function HearingCountdown({
+  hearingAt,
+  countdown,
+  urgent,
+}: {
+  hearingAt: Date;
+  countdown: string;
+  urgent: boolean;
+}) {
+  return (
+    <>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className={cn(
+              'inline-flex cursor-default items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium',
+              urgent
+                ? 'border-red-200 bg-red-50 text-red-700'
+                : 'border-amber-200 bg-amber-50 text-amber-700',
+            )}
+          >
+            <CalendarClock className="h-3 w-3" />
+            {capitalize(countdown)}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-60">
+          Testimony must be submitted at least 24 hours before the hearing.
+        </TooltipContent>
+      </Tooltip>
+      <span className="text-[11px] text-muted-foreground">Hearing {formatHearing(hearingAt)}</span>
+    </>
+  );
+}
+
 /**
  * A tracked bill with a hearing coming up and no testimony started —
  * dashed border signals "not yet created"; the card starts a new draft.
@@ -446,29 +489,7 @@ function ProspectCard({ prospect }: { prospect: DecoratedProspect }) {
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
           {countdown && hearingAt ? (
-            <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span
-                    className={cn(
-                      'inline-flex cursor-default items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium',
-                      urgent
-                        ? 'border-red-200 bg-red-50 text-red-700'
-                        : 'border-amber-200 bg-amber-50 text-amber-700',
-                    )}
-                  >
-                    <CalendarClock className="h-3 w-3" />
-                    {capitalize(countdown)}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-60">
-                  Testimony must be submitted at least 24 hours before the hearing.
-                </TooltipContent>
-              </Tooltip>
-              <span className="text-[11px] text-muted-foreground">
-                Hearing {formatHearing(hearingAt)}
-              </span>
-            </>
+            <HearingCountdown hearingAt={hearingAt} countdown={countdown} urgent={urgent} />
           ) : (
             <span className="text-[11px] text-muted-foreground">
               Hearing scheduled — time not posted yet
@@ -566,29 +587,7 @@ function TestimonyCard({
           )}
 
           {countdown && hearingAt && (
-            <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span
-                    className={cn(
-                      'inline-flex cursor-default items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium',
-                      urgent
-                        ? 'border-red-200 bg-red-50 text-red-700'
-                        : 'border-amber-200 bg-amber-50 text-amber-700',
-                    )}
-                  >
-                    <CalendarClock className="h-3 w-3" />
-                    {capitalize(countdown)}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-60">
-                  Testimony must be submitted at least 24 hours before the hearing.
-                </TooltipContent>
-              </Tooltip>
-              <span className="text-[11px] text-muted-foreground">
-                Hearing {formatHearing(hearingAt)}
-              </span>
-            </>
+            <HearingCountdown hearingAt={hearingAt} countdown={countdown} urgent={urgent} />
           )}
 
           {!countdown && nextDeadline && (
@@ -649,7 +648,7 @@ function TestimonyCardMenu({
   const handleCopy = async () => {
     try {
       const draft = await data.testimony.getDraft(item.billId);
-      const text = tiptapExcerpt(draft?.contentJson, Number.MAX_SAFE_INTEGER);
+      const text = tiptapPlainText(draft?.contentJson);
       if (!text) {
         toast({ title: 'Nothing to copy', description: 'This testimony has no text yet.' });
         return;
@@ -666,10 +665,15 @@ function TestimonyCardMenu({
     try {
       await data.testimony.remove(item.billId);
       onDeleted(item.billId);
-      toast({ title: 'Draft deleted', description: `Your ${item.billNumber} testimony draft was deleted.` });
+      toast({
+        title: isDraft ? 'Draft deleted' : 'Testimony removed',
+        description: isDraft
+          ? `Your ${item.billNumber} testimony draft was deleted.`
+          : `Your ${item.billNumber} testimony record was removed.`,
+      });
       setConfirmOpen(false);
     } catch {
-      toast({ title: 'Delete failed', description: 'Could not delete the draft. Please try again.', variant: 'destructive' });
+      toast({ title: 'Delete failed', description: 'Could not delete the testimony. Please try again.', variant: 'destructive' });
     } finally {
       setDeleting(false);
     }
@@ -699,28 +703,27 @@ function TestimonyCardMenu({
             <Copy className="mr-2 h-4 w-4" />
             Copy testimony text
           </DropdownMenuItem>
-          {isDraft && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-red-600 focus:text-red-600"
-                onClick={() => setConfirmOpen(true)}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete draft
-              </DropdownMenuItem>
-            </>
-          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="text-red-600 focus:text-red-600"
+            onClick={() => setConfirmOpen(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            {isDraft ? 'Delete draft' : 'Remove testimony record'}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this draft?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {isDraft ? 'Delete this draft?' : 'Remove this testimony record?'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Your testimony draft for {item.billNumber} will be permanently deleted. This cannot
-              be undone.
+              {isDraft
+                ? `Your testimony draft for ${item.billNumber} will be permanently deleted. This cannot be undone.`
+                : `Your ${item.billNumber} testimony record will be removed from Food+. This does not withdraw testimony already submitted on the Capitol website, and it cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -733,7 +736,7 @@ function TestimonyCardMenu({
               className="bg-red-600 hover:bg-red-700"
               disabled={deleting}
             >
-              {deleting ? 'Deleting…' : 'Delete draft'}
+              {deleting ? 'Deleting…' : isDraft ? 'Delete draft' : 'Remove record'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

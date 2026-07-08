@@ -1,43 +1,27 @@
 // ==============================================
-// TIPTAP TEXT — pure extraction of plain text from
-// a Tiptap document JSON ({ type: 'doc', content: [...] })
+// TIPTAP TEXT — plain-text views of a Tiptap document
 // ==============================================
+// Thin wrappers over the testimony-export block core (the single Tiptap
+// traversal in this codebase) so excerpting and copying can never drift
+// from the PDF/DOCX exports on new node types.
 
-interface TiptapNode {
-  type?: string;
-  text?: string;
-  content?: TiptapNode[];
-}
+import { blocksToPlainText, tiptapToBlocks } from '@/lib/testimony-export/blocks';
 
-function collectText(node: TiptapNode, parts: string[]): void {
-  if (typeof node.text === 'string') parts.push(node.text);
-  if (Array.isArray(node.content)) {
-    for (const child of node.content) collectText(child, parts);
-    // Block boundaries become spaces so paragraphs don't run together.
-    if (node.type === 'doc') return;
-  }
+/**
+ * Full plain text of a Tiptap document: blocks separated by blank lines,
+ * list items bulleted/numbered one per line. '' for empty or malformed
+ * documents (e.g. the DB default '{}').
+ */
+export function tiptapPlainText(doc: unknown): string {
+  return blocksToPlainText(tiptapToBlocks(doc));
 }
 
 /**
- * Flattens a Tiptap document into a single plain-text string, truncated to
- * `maxLength` on a word boundary with an ellipsis. Returns '' for empty or
- * malformed documents (e.g. the DB default '{}').
+ * Single-line excerpt of a Tiptap document, truncated to `maxLength` on a
+ * word boundary with an ellipsis. Newlines collapse to spaces.
  */
 export function tiptapExcerpt(doc: unknown, maxLength = 180): string {
-  if (!doc || typeof doc !== 'object') return '';
-
-  const parts: string[] = [];
-  const root = doc as TiptapNode;
-  if (Array.isArray(root.content)) {
-    for (const block of root.content) {
-      const blockParts: string[] = [];
-      collectText(block, blockParts);
-      const text = blockParts.join('').trim();
-      if (text) parts.push(text);
-    }
-  }
-
-  const full = parts.join(' ').replace(/\s+/g, ' ').trim();
+  const full = tiptapPlainText(doc).replace(/\s+/g, ' ').trim();
   if (full.length <= maxLength) return full;
 
   const cut = full.slice(0, maxLength);

@@ -1,8 +1,7 @@
 import { sql } from 'kysely';
 import { db } from '@/db/kysely/client';
 import { tiptapExcerpt } from '@/lib/tiptap-text';
-import { isTestimonyUrgent } from '@/lib/testimony-eligibility';
-import type { BillStatus } from '@/db/types';
+import { SCHEDULED_STATUSES } from '@/lib/testimony-eligibility';
 import type {
   TestimonyDraft,
   TestimonyDraftInput,
@@ -112,16 +111,20 @@ export async function deleteTestimony(userId: string, billId: string): Promise<v
 /** Latest scraped status update per bill, for hearing-datetime parsing. */
 async function latestStatusTextByBillId(billIds: string[]): Promise<Record<string, string>> {
   if (billIds.length === 0) return {};
+  // DISTINCT ON returns exactly one row per bill; id DESC breaks ties
+  // deterministically when several updates share the most recent date.
   const updates = await db
     .selectFrom('status_updates as su')
+    .distinctOn('su.bill_id')
     .select(['su.bill_id', 'su.statustext'])
     .where('su.bill_id', 'in', billIds)
     .orderBy('su.bill_id')
     .orderBy(sql`cast(su.date as date)`, 'desc')
+    .orderBy('su.id', 'desc')
     .execute();
   const latestByBillId: Record<string, string> = {};
   for (const update of updates) {
-    if (!(update.bill_id in latestByBillId)) latestByBillId[update.bill_id] = update.statustext;
+    latestByBillId[update.bill_id] = update.statustext;
   }
   return latestByBillId;
 }
@@ -153,16 +156,14 @@ export async function listTestimonyProspects(userId: string): Promise<TestimonyP
     .where('t.id', 'is', null)
     .where('b.dead', '=', false)
     .where('b.archived', '=', false)
+    .where('b.bill_status', 'in', SCHEDULED_STATUSES)
     .execute();
 
-  const scheduled = rows.filter((row) =>
-    isTestimonyUrgent((row.bill_status ?? 'unassigned') as BillStatus),
-  );
-  if (scheduled.length === 0) return [];
+  if (rows.length === 0) return [];
 
-  const latestByBillId = await latestStatusTextByBillId(scheduled.map((r) => r.id));
+  const latestByBillId = await latestStatusTextByBillId(rows.map((r) => r.id));
 
-  return scheduled.map((row) => ({
+  return rows.map((row) => ({
     billId: row.id,
     billNumber: row.bill_number ?? '',
     billTitle: row.bill_title,

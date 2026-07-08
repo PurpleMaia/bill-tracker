@@ -35,14 +35,21 @@ let state: TestimoniesState = {
   loading: false,
 };
 let stale = false;
+/** Monotonic request token — an older in-flight response must never overwrite a newer one. */
+let requestSeq = 0;
 
 /**
- * Flags the cached list stale after a mutation elsewhere (the testimony
- * writer's autosave / mark-submitted). The next consumer mount silently
- * refetches; until then cached data keeps rendering.
+ * Called after a mutation elsewhere (the testimony writer's autosave /
+ * mark-submitted). If consumers are on screen, refresh immediately (silent —
+ * cached data keeps rendering); otherwise flag the cache stale so the next
+ * consumer mount refetches.
  */
 export function invalidateTestimonies() {
-  stale = true;
+  if (listeners.size > 0 && state.userId !== null) {
+    loadFor(state.userId, true);
+  } else {
+    stale = true;
+  }
 }
 const listeners = new Set<() => void>();
 
@@ -70,6 +77,7 @@ function loadFor(userId: string, force = false) {
     if (state.items !== null && !stale) return;
   }
   stale = false;
+  const seq = ++requestSeq;
 
   setState({
     userId,
@@ -80,10 +88,12 @@ function loadFor(userId: string, force = false) {
   });
   Promise.all([data.testimony.list(), data.testimony.prospects()])
     .then(([items, prospects]) => {
-      if (state.userId === userId) setState({ items, prospects, loading: false });
+      if (seq === requestSeq && state.userId === userId) {
+        setState({ items, prospects, loading: false });
+      }
     })
     .catch((err) => {
-      if (state.userId === userId) {
+      if (seq === requestSeq && state.userId === userId) {
         setState({ error: err?.message ?? 'Failed to load testimonies', loading: false });
       }
     });

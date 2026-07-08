@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/hearing-schedule';
+import { parseHearingDatetime, getTestimonyCountdownLabel, getTestimonyDeadline } from '@/lib/hearing-schedule';
 
 describe('parseHearingDatetime', () => {
   it('parses house hearing notices (MM-DD-YY H:MMAM)', () => {
@@ -59,5 +59,53 @@ describe('getTestimonyCountdownLabel', () => {
   it('returns null once the hearing has started or passed', () => {
     expect(getTestimonyCountdownLabel(hearing, new Date(2026, 6, 4, 10, 0))).toBeNull();
     expect(getTestimonyCountdownLabel(hearing, new Date(2026, 6, 5, 9, 0))).toBeNull();
+  });
+});
+
+describe('getTestimonyDeadline', () => {
+  const notice = 'Bill scheduled to be heard by AGR on 07-04-26 10:00AM in conference room 312.';
+  const hearing = new Date(2026, 6, 4, 10, 0);
+
+  it('returns the full picture for a scheduled bill with an upcoming hearing', () => {
+    const result = getTestimonyDeadline({
+      billStatus: 'scheduled1',
+      latestStatusText: notice,
+      now: new Date(2026, 6, 1, 4, 0),
+    });
+    expect(result).toEqual({
+      hearingAt: hearing,
+      countdown: 'due in 3d',
+      urgent: false,
+      hearingPassed: false,
+    });
+  });
+
+  it('flags urgency when the deadline is within 48 hours', () => {
+    const result = getTestimonyDeadline({
+      billStatus: 'scheduled1',
+      latestStatusText: notice,
+      now: new Date(2026, 6, 2, 20, 0),
+    });
+    expect(result.countdown).toBe('due in 14h');
+    expect(result.urgent).toBe(true);
+  });
+
+  it('reports hearingPassed once the hearing has started', () => {
+    const result = getTestimonyDeadline({
+      billStatus: 'scheduled1',
+      latestStatusText: notice,
+      now: new Date(2026, 6, 4, 10, 0),
+    });
+    expect(result).toEqual({ hearingAt: hearing, countdown: null, urgent: false, hearingPassed: true });
+  });
+
+  it('returns nothing for non-scheduled statuses or missing notices', () => {
+    const empty = { hearingAt: null, countdown: null, urgent: false, hearingPassed: false };
+    expect(
+      getTestimonyDeadline({ billStatus: 'introduced', latestStatusText: notice, now: hearing }),
+    ).toEqual(empty);
+    expect(
+      getTestimonyDeadline({ billStatus: 'scheduled1', latestStatusText: null, now: hearing }),
+    ).toEqual(empty);
   });
 });

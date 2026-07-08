@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { tiptapExcerpt } from '@/lib/tiptap-text';
+import { tiptapExcerpt, tiptapPlainText } from '@/lib/tiptap-text';
 
 function doc(...paragraphs: string[]) {
   return {
@@ -65,5 +65,57 @@ describe('tiptapExcerpt', () => {
 
   it('does not truncate text at exactly maxLength', () => {
     expect(tiptapExcerpt(doc('12345'), 5)).toBe('12345');
+  });
+
+  it('separates list items instead of running them together', () => {
+    const d = {
+      type: 'doc',
+      content: [
+        {
+          type: 'bulletList',
+          content: [
+            {
+              type: 'listItem',
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Support local farms.' }] }],
+            },
+            {
+              type: 'listItem',
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Fund ag inspectors.' }] }],
+            },
+          ],
+        },
+      ],
+    };
+    expect(tiptapExcerpt(d)).toBe('• Support local farms. • Fund ag inspectors.');
+  });
+});
+
+describe('tiptapPlainText', () => {
+  it('preserves paragraph breaks and list formatting for copy', () => {
+    const d = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Aloha Chair,' }] },
+        {
+          type: 'orderedList',
+          content: [
+            {
+              type: 'listItem',
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'First point.' }] }],
+            },
+            {
+              type: 'listItem',
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Second point.' }] }],
+            },
+          ],
+        },
+      ],
+    };
+    expect(tiptapPlainText(d)).toBe('Aloha Chair,\n\n1. First point.\n2. Second point.');
+  });
+
+  it('returns empty string for empty or malformed docs', () => {
+    expect(tiptapPlainText({})).toBe('');
+    expect(tiptapPlainText(null)).toBe('');
   });
 });
