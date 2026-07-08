@@ -2,12 +2,21 @@
 
 import { requireSession, requireMembership } from '@/lib/auth-guards';
 import {
+  deleteTestimony,
   getTestimonyDraft,
   getTestimonyStatuses,
+  listTestimonyProspects,
+  listUserTestimonies,
   markTestimonySubmitted,
   upsertTestimonyDraft,
 } from '@/db/queries/testimony';
-import type { TestimonyDraft, TestimonyDraftInput, TestimonyStatus } from '@/types/testimony';
+import type {
+  TestimonyDraft,
+  TestimonyDraftInput,
+  TestimonyListItem,
+  TestimonyProspect,
+  TestimonyStatus,
+} from '@/types/testimony';
 
 /** Server-action arm for data.testimony.getDraft. Returns the caller's own draft. */
 export async function getTestimonyDraftAction(billId: string): Promise<TestimonyDraft | null> {
@@ -29,6 +38,24 @@ export async function saveTestimonyDraftAction(
 export async function markTestimonySubmittedAction(billId: string): Promise<TestimonyDraft> {
   const { user } = await requireSession.fromAction();
   return markTestimonySubmitted(user.id, billId);
+}
+
+/** Server-action arm for data.testimony.remove. Deletes the caller's own testimony. */
+export async function deleteTestimonyAction(billId: string): Promise<void> {
+  const { user } = await requireSession.fromAction();
+  return deleteTestimony(user.id, billId);
+}
+
+/** Server-action arm for data.testimony.list. The caller's testimonies with bill context. */
+export async function listUserTestimoniesAction(): Promise<TestimonyListItem[]> {
+  const { user } = await requireSession.fromAction();
+  return listUserTestimonies(user.id);
+}
+
+/** Server-action arm for data.testimony.prospects. Tracked bills needing testimony. */
+export async function listTestimonyProspectsAction(): Promise<TestimonyProspect[]> {
+  const { user } = await requireSession.fromAction();
+  return listTestimonyProspects(user.id);
 }
 
 /** Server-action arm for data.testimony.getStatuses. The caller's per-bill progress. */

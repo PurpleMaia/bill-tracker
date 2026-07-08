@@ -5,8 +5,9 @@ import type { BillDetails } from '@/types/legislation';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { data } from '@/lib/data-client';
+import { invalidateTestimonies } from '@/hooks/use-testimonies';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, Check, CheckCircle2, ExternalLink, Loader2, SquareKanban } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, ExternalLink, FileText, Loader2, SquareKanban } from 'lucide-react';
 
 interface TestimonySubmitGuideProps {
   bill: BillDetails;
@@ -14,6 +15,8 @@ interface TestimonySubmitGuideProps {
   submitted: boolean;
   onMarkSubmitted: () => void;
   onBack: () => void;
+  /** Where the final "done" button returns to — '/' (board) unless the user came from /testimonies. */
+  doneHref?: string;
 }
 
 const STEPS: Array<{ title: string; body: string }> = [
@@ -39,14 +42,22 @@ const STEPS: Array<{ title: string; body: string }> = [
   },
 ];
 
-export function TestimonySubmitGuide({ bill, submitted, onMarkSubmitted, onBack }: TestimonySubmitGuideProps) {
+export function TestimonySubmitGuide({
+  bill,
+  submitted,
+  onMarkSubmitted,
+  onBack,
+  doneHref = '/',
+}: TestimonySubmitGuideProps) {
   const router = useRouter();
   const [marking, setMarking] = useState(false);
+  const fromTestimonies = doneHref === '/testimonies';
 
   const handleMarkSubmitted = async () => {
     setMarking(true);
     try {
       await data.testimony.markSubmitted(bill.id);
+      invalidateTestimonies();
       onMarkSubmitted();
       toast({ title: 'Testimony submitted', description: `Marked your ${bill.bill_number} testimony as submitted.` });
     } catch {
@@ -119,9 +130,13 @@ export function TestimonySubmitGuide({ bill, submitted, onMarkSubmitted, onBack 
           <ArrowLeft className="mr-1.5 h-4 w-4" />
           Back: Review
         </Button>
-        <Button onClick={() => router.push('/')}>
-          <SquareKanban className="mr-1.5 h-4 w-4" />
-          Back to Kanban Board
+        <Button onClick={() => router.push(doneHref)}>
+          {fromTestimonies ? (
+            <FileText className="mr-1.5 h-4 w-4" />
+          ) : (
+            <SquareKanban className="mr-1.5 h-4 w-4" />
+          )}
+          {fromTestimonies ? 'Back to Testimonies' : 'Back to Kanban Board'}
         </Button>
       </div>
     </div>

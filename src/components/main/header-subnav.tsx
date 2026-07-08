@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { TestimoniesSubNav } from '@/components/testimony/testimonies-subnav';
 import { ViewToggle } from './view-toggle';
 
 /**
@@ -9,8 +10,9 @@ import { ViewToggle } from './view-toggle';
  * '/' hosts the board view toggle (logged-in only — hidden over the login
  * wall); compact icon-only variant on mobile. It lives in the global header
  * rather than the board header so it stays reachable from the admin view.
- * /search, /testimonies, /boards render nothing yet; their sub-navs land
- * here later.
+ * /testimonies renders its All/Drafts/Submitted tabs (both logged-in only
+ * — hidden over the login wall). /search and /boards render nothing yet; 
+ * their sub-navs land here later.
  */
 export function HeaderSubNav() {
   const pathname = usePathname();
@@ -27,6 +29,10 @@ export function HeaderSubNav() {
         </div>
       </>
     );
+  }
+
+  if (pathname.startsWith('/testimonies') && user) {
+    return <TestimoniesSubNav />;
   }
 
   return null;

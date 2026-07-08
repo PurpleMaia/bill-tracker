@@ -12,7 +12,7 @@ import { isFiscalBill } from '@/lib/dead-bill';
 
 const ENACTED_STATUSES: BillStatus[] = ['governorSigns', 'lawWithoutSignature'];
 
-const SCHEDULED_STATUSES: BillStatus[] = [
+export const SCHEDULED_STATUSES: BillStatus[] = [
   'scheduled1',
   'scheduled2',
   'scheduled3',

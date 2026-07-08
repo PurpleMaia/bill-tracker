@@ -1,7 +1,17 @@
-import { PageLoading } from '@/components/main/page-loading';
+import { Loader2 } from 'lucide-react';
 
-// The testimony workspace lives outside the (main) shell, so this fallback
-// covers the full viewport during navigation.
-export default function Loading() {
-  return <PageLoading label="Loading testimony workspace…" className="min-h-dvh" />;
+/**
+ * Route-level loading UI shown during navigation while the testimony writer
+ * loads — visually identical to the page's own auth/bill-loading spinner so
+ * the transition hands off seamlessly.
+ */
+export default function TestimonyLoading() {
+  return (
+    <div className="flex h-dvh items-center justify-center">
+      <div className="flex flex-col items-center gap-2">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Loading testimony…</p>
+      </div>
+    </div>
+  );
 }
