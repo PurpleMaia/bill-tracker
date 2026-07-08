@@ -33,10 +33,10 @@ export function ProtectedKanbanBoardOrSpreadsheet() {
   if (!user) {
     console.log('Rendering public view with', bills.length, 'bills');
     return (
-      <>
+      <div className="flex h-full min-h-0 flex-col">
         <KanbanHeader />
         { view === 'kanban' ? <KanbanBoard readOnly={true} /> : <KanbanSpreadsheet />}
-      </>
+      </div>
     );
   }
 
@@ -75,7 +75,7 @@ export function ProtectedKanbanBoardOrSpreadsheet() {
 
   // Show adopted bills with full functionality
   return (
-    <div className="space-y-4">           
+    <div className="flex h-full min-h-0 flex-col">
       <KanbanHeader />
       <KanbanBoard 
         readOnly={isReadOnly || false}
