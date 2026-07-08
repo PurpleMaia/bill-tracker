@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { BillDetails } from '@/types/legislation';
 import type { TestimonyPosition } from '@/types/testimony';
@@ -28,8 +28,13 @@ const EMPTY_DOC = { type: 'doc', content: [{ type: 'paragraph' }] };
 export default function TestimonyPage() {
   const { id: billId } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, activeTenant, loading: authLoading } = useAuth();
   const isMobile = useIsMobile();
+
+  // Where the user came from — back navigation returns there, not always the board.
+  const fromTestimonies = searchParams.get('from') === 'testimonies';
+  const backHref = fromTestimonies ? '/testimonies' : '/';
 
   const [bill, setBill] = useState<BillDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -224,7 +229,7 @@ export default function TestimonyPage() {
       {/* Top bar */}
       <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
-          <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => router.push('/')}>
+          <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => router.push(backHref)}>
             <ArrowLeft className="h-4 w-4" />
             <span className="ml-1 hidden sm:inline">Back</span>
           </Button>
@@ -295,6 +300,7 @@ export default function TestimonyPage() {
                 submitted={submitted}
                 onMarkSubmitted={() => setSubmitted(true)}
                 onBack={() => setStep(2)}
+                doneHref={backHref}
               />
             )}
           </div>

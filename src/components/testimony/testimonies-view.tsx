@@ -10,6 +10,7 @@ import {
   Copy,
   ExternalLink,
   FileText,
+  Loader2,
   MoreVertical,
   PenLine,
   Trash2,
@@ -389,6 +390,30 @@ function TestimonyCardList({
   );
 }
 
+/** True for cmd/ctrl/shift/middle clicks — the browser opens a new tab, we stay put. */
+function isModifiedClick(event: React.MouseEvent): boolean {
+  return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
+}
+
+/** The card's right-aligned action label, swapping to a spinner once navigation starts. */
+function CardActionLabel({ label, navigating }: { label: string; navigating: boolean }) {
+  return (
+    <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-primary">
+      {navigating ? (
+        <>
+          Opening…
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        </>
+      ) : (
+        <>
+          {label}
+          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+        </>
+      )}
+    </span>
+  );
+}
+
 /** Countdown pill + hearing datetime, shared by testimony and prospect cards. */
 function HearingCountdown({
   hearingAt,
@@ -431,6 +456,7 @@ function HearingCountdown({
 function ProspectCard({ prospect }: { prospect: DecoratedProspect }) {
   const { item, hearingAt, countdown, urgent } = prospect;
   const billLabel = item.nickname || item.billTitle || '';
+  const [navigating, setNavigating] = useState(false);
 
   return (
     <div
@@ -438,6 +464,7 @@ function ProspectCard({ prospect }: { prospect: DecoratedProspect }) {
         'group relative flex rounded-lg border border-dashed bg-card text-card-foreground transition-all duration-200',
         urgent ? 'border-red-300' : 'border-amber-300',
         'hover:shadow-md hover:-translate-y-px focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2',
+        navigating && 'opacity-70',
       )}
     >
       <div className="flex items-start p-4 pr-0">
@@ -461,7 +488,10 @@ function ProspectCard({ prospect }: { prospect: DecoratedProspect }) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
             <Link
-              href={`/bills/${item.billId}/testimony`}
+              href={`/bills/${item.billId}/testimony?from=testimonies`}
+              onClick={(e) => {
+                if (!isModifiedClick(e)) setNavigating(true);
+              }}
               className="text-sm font-semibold tracking-tight after:absolute after:inset-0 focus-visible:outline-none"
             >
               {item.billNumber}
@@ -496,10 +526,7 @@ function ProspectCard({ prospect }: { prospect: DecoratedProspect }) {
             </span>
           )}
 
-          <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-primary">
-            Start testimony
-            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-          </span>
+          <CardActionLabel label="Start testimony" navigating={navigating} />
         </div>
       </div>
     </div>
@@ -515,12 +542,14 @@ function TestimonyCard({
 }) {
   const { item, isDraft, hearingAt, countdown, urgent, nextDeadline, closed, closedNote } = entry;
   const billLabel = item.nickname || item.billTitle || '';
+  const [navigating, setNavigating] = useState(false);
 
   return (
     <div
       className={cn(
         'group relative flex rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200',
         'hover:shadow-md hover:-translate-y-px focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2',
+        navigating && 'opacity-70',
       )}
     >
       {/* State medallion */}
@@ -535,7 +564,10 @@ function TestimonyCard({
             <div className="flex flex-wrap items-center gap-1.5">
               {/* Stretched link — the whole card navigates to the testimony writer */}
               <Link
-                href={`/bills/${item.billId}/testimony`}
+                href={`/bills/${item.billId}/testimony?from=testimonies`}
+                onClick={(e) => {
+                  if (!isModifiedClick(e)) setNavigating(true);
+                }}
                 className="text-sm font-semibold tracking-tight after:absolute after:inset-0 focus-visible:outline-none"
               >
                 {item.billNumber}
@@ -612,16 +644,18 @@ function TestimonyCard({
             </span>
           )}
 
-          <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-primary">
-            {!isDraft
-              ? 'View testimony'
-              : closed
-                ? 'View draft'
-                : urgent
-                  ? 'Finish & submit'
-                  : 'Continue draft'}
-            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-          </span>
+          <CardActionLabel
+            label={
+              !isDraft
+                ? 'View testimony'
+                : closed
+                  ? 'View draft'
+                  : urgent
+                    ? 'Finish & submit'
+                    : 'Continue draft'
+            }
+            navigating={navigating}
+          />
         </div>
       </div>
 
