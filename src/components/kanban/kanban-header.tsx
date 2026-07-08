@@ -159,10 +159,17 @@ export function KanbanHeader() {
 
   return (
     <div className="border-b bg-white shadow-md">
-      {/* Mobile: search + filter row */}
+      {/* Mobile: search + filter + export row */}
       <div className="md:hidden flex items-center gap-2 p-2 px-4">
         {renderSearchInput(mobileSearchRef, false)}
         {filterControls}
+        {!isPublic && (
+          <ExportCsvDialog>
+            <Button variant="outline" size="icon" className="shrink-0" aria-label="Export bills (CSV or Excel)">
+              <Download className="h-4 w-4" />
+            </Button>
+          </ExportCsvDialog>
+        )}
       </div>
 
       {/* Desktop */}
