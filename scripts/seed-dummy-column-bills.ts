@@ -106,6 +106,11 @@ async function main() {
       const introDay = 15 + (i % 14); // 1/15/2026 .. 1/28/2026
       const chamber = type === 'HB' ? 'H' : 'S';
 
+      // Mark ~1 in 4 bills dead so dead-state UI (grayed cards, Dead badge,
+      // dead/alive filters) renders alongside living bills. Offsets 3 and 6
+      // hit both odd and even indexes, so HBs and SBs both die.
+      const isDead = i % 8 === 3 || i % 8 === 6;
+
       const bill = await trx
         .insertInto('bills')
         .values({
@@ -121,6 +126,7 @@ async function main() {
           ai_status: TARGET_STATUS,
           food_related: true,
           year: 2026,
+          dead: isDead,
         })
         .returning('id')
         .executeTakeFirstOrThrow();
