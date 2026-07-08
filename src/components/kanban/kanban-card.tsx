@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { cn, formatBillStatusName } from '@/lib/utils';
+import { cn, formatBillStatusName, todayHawaii } from '@/lib/utils';
 import { canAssignBills } from '@/lib/permissions';
 import { Sparkles, X, Check, Users, Clock, Info, PenLine, UserPlus } from 'lucide-react';
 import { Badge } from '../ui/badge';
@@ -52,7 +52,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const trackedBy = bill.tracked_by ?? [];
     const trackedCount = bill.tracked_count ?? trackedBy.length;
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayHawaii();
     const nextDeadline = !bill.dead && bill.committee_assignment && bill.current_bill_status
       ? getNextDeadline(
           bill.bill_number,
@@ -301,7 +301,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
 
                     {bill.dead && (
                     <Badge variant="destructive" className="text-[10px] h-5 px-2 text-white rounded-full shrink-0">
-                      Dead
+                      Failed
                     </Badge>
                   )}
                   </div>
@@ -349,7 +349,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                   <button
                     className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-sm"
                     onClick={(e) => e.stopPropagation()}
-                    aria-label="Why did this bill die?"
+                    aria-label="Why did this bill fail?"
                   >
                     <Info className="h-5 w-5" />
                   </button>
