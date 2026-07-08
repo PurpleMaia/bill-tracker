@@ -13,7 +13,7 @@ import { TagFilterList } from '../tags/tag-filter-list';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Download, Globe, Search } from 'lucide-react';
+import { Download, Globe, Search, UserPlus } from 'lucide-react';
 import { getAllTags } from '@/db/queries/tags';
 import type { Tag } from '@/types/legislation';
 
@@ -164,11 +164,18 @@ export function KanbanHeader() {
         {renderSearchInput(mobileSearchRef, false)}
         {filterControls}
         {!isPublic && (
-          <ExportCsvDialog>
-            <Button variant="outline" size="icon" className="shrink-0" aria-label="Export bills (CSV or Excel)">
-              <Download className="h-4 w-4" />
-            </Button>
-          </ExportCsvDialog>
+          <>
+            <TrackBillDialog>
+              <Button size="icon" className="shrink-0" aria-label="Track a new bill">
+                <UserPlus className="h-4 w-4" />
+              </Button>
+            </TrackBillDialog>
+            <ExportCsvDialog>
+              <Button variant="outline" size="icon" className="shrink-0" aria-label="Export bills (CSV or Excel)">
+                <Download className="h-4 w-4" />
+              </Button>
+            </ExportCsvDialog>
+          </>
         )}
       </div>
 
