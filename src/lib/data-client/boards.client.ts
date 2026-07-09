@@ -15,6 +15,7 @@ import {
   followOrgAction,
   unfollowOrgAction,
   getBoardAction,
+  getMyTrackedBillIdsAction,
   getOrgTestimonyStatusAction,
   getOrgSettingsAction,
   setPublicBoardAction,
@@ -60,6 +61,12 @@ async function getBoardFetch(params: GetBoardParams): Promise<Bill[]> {
   return ((await res.json()).bills ?? []) as Bill[];
 }
 
+async function getMyTrackedBillIdsFetch(): Promise<string[]> {
+  const res = await fetch('/api/boards/tracked-ids');
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to load tracked bills');
+  return ((await res.json()).ids ?? []) as string[];
+}
+
 async function getOrgTestimonyStatusFetch(params: OrgTestimonyStatusParams): Promise<string[]> {
   const qs = new URLSearchParams({ showArchived: 'true', testimony: 'true' });
   const res = await fetch(`/api/boards/${params.tenantId}/bills?${qs.toString()}`);
@@ -102,6 +109,7 @@ export const boardsClient = defineClient('boards', {
   follow: { action: followOrgAction, fetch: followOrgFetch },
   unfollow: { action: unfollowOrgAction, fetch: unfollowOrgFetch },
   getBoard: { action: getBoardAction, fetch: getBoardFetch },
+  getMyTrackedBillIds: { action: getMyTrackedBillIdsAction, fetch: getMyTrackedBillIdsFetch },
   getOrgTestimonyStatus: { action: getOrgTestimonyStatusAction, fetch: getOrgTestimonyStatusFetch },
   getOrgSettings: { action: getOrgSettingsAction, fetch: getOrgSettingsFetch },
   setPublicBoard: { action: setPublicBoardAction, fetch: setPublicBoardFetch },

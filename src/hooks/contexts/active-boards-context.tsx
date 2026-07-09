@@ -17,6 +17,10 @@ interface ActiveBoardsContextType {
   bills: Bill[];
   loadingBills: boolean;
   testimonyBillIds: Set<string>;
+  /** Bill IDs the current user already tracks (any tenant context). */
+  trackedBillIds: Set<string>;
+  /** Optimistically mark a bill as tracked by the current user. */
+  markBillTracked: (billId: string) => void;
   follow: (tenantId: string) => Promise<void>;
   unfollow: (tenantId: string) => Promise<void>;
 }
@@ -29,6 +33,31 @@ export function ActiveBoardsProvider({ children }: { children: ReactNode }) {
   const [bills, setBills] = useState<Bill[]>([]);
   const [loadingBills, setLoadingBills] = useState(false);
   const [testimonyBillIds, setTestimonyBillIds] = useState<Set<string>>(new Set());
+  const [trackedBillIds, setTrackedBillIds] = useState<Set<string>>(new Set());
+
+  // Load the current user's own tracked bill IDs once so Active Boards cards
+  // can reflect whether the viewer already tracks a bill they're looking at.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const ids = await data.boards.getMyTrackedBillIds();
+        if (!cancelled) setTrackedBillIds(new Set(ids));
+      } catch (e) {
+        if (!cancelled) console.error('Failed to load tracked bill ids:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const markBillTracked = useCallback((billId: string) => {
+    setTrackedBillIds((prev) => {
+      if (prev.has(billId)) return prev;
+      const next = new Set(prev);
+      next.add(billId);
+      return next;
+    });
+  }, []);
 
   const refreshFollowed = useCallback(async () => {
     const orgs = await data.boards.listFollowed();
@@ -99,7 +128,8 @@ export function ActiveBoardsProvider({ children }: { children: ReactNode }) {
     <ActiveBoardsContext.Provider
       value={{
         followedOrgs, refreshFollowed, selectedOrgId, selectOrg,
-        bills, loadingBills, testimonyBillIds, follow, unfollow,
+        bills, loadingBills, testimonyBillIds, trackedBillIds, markBillTracked,
+        follow, unfollow,
       }}
     >
       {children}

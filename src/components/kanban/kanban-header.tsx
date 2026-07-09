@@ -28,9 +28,15 @@ interface KanbanHeaderProps {
   variant?: 'own' | 'active-boards';
   /** Rendered in the right-hand cluster; used by the active-boards variant for the org switcher. */
   rightSlot?: React.ReactNode;
+  /**
+   * Rendered at the far left of the header row (where ViewScopeToggle sits on
+   * the normal board). The active-boards variant uses it for the org identity
+   * badge so "whose board am I on" reads first, left-to-right.
+   */
+  leftSlot?: React.ReactNode;
 }
 
-export function KanbanHeader({ variant = 'own', rightSlot }: KanbanHeaderProps) {
+export function KanbanHeader({ variant = 'own', rightSlot, leftSlot }: KanbanHeaderProps) {
   const { user, activeTenant } = useAuth();
   const { showArchived, toggleShowArchived, bills } = useBills();
   const { view, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter, searchQuery, setSearchQuery } = useKanbanBoard();
@@ -187,7 +193,11 @@ export function KanbanHeader({ variant = 'own', rightSlot }: KanbanHeaderProps) 
 
   return (
     <div className="border-b bg-white shadow-md">
-      {/* Mobile: search + filter + action row */}
+      {/* Mobile: org identity badge on its own row (active-boards only), then
+          the search + filter + action row. */}
+      {isActiveBoards && leftSlot && (
+        <div className="md:hidden px-4 pt-2">{leftSlot}</div>
+      )}
       <div className="md:hidden flex items-center gap-2 p-2 px-4">
         {renderSearchInput(mobileSearchRef, false)}
         {filterControls}
@@ -213,6 +223,7 @@ export function KanbanHeader({ variant = 'own', rightSlot }: KanbanHeaderProps) 
 
       {/* Desktop */}
       <div className="hidden md:flex items-center gap-4 p-2 px-4">
+        {isActiveBoards && leftSlot && <div className="shrink-0">{leftSlot}</div>}
         {!isActiveBoards &&
           (isPublic ? (
             <div className="flex items-center gap-2 shrink-0">

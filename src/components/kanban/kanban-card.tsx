@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { cn, formatBillStatusName, todayHawaii } from '@/lib/utils';
 import { canAssignBills } from '@/lib/permissions';
-import { Sparkles, X, Check, Users, Clock, Info, PenLine, UserPlus } from 'lucide-react';
+import { Sparkles, X, Check, Users, Clock, Info, PenLine, UserPlus, Plus, Loader2 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTagSelector } from '../tags/card-tag-selector';
@@ -40,15 +40,18 @@ interface KanbanCardProps extends React.HTMLAttributes<HTMLDivElement> {
   isHighlighted?: boolean;
   boardMode?: import('@/lib/board-display').BoardMode;
   orgTestimonyState?: 'submitted' | undefined;
-  onTrackForSelf?: (bill: Bill) => void;
+  isTracked?: boolean;
+  onTrackForSelf?: (bill: Bill) => void | Promise<void>;
 }
 
 const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
-    ({ bill, isDragging, onCardClick, onUnadopt, showUnadoptButton = false, isHighlighted = false, boardMode = 'own', orgTestimonyState, onTrackForSelf, className, style, ...props }, ref) => {
+    ({ bill, isDragging, onCardClick, onUnadopt, showUnadoptButton = false, isHighlighted = false, boardMode = 'own', orgTestimonyState, isTracked = false, onTrackForSelf, className, style, ...props }, ref) => {
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [isRemoving, setIsRemoving] = useState(false);
     const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+    const [isTracking, setIsTracking] = useState(false);
+    const [showTrackDialog, setShowTrackDialog] = useState(false);
     const { acceptLLMChange, rejectLLMChange, removeBill, testimonyStatuses } = useBills();
     const { user, activeTenant } = useAuth();
     const vis = cardVisibility(boardMode);
@@ -94,6 +97,16 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
         console.error('Error removing bill from board:', error);
       } finally {
         setIsRemoving(false);
+      }
+    };
+
+    const handleTrackForSelf = async () => {
+      setIsTracking(true);
+      try {
+        await onTrackForSelf?.(bill);
+        setShowTrackDialog(false);
+      } finally {
+        setIsTracking(false);
       }
     };
 
@@ -342,13 +355,66 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
 
             {vis.showTrackForSelf && (
               <div className="px-3 pb-3 pt-2 border-t border-border">
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); onTrackForSelf?.(bill); }}
-                  className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
-                >
-                  Track this bill
-                </button>
+                {isTracked ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground cursor-default"
+                    aria-label={`You already track ${bill.bill_number}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Check className="h-3 w-3" />
+                    Tracked
+                  </button>
+                ) : (
+                  <AlertDialog open={showTrackDialog} onOpenChange={setShowTrackDialog}>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        type="button"
+                        disabled={isTracking}
+                        onClick={(e) => { e.stopPropagation(); setShowTrackDialog(true); }}
+                        className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 disabled:opacity-60"
+                        aria-label={`Track ${bill.bill_number}`}
+                      >
+                        {isTracking ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Tracking…
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-3 w-3" />
+                            Track this bill
+                          </>
+                        )}
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Track this bill?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This adds {bill.bill_number} to your organization&apos;s board so your team can track it too.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isTracking} onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTrackForSelf(); }}
+                          disabled={isTracking}
+                        >
+                          {isTracking ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                              Tracking…
+                            </>
+                          ) : (
+                            'Track bill'
+                          )}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
             )}
             </div>{/* end grayed-out content layer */}
@@ -390,6 +456,10 @@ const arePropsEqual = (prevProps: KanbanCardProps, nextProps: KanbanCardProps): 
   // props are constant, so the checks are always-equal and harmless.
   if (prevProps.boardMode !== nextProps.boardMode) return false;
   if (prevProps.orgTestimonyState !== nextProps.orgTestimonyState) return false;
+  // isTracked flips false -> true after the current user tracks the bill (the
+  // tracked-ids Set updates optimistically); without this the "Tracked" state
+  // would never appear.
+  if (prevProps.isTracked !== nextProps.isTracked) return false;
   if (prevProps.onTrackForSelf !== nextProps.onTrackForSelf) return false;
 
   const prev = prevProps.bill;

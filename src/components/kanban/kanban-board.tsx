@@ -26,10 +26,11 @@ interface KanbanBoardProps {
   showUnadoptButton?: boolean;
   boardMode?: import('@/lib/board-display').BoardMode;
   orgTestimonyBillIds?: Set<string>;
+  trackedBillIds?: Set<string>;
   onTrackForSelf?: (bill: Bill) => void;
 }
 
-export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, boardMode = 'own', orgTestimonyBillIds, onTrackForSelf }: KanbanBoardProps) {
+export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, boardMode = 'own', orgTestimonyBillIds, trackedBillIds, onTrackForSelf }: KanbanBoardProps) {
   const { searchQuery, selectedTagIds, selectedYears, columnView } = useKanbanBoard();
   const { toast } = useToast();
   const { user, activeTenant } = useAuth();
@@ -501,6 +502,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
                       columnIndex={idx}
                       boardMode={boardMode}
                       orgTestimonyBillIds={orgTestimonyBillIds}
+                      trackedBillIds={trackedBillIds}
                       onTrackForSelf={onTrackForSelf}
                     />
                   </div>
@@ -557,6 +559,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
                             columnIndex={idx}
                             boardMode={boardMode}
                             orgTestimonyBillIds={orgTestimonyBillIds}
+                            trackedBillIds={trackedBillIds}
                             onTrackForSelf={onTrackForSelf}
                           >
                             {provided.placeholder}

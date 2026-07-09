@@ -420,6 +420,22 @@ async function getTrackedCountForBills(billIds: string[], tenantId?: string): Pr
   return trackedCount;
 }
 
+/**
+ * Returns the distinct bill IDs the given user tracks, across every tenant
+ * context. Used by Active Boards to reflect whether the current user already
+ * tracks a bill they are viewing on another org's board. Deliberately NOT
+ * tenant-scoped — it mirrors the not-tenant-scoped "already tracked" guard in
+ * trackBill (bills-write.ts).
+ */
+export async function getUserTrackedBillIds(userId: string): Promise<string[]> {
+  const rows = await db
+    .selectFrom('user_bills')
+    .select('bill_id')
+    .where('user_id', '=', userId)
+    .execute();
+  return [...new Set(rows.map((r) => r.bill_id).filter((id): id is string => id !== null))];
+}
+
 // ==============================================
 // BILL SEARCH FUNCTIONS
 // ==============================================

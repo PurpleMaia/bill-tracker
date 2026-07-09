@@ -15,7 +15,7 @@ import {
   setTenantDescription,
 } from '@/db/queries/tenants';
 import { getOrgTestimonyBillIds } from '@/db/queries/testimony';
-import { getAllTrackedBills } from '@/db/queries/bills-read';
+import { getAllTrackedBills, getUserTrackedBillIds } from '@/db/queries/bills-read';
 import type {
   GetBoardParams,
   FollowParams,
@@ -54,6 +54,11 @@ export async function getBoardAction(params: GetBoardParams): Promise<Bill[]> {
   if (!org) throw new ApiError('BOARD_NOT_FOUND', 404, 'Board not found');
   // includeTrackedBy: false — person-tracking data never leaves the DB here.
   return getAllTrackedBills(params.showArchived, params.tenantId, false);
+}
+
+export async function getMyTrackedBillIdsAction(): Promise<string[]> {
+  const { user } = await requireSession.fromAction();
+  return getUserTrackedBillIds(user.id);
 }
 
 export async function getOrgTestimonyStatusAction(

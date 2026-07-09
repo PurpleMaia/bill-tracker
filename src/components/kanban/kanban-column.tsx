@@ -58,6 +58,7 @@ export interface KanbanColumnProps extends React.HTMLAttributes<HTMLDivElement> 
 
   boardMode?: import('@/lib/board-display').BoardMode;
   orgTestimonyBillIds?: Set<string>;
+  trackedBillIds?: Set<string>;
   onTrackForSelf?: (bill: Bill) => void;
 }
 
@@ -91,6 +92,7 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
 
       boardMode = 'own',
       orgTestimonyBillIds,
+      trackedBillIds,
       onTrackForSelf,
       ...props
     },
@@ -160,8 +162,9 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
                   </p>
                 </PopoverContent>
               </Popover>
-              {/* Scraper/LLM column actions are org workflows — org members only */}
-              {activeTenant && (
+              {/* Scraper/LLM column actions are org workflows — org members only,
+                  and meaningless on another org's read-only Active Board. */}
+              {activeTenant && boardMode !== 'active-boards' && (
                 <ColumnOptionsMenu
                   bills={bills}
                   onRefreshStart={() => setRefreshing(true)}
@@ -201,6 +204,7 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
                   showUnadoptButton={showUnadoptButton}
                   boardMode={boardMode}
                   orgTestimonyState={orgTestimonyBillIds?.has(bill.id) ? 'submitted' : undefined}
+                  isTracked={trackedBillIds?.has(bill.id) ?? false}
                   onTrackForSelf={onTrackForSelf}
                 />
               ) : (
@@ -220,6 +224,7 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
                       showUnadoptButton={showUnadoptButton}
                       boardMode={boardMode}
                       orgTestimonyState={orgTestimonyBillIds?.has(bill.id) ? 'submitted' : undefined}
+                      isTracked={trackedBillIds?.has(bill.id) ?? false}
                       onTrackForSelf={onTrackForSelf}
                       style={{
                         ...provided.draggableProps.style,

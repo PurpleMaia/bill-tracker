@@ -6,31 +6,51 @@ import { data } from '@/lib/data-client';
 import { useActiveBoards } from '@/hooks/contexts/active-boards-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Building2, Check, FileText, Search, Users } from 'lucide-react';
+import { Building2, Check, Compass, Eye, FileText, Search, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { orgMonogram } from '@/lib/org-monogram';
 
-// Deterministic monogram tint from the org name, so each card has a stable,
-// distinct avatar color without needing an uploaded logo.
-const MONOGRAM_TINTS = [
-  'bg-rose-100 text-rose-700',
-  'bg-amber-100 text-amber-700',
-  'bg-emerald-100 text-emerald-700',
-  'bg-sky-100 text-sky-700',
-  'bg-violet-100 text-violet-700',
-  'bg-teal-100 text-teal-700',
-];
-
-function monogram(name: string) {
-  const initials = name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('');
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
-  const tint = MONOGRAM_TINTS[Math.abs(hash) % MONOGRAM_TINTS.length];
-  return { initials: initials || '•', tint };
+// Orientation block: explains what Active Boards is and how following works, so
+// the page reads as purposeful even when only a handful of orgs are listed.
+function BrowseIntro({ orgCount }: { orgCount: number }) {
+  const steps = [
+    { icon: Compass, title: 'Browse', text: 'See organizations that made their bill board public.' },
+    { icon: Star, title: 'Follow', text: 'Follow the ones you care about to pin them to your switcher.' },
+    { icon: Eye, title: 'View', text: 'Open a followed org’s board to see the bills they’re tracking, read-only.' },
+  ];
+  return (
+    <div className="mb-6 rounded-xl border bg-gradient-to-br from-muted/60 to-background p-6">
+      <div className="flex items-center gap-2 text-primary">
+        <Building2 className="h-5 w-5" />
+        <h2 className="text-lg font-semibold text-foreground">Active Boards</h2>
+      </div>
+      <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+        Discover how other organizations are tracking legislation. Follow an org to
+        keep its board one click away — you can view what they track and pull any bill
+        onto your own board, but you can’t change theirs.
+        {orgCount > 0 && (
+          <>
+            {' '}
+            <span className="font-medium text-foreground">
+              {orgCount} {orgCount === 1 ? 'organization is' : 'organizations are'}
+            </span>{' '}
+            public right now.
+          </>
+        )}
+      </p>
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {steps.map(({ icon: Icon, title, text }) => (
+          <div key={title} className="flex gap-3 rounded-lg bg-background/70 p-3">
+            <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <div className="leading-tight">
+              <p className="text-sm font-medium">{title}</p>
+              <p className="text-xs text-muted-foreground">{text}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function OrgCard({
@@ -42,7 +62,7 @@ function OrgCard({
   busy: boolean;
   onToggle: () => void;
 }) {
-  const { initials, tint } = monogram(org.name);
+  const { initials, tint } = orgMonogram(org.name);
   return (
     <li className="flex flex-col rounded-lg border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start gap-3">
@@ -143,15 +163,22 @@ export function BrowseOrgsList() {
 
   if (orgs.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-2 py-16 text-center text-muted-foreground">
-        <Building2 className="h-8 w-8" />
-        <p className="text-sm">No organizations have made their board public yet.</p>
+      <div className="mx-auto w-full max-w-5xl">
+        <BrowseIntro orgCount={0} />
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed py-16 text-center text-muted-foreground">
+          <Building2 className="h-8 w-8" />
+          <p className="text-sm">No organizations have made their board public yet.</p>
+          <p className="max-w-xs text-xs">
+            Once an org turns on public board visibility in their settings, they’ll show up here to follow.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="mx-auto w-full max-w-5xl">
+      <BrowseIntro orgCount={orgs.length} />
       <div className="relative mb-4 max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
