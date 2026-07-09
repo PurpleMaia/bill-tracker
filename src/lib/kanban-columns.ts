@@ -60,6 +60,21 @@ export const COLUMN_INDEX: Record<string, number> = KANBAN_COLUMNS.reduce((acc, 
   return acc;
 }, {} as Record<string, number>);
 
+// Statuses where the bill is waiting for a committee chair to schedule a
+// hearing — the window where contacting legislators actually moves a bill.
+export const AWAITING_HEARING_STATUSES: ReadonlySet<string> = new Set([
+  'introduced',
+  'waiting2',
+  'waiting3',
+  'crossoverWaiting1',
+  'crossoverWaiting2',
+  'crossoverWaiting3',
+]);
+
+export function isAwaitingHearing(status: string | null | undefined): boolean {
+  return !!status && AWAITING_HEARING_STATUSES.has(status);
+}
+
 // Plain-language explanation of what each board column (status) means,
 // shown in the column header's help popover. Keyed by column id, covering
 // both detailed and simplified views.

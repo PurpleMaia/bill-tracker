@@ -10,14 +10,25 @@
  * scripts/undo-seed-dummy-column-bills.ts keys on to remove ONLY these rows
  * (the pre-existing HB9901–SB9904 dummies are untouched).
  *
- * Run:  npx tsx scripts/seed-dummy-column-bills.ts
+ * Run:  npx tsx scripts/seed-dummy-column-bills.ts [username]   (default: j_user)
  * Undo: npx tsx scripts/undo-seed-dummy-column-bills.ts
+ *
+ * Idempotent per user: bills are created once (keyed by URL); running again
+ * for another username adds tracking rows for that user (org-scoped when the
+ * user has a tenant membership, incl. org_bills rows).
+ *
+ * Committee mixes are chosen so that, with NEXT_PUBLIC_DEMO_DEADLINES=1,
+ * introduced bills spread across the deadline countdown tiers:
+ *   HB triple (AGR, EDN, FIN) → Triple Referral Filing 7/10 → urgent (red)
+ *   SB double (AEN, WAM)      → First Lateral 7/17        → warning (ochre)
+ *   HB single (AGR)           → First Decking 8/7         → safe (neutral)
+ *   SB single (JDC)           → SB Filing 7/21            → warning (ochre)
  */
 import { db } from '@/db/kysely/client';
 import type { BillStatus } from '@/db/types';
 
 const URL_PREFIX = 'https://dummy.test/column-stress/';
-const TARGET_USERNAME = 'j_user';
+const TARGET_USERNAME = process.argv[2] ?? 'j_user';
 const TARGET_STATUS: BillStatus = 'introduced';
 
 const TOPICS = [
@@ -64,7 +75,9 @@ const TOPICS = [
 ] as const;
 
 const INTRODUCERS = ['KAPELA, AQUINO', 'GABBARD, DELA CRUZ', 'TARNAS, KAHALOA', 'RICHARDS, DECOITE'];
-const COMMITTEES = ['AGR, FIN', 'AEN, WAM', 'AGR, EDN, FIN', 'WLA, JDC'];
+// Rotation is index-locked to chamber (even i = HB, odd i = SB) to hit the
+// countdown tiers documented in the header comment.
+const COMMITTEES = ['AGR, EDN, FIN', 'AEN, WAM', 'AGR', 'JDC'];
 
 function titleCase(s: string): string {
   return s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
@@ -82,14 +95,23 @@ async function main() {
     process.exit(1);
   }
 
+  // Org members track bills tenant-scoped (user_bills.tenant_id + org_bills).
+  const membership = await db
+    .selectFrom('members')
+    .select(['tenant_id'])
+    .where('user_id', '=', user.id)
+    .executeTakeFirst();
+  const tenantId = membership?.tenant_id ?? null;
+
   const existing = await db
     .selectFrom('bills')
-    .select(['bill_url'])
+    .select(['id', 'bill_url'])
     .where('bill_url', 'like', `${URL_PREFIX}%`)
     .execute();
-  const existingUrls = new Set(existing.map((b) => b.bill_url));
+  const existingByUrl = new Map(existing.map((b) => [b.bill_url, b.id]));
 
   let seeded = 0;
+  let tracked = 0;
 
   await db.transaction().execute(async (trx) => {
     for (let i = 0; i < TOPICS.length; i++) {
@@ -99,7 +121,13 @@ async function main() {
       const billNumber = `${type}${num}`;
       const billUrl = `${URL_PREFIX}${billNumber}_2026`;
 
-      if (existingUrls.has(billUrl)) continue;
+      // Bill already seeded (e.g. by a run for another user): just make sure
+      // the target user tracks it.
+      const existingId = existingByUrl.get(billUrl);
+      if (existingId) {
+        tracked += await ensureTracked(trx, existingId, user.id, tenantId);
+        continue;
+      }
 
       // Stagger the introduction dates so the column's latest-update sorting
       // is visible in the UI.
@@ -149,25 +177,49 @@ async function main() {
         ])
         .execute();
 
-      await trx
-        .insertInto('user_bills')
-        .values({
-          user_id: user.id,
-          bill_id: bill.id,
-          tenant_id: null,
-        })
-        .execute();
+      tracked += await ensureTracked(trx, bill.id, user.id, tenantId);
 
       seeded++;
     }
   });
 
-  const skipped = TOPICS.length - seeded;
-  console.log(`Seeded ${seeded} dummy bills into "${TARGET_STATUS}" tracked by ${user.username}.`);
-  if (skipped > 0) console.log(`Skipped ${skipped} already-seeded bills.`);
+  console.log(
+    `Seeded ${seeded} new dummy bills into "${TARGET_STATUS}"; ${tracked} now tracked by ${user.username}` +
+    (tenantId ? ` (org-scoped, tenant ${tenantId.slice(0, 8)}…).` : ' (no tenant).')
+  );
   console.log(`Undo with: npx tsx scripts/undo-seed-dummy-column-bills.ts`);
 
   await db.destroy();
+}
+
+type Trx = Parameters<Parameters<ReturnType<typeof db.transaction>['execute']>[0]>[0];
+
+/** Ensure a user_bills row (and org_bills row when tenant-scoped). Returns 1 if newly tracked. */
+async function ensureTracked(trx: Trx, billId: string, userId: string, tenantId: string | null): Promise<number> {
+  if (tenantId) {
+    await trx
+      .insertInto('org_bills')
+      .values({ bill_id: billId, tenant_id: tenantId, bill_status: TARGET_STATUS })
+      .onConflict((oc) => oc.columns(['bill_id', 'tenant_id']).doNothing())
+      .execute();
+  }
+
+  const alreadyTracked = await trx
+    .selectFrom('user_bills')
+    .select('id')
+    .where('user_id', '=', userId)
+    .where('bill_id', '=', billId)
+    .$if(tenantId !== null, (qb) => qb.where('tenant_id', '=', tenantId))
+    .$if(tenantId === null, (qb) => qb.where('tenant_id', 'is', null))
+    .executeTakeFirst();
+
+  if (alreadyTracked) return 0;
+
+  await trx
+    .insertInto('user_bills')
+    .values({ user_id: userId, bill_id: billId, tenant_id: tenantId })
+    .execute();
+  return 1;
 }
 
 main().catch(async (err) => {

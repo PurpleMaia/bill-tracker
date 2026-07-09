@@ -42,6 +42,7 @@ export interface Bill {
   id: string;
   bill_number: string;
   bill_title: string;
+  nickname: string | null;
   bill_url: string;
   year: number | null;
   current_bill_status: string;

@@ -17,7 +17,7 @@ import { filterBills } from '@/lib/bill-filters';
 import { getNextDeadline } from '@/lib/dead-bill';
 import type { SessionDeadlines, DeadlineEntry } from '@/lib/dead-bill';
 import type { BillStatus as DBBillStatus } from '@/db/types';
-import deadlinesJson from '@/data/session-deadlines-2026.json';
+import { SESSION_DEADLINES } from '@/lib/session-deadlines';
 import { ArrowUp, ArrowDown, ArrowUpDown, Clock } from 'lucide-react';
 
 // ─── Sort Types ──────────────────────────────────────────────
@@ -32,7 +32,7 @@ function computeDeadline(bill: Bill, today: string): DeadlineEntry | null {
     bill.bill_number,
     bill.current_bill_status as DBBillStatus,
     bill.committee_assignment,
-    deadlinesJson as SessionDeadlines,
+    SESSION_DEADLINES,
     today,
   );
 }

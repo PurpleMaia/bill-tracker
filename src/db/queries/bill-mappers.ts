@@ -119,6 +119,7 @@ export async function convertDataToBillShape(
     bill_url: bill.bill_url ?? '',
     bill_number: bill.bill_number ?? '',
     bill_title: bill.bill_title ?? '',
+    nickname: bill.nickname ?? null,
     current_bill_status: additionalData?.orgBillStatuses?.[bill.id] ?? (typeof bill.bill_status === 'string' ? bill.bill_status : ''),
     current_status_string: bill.current_status_string ?? '',
     description: bill.description ?? '',
