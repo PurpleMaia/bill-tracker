@@ -594,6 +594,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
         billID={selectedBillId}
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
+        boardMode={boardMode}
       />
     </>
   );

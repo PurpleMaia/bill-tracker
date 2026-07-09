@@ -237,7 +237,10 @@ export async function getAdditionalBillData(billIds: string[], includeTrackedBy:
 
   const trackedBy = includeTrackedBy ? await getTrackedByForBills(billIds, tenantId) : {};
 
-  const trackedCount = await getTrackedCountForBills(billIds, tenantId);
+  // Gate the tracked-count aggregate on the same flag as tracked-by: the
+  // Active Boards read (includeTrackedBy=false) must not expose how many
+  // people in the viewed org track each bill. Member/admin views pass true.
+  const trackedCount = includeTrackedBy ? await getTrackedCountForBills(billIds, tenantId) : {};
 
   // Batch fetch org-specific statuses if tenant scoped
   const orgBillStatuses: Record<string, string> = {};
