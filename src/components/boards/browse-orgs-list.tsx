@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import type { PublicOrg } from '@/types/tenant';
 import { data } from '@/lib/data-client';
 import { useActiveBoards } from '@/hooks/contexts/active-boards-context';
+import { useAuth } from '@/hooks/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Building2, Check, Eye, FileText, Plus, Search, Star, Users } from 'lucide-react';
@@ -47,6 +48,124 @@ function BrowseIntro({ orgCount }: { orgCount: number }) {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// The viewer's own org, pinned above the discovery list. Olive background so it
+// reads unmistakably as "yours" against the white browse cards. Read-only: it
+// only points admins to Org Settings and tells members to ask their admin.
+function MyOrgCard() {
+  const { activeTenant } = useAuth();
+  const [org, setOrg] = useState<PublicOrg | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  const tenantId = activeTenant?.tenantId;
+  const isAdmin = activeTenant?.orgRole === 'admin';
+
+  useEffect(() => {
+    if (!tenantId) return;
+    let cancelled = false;
+    setLoaded(false);
+    data.boards
+      .getMyOrgStats({ tenantId })
+      .then((res) => {
+        if (!cancelled) setOrg(res);
+      })
+      // Fail silent — the discovery list below is unaffected.
+      .catch(() => {
+        if (!cancelled) setOrg(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
+
+  // Not a member of any org (public/logged-out) — nothing to show.
+  if (!activeTenant) return null;
+
+  const displayName = org?.name ?? activeTenant.name;
+  const { initials, tint } = orgMonogram(displayName);
+
+  return (
+    <div className="mb-4 rounded-xl border border-olive/20 bg-olive-soft p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-olive-dark">
+          Your organization
+        </p>
+        <span className="rounded-full bg-olive/15 px-2 py-0.5 text-[11px] font-medium text-olive-dark">
+          {isAdmin ? 'Admin' : 'Member'}
+        </span>
+      </div>
+
+      <div className="mt-3 flex flex-col gap-5 sm:flex-row sm:items-start">
+        {/* Identity + counts */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex items-start gap-3">
+            <div
+              className={cn(
+                'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold',
+                tint,
+              )}
+              aria-hidden
+            >
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-semibold leading-tight">{displayName}</p>
+              {org ? (
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1">
+                    <FileText className="h-3 w-3" />
+                    {org.billCount} {org.billCount === 1 ? 'bill' : 'bills'}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    {org.followerCount} {org.followerCount === 1 ? 'follower' : 'followers'}
+                  </span>
+                </div>
+              ) : loaded ? null : (
+                <div className="mt-2 h-3 w-24 animate-pulse rounded bg-olive/20" />
+              )}
+            </div>
+          </div>
+
+          <p className="mt-3 text-xs text-muted-foreground">
+            {isAdmin
+              ? 'Edit what’s displayed here in Organization Settings.'
+              : 'Ask your organization admin to update these details.'}
+          </p>
+        </div>
+
+        {/* Bills-they-track preview */}
+        <div className="shrink-0 sm:w-64">
+          <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Bills they track
+          </p>
+          {org && org.sampleBills.length > 0 ? (
+            <ul className="space-y-1">
+              {org.sampleBills.map((b) => (
+                <li key={b.id} className="flex items-baseline gap-2 text-xs">
+                  <span className="shrink-0 font-mono font-medium text-foreground">
+                    {b.billNumber ?? '—'}
+                  </span>
+                  <span className="truncate text-muted-foreground">{b.billTitle ?? 'Untitled'}</span>
+                </li>
+              ))}
+            </ul>
+          ) : loaded ? (
+            <p className="text-xs italic text-muted-foreground/60">No bills tracked yet.</p>
+          ) : (
+            <div className="space-y-1.5">
+              <div className="h-3 w-full animate-pulse rounded bg-olive/20" />
+              <div className="h-3 w-3/4 animate-pulse rounded bg-olive/20" />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -154,8 +273,8 @@ function StatBlob({ orgs }: { orgs: PublicOrg[] }) {
     { label: 'Total Bills Tracked', value: totalBills },
   ];
   return (
-    <div className="rounded-xl border border-olive/20 bg-olive-soft p-5">
-      <h3 className="border-b border-olive/30 pb-2 text-sm font-semibold uppercase tracking-wide">
+    <div className="rounded-xl border bg-secondary/60 p-5">
+      <h3 className="border-b border-border pb-2 text-sm font-semibold uppercase tracking-wide">
         At a glance
       </h3>
       <dl className="mt-3 space-y-3">
@@ -254,6 +373,7 @@ export function BrowseOrgsList() {
     return (
       <div className="mx-auto w-full max-w-6xl">
         <BrowseIntro orgCount={0} />
+        <MyOrgCard />
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed py-16 text-center text-muted-foreground">
           <Building2 className="h-8 w-8" />
           <p className="text-sm">No public boards yet.</p>
@@ -270,8 +390,9 @@ export function BrowseOrgsList() {
       <BrowseIntro orgCount={orgs.length} />
 
       <div className="flex flex-col gap-6 lg:flex-row">
-        {/* Left: search + Discover grid */}
+        {/* Left: your org (if any) + search + Discover grid */}
         <div className="min-w-0 flex-1">
+          <MyOrgCard />
           <div className="relative mb-4 w-full">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input

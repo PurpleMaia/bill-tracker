@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 
 const TABS = [
   { href: '/boards', label: 'View Board', icon: KanbanSquareIcon },
-  { href: '/boards/browse', label: 'Browse Orgs', icon: Building2 },
+  { href: '/boards/browse', label: 'Browse', icon: Building2 },
 ] as const;
 
 export function isActiveBoardsTabActive(href: string, pathname: string) {

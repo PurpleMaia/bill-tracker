@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth-guards';
-import { listPublicTenants, listFollowedTenants } from '@/db/queries/tenants';
+import { requireSession, requireMembership } from '@/lib/auth-guards';
+import { listPublicTenants, listFollowedTenants, getMyOrgStats } from '@/db/queries/tenants';
 
 export async function GET(request: NextRequest) {
   try {
-    const { user } = await requireSession.fromRequest(request);
     const { searchParams } = new URL(request.url);
-    const scope = searchParams.get('scope'); // 'public' | 'followed'
+    const scope = searchParams.get('scope'); // 'public' | 'followed' | 'mine'
+
+    // scope=mine: the viewer's own org stats (not gated on public_board), for
+    // the "Your Organization" card. Requires membership of the given tenant.
+    if (scope === 'mine') {
+      const tenantId = searchParams.get('tenantId');
+      if (!tenantId) {
+        return NextResponse.json({ error: 'tenantId is required' }, { status: 400 });
+      }
+      const { user } = await requireMembership.fromRequest(request, tenantId);
+      const org = await getMyOrgStats(tenantId, user.id);
+      return NextResponse.json({ org }, { status: 200 });
+    }
+
+    const { user } = await requireSession.fromRequest(request);
     const orgs =
       scope === 'followed'
         ? await listFollowedTenants(user.id)

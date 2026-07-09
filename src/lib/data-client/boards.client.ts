@@ -8,10 +8,12 @@ import type {
   SetPublicBoardParams,
   SetOrgDescriptionParams,
   OrgSettingsParams,
+  MyOrgStatsParams,
 } from './boards.params';
 import {
   listPublicOrgsAction,
   listFollowedOrgsAction,
+  getMyOrgStatsAction,
   followOrgAction,
   unfollowOrgAction,
   getBoardAction,
@@ -34,6 +36,13 @@ async function listFollowedOrgsFetch(): Promise<PublicOrg[]> {
   const res = await fetch('/api/boards?scope=followed');
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to load followed orgs');
   return ((await res.json()).orgs ?? []) as PublicOrg[];
+}
+
+async function getMyOrgStatsFetch(params: MyOrgStatsParams): Promise<PublicOrg | null> {
+  const qs = new URLSearchParams({ scope: 'mine', tenantId: params.tenantId });
+  const res = await fetch(`/api/boards?${qs.toString()}`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to load your org');
+  return (((await res.json()).org ?? null) as PublicOrg | null);
 }
 
 async function followOrgFetch(params: FollowParams): Promise<void> {
@@ -106,6 +115,7 @@ async function setOrgDescriptionFetch(params: SetOrgDescriptionParams): Promise<
 export const boardsClient = defineClient('boards', {
   listPublicOrgs: { action: listPublicOrgsAction, fetch: listPublicOrgsFetch },
   listFollowed: { action: listFollowedOrgsAction, fetch: listFollowedOrgsFetch },
+  getMyOrgStats: { action: getMyOrgStatsAction, fetch: getMyOrgStatsFetch },
   follow: { action: followOrgAction, fetch: followOrgFetch },
   unfollow: { action: unfollowOrgAction, fetch: unfollowOrgFetch },
   getBoard: { action: getBoardAction, fetch: getBoardFetch },

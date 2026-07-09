@@ -2,7 +2,7 @@
 
 import type { Bill } from '@/types/legislation';
 import type { PublicOrg } from '@/types/tenant';
-import { requireSession, requireAdmin } from '@/lib/auth-guards';
+import { requireSession, requireAdmin, requireMembership } from '@/lib/auth-guards';
 import { ApiError } from '@/lib/errors';
 import {
   listPublicTenants,
@@ -10,6 +10,7 @@ import {
   followOrg,
   unfollowOrg,
   getPublicTenant,
+  getMyOrgStats,
   getTenantSettings,
   setPublicBoard,
   setTenantDescription,
@@ -23,11 +24,17 @@ import type {
   SetPublicBoardParams,
   SetOrgDescriptionParams,
   OrgSettingsParams,
+  MyOrgStatsParams,
 } from '@/lib/data-client/boards.params';
 
 export async function listPublicOrgsAction(): Promise<PublicOrg[]> {
   const { user } = await requireSession.fromAction();
   return listPublicTenants(user.id);
+}
+
+export async function getMyOrgStatsAction(params: MyOrgStatsParams): Promise<PublicOrg | null> {
+  const { user } = await requireMembership.fromAction(params.tenantId);
+  return getMyOrgStats(params.tenantId, user.id);
 }
 
 export async function listFollowedOrgsAction(): Promise<PublicOrg[]> {

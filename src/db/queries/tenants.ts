@@ -286,6 +286,54 @@ async function getSampleBillsForTenants(
   return out;
 }
 
+/**
+ * Stats for one org the viewer is a member of, for the "Your Organization" card
+ * on the Browse page. Same shape as listPublicTenants, but scoped to a single
+ * tenant and NOT gated on public_board — a member of a private org still sees
+ * their own stats. Caller must have verified membership.
+ */
+export async function getMyOrgStats(tenantId: string, viewerUserId: string) {
+  const row = await db
+    .selectFrom('tenants as t')
+    .leftJoin('org_follows as f', (join) =>
+      join.onRef('f.tenant_id', '=', 't.id').on('f.user_id', '=', viewerUserId),
+    )
+    .select((eb) => [
+      't.id as tenantId',
+      't.name',
+      't.slug',
+      't.description',
+      'f.id as followId',
+      eb
+        .selectFrom('org_follows as fc')
+        .whereRef('fc.tenant_id', '=', 't.id')
+        .select(eb.fn.countAll<string>().as('c'))
+        .as('followerCount'),
+      eb
+        .selectFrom('user_bills as ub')
+        .whereRef('ub.tenant_id', '=', 't.id')
+        .select((eb2) => eb2.fn.count<string>('ub.bill_id').distinct().as('c'))
+        .as('billCount'),
+    ])
+    .where('t.id', '=', tenantId)
+    .executeTakeFirst();
+
+  if (!row) return null;
+
+  const samples = await getSampleBillsForTenants([tenantId]);
+
+  return {
+    tenantId: row.tenantId,
+    name: row.name,
+    slug: row.slug,
+    description: row.description,
+    isFollowing: row.followId !== null,
+    followerCount: Number(row.followerCount ?? 0),
+    billCount: Number(row.billCount ?? 0),
+    sampleBills: samples.get(tenantId) ?? [],
+  };
+}
+
 /** Returns the org iff it has opted into public visibility, else null. */
 export async function getPublicTenant(tenantId: string) {
   const row = await db

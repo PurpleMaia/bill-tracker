@@ -54,7 +54,7 @@ export function ActiveBoardView() {
         <p className="text-base font-medium text-foreground">No followed boards</p>
         <p className="text-sm">Follow an organization to see their tracked bills here.</p>
         <Button asChild size="sm">
-          <Link href="/boards/browse">Browse Orgs</Link>
+          <Link href="/boards/browse">Browse organizations</Link>
         </Button>
       </div>
     );

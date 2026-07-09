@@ -25,3 +25,7 @@ export interface SetOrgDescriptionParams {
 export interface OrgSettingsParams {
   tenantId: string;
 }
+
+export interface MyOrgStatsParams {
+  tenantId: string;
+}

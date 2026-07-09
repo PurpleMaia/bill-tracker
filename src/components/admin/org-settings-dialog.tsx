@@ -145,7 +145,7 @@ export function OrgSettingsDialog({ open, onOpenChange }: OrgSettingsDialogProps
               onBlur={handleDescriptionBlur}
             />
             <p className="text-xs text-muted-foreground">
-              Shown on your org&apos;s card under Browse Orgs. Saved when you click away.
+              Shown on your org&apos;s card under Browse. Saved when you click away.
             </p>
           </section>
         </div>
