@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import NewBillButton from './new-bill/new-bill-button';
@@ -17,13 +17,29 @@ import { Download, Globe, Search, UserPlus } from 'lucide-react';
 import { getAllTags } from '@/db/queries/tags';
 import type { Tag } from '@/types/legislation';
 
-export function KanbanHeader() {
+interface KanbanHeaderProps {
+  /**
+   * 'own' (default): the normal board header — ViewScopeToggle + Track / New /
+   * Export cluster, tags loaded for the viewer's active tenant.
+   * 'active-boards': read-only header for viewing another org's board — the
+   * action cluster is replaced by `rightSlot` (the org-switcher dropdown) and
+   * tags are derived from the bills already in context (the viewed org's).
+   */
+  variant?: 'own' | 'active-boards';
+  /** Rendered in the right-hand cluster; used by the active-boards variant for the org switcher. */
+  rightSlot?: React.ReactNode;
+}
+
+export function KanbanHeader({ variant = 'own', rightSlot }: KanbanHeaderProps) {
   const { user, activeTenant } = useAuth();
-  const { showArchived, toggleShowArchived } = useBills();
+  const { showArchived, toggleShowArchived, bills } = useBills();
   const { view, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter, searchQuery, setSearchQuery } = useKanbanBoard();
 
-  const isPublic = !user;
-  const canAddRemoveBills = activeTenant?.orgRole === 'admin';
+  const isActiveBoards = variant === 'active-boards';
+  // Active Boards is a read-only view of another org's board: no public branch,
+  // no Track/New/Export, no archived toggle.
+  const isPublic = !isActiveBoards && !user;
+  const canAddRemoveBills = !isActiveBoards && activeTenant?.orgRole === 'admin';
 
   // Tag state lives here so both the filter popover and the chips row share it.
   const [tags, setTags] = useState<Tag[]>([]);
@@ -44,9 +60,21 @@ export function KanbanHeader() {
     }
   }, [activeTenant]);
 
+  // In active-boards mode the tags aren't fetched for the viewer's tenant; the
+  // bills in context already carry the viewed org's tags (scoped by getBoardAction).
+  const activeBoardsTags = useMemo(() => {
+    if (!isActiveBoards) return [];
+    const seen = new Map<string, Tag>();
+    for (const b of bills) for (const t of (b.tags ?? [])) if (!seen.has(t.id)) seen.set(t.id, t);
+    return Array.from(seen.values());
+  }, [isActiveBoards, bills]);
+
   useEffect(() => {
+    if (isActiveBoards) return; // tags come from bills, not a fetch
     loadTags();
-  }, [loadTags]);
+  }, [isActiveBoards, loadTags]);
+
+  const effectiveTags = isActiveBoards ? activeBoardsTags : tags;
 
   // Keyboard shortcut: Cmd/Ctrl+K (anywhere) or "/" (outside a field)
   // focuses whichever search input is visible at the current breakpoint.
@@ -120,17 +148,17 @@ export function KanbanHeader() {
 
   const filterControls = (
     <TagFilterList
-      tags={tags}
-      loadingTags={loadingTags}
-      onTagsChanged={loadTags}
+      tags={effectiveTags}
+      loadingTags={isActiveBoards ? false : loadingTags}
+      onTagsChanged={isActiveBoards ? () => {} : loadTags}
       selectedTagIds={selectedTagIds}
       onTagToggle={handleTagToggle}
       selectedYears={selectedYears}
       onYearToggle={handleYearToggle}
       deadFilter={deadFilter}
       onDeadFilterChange={setDeadFilter}
-      showStatusFilter={view === 'spreadsheet'}
-      showArchivedFilter={!isPublic}
+      showStatusFilter={!isActiveBoards && view === 'spreadsheet'}
+      showArchivedFilter={!isActiveBoards && !isPublic}
       showArchived={showArchived}
       onShowArchivedChange={toggleShowArchived}
       onClearFilters={clearPopoverFilters}
@@ -159,39 +187,44 @@ export function KanbanHeader() {
 
   return (
     <div className="border-b bg-white shadow-md">
-      {/* Mobile: search + filter + export row */}
+      {/* Mobile: search + filter + action row */}
       <div className="md:hidden flex items-center gap-2 p-2 px-4">
         {renderSearchInput(mobileSearchRef, false)}
         {filterControls}
-        {!isPublic && (
-          <>
-            <TrackBillDialog>
-              <Button size="icon" className="shrink-0" aria-label="Track a new bill">
-                <UserPlus className="h-4 w-4" />
-              </Button>
-            </TrackBillDialog>
-            <ExportCsvDialog>
-              <Button variant="outline" size="icon" className="shrink-0" aria-label="Export bills (CSV or Excel)">
-                <Download className="h-4 w-4" />
-              </Button>
-            </ExportCsvDialog>
-          </>
+        {isActiveBoards ? (
+          <div className="shrink-0">{rightSlot}</div>
+        ) : (
+          !isPublic && (
+            <>
+              <TrackBillDialog>
+                <Button size="icon" className="shrink-0" aria-label="Track a new bill">
+                  <UserPlus className="h-4 w-4" />
+                </Button>
+              </TrackBillDialog>
+              <ExportCsvDialog>
+                <Button variant="outline" size="icon" className="shrink-0" aria-label="Export bills (CSV or Excel)">
+                  <Download className="h-4 w-4" />
+                </Button>
+              </ExportCsvDialog>
+            </>
+          )
         )}
       </div>
 
       {/* Desktop */}
       <div className="hidden md:flex items-center gap-4 p-2 px-4">
-        {isPublic ? (
-          <div className="flex items-center gap-2 shrink-0">
-            <Globe className="h-4 w-4 text-muted-foreground" />
-            <div className="leading-tight">
-              <h2 className="text-sm font-semibold">Public View</h2>
-              <p className="text-xs text-muted-foreground">All Food+ Tracked Bills</p>
+        {!isActiveBoards &&
+          (isPublic ? (
+            <div className="flex items-center gap-2 shrink-0">
+              <Globe className="h-4 w-4 text-muted-foreground" />
+              <div className="leading-tight">
+                <h2 className="text-sm font-semibold">Public View</h2>
+                <p className="text-xs text-muted-foreground">All Food+ Tracked Bills</p>
+              </div>
             </div>
-          </div>
-        ) : (
-          <ViewScopeToggle className="shrink-0" />
-        )}
+          ) : (
+            <ViewScopeToggle className="shrink-0" />
+          ))}
 
         {/* Find group: search + filters narrow the same result set */}
         <div className="flex items-center gap-2 flex-1">
@@ -200,36 +233,40 @@ export function KanbanHeader() {
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
-          {!isPublic && (
-            <>
-              <TrackBillDialog />
-              {canAddRemoveBills && <NewBillButton />}
-              <TooltipProvider delayDuration={300}>
-                <Tooltip>
-                  <ExportCsvDialog>
-                    <TooltipTrigger asChild>
-                      <Button variant="outline" size="icon" aria-label="Export bills (CSV or Excel)">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                  </ExportCsvDialog>
-                  <TooltipContent>Export bills (CSV / Excel)</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </>
+          {isActiveBoards ? (
+            rightSlot
+          ) : (
+            !isPublic && (
+              <>
+                <TrackBillDialog />
+                {canAddRemoveBills && <NewBillButton />}
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <ExportCsvDialog>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" aria-label="Export bills (CSV or Excel)">
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                    </ExportCsvDialog>
+                    <TooltipContent>Export bills (CSV / Excel)</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </>
+            )
           )}
         </div>
       </div>
 
       <FilterChipsRow
-        tags={tags}
+        tags={effectiveTags}
         selectedTagIds={selectedTagIds}
         onTagToggle={handleTagToggle}
         selectedYears={selectedYears}
         onYearToggle={handleYearToggle}
-        deadFilter={view === 'spreadsheet' ? deadFilter : 'all'}
+        deadFilter={!isActiveBoards && view === 'spreadsheet' ? deadFilter : 'all'}
         onDeadFilterChange={setDeadFilter}
-        showArchived={!isPublic && showArchived}
+        showArchived={!isActiveBoards && !isPublic && showArchived}
         onShowArchivedChange={toggleShowArchived}
         onClearAll={clearAllFilters}
       />

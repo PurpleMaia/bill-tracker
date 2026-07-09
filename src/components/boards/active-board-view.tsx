@@ -1,35 +1,23 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import Link from 'next/link';
 import { LayoutGrid } from 'lucide-react';
 import { useActiveBoards } from '@/hooks/contexts/active-boards-context';
-import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { KanbanBoard } from '@/components/kanban/kanban-board';
-import { TagFilterList } from '@/components/tags/tag-filter-list';
-import { Input } from '@/components/ui/input';
+import { KanbanHeader } from '@/components/kanban/kanban-header';
 import { Button } from '@/components/ui/button';
 import { OrgSwitcherDropdown } from './org-switcher-dropdown';
 import { ActiveBoardsBillsBridge } from './active-boards-bills-bridge';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { toast } from '@/hooks/use-toast';
-import type { Bill, Tag } from '@/types/legislation';
+import type { Bill } from '@/types/legislation';
 
 export function ActiveBoardView() {
-  const { followedOrgs, testimonyBillIds, bills } = useActiveBoards();
-  const {
-    searchQuery,
-    setSearchQuery,
-    selectedTagIds,
-    setSelectedTagIds,
-    selectedYears,
-    setSelectedYears,
-    deadFilter,
-    setDeadFilter,
-  } = useKanbanBoard();
+  const { followedOrgs, testimonyBillIds } = useActiveBoards();
   const { activeTenant } = useAuth();
 
-  // Stable identity so the KanbanCard memo comparator (which now compares
+  // Stable identity so the KanbanCard memo comparator (which compares
   // onTrackForSelf) does not re-render every card on each parent render.
   const handleTrackForSelf = useCallback(
     async (bill: Bill) => {
@@ -57,33 +45,6 @@ export function ActiveBoardView() {
     [activeTenant?.tenantId],
   );
 
-  // The viewed org's tags aren't fetched separately; the bridged bills already
-  // carry them (correctly scoped, via getBoardAction), so derive the picker's
-  // tag list from those instead of issuing a new query.
-  const orgTags = useMemo(() => {
-    const seen = new Map<string, Tag>();
-    for (const b of bills) for (const t of (b.tags ?? [])) if (!seen.has(t.id)) seen.set(t.id, t);
-    return Array.from(seen.values());
-  }, [bills]);
-
-  const handleTagToggle = (tagId: string) => {
-    setSelectedTagIds((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
-    );
-  };
-
-  const handleYearToggle = (year: number) => {
-    setSelectedYears((prev) =>
-      prev.includes(year) ? prev.filter((y) => y !== year) : [...prev, year],
-    );
-  };
-
-  const clearFilters = () => {
-    setSelectedTagIds([]);
-    setSelectedYears([]);
-    setDeadFilter('all');
-  };
-
   if (followedOrgs.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center text-muted-foreground">
@@ -97,45 +58,20 @@ export function ActiveBoardView() {
     );
   }
 
+  // Matches the "Your Bills" board shell exactly: a bounded flex column
+  // (h-full min-h-0) so the KanbanHeader is fixed and only the columns scroll,
+  // with the shared KanbanHeader for identical chrome/search/filters.
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex flex-wrap items-center gap-2 p-2 md:p-4">
-        <Input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Filter this board…"
-          className="h-9 max-w-xs"
-        />
-        {/* Read-only: no tag-management (admin-gated) and no archived/status
-            filters here. Years and tags both derive from the bridged bills. */}
-        <TagFilterList
-          tags={orgTags}
-          loadingTags={false}
-          onTagsChanged={() => {}}
-          selectedTagIds={selectedTagIds}
-          onTagToggle={handleTagToggle}
-          selectedYears={selectedYears}
-          onYearToggle={handleYearToggle}
-          deadFilter={deadFilter}
-          onDeadFilterChange={setDeadFilter}
-          onClearFilters={clearFilters}
-          showStatusFilter={false}
-          showArchivedFilter={false}
-          showArchived={false}
-          onShowArchivedChange={() => {}}
-        />
-        <div className="ml-auto">
-          <OrgSwitcherDropdown />
-        </div>
-      </div>
-      <ActiveBoardsBillsBridge>
+    <ActiveBoardsBillsBridge>
+      <div className="flex h-full min-h-0 flex-col">
+        <KanbanHeader variant="active-boards" rightSlot={<OrgSwitcherDropdown />} />
         <KanbanBoard
           readOnly
           boardMode="active-boards"
           orgTestimonyBillIds={testimonyBillIds}
           onTrackForSelf={handleTrackForSelf}
         />
-      </ActiveBoardsBillsBridge>
-    </div>
+      </div>
+    </ActiveBoardsBillsBridge>
   );
 }
