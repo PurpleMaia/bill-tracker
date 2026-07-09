@@ -166,6 +166,7 @@ export interface Tags {
 export interface Tenants {
   branding_config: Json | null;
   created_at: Generated<Timestamp | null>;
+  description: Generated<string>;
   id: Generated<string>;
   name: string;
   public_board: Generated<boolean>;

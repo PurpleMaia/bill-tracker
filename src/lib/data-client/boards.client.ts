@@ -6,6 +6,7 @@ import type {
   FollowParams,
   OrgTestimonyStatusParams,
   SetPublicBoardParams,
+  SetOrgDescriptionParams,
   OrgSettingsParams,
 } from './boards.params';
 import {
@@ -17,6 +18,7 @@ import {
   getOrgTestimonyStatusAction,
   getOrgSettingsAction,
   setPublicBoardAction,
+  setOrgDescriptionAction,
 } from '@/app/actions/boards';
 
 // ---- fetch arm (hits /api/boards*, unwraps the HTTP envelope) ----
@@ -67,11 +69,13 @@ async function getOrgTestimonyStatusFetch(params: OrgTestimonyStatusParams): Pro
   return ((data.testimonyBillIds ?? []) as string[]).filter((id) => wanted.has(id));
 }
 
-async function getOrgSettingsFetch(params: OrgSettingsParams): Promise<{ publicBoard: boolean }> {
+async function getOrgSettingsFetch(
+  params: OrgSettingsParams,
+): Promise<{ publicBoard: boolean; description: string }> {
   const res = await fetch(`/api/tenants/${params.tenantId}`);
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to load org settings');
   const { tenant } = await res.json();
-  return { publicBoard: Boolean(tenant?.public_board) };
+  return { publicBoard: Boolean(tenant?.public_board), description: tenant?.description ?? '' };
 }
 
 async function setPublicBoardFetch(params: SetPublicBoardParams): Promise<void> {
@@ -83,6 +87,15 @@ async function setPublicBoardFetch(params: SetPublicBoardParams): Promise<void> 
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to save org settings');
 }
 
+async function setOrgDescriptionFetch(params: SetOrgDescriptionParams): Promise<void> {
+  const res = await fetch(`/api/tenants/${params.tenantId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ description: params.description }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to save org description');
+}
+
 export const boardsClient = defineClient('boards', {
   listPublicOrgs: { action: listPublicOrgsAction, fetch: listPublicOrgsFetch },
   listFollowed: { action: listFollowedOrgsAction, fetch: listFollowedOrgsFetch },
@@ -92,4 +105,5 @@ export const boardsClient = defineClient('boards', {
   getOrgTestimonyStatus: { action: getOrgTestimonyStatusAction, fetch: getOrgTestimonyStatusFetch },
   getOrgSettings: { action: getOrgSettingsAction, fetch: getOrgSettingsFetch },
   setPublicBoard: { action: setPublicBoardAction, fetch: setPublicBoardFetch },
+  setOrgDescription: { action: setOrgDescriptionAction, fetch: setOrgDescriptionFetch },
 });

@@ -27,5 +27,8 @@ export interface PublicOrg {
   tenantId: string;
   name: string;
   slug: string;
+  description: string;
   isFollowing: boolean;
+  followerCount: number;
+  billCount: number;
 }

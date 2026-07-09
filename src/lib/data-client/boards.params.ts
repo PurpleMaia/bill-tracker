@@ -17,6 +17,11 @@ export interface SetPublicBoardParams {
   enabled: boolean;
 }
 
+export interface SetOrgDescriptionParams {
+  tenantId: string;
+  description: string;
+}
+
 export interface OrgSettingsParams {
   tenantId: string;
 }

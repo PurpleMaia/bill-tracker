@@ -10,8 +10,9 @@ import {
   followOrg,
   unfollowOrg,
   getPublicTenant,
-  getTenantPublicBoard,
+  getTenantSettings,
   setPublicBoard,
+  setTenantDescription,
 } from '@/db/queries/tenants';
 import { getOrgTestimonyBillIds } from '@/db/queries/testimony';
 import { getAllTrackedBills } from '@/db/queries/bills-read';
@@ -20,6 +21,7 @@ import type {
   FollowParams,
   OrgTestimonyStatusParams,
   SetPublicBoardParams,
+  SetOrgDescriptionParams,
   OrgSettingsParams,
 } from '@/lib/data-client/boards.params';
 
@@ -65,13 +67,17 @@ export async function getOrgTestimonyStatusAction(
 
 export async function getOrgSettingsAction(
   params: OrgSettingsParams,
-): Promise<{ publicBoard: boolean }> {
+): Promise<{ publicBoard: boolean; description: string }> {
   await requireAdmin.fromAction(params.tenantId);
-  const publicBoard = await getTenantPublicBoard(params.tenantId);
-  return { publicBoard };
+  return getTenantSettings(params.tenantId);
 }
 
 export async function setPublicBoardAction(params: SetPublicBoardParams): Promise<void> {
   await requireAdmin.fromAction(params.tenantId);
   await setPublicBoard(params.tenantId, params.enabled);
+}
+
+export async function setOrgDescriptionAction(params: SetOrgDescriptionParams): Promise<void> {
+  await requireAdmin.fromAction(params.tenantId);
+  await setTenantDescription(params.tenantId, params.description);
 }

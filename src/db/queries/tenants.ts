@@ -186,7 +186,25 @@ export async function listPublicTenants(viewerUserId: string) {
     .leftJoin('org_follows as f', (join) =>
       join.onRef('f.tenant_id', '=', 't.id').on('f.user_id', '=', viewerUserId),
     )
-    .select(['t.id as tenantId', 't.name', 't.slug', 'f.id as followId'])
+    .select((eb) => [
+      't.id as tenantId',
+      't.name',
+      't.slug',
+      't.description',
+      'f.id as followId',
+      // How many users follow this org.
+      eb
+        .selectFrom('org_follows as fc')
+        .whereRef('fc.tenant_id', '=', 't.id')
+        .select(eb.fn.countAll<string>().as('c'))
+        .as('followerCount'),
+      // How many distinct bills anyone in this org tracks (its board size).
+      eb
+        .selectFrom('user_bills as ub')
+        .whereRef('ub.tenant_id', '=', 't.id')
+        .select((eb2) => eb2.fn.count<string>('ub.bill_id').distinct().as('c'))
+        .as('billCount'),
+    ])
     .where('t.public_board', '=', true)
     .orderBy('t.name', 'asc')
     .execute();
@@ -195,7 +213,10 @@ export async function listPublicTenants(viewerUserId: string) {
     tenantId: r.tenantId,
     name: r.name,
     slug: r.slug,
+    description: r.description,
     isFollowing: r.followId !== null,
+    followerCount: Number(r.followerCount ?? 0),
+    billCount: Number(r.billCount ?? 0),
   }));
 }
 
@@ -219,14 +240,25 @@ export async function setPublicBoard(tenantId: string, enabled: boolean): Promis
     .execute();
 }
 
-/** Admin read: current public board visibility for the Org Settings dialog. */
-export async function getTenantPublicBoard(tenantId: string): Promise<boolean> {
+/** Admin write: set this org's public Browse-Orgs description. */
+export async function setTenantDescription(tenantId: string, description: string): Promise<void> {
+  await db
+    .updateTable('tenants')
+    .set({ description })
+    .where('id', '=', tenantId)
+    .execute();
+}
+
+/** Admin read: current public board visibility + description for the Org Settings dialog. */
+export async function getTenantSettings(
+  tenantId: string,
+): Promise<{ publicBoard: boolean; description: string }> {
   const row = await db
     .selectFrom('tenants')
-    .select('public_board')
+    .select(['public_board', 'description'])
     .where('id', '=', tenantId)
     .executeTakeFirst();
-  return row?.public_board ?? false;
+  return { publicBoard: row?.public_board ?? false, description: row?.description ?? '' };
 }
 
 /** Follow an org (idempotent via UNIQUE(user_id, tenant_id)). */
@@ -251,7 +283,22 @@ export async function listFollowedTenants(userId: string) {
   const rows = await db
     .selectFrom('org_follows as f')
     .innerJoin('tenants as t', 't.id', 'f.tenant_id')
-    .select(['t.id as tenantId', 't.name', 't.slug'])
+    .select((eb) => [
+      't.id as tenantId',
+      't.name',
+      't.slug',
+      't.description',
+      eb
+        .selectFrom('org_follows as fc')
+        .whereRef('fc.tenant_id', '=', 't.id')
+        .select(eb.fn.countAll<string>().as('c'))
+        .as('followerCount'),
+      eb
+        .selectFrom('user_bills as ub')
+        .whereRef('ub.tenant_id', '=', 't.id')
+        .select((eb2) => eb2.fn.count<string>('ub.bill_id').distinct().as('c'))
+        .as('billCount'),
+    ])
     .where('f.user_id', '=', userId)
     .where('t.public_board', '=', true)
     .orderBy('t.name', 'asc')
@@ -261,6 +308,9 @@ export async function listFollowedTenants(userId: string) {
     tenantId: r.tenantId,
     name: r.name,
     slug: r.slug,
+    description: r.description,
     isFollowing: true as const,
+    followerCount: Number(r.followerCount ?? 0),
+    billCount: Number(r.billCount ?? 0),
   }));
 }
