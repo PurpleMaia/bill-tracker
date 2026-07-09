@@ -88,8 +88,8 @@ export function ActiveBoardView() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center text-muted-foreground">
         <LayoutGrid className="h-10 w-10" />
-        <p className="text-base font-medium text-foreground">No boards yet</p>
-        <p className="text-sm">Follow an organization to see its board here.</p>
+        <p className="text-base font-medium text-foreground">No followed boards</p>
+        <p className="text-sm">Follow an organization to see their tracked bills here.</p>
         <Button asChild size="sm">
           <Link href="/boards/browse">Browse Orgs</Link>
         </Button>
