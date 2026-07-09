@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { KANBAN_COLUMNS, COLUMN_TITLES, COLUMN_INDEX, SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED, COLUMN_DESCRIPTIONS } from '../kanban-columns';
+import { KANBAN_COLUMNS, COLUMN_TITLES, COLUMN_INDEX, SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED, COLUMN_DESCRIPTIONS, AWAITING_HEARING_STATUSES, isAwaitingHearing } from '../kanban-columns';
 
 describe('KANBAN_COLUMNS', () => {
   it('is a non-empty array', () => {
@@ -186,6 +186,31 @@ describe('STATUS_TO_SIMPLIFIED', () => {
     expect(STATUS_TO_SIMPLIFIED['vetoList']).toBe('vetoList');
     expect(STATUS_TO_SIMPLIFIED['governorSigns']).toBe('governorSigns');
     expect(STATUS_TO_SIMPLIFIED['lawWithoutSignature']).toBe('lawWithoutSignature');
+  });
+});
+
+describe('isAwaitingHearing', () => {
+  it('is true for every pre-hearing waiting status', () => {
+    for (const status of AWAITING_HEARING_STATUSES) {
+      expect(isAwaitingHearing(status)).toBe(true);
+    }
+  });
+
+  it('is false for scheduled, conference, and terminal statuses', () => {
+    for (const status of ['scheduled1', 'crossoverScheduled2', 'passedCommittees', 'conferenceAssigned', 'transmittedGovernor', 'governorSigns', 'unassigned']) {
+      expect(isAwaitingHearing(status)).toBe(false);
+    }
+  });
+
+  it('is false for null/undefined', () => {
+    expect(isAwaitingHearing(null)).toBe(false);
+    expect(isAwaitingHearing(undefined)).toBe(false);
+  });
+
+  it('every awaiting status is a real detailed column', () => {
+    for (const status of AWAITING_HEARING_STATUSES) {
+      expect(KANBAN_COLUMNS.some((c) => c.id === status), `${status} is not a column`).toBe(true);
+    }
   });
 });
 

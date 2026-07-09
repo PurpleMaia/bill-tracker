@@ -10,6 +10,7 @@ import {
   isExplicitlyDeferred,
   getDeadReasonFromUpdate,
   getNextDeadline,
+  getDeadlineTier,
   getApplicableDeadlines,
   getRelevantDeadline,
   isBillDead,
@@ -443,5 +444,23 @@ describe('isBillDead', () => {
     );
     expect(result.dead).toBe(true);
     expect(result.reason).toContain('Recommendation not adopted');
+  });
+});
+
+describe('getDeadlineTier', () => {
+  it('is urgent at 7 days or fewer', () => {
+    expect(getDeadlineTier(0)).toBe('urgent');
+    expect(getDeadlineTier(3)).toBe('urgent');
+    expect(getDeadlineTier(7)).toBe('urgent');
+  });
+
+  it('is warning between 8 and 14 days', () => {
+    expect(getDeadlineTier(8)).toBe('warning');
+    expect(getDeadlineTier(14)).toBe('warning');
+  });
+
+  it('is safe beyond 14 days', () => {
+    expect(getDeadlineTier(15)).toBe('safe');
+    expect(getDeadlineTier(60)).toBe('safe');
   });
 });

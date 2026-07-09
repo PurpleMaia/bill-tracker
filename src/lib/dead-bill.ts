@@ -160,6 +160,15 @@ export function getDeadReasonFromUpdate(latestStatusText: string | null): string
   return 'Missed deadline';
 }
 
+/** Escalation tier for an upcoming deadline, by days remaining. */
+export type DeadlineTier = 'safe' | 'warning' | 'urgent';
+
+export function getDeadlineTier(daysAway: number): DeadlineTier {
+  if (daysAway <= 7) return 'urgent';
+  if (daysAway <= 14) return 'warning';
+  return 'safe';
+}
+
 /**
  * Returns the next upcoming deadline for a bill based on its current status,
  * referral type, chamber, and fiscal status. Returns null if all deadlines passed.

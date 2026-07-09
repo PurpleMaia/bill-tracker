@@ -42,7 +42,10 @@ import type { SessionDeadlines } from '@/lib/dead-bill';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony-eligibility';
 import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/hearing-schedule';
 import type { BillStatus as DBBillStatus } from '@/db/types';
+// Real calendar for deriving why a bill already failed (historical fact);
+// switchable calendar for upcoming-deadline displays (demo-aware).
 import deadlinesJson from '@/data/session-deadlines-2026.json';
+import { SESSION_DEADLINES } from '@/lib/session-deadlines';
 
 interface BillDetailsDialogProps {
   billID: string | null;
@@ -140,7 +143,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
         bill.bill_number,
         (billDetails?.current_bill_status || bill.current_bill_status) as DBBillStatus,
         committeeAssign,
-        deadlinesJson as SessionDeadlines,
+        SESSION_DEADLINES,
         today
       )
     : null;
@@ -155,7 +158,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
     dead: bill.dead,
     billStatus: currentStatus as DBBillStatus,
     committeeAssignment: committeeAssign ?? null,
-    deadlines: deadlinesJson as SessionDeadlines,
+    deadlines: SESSION_DEADLINES,
     today,
   });
   const testimonyUrgent =
