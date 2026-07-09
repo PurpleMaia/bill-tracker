@@ -35,10 +35,17 @@ export async function PATCH(
     const { id } = await params;
     await requireAdmin.fromRequest(request, id);
     const body = await request.json();
-    const { brandingConfig } = body;
+    const { brandingConfig, public_board } = body;
+    const patch: Record<string, unknown> = {};
+    if (brandingConfig !== undefined) {
+      patch.branding_config = brandingConfig ? JSON.stringify(brandingConfig) : null;
+    }
+    if (public_board !== undefined) {
+      patch.public_board = public_board;
+    }
     const tenant = await db
       .updateTable('tenants')
-      .set({ branding_config: brandingConfig ? JSON.stringify(brandingConfig) : null })
+      .set(patch)
       .where('id', '=', id)
       .returningAll()
       .executeTakeFirst();

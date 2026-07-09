@@ -5,6 +5,8 @@ import type {
   GetBoardParams,
   FollowParams,
   OrgTestimonyStatusParams,
+  SetPublicBoardParams,
+  OrgSettingsParams,
 } from './boards.params';
 import {
   listPublicOrgsAction,
@@ -13,6 +15,8 @@ import {
   unfollowOrgAction,
   getBoardAction,
   getOrgTestimonyStatusAction,
+  getOrgSettingsAction,
+  setPublicBoardAction,
 } from '@/app/actions/boards';
 
 // ---- fetch arm (hits /api/boards*, unwraps the HTTP envelope) ----
@@ -63,6 +67,22 @@ async function getOrgTestimonyStatusFetch(params: OrgTestimonyStatusParams): Pro
   return ((data.testimonyBillIds ?? []) as string[]).filter((id) => wanted.has(id));
 }
 
+async function getOrgSettingsFetch(params: OrgSettingsParams): Promise<{ publicBoard: boolean }> {
+  const res = await fetch(`/api/tenants/${params.tenantId}`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to load org settings');
+  const { tenant } = await res.json();
+  return { publicBoard: Boolean(tenant?.public_board) };
+}
+
+async function setPublicBoardFetch(params: SetPublicBoardParams): Promise<void> {
+  const res = await fetch(`/api/tenants/${params.tenantId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ public_board: params.enabled }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to save org settings');
+}
+
 export const boardsClient = defineClient('boards', {
   listPublicOrgs: { action: listPublicOrgsAction, fetch: listPublicOrgsFetch },
   listFollowed: { action: listFollowedOrgsAction, fetch: listFollowedOrgsFetch },
@@ -70,4 +90,6 @@ export const boardsClient = defineClient('boards', {
   unfollow: { action: unfollowOrgAction, fetch: unfollowOrgFetch },
   getBoard: { action: getBoardAction, fetch: getBoardFetch },
   getOrgTestimonyStatus: { action: getOrgTestimonyStatusAction, fetch: getOrgTestimonyStatusFetch },
+  getOrgSettings: { action: getOrgSettingsAction, fetch: getOrgSettingsFetch },
+  setPublicBoard: { action: setPublicBoardAction, fetch: setPublicBoardFetch },
 });

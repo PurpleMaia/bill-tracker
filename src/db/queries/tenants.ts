@@ -219,6 +219,16 @@ export async function setPublicBoard(tenantId: string, enabled: boolean): Promis
     .execute();
 }
 
+/** Admin read: current public board visibility for the Org Settings dialog. */
+export async function getTenantPublicBoard(tenantId: string): Promise<boolean> {
+  const row = await db
+    .selectFrom('tenants')
+    .select('public_board')
+    .where('id', '=', tenantId)
+    .executeTakeFirst();
+  return row?.public_board ?? false;
+}
+
 /** Follow an org (idempotent via UNIQUE(user_id, tenant_id)). */
 export async function followOrg(userId: string, tenantId: string): Promise<void> {
   await db
