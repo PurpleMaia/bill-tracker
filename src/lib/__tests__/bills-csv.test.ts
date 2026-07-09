@@ -7,6 +7,7 @@ function makeBill(overrides: Partial<Bill> = {}): Bill {
     id: 'id-1',
     bill_number: 'HB1',
     bill_title: 'A Bill',
+    nickname: null,
     bill_url: 'https://example.com/hb1',
     year: 2025,
     current_bill_status: 'introduced',

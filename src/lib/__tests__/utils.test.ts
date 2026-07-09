@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toDate, formatBillStatusName, todayHawaii } from '../utils';
+import { toDate, formatBillStatusName, todayHawaii, formatBillHeadline, formatRelativeDate } from '../utils';
 
 describe('toDate', () => {
   it('returns null for null/undefined', () => {
@@ -86,6 +86,61 @@ describe('formatBillStatusName', () => {
 
   it('is case-insensitive', () => {
     expect(formatBillStatusName('INTRODUCED')).toBe('Introduced');
+  });
+});
+
+describe('formatBillHeadline', () => {
+  it('prefers the nickname when present', () => {
+    expect(formatBillHeadline({ nickname: 'Farm-to-School Grants', bill_title: 'RELATING TO FARM-TO-SCHOOL PROCUREMENT.' }))
+      .toBe('Farm-to-School Grants');
+  });
+
+  it('cleans up the official title when no nickname', () => {
+    expect(formatBillHeadline({ nickname: null, bill_title: 'RELATING TO FARM-TO-SCHOOL PROCUREMENT.' }))
+      .toBe('Farm-To-School Procurement');
+  });
+
+  it('handles titles without the RELATING TO prefix', () => {
+    expect(formatBillHeadline({ bill_title: 'MAKING APPROPRIATIONS.' })).toBe('Making Appropriations');
+  });
+
+  it('ignores whitespace-only nicknames', () => {
+    expect(formatBillHeadline({ nickname: '   ', bill_title: 'RELATING TO TAXATION.' })).toBe('Taxation');
+  });
+
+  it('returns null when nothing is usable', () => {
+    expect(formatBillHeadline({ nickname: null, bill_title: null })).toBeNull();
+    expect(formatBillHeadline({ bill_title: 'RELATING TO ' })).toBeNull();
+  });
+});
+
+describe('formatRelativeDate', () => {
+  const now = new Date('2026-07-08T12:00:00');
+
+  it('says Today and Yesterday', () => {
+    expect(formatRelativeDate('7/8/2026', now)).toBe('Today');
+    expect(formatRelativeDate('7/7/2026', now)).toBe('Yesterday');
+  });
+
+  it('uses days under a week and weeks under ~a month', () => {
+    expect(formatRelativeDate('7/4/2026', now)).toBe('4d ago');
+    expect(formatRelativeDate('6/20/2026', now)).toBe('2w ago');
+  });
+
+  it('falls back to a short date beyond a month', () => {
+    expect(formatRelativeDate('3/5/2026', now)).toBe('Mar 5');
+  });
+
+  it('includes the year when it differs', () => {
+    expect(formatRelativeDate('3/5/2025', now)).toBe('Mar 5, 2025');
+  });
+
+  it('treats future dates as today', () => {
+    expect(formatRelativeDate('7/9/2026', now)).toBe('Today');
+  });
+
+  it('returns empty string for garbage', () => {
+    expect(formatRelativeDate('not a date', now)).toBe('');
   });
 });
 

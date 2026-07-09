@@ -21,6 +21,49 @@ export function toDate(val: unknown): Date | null {
 }
 
 /**
+ * Human-friendly card headline for a bill: the curated nickname when present,
+ * otherwise the official title cleaned up — "RELATING TO FARM-TO-SCHOOL
+ * PROCUREMENT." → "Farm-To-School Procurement". Returns null when there is
+ * nothing usable to show.
+ */
+export function formatBillHeadline(bill: { nickname?: string | null; bill_title?: string | null }): string | null {
+  const nickname = bill.nickname?.trim();
+  if (nickname) return nickname;
+
+  const title = bill.bill_title?.trim();
+  if (!title) return null;
+
+  const cleaned = title.replace(/^relating to\b\s*/i, '').replace(/\.+$/, '').trim();
+  if (!cleaned) return null;
+
+  return cleaned.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * Compact relative date for activity lines: "today", "yesterday", "4d ago",
+ * "3w ago", then a short absolute date ("Mar 5", with year when it differs
+ * from the current one). Returns '' for unparseable dates.
+ */
+export function formatRelativeDate(dateStr: string, now: Date = new Date()): string {
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(now) - startOfDay(date)) / 86_400_000);
+
+  if (days <= 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days}d ago`;
+  if (days < 35) return `${Math.floor(days / 7)}w ago`;
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(date.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}),
+  });
+}
+
+/**
  * Today's date (YYYY-MM-DD) in Hawaii Standard Time.
  *
  * `new Date().toISOString()` yields the UTC date, which rolls over to
