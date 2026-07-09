@@ -43,11 +43,13 @@ import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony-elig
 import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/hearing-schedule';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import deadlinesJson from '@/data/session-deadlines-2026.json';
+import type { BoardMode } from '@/lib/board-display';
 
 interface BillDetailsDialogProps {
   billID: string | null;
   isOpen: boolean;
   onClose: () => void;
+  boardMode?: BoardMode;
 }
 
 const PROGRESS_STAGES = [
@@ -72,7 +74,7 @@ const getCurrentStageName = (status: BillStatus): string => {
   return 'Not Assigned';
 };
 
-export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialogProps) {
+export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }: BillDetailsDialogProps) {
   const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills();
   const { user, activeTenant } = useAuth();
   const isMobile = useIsMobile();
@@ -116,7 +118,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose }: BillDetailsDialog
   const currentStageName = getCurrentStageName(currentStatus as BillStatus);
   const isInternInAllBillsView = user?.role === 'user' && viewMode === 'all-bills';
   const canEditBill = !isInternInAllBillsView;
-  const canSeeTracking = activeTenant?.orgRole === 'admin';
+  const canSeeTracking = boardMode !== 'active-boards' && activeTenant?.orgRole === 'admin';
 
   // Derive dead reason and deadline
   const committeeAssign = billDetails?.committee_assignment || bill.committee_assignment;
