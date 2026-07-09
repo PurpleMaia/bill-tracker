@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { LayoutGrid } from 'lucide-react';
 import { useActiveBoards } from '@/hooks/contexts/active-boards-context';
@@ -13,10 +13,10 @@ import { OrgSwitcherDropdown } from './org-switcher-dropdown';
 import { ActiveBoardsBillsBridge } from './active-boards-bills-bridge';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { toast } from '@/hooks/use-toast';
-import type { Bill } from '@/types/legislation';
+import type { Bill, Tag } from '@/types/legislation';
 
 export function ActiveBoardView() {
-  const { followedOrgs, testimonyBillIds } = useActiveBoards();
+  const { followedOrgs, testimonyBillIds, bills } = useActiveBoards();
   const {
     searchQuery,
     setSearchQuery,
@@ -37,7 +37,7 @@ export function ActiveBoardView() {
         const res = await fetch('/api/bills', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tenantId: activeTenant?.tenantId, billUrl: bill.url }),
+          body: JSON.stringify({ tenantId: activeTenant?.tenantId, billUrl: bill.bill_url }),
         });
         if (!res.ok) throw new Error('Failed');
         toast({
@@ -56,6 +56,15 @@ export function ActiveBoardView() {
     },
     [activeTenant?.tenantId],
   );
+
+  // The viewed org's tags aren't fetched separately; the bridged bills already
+  // carry them (correctly scoped, via getBoardAction), so derive the picker's
+  // tag list from those instead of issuing a new query.
+  const orgTags = useMemo(() => {
+    const seen = new Map<string, Tag>();
+    for (const b of bills) for (const t of (b.tags ?? [])) if (!seen.has(t.id)) seen.set(t.id, t);
+    return Array.from(seen.values());
+  }, [bills]);
 
   const handleTagToggle = (tagId: string) => {
     setSelectedTagIds((prev) =>
@@ -98,10 +107,9 @@ export function ActiveBoardView() {
           className="h-9 max-w-xs"
         />
         {/* Read-only: no tag-management (admin-gated) and no archived/status
-            filters here. Years derive from the bridged bills; tags for another
-            org's board are not fetched, so the tags list is empty. */}
+            filters here. Years and tags both derive from the bridged bills. */}
         <TagFilterList
-          tags={[]}
+          tags={orgTags}
           loadingTags={false}
           onTagsChanged={() => {}}
           selectedTagIds={selectedTagIds}
