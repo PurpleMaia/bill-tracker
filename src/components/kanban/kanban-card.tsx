@@ -383,6 +383,14 @@ const arePropsEqual = (prevProps: KanbanCardProps, nextProps: KanbanCardProps): 
   if (prevProps.isDragging !== nextProps.isDragging) return false;
   if (prevProps.isHighlighted !== nextProps.isHighlighted) return false;
   if (prevProps.showUnadoptButton !== nextProps.showUnadoptButton) return false;
+  // Active-boards props: the org testimony Set arrives in a second async call
+  // after bills load, flipping orgTestimonyState undefined -> 'submitted' with
+  // no other prop change. Without these comparisons the memo would skip the
+  // re-render and the "Submitted" chip would never appear. In 'own' mode these
+  // props are constant, so the checks are always-equal and harmless.
+  if (prevProps.boardMode !== nextProps.boardMode) return false;
+  if (prevProps.orgTestimonyState !== nextProps.orgTestimonyState) return false;
+  if (prevProps.onTrackForSelf !== nextProps.onTrackForSelf) return false;
 
   const prev = prevProps.bill;
   const next = nextProps.bill;
