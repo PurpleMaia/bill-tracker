@@ -175,3 +175,211 @@ export async function getTenantMembers(tenantId: string) {
     .orderBy('u.username', 'asc')
     .execute();
 }
+
+/**
+ * All orgs that opted into public board visibility, with an isFollowing flag
+ * for the viewer. Used by the Browse Orgs tab.
+ */
+export async function listPublicTenants(viewerUserId: string) {
+  const rows = await db
+    .selectFrom('tenants as t')
+    .leftJoin('org_follows as f', (join) =>
+      join.onRef('f.tenant_id', '=', 't.id').on('f.user_id', '=', viewerUserId),
+    )
+    .select((eb) => [
+      't.id as tenantId',
+      't.name',
+      't.slug',
+      't.description',
+      'f.id as followId',
+      // How many users follow this org.
+      eb
+        .selectFrom('org_follows as fc')
+        .whereRef('fc.tenant_id', '=', 't.id')
+        .select(eb.fn.countAll<string>().as('c'))
+        .as('followerCount'),
+      // How many distinct bills anyone in this org tracks (its board size).
+      eb
+        .selectFrom('user_bills as ub')
+        .whereRef('ub.tenant_id', '=', 't.id')
+        .select((eb2) => eb2.fn.count<string>('ub.bill_id').distinct().as('c'))
+        .as('billCount'),
+    ])
+    .where('t.public_board', '=', true)
+    .orderBy('t.name', 'asc')
+    .execute();
+
+  const samples = await getSampleBillsForTenants(rows.map((r) => r.tenantId));
+
+  return rows.map((r) => ({
+    tenantId: r.tenantId,
+    name: r.name,
+    slug: r.slug,
+    description: r.description,
+    isFollowing: r.followId !== null,
+    followerCount: Number(r.followerCount ?? 0),
+    billCount: Number(r.billCount ?? 0),
+    sampleBills: samples.get(r.tenantId) ?? [],
+  }));
+}
+
+/**
+ * For each given tenant, the 3 most-recently-updated distinct bills anyone in
+ * that org tracks. Batched (one query) and keyed by tenant for the Browse card
+ * preview. Uses a window function to take the top 3 per tenant.
+ */
+async function getSampleBillsForTenants(
+  tenantIds: string[],
+): Promise<Map<string, { id: string; billNumber: string | null; billTitle: string | null }[]>> {
+  const out = new Map<string, { id: string; billNumber: string | null; billTitle: string | null }[]>();
+  if (tenantIds.length === 0) return out;
+
+  const ranked = db
+    .selectFrom('user_bills as ub')
+    .innerJoin('bills as b', 'b.id', 'ub.bill_id')
+    .where('ub.tenant_id', 'in', tenantIds)
+    .where('b.archived', '=', false)
+    .select((eb) => [
+      'ub.tenant_id as tenantId',
+      'b.id as billId',
+      'b.bill_number as billNumber',
+      'b.bill_title as billTitle',
+      'b.updated_at as updatedAt',
+      eb.fn
+        .agg<number>('row_number')
+        .over((ob) =>
+          ob
+            .partitionBy('ub.tenant_id')
+            // DISTINCT bill per tenant: partition also by bill so duplicate
+            // adoptions of the same bill don't each consume a slot.
+            .partitionBy('b.id')
+            .orderBy('b.updated_at', 'desc'),
+        )
+        .as('dupRank'),
+    ])
+    .as('r');
+
+  // First collapse to one row per (tenant, bill) via dupRank = 1, then rank
+  // those distinct bills per tenant and keep the top 3.
+  const rows = await db
+    .selectFrom(ranked)
+    .where('r.dupRank', '=', 1)
+    .select((eb) => [
+      'r.tenantId',
+      'r.billId',
+      'r.billNumber',
+      'r.billTitle',
+      eb.fn
+        .agg<number>('row_number')
+        .over((ob) => ob.partitionBy('r.tenantId').orderBy('r.updatedAt', 'desc'))
+        .as('rank'),
+    ])
+    .execute();
+
+  for (const row of rows) {
+    // tenant_id is filtered to the non-null tenantIds above; guard for the type.
+    if (row.tenantId === null || Number(row.rank) > 3) continue;
+    const list = out.get(row.tenantId) ?? [];
+    list.push({ id: row.billId, billNumber: row.billNumber, billTitle: row.billTitle });
+    out.set(row.tenantId, list);
+  }
+  return out;
+}
+
+/** Returns the org iff it has opted into public visibility, else null. */
+export async function getPublicTenant(tenantId: string) {
+  const row = await db
+    .selectFrom('tenants')
+    .select(['id', 'name', 'slug'])
+    .where('id', '=', tenantId)
+    .where('public_board', '=', true)
+    .executeTakeFirst();
+  return row ?? null;
+}
+
+/** Admin write: toggle this org's public board visibility. */
+export async function setPublicBoard(tenantId: string, enabled: boolean): Promise<void> {
+  await db
+    .updateTable('tenants')
+    .set({ public_board: enabled })
+    .where('id', '=', tenantId)
+    .execute();
+}
+
+/** Admin write: set this org's public Browse-Orgs description. */
+export async function setTenantDescription(tenantId: string, description: string): Promise<void> {
+  await db
+    .updateTable('tenants')
+    .set({ description })
+    .where('id', '=', tenantId)
+    .execute();
+}
+
+/** Admin read: current public board visibility + description for the Org Settings dialog. */
+export async function getTenantSettings(
+  tenantId: string,
+): Promise<{ publicBoard: boolean; description: string }> {
+  const row = await db
+    .selectFrom('tenants')
+    .select(['public_board', 'description'])
+    .where('id', '=', tenantId)
+    .executeTakeFirst();
+  return { publicBoard: row?.public_board ?? false, description: row?.description ?? '' };
+}
+
+/** Follow an org (idempotent via UNIQUE(user_id, tenant_id)). */
+export async function followOrg(userId: string, tenantId: string): Promise<void> {
+  await db
+    .insertInto('org_follows')
+    .values({ user_id: userId, tenant_id: tenantId })
+    .onConflict((oc) => oc.columns(['user_id', 'tenant_id']).doNothing())
+    .execute();
+}
+
+export async function unfollowOrg(userId: string, tenantId: string): Promise<void> {
+  await db
+    .deleteFrom('org_follows')
+    .where('user_id', '=', userId)
+    .where('tenant_id', '=', tenantId)
+    .execute();
+}
+
+/** Orgs the user follows that are still public, for the board switcher. */
+export async function listFollowedTenants(userId: string) {
+  const rows = await db
+    .selectFrom('org_follows as f')
+    .innerJoin('tenants as t', 't.id', 'f.tenant_id')
+    .select((eb) => [
+      't.id as tenantId',
+      't.name',
+      't.slug',
+      't.description',
+      eb
+        .selectFrom('org_follows as fc')
+        .whereRef('fc.tenant_id', '=', 't.id')
+        .select(eb.fn.countAll<string>().as('c'))
+        .as('followerCount'),
+      eb
+        .selectFrom('user_bills as ub')
+        .whereRef('ub.tenant_id', '=', 't.id')
+        .select((eb2) => eb2.fn.count<string>('ub.bill_id').distinct().as('c'))
+        .as('billCount'),
+    ])
+    .where('f.user_id', '=', userId)
+    .where('t.public_board', '=', true)
+    .orderBy('t.name', 'asc')
+    .execute();
+
+  return rows.map((r) => ({
+    tenantId: r.tenantId,
+    name: r.name,
+    slug: r.slug,
+    description: r.description,
+    isFollowing: true as const,
+    followerCount: Number(r.followerCount ?? 0),
+    billCount: Number(r.billCount ?? 0),
+    // The switcher dropdown (sole consumer) doesn't render bill previews, so
+    // skip the extra sample-bills query here.
+    sampleBills: [],
+  }));
+}

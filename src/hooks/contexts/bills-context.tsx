@@ -19,7 +19,7 @@ import { useBillCrud } from '@/hooks/bills/use-bill-crud';
 import { useLlmSuggestions } from '@/hooks/bills/use-llm-suggestions';
 import { useHumanProposals } from '@/hooks/bills/use-human-proposals';
 
-interface BillsContextType {
+export interface BillsContextType {
   // State
   loadingBills: boolean;
   setLoadingBills: Dispatch<SetStateAction<boolean>>;
@@ -71,7 +71,7 @@ interface BillsContextType {
   refreshTestimonyStatuses: () => Promise<void>;
 }
 
-const BillsContext = createContext<BillsContextType | undefined>(undefined);
+export const BillsContext = createContext<BillsContextType | undefined>(undefined);
 
 export function BillsProvider({ children }: { children: ReactNode }) {
 

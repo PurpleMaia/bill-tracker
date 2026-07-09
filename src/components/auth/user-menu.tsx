@@ -13,11 +13,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, UserPlus } from 'lucide-react';
+import { LogOut, Settings, Shield, UserPlus } from 'lucide-react';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useState, useCallback } from 'react';
 import { InviteUserDialog } from './invite-user-dialog';
 import { SettingsDialog } from '@/components/settings/settings-dialog';
+import { OrgSettingsDialog } from '@/components/admin/org-settings-dialog';
 
 export function UserMenu() {
   //gets user info and logout function from context
@@ -25,6 +26,7 @@ export function UserMenu() {
   const { setView } = useKanbanBoard();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const [orgSettingsOpen, setOrgSettingsOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Defer dialog opens so the dropdown fully closes first
@@ -36,6 +38,11 @@ export function UserMenu() {
   const openSettingsDialog = useCallback(() => {
     setDropdownOpen(false);
     setTimeout(() => setSettingsDialogOpen(true), 0);
+  }, []);
+
+  const openOrgSettingsDialog = useCallback(() => {
+    setDropdownOpen(false);
+    setTimeout(() => setOrgSettingsOpen(true), 0);
   }, []);
 
   //creates avatar with users first initial
@@ -96,10 +103,16 @@ export function UserMenu() {
           )}
 
           {activeTenant?.orgRole === 'admin' && (
-            <DropdownMenuItem onSelect={openInviteDialog} className='cursor-pointer'>
-              <UserPlus className="mr-2 h-4 w-4" />
-              <span>Invite User</span>
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuItem onSelect={openInviteDialog} className='cursor-pointer'>
+                <UserPlus className="mr-2 h-4 w-4" />
+                <span>Invite User</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={openOrgSettingsDialog} className='cursor-pointer'>
+                <Shield className="mr-2 h-4 w-4" />
+                <span>Org Settings</span>
+              </DropdownMenuItem>
+            </>
           )}
           <DropdownMenuItem onSelect={openSettingsDialog} className='cursor-pointer'>
             <Settings className="mr-2 h-4 w-4" />
@@ -114,6 +127,7 @@ export function UserMenu() {
       </DropdownMenu>
       <InviteUserDialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen} />
       <SettingsDialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen} />
+      <OrgSettingsDialog open={orgSettingsOpen} onOpenChange={setOrgSettingsOpen} />
     </>
   );
 }

@@ -22,3 +22,21 @@ export interface Tenant {
   createdAt: Date | string;
   brandingConfig: Record<string, unknown> | null;
 }
+
+export interface OrgSampleBill {
+  id: string;
+  billNumber: string | null;
+  billTitle: string | null;
+}
+
+export interface PublicOrg {
+  tenantId: string;
+  name: string;
+  slug: string;
+  description: string;
+  isFollowing: boolean;
+  followerCount: number;
+  billCount: number;
+  /** Up to 3 most-recently-updated bills this org tracks, for the Browse card preview. */
+  sampleBills: OrgSampleBill[];
+}

@@ -24,9 +24,13 @@ interface KanbanBoardProps {
   readOnly: boolean;
   onUnadopt?: (billId: string) => void;
   showUnadoptButton?: boolean;
+  boardMode?: import('@/lib/board-display').BoardMode;
+  orgTestimonyBillIds?: Set<string>;
+  trackedBillIds?: Set<string>;
+  onTrackForSelf?: (bill: Bill) => void;
 }
 
-export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: KanbanBoardProps) {
+export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, boardMode = 'own', orgTestimonyBillIds, trackedBillIds, onTrackForSelf }: KanbanBoardProps) {
   const { searchQuery, selectedTagIds, selectedYears, columnView } = useKanbanBoard();
   const { toast } = useToast();
   const { user, activeTenant } = useAuth();
@@ -496,6 +500,10 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
                       billCardRefs={billCardRefs}
                       columnScrollViewportRefs={columnScrollViewportRefs}
                       columnIndex={idx}
+                      boardMode={boardMode}
+                      orgTestimonyBillIds={orgTestimonyBillIds}
+                      trackedBillIds={trackedBillIds}
+                      onTrackForSelf={onTrackForSelf}
                     />
                   </div>
                 ))}
@@ -549,6 +557,10 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
                             billCardRefs={billCardRefs}
                             columnScrollViewportRefs={columnScrollViewportRefs}
                             columnIndex={idx}
+                            boardMode={boardMode}
+                            orgTestimonyBillIds={orgTestimonyBillIds}
+                            trackedBillIds={trackedBillIds}
+                            onTrackForSelf={onTrackForSelf}
                           >
                             {provided.placeholder}
                           </KanbanColumn>
@@ -585,6 +597,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
         billID={selectedBillId}
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
+        boardMode={boardMode}
       />
     </>
   );

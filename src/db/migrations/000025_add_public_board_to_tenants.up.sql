@@ -1,0 +1,1 @@
+ALTER TABLE tenants ADD COLUMN public_board BOOLEAN NOT NULL DEFAULT false;

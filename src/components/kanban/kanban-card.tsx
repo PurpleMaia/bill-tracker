@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { cn, formatBillStatusName, todayHawaii } from '@/lib/utils';
 import { canAssignBills } from '@/lib/permissions';
-import { Sparkles, X, Check, Users, Clock, Info, PenLine, UserPlus } from 'lucide-react';
+import { Sparkles, X, Check, Users, Clock, Info, PenLine, UserPlus, Plus, Loader2 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTagSelector } from '../tags/card-tag-selector';
@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { updateFoodStatusOrCreateBill } from '@/db/queries/bills-write';
 import { toast } from '@/hooks/use-toast';
+import { cardVisibility } from '@/lib/board-display';
 
 interface KanbanCardProps extends React.HTMLAttributes<HTMLDivElement> {
   bill: Bill;
@@ -37,16 +38,23 @@ interface KanbanCardProps extends React.HTMLAttributes<HTMLDivElement> {
   onUnadopt?: (billId: string) => void;
   showUnadoptButton?: boolean;
   isHighlighted?: boolean;
+  boardMode?: import('@/lib/board-display').BoardMode;
+  orgTestimonyState?: 'submitted' | undefined;
+  isTracked?: boolean;
+  onTrackForSelf?: (bill: Bill) => void | Promise<void>;
 }
 
 const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
-    ({ bill, isDragging, onCardClick, onUnadopt, showUnadoptButton = false, isHighlighted = false, className, style, ...props }, ref) => {
+    ({ bill, isDragging, onCardClick, onUnadopt, showUnadoptButton = false, isHighlighted = false, boardMode = 'own', orgTestimonyState, isTracked = false, onTrackForSelf, className, style, ...props }, ref) => {
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [isRemoving, setIsRemoving] = useState(false);
     const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+    const [isTracking, setIsTracking] = useState(false);
+    const [showTrackDialog, setShowTrackDialog] = useState(false);
     const { acceptLLMChange, rejectLLMChange, removeBill, testimonyStatuses } = useBills();
     const { user, activeTenant } = useAuth();
+    const vis = cardVisibility(boardMode);
 
     const canSeeTracking = activeTenant?.orgRole === 'admin';
     const trackedBy = bill.tracked_by ?? [];
@@ -92,6 +100,16 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
       }
     };
 
+    const handleTrackForSelf = async () => {
+      setIsTracking(true);
+      try {
+        await onTrackForSelf?.(bill);
+        setShowTrackDialog(false);
+      } finally {
+        setIsTracking(false);
+      }
+    };
+
     // Deadline urgency
     const deadlineDaysAway = nextDeadline
       ? Math.ceil((new Date(nextDeadline.date + 'T00:00:00').getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
@@ -99,7 +117,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const isUrgent = deadlineDaysAway !== null && deadlineDaysAway <= 7;
 
     // Testimony progress: submitted > draft written > due (hearing scheduled)
-    const testimonyState = testimonyStatuses[bill.id]; // undefined | 'draft' | 'submitted'
+    const testimonyState = boardMode === 'active-boards' ? orgTestimonyState : testimonyStatuses[bill.id]; // undefined | 'draft' | 'submitted'
     const testimonyDue =
       !testimonyState && !bill.dead && isTestimonyUrgent(bill.current_bill_status as DBBillStatus);
     const hearingAt = testimonyDue && bill.latest_update
@@ -164,7 +182,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                       {bill.year}
                     </Badge>
                   )}
-                  {canAssignBills(user, activeTenant?.orgRole) && (
+                  {vis.showRemoveAssign && canAssignBills(user, activeTenant?.orgRole) && (
                     <div className="ml-auto flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       {!bill.dead && (
                         <AssignBillDialog
@@ -257,7 +275,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                         Draft written
                       </span>
                     )}
-                    {testimonyDue && (
+                    {vis.showTestimonyAlert && testimonyDue && (
                       <span
                         className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 h-5 text-[10px] font-medium text-destructive shrink-0"
                         title={testimonyChipTitle}
@@ -273,7 +291,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                     {/* <Badge variant="outline" className="text-[10px] h-5 px-2 text-muted-foreground rounded-full">
                       {formatBillStatusName(bill.current_bill_status)}
                     </Badge> */}
-                    {canSeeTracking && (
+                    {vis.showTrackedCount && canSeeTracking && (
                       <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
                         <Users className="h-2.5 w-2.5" />
                         <span>{trackedCount}</span>
@@ -309,7 +327,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
             </div>
 
             {/* LLM Action Buttons */}
-            {bill.llm_suggested && !bill.llm_processing && (
+            {vis.showLlmActions && bill.llm_suggested && !bill.llm_processing && (
               <div className="px-3 pb-3 flex gap-2 pt-2 border-t border-border">
                 <Button
                   size="sm" variant="outline" onClick={handleAccept} disabled={isProcessing}
@@ -332,6 +350,71 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                   <Sparkles className="h-3 w-3 animate-pulse" />
                   <span className="animate-pulse">AI Processing...</span>
                 </div>
+              </div>
+            )}
+
+            {vis.showTrackForSelf && (
+              <div className="px-3 pb-3 pt-2 border-t border-border">
+                {isTracked ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground cursor-default"
+                    aria-label={`You already track ${bill.bill_number}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Check className="h-3 w-3" />
+                    Tracked
+                  </button>
+                ) : (
+                  <AlertDialog open={showTrackDialog} onOpenChange={setShowTrackDialog}>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        type="button"
+                        disabled={isTracking}
+                        onClick={(e) => { e.stopPropagation(); setShowTrackDialog(true); }}
+                        className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 disabled:opacity-60"
+                        aria-label={`Track ${bill.bill_number}`}
+                      >
+                        {isTracking ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Tracking…
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-3 w-3" />
+                            Track this bill
+                          </>
+                        )}
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Track this bill?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This adds {bill.bill_number} to your organization&apos;s board so your team can track it too.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isTracking} onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTrackForSelf(); }}
+                          disabled={isTracking}
+                        >
+                          {isTracking ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                              Tracking…
+                            </>
+                          ) : (
+                            'Track bill'
+                          )}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
             )}
             </div>{/* end grayed-out content layer */}
@@ -366,6 +449,18 @@ const arePropsEqual = (prevProps: KanbanCardProps, nextProps: KanbanCardProps): 
   if (prevProps.isDragging !== nextProps.isDragging) return false;
   if (prevProps.isHighlighted !== nextProps.isHighlighted) return false;
   if (prevProps.showUnadoptButton !== nextProps.showUnadoptButton) return false;
+  // Active-boards props: the org testimony Set arrives in a second async call
+  // after bills load, flipping orgTestimonyState undefined -> 'submitted' with
+  // no other prop change. Without these comparisons the memo would skip the
+  // re-render and the "Submitted" chip would never appear. In 'own' mode these
+  // props are constant, so the checks are always-equal and harmless.
+  if (prevProps.boardMode !== nextProps.boardMode) return false;
+  if (prevProps.orgTestimonyState !== nextProps.orgTestimonyState) return false;
+  // isTracked flips false -> true after the current user tracks the bill (the
+  // tracked-ids Set updates optimistically); without this the "Tracked" state
+  // would never appear.
+  if (prevProps.isTracked !== nextProps.isTracked) return false;
+  if (prevProps.onTrackForSelf !== nextProps.onTrackForSelf) return false;
 
   const prev = prevProps.bill;
   const next = nextProps.bill;

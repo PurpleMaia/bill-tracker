@@ -237,7 +237,10 @@ export async function getAdditionalBillData(billIds: string[], includeTrackedBy:
 
   const trackedBy = includeTrackedBy ? await getTrackedByForBills(billIds, tenantId) : {};
 
-  const trackedCount = await getTrackedCountForBills(billIds, tenantId);
+  // Gate the tracked-count aggregate on the same flag as tracked-by: the
+  // Active Boards read (includeTrackedBy=false) must not expose how many
+  // people in the viewed org track each bill. Member/admin views pass true.
+  const trackedCount = includeTrackedBy ? await getTrackedCountForBills(billIds, tenantId) : {};
 
   // Batch fetch org-specific statuses if tenant scoped
   const orgBillStatuses: Record<string, string> = {};
@@ -415,6 +418,22 @@ async function getTrackedCountForBills(billIds: string[], tenantId?: string): Pr
   });
 
   return trackedCount;
+}
+
+/**
+ * Returns the distinct bill IDs the given user tracks, across every tenant
+ * context. Used by Active Boards to reflect whether the current user already
+ * tracks a bill they are viewing on another org's board. Deliberately NOT
+ * tenant-scoped — it mirrors the not-tenant-scoped "already tracked" guard in
+ * trackBill (bills-write.ts).
+ */
+export async function getUserTrackedBillIds(userId: string): Promise<string[]> {
+  const rows = await db
+    .selectFrom('user_bills')
+    .select('bill_id')
+    .where('user_id', '=', userId)
+    .execute();
+  return [...new Set(rows.map((r) => r.bill_id).filter((id): id is string => id !== null))];
 }
 
 // ==============================================

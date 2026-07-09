@@ -35,10 +35,23 @@ export async function PATCH(
     const { id } = await params;
     await requireAdmin.fromRequest(request, id);
     const body = await request.json();
-    const { brandingConfig } = body;
+    const { brandingConfig, public_board, description } = body;
+    const patch: Record<string, unknown> = {};
+    if (brandingConfig !== undefined) {
+      patch.branding_config = brandingConfig ? JSON.stringify(brandingConfig) : null;
+    }
+    if (public_board !== undefined) {
+      patch.public_board = public_board;
+    }
+    if (description !== undefined) {
+      patch.description = String(description);
+    }
+    if (Object.keys(patch).length === 0) {
+      return NextResponse.json({ error: 'No updatable fields provided' }, { status: 400 });
+    }
     const tenant = await db
       .updateTable('tenants')
-      .set({ branding_config: brandingConfig ? JSON.stringify(brandingConfig) : null })
+      .set(patch)
       .where('id', '=', id)
       .returningAll()
       .executeTakeFirst();

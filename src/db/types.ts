@@ -77,6 +77,13 @@ export interface Members {
   user_id: string;
 }
 
+export interface OrgFollows {
+  id: Generated<string>;
+  user_id: string;
+  tenant_id: string;
+  created_at: Generated<Timestamp | null>;
+}
+
 export interface InviteTokens {
   id: Generated<string>;
   email: string;
@@ -159,8 +166,10 @@ export interface Tags {
 export interface Tenants {
   branding_config: Json | null;
   created_at: Generated<Timestamp | null>;
+  description: Generated<string>;
   id: Generated<string>;
   name: string;
+  public_board: Generated<boolean>;
   slug: string;
 }
 
@@ -229,6 +238,7 @@ export interface DB {
   invite_tokens: InviteTokens;
   members: Members;
   org_bills: OrgBills;
+  org_follows: OrgFollows;
   pending_proposals: PendingProposals;
   schema_migrations: SchemaMigrations;
   scraping_stats: ScrapingStats;
