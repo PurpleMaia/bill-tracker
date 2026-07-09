@@ -209,6 +209,8 @@ export async function listPublicTenants(viewerUserId: string) {
     .orderBy('t.name', 'asc')
     .execute();
 
+  const samples = await getSampleBillsForTenants(rows.map((r) => r.tenantId));
+
   return rows.map((r) => ({
     tenantId: r.tenantId,
     name: r.name,
@@ -217,7 +219,71 @@ export async function listPublicTenants(viewerUserId: string) {
     isFollowing: r.followId !== null,
     followerCount: Number(r.followerCount ?? 0),
     billCount: Number(r.billCount ?? 0),
+    sampleBills: samples.get(r.tenantId) ?? [],
   }));
+}
+
+/**
+ * For each given tenant, the 3 most-recently-updated distinct bills anyone in
+ * that org tracks. Batched (one query) and keyed by tenant for the Browse card
+ * preview. Uses a window function to take the top 3 per tenant.
+ */
+async function getSampleBillsForTenants(
+  tenantIds: string[],
+): Promise<Map<string, { id: string; billNumber: string | null; billTitle: string | null }[]>> {
+  const out = new Map<string, { id: string; billNumber: string | null; billTitle: string | null }[]>();
+  if (tenantIds.length === 0) return out;
+
+  const ranked = db
+    .selectFrom('user_bills as ub')
+    .innerJoin('bills as b', 'b.id', 'ub.bill_id')
+    .where('ub.tenant_id', 'in', tenantIds)
+    .where('b.archived', '=', false)
+    .select((eb) => [
+      'ub.tenant_id as tenantId',
+      'b.id as billId',
+      'b.bill_number as billNumber',
+      'b.bill_title as billTitle',
+      'b.updated_at as updatedAt',
+      eb.fn
+        .agg<number>('row_number')
+        .over((ob) =>
+          ob
+            .partitionBy('ub.tenant_id')
+            // DISTINCT bill per tenant: partition also by bill so duplicate
+            // adoptions of the same bill don't each consume a slot.
+            .partitionBy('b.id')
+            .orderBy('b.updated_at', 'desc'),
+        )
+        .as('dupRank'),
+    ])
+    .as('r');
+
+  // First collapse to one row per (tenant, bill) via dupRank = 1, then rank
+  // those distinct bills per tenant and keep the top 3.
+  const rows = await db
+    .selectFrom(ranked)
+    .where('r.dupRank', '=', 1)
+    .select((eb) => [
+      'r.tenantId',
+      'r.billId',
+      'r.billNumber',
+      'r.billTitle',
+      eb.fn
+        .agg<number>('row_number')
+        .over((ob) => ob.partitionBy('r.tenantId').orderBy('r.updatedAt', 'desc'))
+        .as('rank'),
+    ])
+    .execute();
+
+  for (const row of rows) {
+    // tenant_id is filtered to the non-null tenantIds above; guard for the type.
+    if (row.tenantId === null || Number(row.rank) > 3) continue;
+    const list = out.get(row.tenantId) ?? [];
+    list.push({ id: row.billId, billNumber: row.billNumber, billTitle: row.billTitle });
+    out.set(row.tenantId, list);
+  }
+  return out;
 }
 
 /** Returns the org iff it has opted into public visibility, else null. */
@@ -312,5 +378,8 @@ export async function listFollowedTenants(userId: string) {
     isFollowing: true as const,
     followerCount: Number(r.followerCount ?? 0),
     billCount: Number(r.billCount ?? 0),
+    // The switcher dropdown (sole consumer) doesn't render bill previews, so
+    // skip the extra sample-bills query here.
+    sampleBills: [],
   }));
 }
