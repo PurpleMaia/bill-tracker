@@ -3,6 +3,22 @@ import { cn, formatBillHeadline, formatBillStatusName, formatRelativeDate, today
 import { canAssignBills } from '@/lib/permissions';
 import { parseCommittees } from '@/lib/dead-bill';
 import { isAwaitingHearing } from '@/lib/kanban-columns';
+import { committeeFullName } from '@/lib/committees';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+/** Shadcn tooltip wrapper for the card's chips — replaces native title attrs. */
+function ChipTooltip({ content, children }: { content: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-[280px] text-xs leading-relaxed">
+          {content}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 import { Sparkles, X, Check, Users, Info, PenLine, UserPlus, Hourglass, AlarmClock, History } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
@@ -59,9 +75,8 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const canUntrack = !canAssign && showUnadoptButton && !!onUnadopt;
 
     const headline = formatBillHeadline(bill);
-    const committeeCodes = bill.committee_assignment
-      ? parseCommittees(bill.committee_assignment).join(' · ')
-      : null;
+    const committeeReferrals = bill.committee_assignment ? parseCommittees(bill.committee_assignment) : [];
+    const committeeCodes = committeeReferrals.length > 0 ? committeeReferrals.join(' · ') : null;
 
     const today = todayHawaii();
     const nextDeadline = !bill.dead && bill.committee_assignment && bill.current_bill_status
@@ -284,18 +299,26 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                 {/* Latest activity — relative time for scannability; the full
                     date and untruncated text live in the tooltip */}
                 {bill.latest_update && (
-                  <div
-                    className="mt-2 flex items-center gap-1 rounded-md bg-border/30 px-2 py-1.5"
-                    title={`${new Date(bill.latest_update.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} — ${bill.latest_update.statustext}`}
+                  <ChipTooltip
+                    content={
+                      <>
+                        <p className="font-medium">
+                          {new Date(bill.latest_update.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        </p>
+                        <p>{bill.latest_update.statustext}</p>
+                      </>
+                    }
                   >
-                    <History className="h-3 w-3 shrink-0 text-foreground/70" aria-hidden="true" />
-                    <span className="shrink-0 text-xs font-medium text-foreground/70">
-                      {formatRelativeDate(bill.latest_update.date)}
-                    </span>
-                    <p className="min-w-0 truncate text-xs text-muted-foreground">
-                      &mdash; {bill.latest_update.statustext}
-                    </p>
-                  </div>
+                    <div className="mt-2 flex items-center gap-1 rounded-md bg-border/30 px-2 py-1.5">
+                      <History className="h-3 w-3 shrink-0 text-foreground/70" aria-hidden="true" />
+                      <span className="shrink-0 text-xs font-medium text-foreground/70">
+                        {formatRelativeDate(bill.latest_update.date)}
+                      </span>
+                      <p className="min-w-0 truncate text-xs text-muted-foreground">
+                        &mdash; {bill.latest_update.statustext}
+                      </p>
+                    </div>
+                  </ChipTooltip>
                 )}
 
                 {/* Status badges footer.
@@ -304,43 +327,50 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                     Bottom-right: deadline countdown, superseded by Failed. */}
                 <div className="flex items-center flex-wrap gap-1.5 mt-2.5">
                     {testimonyState === 'submitted' && (
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 h-5 text-[10px] font-medium text-primary shrink-0"
-                        title="You submitted testimony for this bill"
-                      >
-                        <Check className="h-2.5 w-2.5" />
-                        Submitted
-                      </span>
+                      <ChipTooltip content="You submitted testimony for this bill">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 h-5 text-[10px] font-medium text-primary shrink-0">
+                          <Check className="h-2.5 w-2.5" />
+                          Submitted
+                        </span>
+                      </ChipTooltip>
                     )}
                     {testimonyState === 'draft' && (
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 h-5 text-[10px] font-medium text-secondary-foreground shrink-0"
-                        title="You have a testimony draft for this bill"
-                      >
-                        <PenLine className="h-2.5 w-2.5" />
-                        Draft written
-                      </span>
+                      <ChipTooltip content="You have a testimony draft for this bill">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 h-5 text-[10px] font-medium text-secondary-foreground shrink-0">
+                          <PenLine className="h-2.5 w-2.5" />
+                          Draft written
+                        </span>
+                      </ChipTooltip>
                     )}
                     {testimonyDue && (
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 h-5 text-[10px] font-medium text-destructive shrink-0"
-                        title={testimonyChipTitle}
-                      >
-                        <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
-                          <span className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75 motion-safe:animate-ping" />
-                          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-destructive" />
+                      <ChipTooltip content={testimonyChipTitle}>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 h-5 text-[10px] font-medium text-destructive shrink-0">
+                          <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+                            <span className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75 motion-safe:animate-ping" />
+                            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-destructive" />
+                          </span>
+                          <PenLine className="h-2.5 w-2.5" />
+                          {countdownLabel ? `Testimony ${countdownLabel}` : 'Testimony due'}
                         </span>
-                        <PenLine className="h-2.5 w-2.5" />
-                        {countdownLabel ? `Testimony ${countdownLabel}` : 'Testimony due'}
-                      </span>
+                      </ChipTooltip>
                     )}
                     {!testimonyState && !testimonyDue && committeeCodes && (
-                      <span
-                        className="inline-flex items-center rounded-full border border-border bg-secondary/60 px-2 h-5 text-[10px] font-medium text-secondary-foreground shrink-0"
-                        title={`Referred to: ${bill.committee_assignment}`}
+                      <ChipTooltip
+                        content={
+                          <div className="space-y-0.5">
+                            <p className="font-medium">Referred to:</p>
+                            {committeeReferrals.map((code) => (
+                              <p key={code}>
+                                <span className="font-medium">{code}</span> &mdash; {committeeFullName(code)}
+                              </p>
+                            ))}
+                          </div>
+                        }
                       >
-                        {committeeCodes}
-                      </span>
+                        <span className="inline-flex items-center rounded-full border border-border bg-secondary/60 px-2 h-5 text-[10px] font-medium text-secondary-foreground shrink-0">
+                          {committeeCodes}
+                        </span>
+                      </ChipTooltip>
                     )}
                     {/* <Badge variant="outline" className="text-[10px] h-5 px-2 text-muted-foreground rounded-full">
                       {formatBillStatusName(bill.current_bill_status)}
@@ -362,28 +392,31 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                         Failed
                       </Badge>
                     ) : nextDeadline && deadlineDaysAway !== null && (
-                      <span
-                        className={cn(
-                          'inline-flex items-center gap-1 rounded-full border px-2 h-5 text-[10px] font-medium shrink-0',
-                          deadlineTier === 'urgent' && 'border-destructive/30 bg-destructive/10 text-destructive',
-                          deadlineTier === 'warning' && 'border-ochre/40 bg-ochre-soft text-ochre',
-                          deadlineTier === 'safe' && 'border-border bg-secondary/60 text-muted-foreground'
-                        )}
-                        title={
+                      <ChipTooltip
+                        content={
                           showDeadlineCountdown
                             ? `If the committee chair doesn't schedule this bill by ${nextDeadline.name} (${new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}), it fails. ${deadlineDaysAway <= 0 ? 'Due today.' : `${deadlineDaysAway} day${deadlineDaysAway === 1 ? '' : 's'} left.`}`
                             : `${nextDeadline.name} deadline: ${new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}. ${deadlineDaysAway <= 0 ? 'Due today.' : `${deadlineDaysAway} day${deadlineDaysAway === 1 ? '' : 's'} left.`}`
                         }
                       >
-                        {deadlineTier === 'urgent' ? (
-                          <AlarmClock className="h-2.5 w-2.5" />
-                        ) : (
-                          <Hourglass className="h-2.5 w-2.5" />
-                        )}
-                        {new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        {' · '}
-                        {deadlineDaysAway <= 0 ? 'Today' : `${deadlineDaysAway}d`}
-                      </span>
+                        <span
+                          className={cn(
+                            'inline-flex items-center gap-1 rounded-full border px-2 h-5 text-[10px] font-medium shrink-0',
+                            deadlineTier === 'urgent' && 'border-destructive/30 bg-destructive/10 text-destructive',
+                            deadlineTier === 'warning' && 'border-ochre/40 bg-ochre-soft text-ochre',
+                            deadlineTier === 'safe' && 'border-border bg-secondary/60 text-muted-foreground'
+                          )}
+                        >
+                          {deadlineTier === 'urgent' ? (
+                            <AlarmClock className="h-2.5 w-2.5" />
+                          ) : (
+                            <Hourglass className="h-2.5 w-2.5" />
+                          )}
+                          {new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {' · '}
+                          {deadlineDaysAway <= 0 ? 'Today' : `${deadlineDaysAway}d`}
+                        </span>
+                      </ChipTooltip>
                     )}
                   </div>
                 </div>
