@@ -22,3 +22,10 @@ export interface Tenant {
   createdAt: Date | string;
   brandingConfig: Record<string, unknown> | null;
 }
+
+export interface PublicOrg {
+  tenantId: string;
+  name: string;
+  slug: string;
+  isFollowing: boolean;
+}

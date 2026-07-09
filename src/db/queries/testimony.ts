@@ -241,3 +241,23 @@ export async function getTestimonyStatuses(userId: string): Promise<TestimonySta
 
   return rows.map((row) => ({ billId: row.bill_id, submitted: row.submitted_at !== null }));
 }
+
+/**
+ * Of the given billIds, which have at least one testimony written by anyone
+ * in this org. The org-level "testimony written" signal for Active Boards
+ * (distinct from the per-user getTestimonyStatuses).
+ */
+export async function getOrgTestimonyBillIds(
+  tenantId: string,
+  billIds: string[],
+): Promise<string[]> {
+  if (billIds.length === 0) return [];
+  const rows = await db
+    .selectFrom('testimonies')
+    .select('bill_id')
+    .distinct()
+    .where('tenant_id', '=', tenantId)
+    .where('bill_id', 'in', billIds)
+    .execute();
+  return rows.map((r) => r.bill_id);
+}

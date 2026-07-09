@@ -175,3 +175,82 @@ export async function getTenantMembers(tenantId: string) {
     .orderBy('u.username', 'asc')
     .execute();
 }
+
+/**
+ * All orgs that opted into public board visibility, with an isFollowing flag
+ * for the viewer. Used by the Browse Orgs tab.
+ */
+export async function listPublicTenants(viewerUserId: string) {
+  const rows = await db
+    .selectFrom('tenants as t')
+    .leftJoin('org_follows as f', (join) =>
+      join.onRef('f.tenant_id', '=', 't.id').on('f.user_id', '=', viewerUserId),
+    )
+    .select(['t.id as tenantId', 't.name', 't.slug', 'f.id as followId'])
+    .where('t.public_board', '=', true)
+    .orderBy('t.name', 'asc')
+    .execute();
+
+  return rows.map((r) => ({
+    tenantId: r.tenantId,
+    name: r.name,
+    slug: r.slug,
+    isFollowing: r.followId !== null,
+  }));
+}
+
+/** Returns the org iff it has opted into public visibility, else null. */
+export async function getPublicTenant(tenantId: string) {
+  const row = await db
+    .selectFrom('tenants')
+    .select(['id', 'name', 'slug'])
+    .where('id', '=', tenantId)
+    .where('public_board', '=', true)
+    .executeTakeFirst();
+  return row ?? null;
+}
+
+/** Admin write: toggle this org's public board visibility. */
+export async function setPublicBoard(tenantId: string, enabled: boolean): Promise<void> {
+  await db
+    .updateTable('tenants')
+    .set({ public_board: enabled })
+    .where('id', '=', tenantId)
+    .execute();
+}
+
+/** Follow an org (idempotent via UNIQUE(user_id, tenant_id)). */
+export async function followOrg(userId: string, tenantId: string): Promise<void> {
+  await db
+    .insertInto('org_follows')
+    .values({ user_id: userId, tenant_id: tenantId })
+    .onConflict((oc) => oc.columns(['user_id', 'tenant_id']).doNothing())
+    .execute();
+}
+
+export async function unfollowOrg(userId: string, tenantId: string): Promise<void> {
+  await db
+    .deleteFrom('org_follows')
+    .where('user_id', '=', userId)
+    .where('tenant_id', '=', tenantId)
+    .execute();
+}
+
+/** Orgs the user follows that are still public, for the board switcher. */
+export async function listFollowedTenants(userId: string) {
+  const rows = await db
+    .selectFrom('org_follows as f')
+    .innerJoin('tenants as t', 't.id', 'f.tenant_id')
+    .select(['t.id as tenantId', 't.name', 't.slug'])
+    .where('f.user_id', '=', userId)
+    .where('t.public_board', '=', true)
+    .orderBy('t.name', 'asc')
+    .execute();
+
+  return rows.map((r) => ({
+    tenantId: r.tenantId,
+    name: r.name,
+    slug: r.slug,
+    isFollowing: true as const,
+  }));
+}
