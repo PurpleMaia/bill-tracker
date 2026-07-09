@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { updateFoodStatusOrCreateBill } from '@/db/queries/bills-write';
 import { toast } from '@/hooks/use-toast';
+import { cardVisibility } from '@/lib/board-display';
 
 interface KanbanCardProps extends React.HTMLAttributes<HTMLDivElement> {
   bill: Bill;
@@ -37,16 +38,20 @@ interface KanbanCardProps extends React.HTMLAttributes<HTMLDivElement> {
   onUnadopt?: (billId: string) => void;
   showUnadoptButton?: boolean;
   isHighlighted?: boolean;
+  boardMode?: import('@/lib/board-display').BoardMode;
+  orgTestimonyState?: 'submitted' | undefined;
+  onTrackForSelf?: (bill: Bill) => void;
 }
 
 const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
-    ({ bill, isDragging, onCardClick, onUnadopt, showUnadoptButton = false, isHighlighted = false, className, style, ...props }, ref) => {
+    ({ bill, isDragging, onCardClick, onUnadopt, showUnadoptButton = false, isHighlighted = false, boardMode = 'own', orgTestimonyState, onTrackForSelf, className, style, ...props }, ref) => {
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [isRemoving, setIsRemoving] = useState(false);
     const [showRemoveDialog, setShowRemoveDialog] = useState(false);
     const { acceptLLMChange, rejectLLMChange, removeBill, testimonyStatuses } = useBills();
     const { user, activeTenant } = useAuth();
+    const vis = cardVisibility(boardMode);
 
     const canSeeTracking = activeTenant?.orgRole === 'admin';
     const trackedBy = bill.tracked_by ?? [];
@@ -99,7 +104,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const isUrgent = deadlineDaysAway !== null && deadlineDaysAway <= 7;
 
     // Testimony progress: submitted > draft written > due (hearing scheduled)
-    const testimonyState = testimonyStatuses[bill.id]; // undefined | 'draft' | 'submitted'
+    const testimonyState = boardMode === 'active-boards' ? orgTestimonyState : testimonyStatuses[bill.id]; // undefined | 'draft' | 'submitted'
     const testimonyDue =
       !testimonyState && !bill.dead && isTestimonyUrgent(bill.current_bill_status as DBBillStatus);
     const hearingAt = testimonyDue && bill.latest_update
@@ -164,7 +169,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                       {bill.year}
                     </Badge>
                   )}
-                  {canAssignBills(user, activeTenant?.orgRole) && (
+                  {vis.showRemoveAssign && canAssignBills(user, activeTenant?.orgRole) && (
                     <div className="ml-auto flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       {!bill.dead && (
                         <AssignBillDialog
@@ -257,7 +262,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                         Draft written
                       </span>
                     )}
-                    {testimonyDue && (
+                    {vis.showTestimonyAlert && testimonyDue && (
                       <span
                         className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 h-5 text-[10px] font-medium text-destructive shrink-0"
                         title={testimonyChipTitle}
@@ -273,7 +278,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                     {/* <Badge variant="outline" className="text-[10px] h-5 px-2 text-muted-foreground rounded-full">
                       {formatBillStatusName(bill.current_bill_status)}
                     </Badge> */}
-                    {canSeeTracking && (
+                    {vis.showTrackedCount && canSeeTracking && (
                       <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
                         <Users className="h-2.5 w-2.5" />
                         <span>{trackedCount}</span>
@@ -309,7 +314,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
             </div>
 
             {/* LLM Action Buttons */}
-            {bill.llm_suggested && !bill.llm_processing && (
+            {vis.showLlmActions && bill.llm_suggested && !bill.llm_processing && (
               <div className="px-3 pb-3 flex gap-2 pt-2 border-t border-border">
                 <Button
                   size="sm" variant="outline" onClick={handleAccept} disabled={isProcessing}
@@ -332,6 +337,18 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                   <Sparkles className="h-3 w-3 animate-pulse" />
                   <span className="animate-pulse">AI Processing...</span>
                 </div>
+              </div>
+            )}
+
+            {vis.showTrackForSelf && (
+              <div className="px-3 pb-3 pt-2 border-t border-border">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onTrackForSelf?.(bill); }}
+                  className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+                >
+                  Track this bill
+                </button>
               </div>
             )}
             </div>{/* end grayed-out content layer */}

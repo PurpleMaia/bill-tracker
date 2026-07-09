@@ -24,9 +24,12 @@ interface KanbanBoardProps {
   readOnly: boolean;
   onUnadopt?: (billId: string) => void;
   showUnadoptButton?: boolean;
+  boardMode?: import('@/lib/board-display').BoardMode;
+  orgTestimonyBillIds?: Set<string>;
+  onTrackForSelf?: (bill: Bill) => void;
 }
 
-export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: KanbanBoardProps) {
+export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, boardMode = 'own', orgTestimonyBillIds, onTrackForSelf }: KanbanBoardProps) {
   const { searchQuery, selectedTagIds, selectedYears, columnView } = useKanbanBoard();
   const { toast } = useToast();
   const { user, activeTenant } = useAuth();
@@ -496,6 +499,9 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
                       billCardRefs={billCardRefs}
                       columnScrollViewportRefs={columnScrollViewportRefs}
                       columnIndex={idx}
+                      boardMode={boardMode}
+                      orgTestimonyBillIds={orgTestimonyBillIds}
+                      onTrackForSelf={onTrackForSelf}
                     />
                   </div>
                 ))}
@@ -549,6 +555,9 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false }: 
                             billCardRefs={billCardRefs}
                             columnScrollViewportRefs={columnScrollViewportRefs}
                             columnIndex={idx}
+                            boardMode={boardMode}
+                            orgTestimonyBillIds={orgTestimonyBillIds}
+                            onTrackForSelf={onTrackForSelf}
                           >
                             {provided.placeholder}
                           </KanbanColumn>

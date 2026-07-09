@@ -55,6 +55,10 @@ export interface KanbanColumnProps extends React.HTMLAttributes<HTMLDivElement> 
   columnIndex?: number; // Index of this column in the board
 
   enableDnd?: boolean;
+
+  boardMode?: import('@/lib/board-display').BoardMode;
+  orgTestimonyBillIds?: Set<string>;
+  onTrackForSelf?: (bill: Bill) => void;
 }
 
 
@@ -84,6 +88,10 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
       columnIndex,
 
       enableDnd = false,
+
+      boardMode = 'own',
+      orgTestimonyBillIds,
+      onTrackForSelf,
       ...props
     },
     ref
@@ -191,6 +199,9 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
                   onCardClick={onCardClick}
                   onUnadopt={onUnadopt}
                   showUnadoptButton={showUnadoptButton}
+                  boardMode={boardMode}
+                  orgTestimonyState={orgTestimonyBillIds?.has(bill.id) ? 'submitted' : undefined}
+                  onTrackForSelf={onTrackForSelf}
                 />
               ) : (
                 <Draggable key={bill.id} draggableId={bill.id} index={index}>
@@ -207,6 +218,9 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
                       onCardClick={onCardClick}
                       onUnadopt={onUnadopt}
                       showUnadoptButton={showUnadoptButton}
+                      boardMode={boardMode}
+                      orgTestimonyState={orgTestimonyBillIds?.has(bill.id) ? 'submitted' : undefined}
+                      onTrackForSelf={onTrackForSelf}
                       style={{
                         ...provided.draggableProps.style,
                       }}
@@ -220,7 +234,7 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
             {children}
 
             {/* PENDING PROPOSALS (using TempBillCard component) */}
-            {pendingCount > 0 && (
+            {boardMode !== 'active-boards' && pendingCount > 0 && (
               <div className="mt-2 space-y-2">
                 {pendingTempBills.map((tb) => (
                   <TempBillCard
