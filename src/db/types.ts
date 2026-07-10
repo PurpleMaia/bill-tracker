@@ -69,6 +69,61 @@ export interface BillTags {
   tag_id: string;
 }
 
+export interface BillVersions {
+  ai_summary: string | null;
+  bill_id: string;
+  created_at: Generated<Timestamp | null>;
+  html_link: string | null;
+  id: Generated<string>;
+  label: string;
+  original_text: string | null;
+  pdf_link: string | null;
+  updated_at: Generated<Timestamp | null>;
+}
+
+export interface CommitteeReports {
+  ai_summary: string | null;
+  bill_id: string;
+  created_at: Generated<Timestamp | null>;
+  html_link: string | null;
+  id: Generated<string>;
+  label: string;
+  original_text: string | null;
+  pdf_link: string | null;
+  report_code: string | null;
+  updated_at: Generated<Timestamp | null>;
+}
+
+export interface InviteTokens {
+  accepted_at: Timestamp | null;
+  created_at: Generated<Timestamp | null>;
+  email: string;
+  expires_at: Timestamp;
+  id: Generated<string>;
+  invited_by: string;
+  status: Generated<string>;
+  tenant_id: string;
+  token: string;
+}
+
+export interface Legislators {
+  area: string | null;
+  chamber: string | null;
+  created_at: Generated<Timestamp>;
+  district: number | null;
+  email: string | null;
+  first_name: string | null;
+  id: Generated<string>;
+  in_office: Generated<boolean>;
+  last_name: string | null;
+  member_id: string;
+  party: string | null;
+  phone: string | null;
+  room: string | null;
+  term_ended: Timestamp | null;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface Members {
   created_at: Generated<Timestamp | null>;
   id: Generated<string>;
@@ -77,30 +132,18 @@ export interface Members {
   user_id: string;
 }
 
-export interface OrgFollows {
-  id: Generated<string>;
-  user_id: string;
-  tenant_id: string;
-  created_at: Generated<Timestamp | null>;
-}
-
-export interface InviteTokens {
-  id: Generated<string>;
-  email: string;
-  tenant_id: string;
-  token: string;
-  status: Generated<string>;
-  invited_by: string;
-  expires_at: Timestamp;
-  created_at: Generated<Timestamp | null>;
-  accepted_at: Timestamp | null;
-}
-
 export interface OrgBills {
   bill_id: string;
   bill_status: Generated<BillStatus>;
   tenant_id: string;
   updated_at: Generated<Timestamp | null>;
+}
+
+export interface OrgFollows {
+  created_at: Generated<Timestamp>;
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
 }
 
 export interface PendingProposals {
@@ -173,8 +216,6 @@ export interface Tenants {
   slug: string;
 }
 
-export type TestimonyPosition = "comments" | "oppose" | "support";
-
 export interface Testimonies {
   author_name: Generated<string>;
   bill_id: string;
@@ -182,8 +223,8 @@ export interface Testimonies {
   created_at: Generated<Timestamp>;
   id: Generated<string>;
   organization: Generated<string>;
-  position: Generated<TestimonyPosition>;
-  submitted_at: Timestamp | null;
+  position: Generated<string>;
+  submitted_at: Generated<Timestamp | null>;
   tenant_id: string | null;
   updated_at: Generated<Timestamp>;
   user_id: string;
@@ -215,14 +256,6 @@ export interface UserBillPreferences {
   user_id: string;
 }
 
-export interface UserPreferences {
-  user_id: string;
-  ai_opt_in: Generated<boolean>;
-  kanban_detailed_view: Generated<boolean>;
-  created_at: Generated<Timestamp>;
-  updated_at: Generated<Timestamp>;
-}
-
 export interface UserBills {
   adopted_at: Generated<Timestamp | null>;
   bill_id: string | null;
@@ -231,11 +264,22 @@ export interface UserBills {
   user_id: string | null;
 }
 
+export interface UserPreferences {
+  ai_opt_in: Generated<boolean>;
+  created_at: Generated<Timestamp>;
+  kanban_detailed_view: Generated<boolean>;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface DB {
   auth_key: AuthKey;
   bill_tags: BillTags;
+  bill_versions: BillVersions;
   bills: Bills;
+  committee_reports: CommitteeReports;
   invite_tokens: InviteTokens;
+  legislators: Legislators;
   members: Members;
   org_bills: OrgBills;
   org_follows: OrgFollows;
