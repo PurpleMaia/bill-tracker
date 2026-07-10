@@ -18,15 +18,22 @@ The bill details dialog now has a Versions & Reports tab (timeline + per-item
 
 ## Build Scope (important)
 
-- **All AI is STUBBED** this pass: Briefing, per-version/report summaries, the
-  compare "summarize changes", and the committee "draft note with AI" show real
-  loading/result UX with clearly-labeled placeholder output. Wiring to the
-  Genkit LLM service is a follow-up.
+- **AI is OPTIONAL and STUBBED** this pass: the briefing's "Summarize with AI",
+  per-version/report summaries, and the compare "summarize changes" show real
+  loading/result UX with clearly-labeled placeholder output. The briefing's
+  core content is DERIVED (no AI) and always shown. Wiring to the Genkit LLM
+  service is a follow-up. (No committee AI-draft this pass.)
 - **Version diffs are REAL**, computed via the `hawaii-bill-diff` npm package
   (installed via pnpm — the repo's package manager). Diff input is the stored
   `original_text` of each version (no network fetch needed).
-- **Committee contacts are a UI shell** with placeholder member data (name,
-  role, email). Real member data + real sending are follow-ups.
+- **Committee contacts are a plain directory** (UI shell) with placeholder
+  member data (name, role). NO "Draft note with AI" and NO email/mailto
+  affordances this pass — just the list. Those are follow-ups.
+- **The Bill Briefing works WITHOUT AI.** It derives almost everything it shows
+  from data the app already computes (testimony eligibility/urgency, next
+  deadline, latest version, committee/report counts, fiscal flag, dead state).
+  AI is an OPTIONAL enhancement layered on top — a user who opts out of AI still
+  gets a genuinely useful briefing.
 
 ## Layout
 
@@ -37,15 +44,29 @@ tabs** below the header:
 ### Tab 1 — Overview (default): left/right split
 
 - **Left panel (~55%, scrolls as one column), stacked top→bottom:**
-  1. **Bill Briefing** — olive-accented AI card: a lede, three synthesis cells
-     (Bill details / Latest version / What committees say), and **Suggested
-     next steps** as action rows. Has a "Regenerate" affordance. Stubbed.
+  1. **Bill Briefing** — a **derived (no-AI-required)** card. It computes and
+     surfaces, from existing data:
+     - **Action prompt** — if testimony is open, "Testimony is open — submit
+       before the hearing" (urgent styling when a hearing is imminent); if
+       closed, why. From `getTestimonyEligibility` / `isTestimonyUrgent`.
+     - **Where it stands** — current stage/status, dead reason or next deadline
+       (with days-away + tier), fiscal flag. From `getNextDeadline` /
+       `getDeadlineTier` / `isBillDead` / `isFiscalBill`.
+     - **Latest version** — the most recent version label + link. From
+       `sortVersions(bill.versions)`.
+     - **Committee activity** — assigned-committee codes + count of committee
+       reports. From `parseCommitteeCodes` / `bill.reports`.
+     - **Suggested next steps** — derived action rows (e.g. Write testimony →
+       when open; Compare latest two drafts → when ≥2 versions; Review reports).
+     On top of this, an **optional** "✦ Summarize with AI" affordance adds a
+     narrative lede (stubbed). Everything above the AI line renders with no AI
+     call, so opting out of AI still yields a full briefing.
   2. **Details** — description, introducers, tags (the current left-panel
      metadata).
-  3. **Committees & contacts** — one block per assigned committee (parsed from
-     `committee_assignment`, e.g. "AGR, FIN"): committee code + full name, its
-     chair/vice/members with **copy-email** and **mailto** icon buttons, and a
-     **✦ Draft note with AI** button. UI shell, placeholder members.
+  3. **Committees** — one block per assigned committee (parsed from
+     `committee_assignment`, e.g. "AGR, FIN"): committee code + full name and
+     its chair/vice/members (name + role). A plain directory — NO email/mailto,
+     NO AI-draft this pass. Placeholder member data.
   - The existing dead/deadline alert stays at the top of the left panel; the
     status-change bar stays pinned at the bottom.
 - **Right panel (~45%, its own independent scroll):** **Status Updates** —
@@ -73,8 +94,10 @@ Status Updates. Versions & Reports: sub-tabs persist; Compare columns stack.
 
 ## Visual Language
 
-- **Olive** (`--olive`/`--olive-dark`) marks all AI features (Briefing,
-  Summarize, Draft-with-AI) — distinct from the **teal** primary actions.
+- **Olive** (`--olive`/`--olive-dark`) marks the OPTIONAL AI features (the
+  briefing's "Summarize with AI", per-version/report "Summarize", compare
+  "Summarize changes") — distinct from the **teal** primary actions. Derived
+  (non-AI) content uses the normal palette.
 - Diffs use **semantic** add-green / remove-red, separate from brand colors.
 
 ## Data & Components
@@ -99,14 +122,25 @@ package wrappers live in `src/services/`, not `src/lib/`):
   and returns a diff with an `error` flag. Unit-tested (pure transformation of
   the package output — the package itself is deterministic on given input).
 
+New pure logic:
+- `src/lib/bill-briefing-facts.ts` — `deriveBriefingFacts(bill, today)` — a
+  PURE function that assembles the briefing's derived facts (action prompt,
+  where-it-stands, latest version, committee activity, next steps) from
+  existing helpers (`getTestimonyEligibility`, `isTestimonyUrgent`,
+  `getNextDeadline`/`getDeadlineTier`, `isFiscalBill`, `sortVersions`,
+  `parseCommitteeCodes`). No DB, no AI. Unit-tested. This is what lets the
+  briefing render fully without any AI call.
+
 New components (all under `src/components/kanban/`):
-- `bill-briefing.tsx` — the Briefing card (stubbed AI, synthesis cells, next
-  steps). Consumes `BillDetails`.
-- `committee-contacts.tsx` — the Committees & contacts block. Parses
-  `committee_assignment` into committee codes; renders placeholder members;
-  copy/mailto/draft-note affordances. A `lib/committees.ts` pure helper
-  provides `parseCommitteeCodes(assignment)` and a static
-  `COMMITTEE_DIRECTORY` placeholder map (code → full name + members).
+- `bill-briefing.tsx` — the Briefing card. Renders `deriveBriefingFacts(...)`
+  with no AI call; adds an OPTIONAL "✦ Summarize with AI" affordance (stubbed)
+  for a narrative lede. Consumes `BillDetails`.
+- `committee-contacts.tsx` — the Committees directory block. Parses
+  `committee_assignment` into codes and renders placeholder members (name +
+  role) as a plain list. NO copy/mailto, NO AI-draft this pass. A
+  `lib/committees.ts` pure helper provides `parseCommitteeCodes(assignment)`
+  and a static `COMMITTEE_DIRECTORY` placeholder map (code → full name +
+  members).
 - `version-compare.tsx` — the Compare sub-tab: two pickers + side-by-side diff
   + stubbed summarize.
 - `version-diff-inline.tsx` — the inline "Diff vs previous" block for the
@@ -119,9 +153,10 @@ New components (all under `src/components/kanban/`):
   the new Overview arrangement.
 
 Stub AI lives in one place: `src/components/kanban/ai-stub.ts` —
-`stubSummarize(text)`, `stubBriefing(bill)`, `stubDraftNote(member, bill)` —
-each returns a clearly-labeled placeholder after a short delay. Swapping to real
-Genkit later means replacing this module's internals.
+`stubSummarize(text)` and `stubBriefingNarrative(bill)` — each returns a
+clearly-labeled placeholder after a short delay. Swapping to real Genkit later
+means replacing this module's internals. (No draft-note stub this pass; the
+committee section has no AI.)
 
 ## Error / Empty States
 
@@ -136,8 +171,10 @@ Genkit later means replacing this module's internals.
 ## Testing
 
 - Unit tests: `services/bill-diff.ts` (normalization of `hawaii-bill-diff`
-  output into aligned rows; same-version and empty-text edge cases) and
-  `lib/committees.ts` (`parseCommitteeCodes`). Both are pure transformations,
+  output into aligned rows; same-version and empty-text edge cases),
+  `lib/committees.ts` (`parseCommitteeCodes`), and `lib/bill-briefing-facts.ts`
+  (`deriveBriefingFacts` — testimony-open vs closed, next-deadline present,
+  latest-version selection, next-steps gating). All pure transformations,
   fitting the pure-logic test convention; tests live in `src/lib/__tests__/`.
 - `npm run typecheck`, `npm run build` (build catches `'use server'` export
   violations).
