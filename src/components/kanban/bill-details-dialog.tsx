@@ -18,7 +18,6 @@ import { FileText, Loader2, ExternalLink, Clock, PenLine } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
-import AIUpdateSingleButton from '../llm/llm-update-single-button';
 import RefreshStatusesButton from '../scraper/scrape-updates-button';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -37,6 +36,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
+import { BillVersionsPanel } from './bill-versions-panel';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/dead-bill';
 import type { SessionDeadlines } from '@/lib/dead-bill';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony-eligibility';
@@ -211,7 +211,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[100vw] sm:max-w-6xl h-[100dvh] sm:h-[95vh] flex flex-col p-0 gap-0 rounded-none sm:rounded-lg [&>button]:p-2 [&>button]:rounded-md sm:[&>button]:p-0 sm:[&>button]:rounded-sm">
+      <DialogContent className="max-w-[100vw] sm:max-w-7xl h-[100dvh] sm:h-[95vh] flex flex-col p-0 gap-0 rounded-none sm:rounded-lg [&>button]:p-2 [&>button]:rounded-md sm:[&>button]:p-0 sm:[&>button]:rounded-sm">
         {/* Header — compact, with progress */}
         <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b shrink-0">
           <div className="flex items-start justify-between gap-4">
@@ -486,15 +486,14 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                     <Button onClick={handleSave} disabled={!selectedStatus || !canEditBill} size="sm" className="px-6 h-9">
                       Save
                     </Button>
-                    <AIUpdateSingleButton bill={bill} />
                   </div>
                 </div>
               )}
             </div>
             );
 
-            const rightPanel = (
-            <div className={cn("flex flex-col bg-muted/20 min-h-0", isMobile ? "h-full" : "w-[45%]")}>
+            const activityPanel = (
+            <div className="flex flex-col min-h-0 h-full">
               <div className="px-4 sm:px-5 pt-4 sm:pt-5 pb-3 border-b shrink-0 flex items-center justify-between">
                 <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Status Updates
@@ -550,11 +549,42 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
             </div>
             );
 
+            const versionsPanel = (
+              <BillVersionsPanel
+                versions={billDetails?.versions ?? []}
+                reports={billDetails?.reports ?? []}
+              />
+            );
+
+            const rightPanel = (
+            <div className={cn("flex flex-col bg-muted/20 min-h-0", isMobile ? "h-full" : "w-[45%]")}>
+              <Tabs defaultValue="activity" className="flex-1 flex flex-col min-h-0">
+                <TabsList className="mx-4 mt-3 shrink-0 grid grid-cols-2">
+                  <TabsTrigger value="activity">
+                    Activity
+                    {billDetails?.updates && billDetails.updates.length > 0 && (
+                      <span className="ml-1 text-muted-foreground/70">({billDetails.updates.length})</span>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="versions">
+                    Versions &amp; Reports
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="activity" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
+                  {activityPanel}
+                </TabsContent>
+                <TabsContent value="versions" className="flex-1 min-h-0 mt-2 flex flex-col data-[state=inactive]:hidden">
+                  {versionsPanel}
+                </TabsContent>
+              </Tabs>
+            </div>
+            );
+
             if (isMobile) {
               return (
                 <>
                   <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-                    <TabsList className="mx-4 mt-3 shrink-0 grid grid-cols-2">
+                    <TabsList className="mx-4 mt-3 shrink-0 grid grid-cols-3">
                       <TabsTrigger value="details">Details</TabsTrigger>
                       <TabsTrigger value="activity">
                         Activity
@@ -562,12 +592,16 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                           <span className="ml-1 text-muted-foreground/70">({billDetails.updates.length})</span>
                         )}
                       </TabsTrigger>
+                      <TabsTrigger value="versions">Versions</TabsTrigger>
                     </TabsList>
                     <TabsContent value="details" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
                       {leftPanel}
                     </TabsContent>
                     <TabsContent value="activity" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
-                      {rightPanel}
+                      {activityPanel}
+                    </TabsContent>
+                    <TabsContent value="versions" className="flex-1 min-h-0 mt-2 flex flex-col data-[state=inactive]:hidden">
+                      {versionsPanel}
                     </TabsContent>
                   </Tabs>
 
