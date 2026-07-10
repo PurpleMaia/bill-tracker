@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ReadTextButton } from './version-text-viewer';
 import { ReportSummary } from './report-summary';
 import { BillTextSidePanel, type BillTextView } from './bill-text-side-panel';
+import { VersionDiffInline } from './version-diff-inline';
 import { FileText, ExternalLink, ScrollText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -152,9 +153,13 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
           <div>
             <h4 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Timeline</h4>
             <ol className="relative space-y-4 border-l border-border/70 pl-4">
-              {groups.map((group, i) => {
+              {groups.slice().reverse().map((group, revIdx) => {
+                // groups is oldest→newest (legislative order); render newest→oldest
+                // so the current version sits on top.
+                const origIdx = groups.length - 1 - revIdx;
+                const isBase = origIdx === 0;
                 const isLatest = latestVersion?.id === group.version.id;
-                const isBase = i === 0;
+                const previous = origIdx > 0 ? groups[origIdx - 1].version : null;
                 return (
                   <li key={group.version.id} className="relative">
                     <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary" aria-hidden="true" />
@@ -172,6 +177,11 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
                     {group.version.originalText && (
                       <div className="mt-1">
                         <ReadTextButton onClick={() => setTextView(versionTextView(group.version, isLatest))} />
+                      </div>
+                    )}
+                    {previous && group.version.originalText && previous.originalText && (
+                      <div className="mt-1">
+                        <VersionDiffInline older={previous} newer={group.version} />
                       </div>
                     )}
                     {group.reports.length > 0 && (
