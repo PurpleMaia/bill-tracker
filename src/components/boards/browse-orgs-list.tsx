@@ -7,9 +7,79 @@ import { useActiveBoards } from '@/hooks/contexts/active-boards-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Building2, Check, Eye, FileText, Globe, Lock, Plus, Search, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { orgMonogram } from '@/lib/org-monogram';
+
+// Skeleton mirroring one OrgCard's shape while the list loads.
+function OrgCardSkeleton() {
+  return (
+    <li className="flex flex-col rounded-lg border bg-card p-5 shadow-sm sm:flex-row sm:items-start sm:gap-5">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-start gap-3">
+          <Skeleton className="h-11 w-11 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-4 w-40" />
+            <div className="flex gap-3">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          </div>
+        </div>
+        <div className="mt-3 space-y-1.5">
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-2/3" />
+        </div>
+      </div>
+      <div className="mt-4 shrink-0 space-y-2 sm:mt-0 sm:w-64">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-5/6" />
+        <Skeleton className="mt-4 h-9 w-full rounded-md" />
+      </div>
+    </li>
+  );
+}
+
+// Skeleton for the right-column blobs (At a glance / Following).
+function SideBlobSkeleton({ rows = 3 }: { rows?: number }) {
+  return (
+    <div className="rounded-xl border bg-secondary/40 p-5">
+      <Skeleton className="mb-3 h-4 w-28" />
+      <div className="space-y-3">
+        {Array.from({ length: rows }).map((_, i) => (
+          <div key={i} className="flex items-center justify-between gap-2">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-4 w-8" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Full-page loading state: same two-column shape as the loaded page.
+function BrowseSkeleton() {
+  return (
+    <div className="mx-auto w-full max-w-6xl">
+      <div className="flex flex-col gap-6 lg:flex-row">
+        <div className="min-w-0 flex-1">
+          <Skeleton className="mb-4 h-10 w-full rounded-md" />
+          <ul className="flex flex-col gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <OrgCardSkeleton key={i} />
+            ))}
+          </ul>
+        </div>
+        <aside className="flex shrink-0 flex-col gap-4 lg:w-72">
+          <SideBlobSkeleton rows={2} />
+          <SideBlobSkeleton rows={3} />
+        </aside>
+      </div>
+    </div>
+  );
+}
 
 // Orientation block: explains what Active Boards is and how following works, so
 // the page reads as purposeful even when only a handful of orgs are listed.
@@ -376,7 +446,7 @@ export function BrowseOrgsList() {
   }, [orgs, query]);
 
   if (orgs === null) {
-    return <p className="text-sm text-muted-foreground">Loading organizations…</p>;
+    return <BrowseSkeleton />;
   }
 
   if (orgs.length === 0) {
