@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building2, Check, Eye, FileText, Globe, Lock, Plus, Search, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { orgMonogram } from '@/lib/org-monogram';
 
 // Skeleton mirroring one OrgCard's shape while the list loads.
 function OrgCardSkeleton() {
@@ -159,7 +158,6 @@ function MyOrgCard() {
   if (!activeTenant) return null;
 
   const displayName = org?.name ?? activeTenant.name;
-  const { initials, tint } = orgMonogram(displayName);
 
   return (
     <div className="mb-4 rounded-xl border border-olive/20 bg-olive-soft p-5 shadow-sm">
@@ -185,33 +183,22 @@ function MyOrgCard() {
       <div className="mt-3 flex flex-col gap-5 sm:flex-row sm:items-start">
         {/* Identity + counts */}
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-start gap-3">
-            <div
-              className={cn(
-                'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold',
-                tint,
-              )}
-              aria-hidden
-            >
-              {initials}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold leading-tight">{displayName}</p>
-              {org ? (
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1">
-                    <FileText className="h-3 w-3" />
-                    {org.billCount} {org.billCount === 1 ? 'bill' : 'bills'}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <Users className="h-3 w-3" />
-                    {org.followerCount} {org.followerCount === 1 ? 'follower' : 'followers'}
-                  </span>
-                </div>
-              ) : loaded ? null : (
-                <div className="mt-2 h-3 w-24 animate-pulse rounded bg-olive/20" />
-              )}
-            </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold leading-tight">{displayName}</p>
+            {org ? (
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1">
+                  <FileText className="h-3 w-3" />
+                  {org.billCount} {org.billCount === 1 ? 'bill' : 'bills'}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Users className="h-3 w-3" />
+                  {org.followerCount} {org.followerCount === 1 ? 'follower' : 'followers'}
+                </span>
+              </div>
+            ) : loaded ? null : (
+              <div className="mt-2 h-3 w-24 animate-pulse rounded bg-olive/20" />
+            )}
           </div>
 
           <p className="mt-3 text-xs text-muted-foreground">
@@ -260,33 +247,21 @@ function OrgCard({
   busy: boolean;
   onToggle: () => void;
 }) {
-  const { initials, tint } = orgMonogram(org.name);
   return (
     <li className="flex flex-col rounded-lg border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:items-start sm:gap-5">
       {/* Identity + counts + description */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-start gap-3">
-          <div
-            className={cn(
-              'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold',
-              tint,
-            )}
-            aria-hidden
-          >
-            {initials}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold leading-tight">{org.name}</p>
-            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                {org.billCount} {org.billCount === 1 ? 'bill' : 'bills'}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                {org.followerCount} {org.followerCount === 1 ? 'follower' : 'followers'}
-              </span>
-            </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold leading-tight">{org.name}</p>
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <FileText className="h-3 w-3" />
+              {org.billCount} {org.billCount === 1 ? 'bill' : 'bills'}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              {org.followerCount} {org.followerCount === 1 ? 'follower' : 'followers'}
+            </span>
           </div>
         </div>
 
@@ -384,23 +359,11 @@ function FollowedOrgs({ orgs }: { orgs: PublicOrg[] }) {
         </p>
       ) : (
         <ul className="mt-3 space-y-2">
-          {following.map((o) => {
-            const { initials, tint } = orgMonogram(o.name);
-            return (
-              <li key={o.tenantId} className="flex items-center gap-2.5">
-                <div
-                  className={cn(
-                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold',
-                    tint,
-                  )}
-                  aria-hidden
-                >
-                  {initials}
-                </div>
-                <span className="truncate text-sm">{o.name}</span>
-              </li>
-            );
-          })}
+          {following.map((o) => (
+            <li key={o.tenantId} className="truncate text-sm">
+              {o.name}
+            </li>
+          ))}
         </ul>
       )}
     </div>
