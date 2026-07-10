@@ -376,7 +376,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
             const leftPanel = (
             <div className={cn("flex flex-col min-h-0", isMobile ? "h-full" : "w-[55%] border-r")}>
               <ScrollArea className="flex-1">
-                <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
+                <div className="p-4 sm:p-5 space-y-4 sm:space-y-5">
 
                   {/* AI-optional briefing — derived facts render with no AI call */}
                   <BillBriefing
@@ -452,35 +452,30 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                     </div>
                   ) : null}
 
-                  {/* Bill details grid */}
+                  {/* Bill details */}
                   <div className="space-y-4">
                     <div>
                       <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Description</h3>
                       <p className="text-sm leading-relaxed">{billDetails?.description || bill.description}</p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Committees</h3>
-                        <p className="text-sm">{billDetails?.committee_assignment || bill.committee_assignment || 'Not Assigned'}</p>
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Introducers</h3>
-                        <p className="text-sm">{billDetails?.introducer || 'N/A'}</p>
-                      </div>
+                    <div>
+                      <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Introducers</h3>
+                      <p className="text-sm">{billDetails?.introducer || 'N/A'}</p>
                     </div>
                   </div>
 
-                  {/* Tags */}
-                  <div>
-                    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Tags</h3>
-                    <TagSelector billId={bill.id} />
-                  </div>
-
-                  {/* Committees */}
+                  {/* Committees (the directory shows codes + full names, so the
+                      old raw "committee_assignment" details field is dropped) */}
                   <div>
                     <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Committees</h3>
                     <CommitteeContacts bill={billForPanels} />
+                  </div>
+
+                  {/* Tags — below committees */}
+                  <div>
+                    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Tags</h3>
+                    <TagSelector billId={bill.id} />
                   </div>
 
                   {/* Tracked By */}
