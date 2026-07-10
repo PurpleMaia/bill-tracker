@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, todayHawaii } from '@/lib/utils';
-import { FileText, Loader2, ExternalLink, Clock, PenLine } from 'lucide-react';
+import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
@@ -293,25 +293,38 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
             )}
           </div>
 
-          {/* Tab row — bigger tabs on the left, the source link on the right */}
-          <div className="mt-3 flex items-end justify-between gap-3">
-            <div className="inline-flex rounded-lg bg-muted p-1">
-              {(['overview', 'versions'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={cn(
-                    'rounded-md px-4 py-1.5 text-sm font-medium transition-colors',
-                    activeTab === tab
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {tab === 'overview' ? 'Overview' : 'Versions & Reports'}
-                </button>
-              ))}
-            </div>
+          {/* Tab row — sub-nav styling (light-gray pill, dark-teal active),
+              matching the main header's sub-nav; source link on the right */}
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <nav
+              aria-label="Bill views"
+              className="inline-flex h-10 items-center rounded-md bg-secondary p-1 shadow-sm"
+            >
+              {([
+                { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+                { id: 'versions', label: 'Versions & Reports', icon: Files },
+              ] as const).map(({ id, label, icon: Icon }) => {
+                const active = activeTab === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActiveTab(id)}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background',
+                      active
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-secondary-foreground hover:bg-white/50',
+                    )}
+                  >
+                    <Icon className="h-4 w-4 mr-2" />
+                    {label}
+                  </button>
+                );
+              })}
+            </nav>
             {billDetails?.bill_url && (
               <a
                 href={billDetails.bill_url}
