@@ -24,11 +24,7 @@ export function ActiveBoardIdentity() {
       >
         {initials}
       </div>
-      <div className="leading-tight">
-        <p className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-white/80">
-          <Eye className="h-3 w-3" />
-          Viewing
-        </p>
+      <div className="leading-tight">    
         <p className="max-w-[12rem] truncate text-sm font-semibold">{current.name}</p>
       </div>
     </div>
