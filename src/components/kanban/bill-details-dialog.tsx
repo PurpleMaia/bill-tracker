@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Progress } from "@/components/ui/progress";
 import { cn, todayHawaii } from '@/lib/utils';
 import { FileText, Loader2, ExternalLink, Clock, PenLine } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -33,7 +32,7 @@ import { toast } from '@/hooks/use-toast';
 import { updateBillStatus, updateBillDeadFlag } from '@/db/queries/bills-write';
 import { getBillDetails } from '@/db/queries/bills-read';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
 import { BillBriefing } from './bill-briefing';
@@ -221,7 +220,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
         <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <DialogTitle className="text-lg font-semibold tracking-tight">
                   {bill.bill_number}
                 </DialogTitle>
@@ -231,6 +230,25 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                 {fiscal && (
                   <Badge variant="secondary" className="text-[10px] h-5">Fiscal</Badge>
                 )}
+                {/* Tab switcher lives in the title row to save vertical space.
+                    Drives the same `activeTab` state the body Tabs are controlled by. */}
+                <div className="ml-1 inline-flex rounded-md bg-muted p-0.5">
+                  {(['overview', 'versions'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      className={cn(
+                        'rounded px-2.5 py-1 text-xs font-medium transition-colors',
+                        activeTab === tab
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground',
+                      )}
+                    >
+                      {tab === 'overview' ? 'Overview' : 'Versions & Reports'}
+                    </button>
+                  ))}
+                </div>
               </div>
               <DialogDescription className="text-sm text-muted-foreground line-clamp-2 sm:line-clamp-1">
                 {bill.bill_title}
@@ -293,25 +311,6 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
               </TooltipProvider>
             )}
           </div>
-
-          {/* Progress bar */}
-          <div className="mt-3">
-            <TooltipProvider delayDuration={100}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Progress value={progressValue} className="w-full h-1.5" />
-                </TooltipTrigger>
-                <TooltipContent><p>{currentStageName} ({Math.round(progressValue)}%)</p></TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            {/* Full stage labels on desktop; single current-stage label on mobile */}
-            <div className="hidden sm:flex justify-between text-[10px] text-muted-foreground mt-1">
-              {PROGRESS_STAGES.map(s => <span key={s.name}>{s.name}</span>)}
-            </div>
-            <div className="sm:hidden text-[10px] text-muted-foreground mt-1">
-              {currentStageName}
-            </div>
-          </div>
         </DialogHeader>
 
         {/* Body — split layout */}
@@ -345,6 +344,9 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                   <BillBriefing
                     bill={billDetails ?? (bill as BillDetails)}
                     today={today}
+                    progressValue={progressValue}
+                    progressStages={PROGRESS_STAGES.map(s => s.name)}
+                    currentStageName={currentStageName}
                     onNextStep={(action) => {
                       if (action === 'diff' || action === 'reports') setActiveTab('versions');
                       else if (action === 'testimony') { onClose(); router.push(`/bills/${bill.id}/testimony`); }
@@ -574,17 +576,14 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
               return (
                 <>
                   <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'overview' | 'versions')} className="flex-1 flex flex-col min-h-0">
-                    <TabsList className="mx-4 mt-3 shrink-0 grid grid-cols-2">
-                      <TabsTrigger value="overview">Overview</TabsTrigger>
-                      <TabsTrigger value="versions">Versions &amp; Reports</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="overview" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden overflow-auto">
+                    {/* Tab switcher lives in the dialog header */}
+                    <TabsContent value="overview" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden overflow-auto">
                       <div className="flex flex-col">
                         {leftPanel}
                         {activityPanel}
                       </div>
                     </TabsContent>
-                    <TabsContent value="versions" className="flex-1 min-h-0 mt-2 flex flex-col data-[state=inactive]:hidden">
+                    <TabsContent value="versions" className="flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden">
                       <VersionsReportsTab versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
                     </TabsContent>
                   </Tabs>
@@ -620,11 +619,8 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
 
             return (
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'overview' | 'versions')} className="flex-1 flex flex-col min-h-0">
-                <TabsList className="mx-6 mt-3 w-fit shrink-0">
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="versions">Versions &amp; Reports</TabsTrigger>
-                </TabsList>
-                <TabsContent value="overview" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
+                {/* Tab switcher lives in the dialog header */}
+                <TabsContent value="overview" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
                   <div className="flex h-full min-h-0">
                     {leftPanel}
                     <div className="flex flex-col bg-muted/20 min-h-0 w-[45%]">
@@ -632,7 +628,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                     </div>
                   </div>
                 </TabsContent>
-                <TabsContent value="versions" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
+                <TabsContent value="versions" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
                   <VersionsReportsTab versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
                 </TabsContent>
               </Tabs>

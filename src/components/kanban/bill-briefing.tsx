@@ -5,6 +5,8 @@ import type { BillDetails } from '@/types/legislation';
 import { deriveBriefingFacts } from '@/lib/bill-briefing-facts';
 import { stubBriefingNarrative } from './ai-stub';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Sparkles, Loader2, PenLine, GitCompare, ScrollText, Clock, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -13,10 +15,16 @@ const STEP_ICON = { testimony: PenLine, diff: GitCompare, reports: ScrollText } 
 export function BillBriefing({
   bill,
   today,
+  progressValue,
+  progressStages,
+  currentStageName,
   onNextStep,
 }: {
   bill: BillDetails;
   today: string;
+  progressValue: number;
+  progressStages: string[];
+  currentStageName: string;
   onNextStep: (a: 'testimony' | 'diff' | 'reports') => void;
 }) {
   const facts = deriveBriefingFacts(bill, today);
@@ -46,6 +54,22 @@ export function BillBriefing({
           {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
           {narrative ? 'Regenerate' : 'Summarize with AI'}
         </Button>
+      </div>
+
+      {/* Progress through the legislative pipeline */}
+      <div>
+        <TooltipProvider delayDuration={100}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Progress value={progressValue} className="w-full h-1.5" />
+            </TooltipTrigger>
+            <TooltipContent><p>{currentStageName} ({Math.round(progressValue)}%)</p></TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <div className="hidden sm:flex justify-between text-[10px] text-muted-foreground mt-1">
+          {progressStages.map((s) => <span key={s}>{s}</span>)}
+        </div>
+        <div className="sm:hidden text-[10px] text-muted-foreground mt-1">{currentStageName}</div>
       </div>
 
       {/* Optional AI narrative */}
