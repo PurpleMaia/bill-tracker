@@ -45,7 +45,7 @@ export function ActiveBoardsSubNav({
             title={compact ? label : undefined}
             className={cn(
               'inline-flex items-center justify-center whitespace-nowrap rounded-sm py-1.5 text-sm font-medium transition-all',
-              compact ? 'px-2' : 'px-3',
+              compact ? 'px-3' : 'px-3',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background',
               active
                 ? 'bg-primary text-white shadow-sm'
