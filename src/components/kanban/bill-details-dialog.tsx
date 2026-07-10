@@ -36,7 +36,9 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
-import { BillVersionsPanel } from './bill-versions-panel';
+import { BillBriefing } from './bill-briefing';
+import { CommitteeContacts } from './committee-contacts';
+import { VersionsReportsTab } from './versions-reports-tab';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/dead-bill';
 import type { SessionDeadlines } from '@/lib/dead-bill';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony-eligibility';
@@ -87,6 +89,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
   const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState<boolean>(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'versions'>('overview');
 
   const bill = useMemo(() => bills.find(b => b.id === billID), [bills, billID]);
 
@@ -336,6 +339,16 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
               <ScrollArea className="flex-1">
                 <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
 
+                  {/* AI-optional briefing — derived facts render with no AI call */}
+                  <BillBriefing
+                    bill={billDetails ?? (bill as BillDetails)}
+                    today={today}
+                    onNextStep={(action) => {
+                      if (action === 'diff' || action === 'reports') setActiveTab('versions');
+                      else if (action === 'testimony') { onClose(); router.push(`/bills/${bill.id}/testimony`); }
+                    }}
+                  />
+
                   {/* Dead / Deadline alert */}
                   {bill.dead ? (
                     <div className="rounded-lg border border-red-200 bg-red-50 p-4">
@@ -441,6 +454,12 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                   <div>
                     <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Tags</h3>
                     <TagSelector billId={bill.id} />
+                  </div>
+
+                  {/* Committees */}
+                  <div>
+                    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Committees</h3>
+                    <CommitteeContacts bill={billDetails ?? (bill as BillDetails)} />
                   </div>
 
                   {/* Tracked By */}
@@ -549,59 +568,22 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
             </div>
             );
 
-            const versionsPanel = (
-              <BillVersionsPanel
-                versions={billDetails?.versions ?? []}
-                reports={billDetails?.reports ?? []}
-              />
-            );
-
-            const rightPanel = (
-            <div className={cn("flex flex-col bg-muted/20 min-h-0", isMobile ? "h-full" : "w-[45%]")}>
-              <Tabs defaultValue="activity" className="flex-1 flex flex-col min-h-0">
-                <TabsList className="mx-4 mt-3 shrink-0 grid grid-cols-2">
-                  <TabsTrigger value="activity">
-                    Activity
-                    {billDetails?.updates && billDetails.updates.length > 0 && (
-                      <span className="ml-1 text-muted-foreground/70">({billDetails.updates.length})</span>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="versions">
-                    Versions &amp; Reports
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="activity" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
-                  {activityPanel}
-                </TabsContent>
-                <TabsContent value="versions" className="flex-1 min-h-0 mt-2 flex flex-col data-[state=inactive]:hidden">
-                  {versionsPanel}
-                </TabsContent>
-              </Tabs>
-            </div>
-            );
-
             if (isMobile) {
               return (
                 <>
-                  <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-                    <TabsList className="mx-4 mt-3 shrink-0 grid grid-cols-3">
-                      <TabsTrigger value="details">Details</TabsTrigger>
-                      <TabsTrigger value="activity">
-                        Activity
-                        {billDetails?.updates && billDetails.updates.length > 0 && (
-                          <span className="ml-1 text-muted-foreground/70">({billDetails.updates.length})</span>
-                        )}
-                      </TabsTrigger>
-                      <TabsTrigger value="versions">Versions</TabsTrigger>
+                  <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'overview' | 'versions')} className="flex-1 flex flex-col min-h-0">
+                    <TabsList className="mx-4 mt-3 shrink-0 grid grid-cols-2">
+                      <TabsTrigger value="overview">Overview</TabsTrigger>
+                      <TabsTrigger value="versions">Versions &amp; Reports</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="details" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
-                      {leftPanel}
-                    </TabsContent>
-                    <TabsContent value="activity" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
-                      {activityPanel}
+                    <TabsContent value="overview" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden overflow-auto">
+                      <div className="flex flex-col">
+                        {leftPanel}
+                        {activityPanel}
+                      </div>
                     </TabsContent>
                     <TabsContent value="versions" className="flex-1 min-h-0 mt-2 flex flex-col data-[state=inactive]:hidden">
-                      {versionsPanel}
+                      <VersionsReportsTab versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
                     </TabsContent>
                   </Tabs>
 
@@ -635,10 +617,23 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
             }
 
             return (
-              <div className="flex-1 flex min-h-0">
-                {leftPanel}
-                {rightPanel}
-              </div>
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'overview' | 'versions')} className="flex-1 flex flex-col min-h-0">
+                <TabsList className="mx-6 mt-3 w-fit shrink-0">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="versions">Versions &amp; Reports</TabsTrigger>
+                </TabsList>
+                <TabsContent value="overview" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
+                  <div className="flex h-full min-h-0">
+                    {leftPanel}
+                    <div className="flex flex-col bg-muted/20 min-h-0 w-[45%]">
+                      {activityPanel}
+                    </div>
+                  </div>
+                </TabsContent>
+                <TabsContent value="versions" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
+                  <VersionsReportsTab versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
+                </TabsContent>
+              </Tabs>
             );
           })()
         )}
