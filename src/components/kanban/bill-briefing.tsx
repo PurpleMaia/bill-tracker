@@ -1,13 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import type { BillDetails } from '@/types/legislation';
 import { deriveBriefingFacts } from '@/lib/bill-briefing-facts';
-import { stubBriefingNarrative } from './ai-stub';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Sparkles, Loader2, PenLine, GitCompare, ScrollText, Clock, AlertTriangle } from 'lucide-react';
+import { PenLine, GitCompare, ScrollText, Clock, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const STEP_ICON = { testimony: PenLine, diff: GitCompare, reports: ScrollText } as const;
@@ -15,6 +13,8 @@ const STEP_ICON = { testimony: PenLine, diff: GitCompare, reports: ScrollText } 
 export function BillBriefing({
   bill,
   today,
+  dead,
+  deadReason,
   progressValue,
   progressStages,
   currentStageName,
@@ -22,38 +22,19 @@ export function BillBriefing({
 }: {
   bill: BillDetails;
   today: string;
+  dead: boolean;
+  deadReason: string | null;
   progressValue: number;
   progressStages: string[];
   currentStageName: string;
   onNextStep: (a: 'testimony' | 'diff' | 'reports') => void;
 }) {
   const facts = deriveBriefingFacts(bill, today);
-  const [narrative, setNarrative] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function summarize() {
-    setLoading(true);
-    try {
-      setNarrative(await stubBriefingNarrative(bill));
-    } finally {
-      setLoading(false);
-    }
-  }
 
   return (
     <div className="rounded-lg border bg-card p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Bill briefing</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={summarize}
-          disabled={loading}
-          className="h-7 gap-1 border-olive-dark/40 px-2 text-xs text-olive-dark"
-        >
-          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-          {narrative ? 'Regenerate' : 'Summarize with AI'}
-        </Button>
       </div>
 
       {/* Progress through the legislative pipeline */}
@@ -72,13 +53,6 @@ export function BillBriefing({
         <div className="sm:hidden text-[10px] text-muted-foreground mt-1">{currentStageName}</div>
       </div>
 
-      {/* Optional AI narrative */}
-      {narrative && (
-        <div className="rounded-md border border-olive-dark/40 bg-olive-soft/40 p-2.5">
-          <p className="text-[12.5px] leading-relaxed text-foreground/80">{narrative}</p>
-        </div>
-      )}
-
       {/* Derived — always shown, no AI */}
       <div
         className={cn(
@@ -95,9 +69,13 @@ export function BillBriefing({
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <div className="rounded-md border p-2.5">
-          <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Where it stands</h4>
-          <p className="text-[12px] text-foreground/80">{facts.standing}</p>
+        <div className={cn('rounded-md border p-2.5', dead && 'border-red-300 bg-red-50')}>
+          <h4 className={cn('mb-1 text-[10px] font-semibold uppercase tracking-wide', dead ? 'text-red-700' : 'text-primary')}>
+            {dead ? 'Bill failed' : 'Where it stands'}
+          </h4>
+          <p className={cn('text-[12px]', dead ? 'text-red-600' : 'text-foreground/80')}>
+            {dead ? (deadReason ?? 'This bill is no longer moving.') : facts.standing}
+          </p>
         </div>
         <div className="rounded-md border p-2.5">
           <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Latest version</h4>

@@ -230,25 +230,6 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                 {fiscal && (
                   <Badge variant="secondary" className="text-[10px] h-5">Fiscal</Badge>
                 )}
-                {/* Tab switcher lives in the title row to save vertical space.
-                    Drives the same `activeTab` state the body Tabs are controlled by. */}
-                <div className="ml-1 inline-flex rounded-md bg-muted p-0.5">
-                  {(['overview', 'versions'] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setActiveTab(tab)}
-                      className={cn(
-                        'rounded px-2.5 py-1 text-xs font-medium transition-colors',
-                        activeTab === tab
-                          ? 'bg-background text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground',
-                      )}
-                    >
-                      {tab === 'overview' ? 'Overview' : 'Versions & Reports'}
-                    </button>
-                  ))}
-                </div>
               </div>
               <DialogDescription className="text-sm text-muted-foreground line-clamp-2 sm:line-clamp-1">
                 {bill.bill_title}
@@ -311,6 +292,38 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
               </TooltipProvider>
             )}
           </div>
+
+          {/* Tab row — bigger tabs on the left, the source link on the right */}
+          <div className="mt-3 flex items-end justify-between gap-3">
+            <div className="inline-flex rounded-lg bg-muted p-1">
+              {(['overview', 'versions'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  className={cn(
+                    'rounded-md px-4 py-1.5 text-sm font-medium transition-colors',
+                    activeTab === tab
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {tab === 'overview' ? 'Overview' : 'Versions & Reports'}
+                </button>
+              ))}
+            </div>
+            {billDetails?.bill_url && (
+              <a
+                href={billDetails.bill_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:inline-flex shrink-0 items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 hover:underline whitespace-nowrap"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                View on Hawaii State Legislature
+              </a>
+            )}
+          </div>
         </DialogHeader>
 
         {/* Body — split layout */}
@@ -344,6 +357,8 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                   <BillBriefing
                     bill={billDetails ?? (bill as BillDetails)}
                     today={today}
+                    dead={bill.dead}
+                    deadReason={deadReason}
                     progressValue={progressValue}
                     progressStages={PROGRESS_STAGES.map(s => s.name)}
                     currentStageName={currentStageName}
@@ -353,37 +368,26 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                     }}
                   />
 
-                  {/* Dead / Deadline alert */}
+                  {/* Deadline alert (dead state is shown in the briefing's
+                      "Bill failed" cell). Admins get a compact dead/alive toggle. */}
                   {bill.dead ? (
-                    <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-sm text-red-700">Bill Failed</span>
-                          </div>
-                          {deadReason && (
-                            <p className="text-xs text-red-600">{deadReason}</p>
-                          )}
-                        </div>
-                        {canSeeTracking && (
-                          <Switch
-                            checked={bill.dead}
-                            onCheckedChange={async (checked) => {
-                              try {
-                                await updateBillDeadFlag(bill.id, checked);
-                                updateBill(bill.id, { dead: checked });
-                                toast({
-                                  title: checked ? 'Marked Failed' : 'Marked Active',
-                                  description: `${bill.bill_number} updated.`,
-                                });
-                              } catch {
-                                toast({ title: 'Error', description: 'Failed to update.', variant: 'destructive' });
-                              }
-                            }}
-                          />
-                        )}
+                    canSeeTracking ? (
+                      <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50/60 px-4 py-2.5">
+                        <span className="text-xs font-medium text-red-700">Marked failed</span>
+                        <Switch
+                          checked={bill.dead}
+                          onCheckedChange={async (checked) => {
+                            try {
+                              await updateBillDeadFlag(bill.id, checked);
+                              updateBill(bill.id, { dead: checked });
+                              toast({ title: checked ? 'Marked Failed' : 'Marked Active', description: `${bill.bill_number} updated.` });
+                            } catch {
+                              toast({ title: 'Error', description: 'Failed to update.', variant: 'destructive' });
+                            }
+                          }}
+                        />
                       </div>
-                    </div>
+                    ) : null
                   ) : nextDeadline ? (
                     <div className={cn(
                       "rounded-lg border p-4",
@@ -440,18 +444,6 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                         <p className="text-sm">{billDetails?.introducer || 'N/A'}</p>
                       </div>
                     </div>
-
-                    {billDetails?.bill_url && (
-                      <a
-                        href={billDetails.bill_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        View on Hawaii State Legislature
-                      </a>
-                    )}
                   </div>
 
                   {/* Tags */}
