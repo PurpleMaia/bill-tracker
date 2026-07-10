@@ -118,6 +118,17 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
 
   if (!bill) return null;
 
+  // Panels expect a BillDetails with `versions`/`reports` arrays. Before
+  // getBillDetails resolves, only the plain `bill` (from the list) is available
+  // — it has no versions/reports — so normalize to guaranteed-array fields to
+  // avoid "versions is not iterable" during the pre-load render.
+  const billForPanels: BillDetails = {
+    ...(bill as BillDetails),
+    ...(billDetails ?? {}),
+    versions: billDetails?.versions ?? [],
+    reports: billDetails?.reports ?? [],
+  };
+
   const currentStatus = billDetails?.current_bill_status || bill.current_bill_status;
   const progressValue = getProgressValue(currentStatus as BillStatus);
   const currentStageName = getCurrentStageName(currentStatus as BillStatus);
@@ -368,7 +379,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
 
                   {/* AI-optional briefing — derived facts render with no AI call */}
                   <BillBriefing
-                    bill={billDetails ?? (bill as BillDetails)}
+                    bill={billForPanels}
                     today={today}
                     dead={bill.dead}
                     deadReason={deadReason}
@@ -468,7 +479,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                   {/* Committees */}
                   <div>
                     <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Committees</h3>
-                    <CommitteeContacts bill={billDetails ?? (bill as BillDetails)} />
+                    <CommitteeContacts bill={billForPanels} />
                   </div>
 
                   {/* Tracked By */}

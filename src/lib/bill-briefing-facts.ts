@@ -70,7 +70,10 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
     }
   }
 
-  const sorted = sortVersions(bill.versions);
+  // Tolerate a bill whose versions/reports haven't loaded yet (plain Bill).
+  const versions = Array.isArray(bill.versions) ? bill.versions : [];
+  const reports = Array.isArray(bill.reports) ? bill.reports : [];
+  const sorted = sortVersions(versions);
   const latest = sorted.length > 0 ? sorted[sorted.length - 1] : null;
   const committeeCodes = parseCommitteeCodes(committeeAssignment);
 
@@ -78,11 +81,11 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   if (testimony.open) {
     nextSteps.push({ text: 'Write and submit testimony on this bill.', action: 'testimony' });
   }
-  if (bill.versions.length >= 2) {
+  if (versions.length >= 2) {
     nextSteps.push({ text: 'Compare the two most recent drafts to see what changed.', action: 'diff' });
   }
-  if (bill.reports.length > 0) {
-    nextSteps.push({ text: `Review the ${bill.reports.length} committee report(s).`, action: 'reports' });
+  if (reports.length > 0) {
+    nextSteps.push({ text: `Review the ${reports.length} committee report(s).`, action: 'reports' });
   }
 
   return {
@@ -91,7 +94,7 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
     latestVersionLabel: latest?.label ?? null,
     latestVersionHtml: latest?.htmlLink ?? null,
     committeeCodes,
-    reportCount: bill.reports.length,
+    reportCount: reports.length,
     nextSteps,
   };
 }

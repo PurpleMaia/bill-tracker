@@ -77,6 +77,13 @@ describe('sortVersions', () => {
     sortVersions(input);
     expect(input.map((x) => x.label)).toEqual(before);
   });
+
+  it('tolerates a non-array (undefined/null) without throwing', () => {
+    // A bill loaded from the list (plain Bill) has no `versions` field, so
+    // callers may pass undefined during the pre-load render.
+    expect(sortVersions(undefined as unknown as never)).toEqual([]);
+    expect(sortVersions(null as unknown as never)).toEqual([]);
+  });
 });
 
 describe('groupReportsByVersion', () => {

@@ -75,6 +75,11 @@ export function parseVersionLabel(label: string): ParsedVersion {
  * stable and deterministic.
  */
 export function sortVersions(versions: BillVersion[]): BillVersion[] {
+  // Defensive: callers may pass a bill that hasn't loaded its versions yet
+  // (a plain Bill from the list has no `versions` field), so tolerate a
+  // non-array rather than throwing "versions is not iterable".
+  if (!Array.isArray(versions)) return [];
+
   // Rank of a draft kind, given the bill's chamber of origin. Origin-chamber
   // drafts come before the other chamber's; conference drafts come last.
   const draftRank = (p: ParsedVersion): number => {
@@ -135,10 +140,12 @@ export function groupReportsByVersion(
   versions: BillVersion[],
   reports: CommitteeReport[],
 ): { groups: VersionGroup[]; orphanReports: CommitteeReport[] } {
+  // Defensive: tolerate not-yet-loaded (non-array) inputs.
+  const safeReports = Array.isArray(reports) ? reports : [];
   const byLabel = new Map<string, CommitteeReport[]>();
   const orphanReports: CommitteeReport[] = [];
 
-  for (const report of reports) {
+  for (const report of safeReports) {
     const versionLabel = parseVersionLabelFromReport(report.label);
     if (versionLabel === null) {
       orphanReports.push(report);
