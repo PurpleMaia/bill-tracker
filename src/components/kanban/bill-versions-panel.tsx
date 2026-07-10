@@ -1,50 +1,28 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { BillVersion, CommitteeReport } from '@/types/legislation';
 import { groupReportsByVersion } from '@/lib/bill-versions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ReadTextButton } from './version-text-viewer';
-import { ReportSummary } from './report-summary';
-import { BillTextSidePanel, type BillTextView } from './bill-text-side-panel';
+import { SummarySection } from './report-summary';
 import { VersionDiffInline } from './version-diff-inline';
 import { FileText, ExternalLink, ScrollText } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 function LinkButtons({ htmlLink, pdfLink }: { htmlLink: string | null; pdfLink: string | null }) {
-  if (!htmlLink && !pdfLink) return null;
+  const href = pdfLink ?? htmlLink;
+  if (!href) return null;
   return (
-    <div className="flex items-center gap-1.5">
-      {htmlLink && (
-        <Button asChild variant="outline" size="sm" className="h-7 px-2 text-xs">
-          <a href={htmlLink} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="mr-1 h-3 w-3" /> HTML
-          </a>
-        </Button>
-      )}
-      {pdfLink && (
-        <Button asChild variant="outline" size="sm" className="h-7 px-2 text-xs">
-          <a href={pdfLink} target="_blank" rel="noopener noreferrer">
-            <FileText className="mr-1 h-3 w-3" /> PDF
-          </a>
-        </Button>
-      )}
-    </div>
+    <Button asChild variant="outline" size="sm" className="h-7 px-2 text-xs shrink-0">
+      <a href={href} target="_blank" rel="noopener noreferrer">
+        <ExternalLink className="mr-1 h-3 w-3" /> View
+      </a>
+    </Button>
   );
 }
 
-function reportTextView(report: CommitteeReport): BillTextView {
-  return {
-    title: report.reportCode ?? report.label,
-    subtitle: 'Committee report',
-    text: report.originalText ?? '',
-    htmlLink: report.htmlLink,
-  };
-}
-
-function ReportRow({ report, onRead }: { report: CommitteeReport; onRead: (v: BillTextView) => void }) {
+function ReportRow({ report }: { report: CommitteeReport }) {
   return (
     <div className="rounded-md border border-border/60 bg-card/60 p-2.5">
       <div className="flex items-center justify-between gap-2">
@@ -54,23 +32,16 @@ function ReportRow({ report, onRead }: { report: CommitteeReport; onRead: (v: Bi
         </div>
         <LinkButtons htmlLink={report.htmlLink} pdfLink={report.pdfLink} />
       </div>
-      {report.originalText && (
-        <div className="mt-1 space-y-1">
-          <ReadTextButton label="Read report" onClick={() => onRead(reportTextView(report))} />
-          <ReportSummary text={report.originalText} existingSummary={report.aiSummary} />
-        </div>
-      )}
+      <div className="mt-1.5">
+        <SummarySection
+          text={report.originalText ?? ''}
+          existingSummary={report.aiSummary}
+          viewButtons={<LinkButtons htmlLink={report.htmlLink} pdfLink={report.pdfLink} />}
+          noun="committee report"
+        />
+      </div>
     </div>
   );
-}
-
-function versionTextView(version: BillVersion, isLatest: boolean): BillTextView {
-  return {
-    title: version.label,
-    subtitle: isLatest ? 'Bill text · current version' : 'Bill text',
-    text: version.originalText ?? '',
-    htmlLink: version.htmlLink,
-  };
 }
 
 export function BillVersionsPanel({ versions, reports }: { versions: BillVersion[]; reports: CommitteeReport[] }) {
@@ -78,7 +49,6 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
     () => groupReportsByVersion(versions, reports),
     [versions, reports],
   );
-  const [textView, setTextView] = useState<BillTextView | null>(null);
 
   if (versions.length === 0 && reports.length === 0) {
     return (
@@ -119,17 +89,17 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
                     <span className="text-sm font-semibold">{latestVersion.label}</span>
                     <LinkButtons htmlLink={latestVersion.htmlLink} pdfLink={latestVersion.pdfLink} />
                   </div>
-                  <p className="text-[11px] leading-relaxed text-muted-foreground">
-                    {latestVersion.aiSummary ?? 'No summary yet — open the full text to read this version.'}
-                  </p>
-                  {latestVersion.originalText && (
-                    <ReadTextButton onClick={() => setTextView(versionTextView(latestVersion, true))} />
-                  )}
+                  <SummarySection
+                    text={latestVersion.originalText ?? ''}
+                    existingSummary={latestVersion.aiSummary}
+                    viewButtons={<LinkButtons htmlLink={latestVersion.htmlLink} pdfLink={latestVersion.pdfLink} />}
+                    noun="version"
+                  />
                 </div>
               )}
 
               {latestReport && (
-                <div className={cn('space-y-1.5', latestVersion && 'border-t pt-2.5')}>
+                <div className={latestVersion ? 'space-y-1.5 border-t pt-2.5' : 'space-y-1.5'}>
                   <div className="flex items-center gap-1.5">
                     <ScrollText className="h-3.5 w-3.5 text-primary" />
                     <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Latest committee report</h4>
@@ -138,12 +108,12 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
                     <span className="text-sm font-semibold">{latestReport.reportCode ?? latestReport.label}</span>
                     <LinkButtons htmlLink={latestReport.htmlLink} pdfLink={latestReport.pdfLink} />
                   </div>
-                  {latestReport.originalText && (
-                    <div className="space-y-1">
-                      <ReadTextButton label="Read report" onClick={() => setTextView(reportTextView(latestReport))} />
-                      <ReportSummary text={latestReport.originalText} existingSummary={latestReport.aiSummary} />
-                    </div>
-                  )}
+                  <SummarySection
+                    text={latestReport.originalText ?? ''}
+                    existingSummary={latestReport.aiSummary}
+                    viewButtons={<LinkButtons htmlLink={latestReport.htmlLink} pdfLink={latestReport.pdfLink} />}
+                    noun="committee report"
+                  />
                 </div>
               )}
             </div>
@@ -171,14 +141,14 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
                       </div>
                       <LinkButtons htmlLink={group.version.htmlLink} pdfLink={group.version.pdfLink} />
                     </div>
-                    {group.version.aiSummary && (
-                      <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{group.version.aiSummary}</p>
-                    )}
-                    {group.version.originalText && (
-                      <div className="mt-1">
-                        <ReadTextButton onClick={() => setTextView(versionTextView(group.version, isLatest))} />
-                      </div>
-                    )}
+                    <div className="mt-1.5">
+                      <SummarySection
+                        text={group.version.originalText ?? ''}
+                        existingSummary={group.version.aiSummary}
+                        viewButtons={<LinkButtons htmlLink={group.version.htmlLink} pdfLink={group.version.pdfLink} />}
+                        noun="version"
+                      />
+                    </div>
                     {previous && group.version.originalText && previous.originalText && (
                       <div className="mt-1">
                         <VersionDiffInline older={previous} newer={group.version} />
@@ -187,7 +157,7 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
                     {group.reports.length > 0 && (
                       <div className="mt-2 space-y-1.5">
                         {group.reports.map((report) => (
-                          <ReportRow key={report.id} report={report} onRead={setTextView} />
+                          <ReportRow key={report.id} report={report} />
                         ))}
                       </div>
                     )}
@@ -201,7 +171,7 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
                 <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Other reports</h4>
                 <div className="space-y-1.5">
                   {orphanReports.map((report) => (
-                    <ReportRow key={report.id} report={report} onRead={setTextView} />
+                    <ReportRow key={report.id} report={report} />
                   ))}
                 </div>
               </div>
@@ -209,8 +179,6 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
           </div>
         </div>
       </ScrollArea>
-
-      <BillTextSidePanel view={textView} onClose={() => setTextView(null)} />
     </div>
   );
 }
