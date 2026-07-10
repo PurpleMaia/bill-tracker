@@ -3,8 +3,8 @@
 // called directly from a client, so they need no server-action boundary — and
 // keeping them plain lets the module export the AdditionalBillData type.
 
-import type { Bill, BillTracker, Tag, BillDetails, StatusUpdate } from '@/types/legislation';
-import { Bills, StatusUpdates } from '@/db/types';
+import type { Bill, BillTracker, Tag, BillDetails, StatusUpdate, BillVersion, CommitteeReport } from '@/types/legislation';
+import { Bills, StatusUpdates, BillVersions, CommitteeReports } from '@/db/types';
 import { Selectable } from 'kysely';
 
 // ==============================================
@@ -18,6 +18,33 @@ export interface AdditionalBillData {
   trackedCount?: Record<string, number>;
   updates?: StatusUpdate[]; // For getBillDetails - direct updates array
   orgBillStatuses?: Record<string, string>; // org-scoped bill statuses keyed by bill_id
+  versions?: BillVersion[]; // For getBillDetails - direct versions array
+  reports?: CommitteeReport[]; // For getBillDetails - direct reports array
+}
+
+export function mapVersionRow(row: Selectable<BillVersions>): BillVersion {
+  return {
+    id: row.id,
+    label: row.label,
+    htmlLink: row.html_link,
+    pdfLink: row.pdf_link,
+    originalText: row.original_text,
+    aiSummary: row.ai_summary,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+  };
+}
+
+export function mapReportRow(row: Selectable<CommitteeReports>): CommitteeReport {
+  return {
+    id: row.id,
+    label: row.label,
+    reportCode: row.report_code,
+    htmlLink: row.html_link,
+    pdfLink: row.pdf_link,
+    originalText: row.original_text,
+    aiSummary: row.ai_summary,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+  };
 }
 
 interface BillData {
@@ -150,6 +177,8 @@ export async function convertDataToBillShape(
       food_related: bill.food_related ?? null,
       created_at: bill.created_at ?? null,
       updates: updates,
+      versions: additionalData?.versions ?? [],
+      reports: additionalData?.reports ?? [],
     } as BillDetails;
   }
 

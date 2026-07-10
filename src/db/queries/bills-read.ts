@@ -1,11 +1,11 @@
 'use server';
 
-import type { Bill, BillTracker, BillDetails, StatusUpdate } from '@/types/legislation';
+import type { Bill, BillTracker, BillDetails, StatusUpdate, BillVersion, CommitteeReport } from '@/types/legislation';
 import { db } from '@/db/kysely/client';
 import { StatusUpdates } from '@/db/types';
 import { Selectable, sql } from 'kysely';
 import { getBatchBillTags } from '@/db/queries/tags';
-import { mapBillDataToBillClient, convertDataToBillShape } from '@/db/queries/bill-mappers';
+import { mapBillDataToBillClient, convertDataToBillShape, mapVersionRow, mapReportRow } from '@/db/queries/bill-mappers';
 
 // ==============================================
 // BILL FETCH FUNCTIONS
@@ -260,6 +260,25 @@ export async function getAdditionalBillData(billIds: string[], includeTrackedBy:
 }
 
 /**
+ * Fetches all draft versions and committee reports for a bill, ordered oldest
+ * first by created_at. Backs the Versions & Reports panel in the bill dialog.
+ */
+export async function getBillVersionsAndReports(
+  billId: string,
+): Promise<{ versions: BillVersion[]; reports: CommitteeReport[] }> {
+  const [versionRows, reportRows] = await Promise.all([
+    db.selectFrom('bill_versions').selectAll().where('bill_id', '=', billId)
+      .orderBy('created_at', 'asc').execute(),
+    db.selectFrom('committee_reports').selectAll().where('bill_id', '=', billId)
+      .orderBy('created_at', 'asc').execute(),
+  ]);
+  return {
+    versions: versionRows.map(mapVersionRow),
+    reports: reportRows.map(mapReportRow),
+  };
+}
+
+/**
  * Fetches detailed bill information including status updates and extended metadata.
  * Used by BillDetailsDialog to get full bill information on-demand.
  *
@@ -281,13 +300,16 @@ export async function getBillDetails(billId: string): Promise<BillDetails> {
       throw new Error('Bill not found');
     }
 
-    const updates = await getStatusUpdatesForBill(billId);
-    console.log(`[BILL DETAILS] Found ${updates.length} status updates for bill ${billId.slice(0, 6)}`);
+    const [updates, { versions, reports }] = await Promise.all([
+      getStatusUpdatesForBill(billId),
+      getBillVersionsAndReports(billId),
+    ]);
+    console.log(`[BILL DETAILS] Found ${updates.length} status updates, ${versions.length} versions, ${reports.length} reports for bill ${billId.slice(0, 6)}`);
 
     // Use the generic converter with includeExtendedFields flag
     const billDetails = await convertDataToBillShape(
       bill,
-      { updates },
+      { updates, versions, reports },
       true  // includeExtendedFields = true to get BillDetails
     );
 
