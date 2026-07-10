@@ -182,7 +182,7 @@ function MyOrgCard() {
 
       <div className="mt-3 flex flex-col gap-5 sm:flex-row sm:items-start">
         {/* Identity + counts — 1/3 width */}
-        <div className="flex min-w-0 flex-col sm:basis-1/3">
+        <div className="flex min-w-0 flex-col sm:basis-2/3">
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold leading-tight">{displayName}</p>
             {org ? (
@@ -209,7 +209,7 @@ function MyOrgCard() {
         </div>
 
         {/* Bills-they-track preview — 2/3 width */}
-        <div className="min-w-0 sm:basis-2/3">
+        <div className="min-w-0 sm:basis-1/3">
           <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             Bills they track
           </p>

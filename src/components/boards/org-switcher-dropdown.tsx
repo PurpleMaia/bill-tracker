@@ -19,7 +19,11 @@ export function OrgSwitcherDropdown() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1 border-transparent bg-olive-dark text-white hover:bg-olive-dark/90 hover:text-white"
+        >
           <span className="max-w-[12rem] truncate">Viewing: {current?.name ?? 'Select org'}</span>
           <ChevronDown className="h-4 w-4" />
         </Button>
