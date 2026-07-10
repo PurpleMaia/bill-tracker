@@ -246,8 +246,54 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                 {bill.bill_title}
               </DialogDescription>
             </div>
-            {/* Desktop only — on mobile the testimony CTA lives in the sticky
-                bottom action bar where the thumb can reach it */}
+            {/* Source link — in line with the title, desktop only */}
+            {billDetails?.bill_url && (
+              <a
+                href={billDetails.bill_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:inline-flex shrink-0 items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 hover:underline whitespace-nowrap"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                View on Hawaii State Legislature
+              </a>
+            )}
+          </div>
+
+          {/* Tab row — sub-nav styling (light-gray pill, dark-teal active),
+              matching the main header's sub-nav; source link on the right */}
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <nav
+              aria-label="Bill views"
+              className="inline-flex h-10 items-center rounded-md bg-secondary p-1 shadow-sm"
+            >
+              {([
+                { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+                { id: 'versions', label: 'Versions & Reports', icon: Files },
+              ] as const).map(({ id, label, icon: Icon }) => {
+                const active = activeTab === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActiveTab(id)}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background',
+                      active
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-secondary-foreground hover:bg-white/50',
+                    )}
+                  >
+                    <Icon className="h-4 w-4 mr-2" />
+                    {label}
+                  </button>
+                );
+              })}
+            </nav>
+            {/* Write Testimony CTA — in line with the tabs, desktop only.
+                On mobile it lives in the sticky bottom action bar. */}
             {testimonyEligibility.allowed ? (
               <div className="hidden sm:flex shrink-0 items-center gap-2">
                 {testimonyUrgent && testimonyCountdown && (
@@ -301,51 +347,6 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-            )}
-          </div>
-
-          {/* Tab row — sub-nav styling (light-gray pill, dark-teal active),
-              matching the main header's sub-nav; source link on the right */}
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <nav
-              aria-label="Bill views"
-              className="inline-flex h-10 items-center rounded-md bg-secondary p-1 shadow-sm"
-            >
-              {([
-                { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-                { id: 'versions', label: 'Versions & Reports', icon: Files },
-              ] as const).map(({ id, label, icon: Icon }) => {
-                const active = activeTab === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setActiveTab(id)}
-                    aria-current={active ? 'page' : undefined}
-                    className={cn(
-                      'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background',
-                      active
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'text-secondary-foreground hover:bg-white/50',
-                    )}
-                  >
-                    <Icon className="h-4 w-4 mr-2" />
-                    {label}
-                  </button>
-                );
-              })}
-            </nav>
-            {billDetails?.bill_url && (
-              <a
-                href={billDetails.bill_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden sm:inline-flex shrink-0 items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 hover:underline whitespace-nowrap"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                View on Hawaii State Legislature
-              </a>
             )}
           </div>
         </DialogHeader>
