@@ -7,8 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ReadTextButton } from './version-text-viewer';
+import { ReportSummary } from './report-summary';
 import { BillTextSidePanel, type BillTextView } from './bill-text-side-panel';
-import { FileText, ExternalLink, Sparkles, ScrollText } from 'lucide-react';
+import { FileText, ExternalLink, ScrollText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function LinkButtons({ htmlLink, pdfLink }: { htmlLink: string | null; pdfLink: string | null }) {
@@ -33,6 +34,15 @@ function LinkButtons({ htmlLink, pdfLink }: { htmlLink: string | null; pdfLink: 
   );
 }
 
+function reportTextView(report: CommitteeReport): BillTextView {
+  return {
+    title: report.reportCode ?? report.label,
+    subtitle: 'Committee report',
+    text: report.originalText ?? '',
+    htmlLink: report.htmlLink,
+  };
+}
+
 function ReportRow({ report, onRead }: { report: CommitteeReport; onRead: (v: BillTextView) => void }) {
   return (
     <div className="rounded-md border border-border/60 bg-card/60 p-2.5">
@@ -43,22 +53,10 @@ function ReportRow({ report, onRead }: { report: CommitteeReport; onRead: (v: Bi
         </div>
         <LinkButtons htmlLink={report.htmlLink} pdfLink={report.pdfLink} />
       </div>
-      {report.aiSummary && (
-        <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">{report.aiSummary}</p>
-      )}
       {report.originalText && (
-        <div className="mt-1">
-          <ReadTextButton
-            label="Read report"
-            onClick={() =>
-              onRead({
-                title: report.reportCode ?? report.label,
-                subtitle: 'Committee report',
-                text: report.originalText ?? '',
-                htmlLink: report.htmlLink,
-              })
-            }
-          />
+        <div className="mt-1 space-y-1">
+          <ReadTextButton label="Read report" onClick={() => onRead(reportTextView(report))} />
+          <ReportSummary text={report.originalText} existingSummary={report.aiSummary} />
         </div>
       )}
     </div>
@@ -113,7 +111,7 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
               {latestVersion && (
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    <FileText className="h-3.5 w-3.5 text-primary" />
                     <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Latest version</h4>
                   </div>
                   <div className="flex items-center justify-between gap-2">
@@ -130,12 +128,21 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
               )}
 
               {latestReport && (
-                <div className={cn(latestVersion && 'border-t pt-2.5')}>
-                  <div className="mb-1.5 flex items-center gap-1.5">
+                <div className={cn('space-y-1.5', latestVersion && 'border-t pt-2.5')}>
+                  <div className="flex items-center gap-1.5">
                     <ScrollText className="h-3.5 w-3.5 text-primary" />
                     <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Latest committee report</h4>
                   </div>
-                  <ReportRow report={latestReport} onRead={setTextView} />
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold">{latestReport.reportCode ?? latestReport.label}</span>
+                    <LinkButtons htmlLink={latestReport.htmlLink} pdfLink={latestReport.pdfLink} />
+                  </div>
+                  {latestReport.originalText && (
+                    <div className="space-y-1">
+                      <ReadTextButton label="Read report" onClick={() => setTextView(reportTextView(latestReport))} />
+                      <ReportSummary text={latestReport.originalText} existingSummary={latestReport.aiSummary} />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
