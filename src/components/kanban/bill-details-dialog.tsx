@@ -125,6 +125,8 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
   const isInternInAllBillsView = user?.role === 'user' && viewMode === 'all-bills';
   const canEditBill = !isInternInAllBillsView;
   const canSeeTracking = boardMode !== 'active-boards' && activeTenant?.orgRole === 'admin';
+  // Only org admins may change a bill's org status; workers and public users don't see the control.
+  const canChangeStatus = activeTenant?.orgRole === 'admin';
 
   // Derive dead reason and deadline
   const committeeAssign = billDetails?.committee_assignment || bill.committee_assignment;
@@ -482,9 +484,9 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                 </div>
               </ScrollArea>
 
-              {/* Status change — pinned to bottom of left panel; org members only
-                  (org statuses are tenant-scoped, so public users have nothing to set) */}
-              {activeTenant && (
+              {/* Status change — pinned to bottom of left panel; org ADMINS only
+                  (org statuses are tenant-scoped; workers and public users don't set them) */}
+              {canChangeStatus && (
                 <div className="border-t p-4 shrink-0 bg-muted/30">
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Change Status</h3>
