@@ -15,7 +15,7 @@
 - **`src/lib/` is DB-free pure utilities** — the committees helper is pure.
 - **Client components call `data.*` / import helpers directly** — the diff wrapper is a plain (non-`'use server'`) module so client components run it directly (no server-action round-trip for a pure CPU op).
 - **A `'use server'` file may only export async functions** — keep shared types in plain modules.
-- **AI is STUBBED this pass** — Briefing, per-version/report summaries, compare "summarize changes", committee "draft note" all use one `ai-stub.ts` module returning labeled placeholders. Diffs are REAL.
+- **AI is OPTIONAL and STUBBED this pass** — the briefing's core is DERIVED (no AI, always shown); an optional "Summarize with AI", per-version/report summaries, and compare "summarize changes" use one `ai-stub.ts` module returning labeled placeholders. Diffs are REAL. No committee AI-draft.
 - **Olive marks AI features, teal marks primary actions, semantic red/green for diffs.** Tailwind exposes named olive utilities (`text-olive-dark`, `border-olive-dark`, `bg-olive-soft`, `bg-olive`) — prefer these over arbitrary `text-[hsl(var(--olive-dark))]` forms. Where a task's code shows the arbitrary form, substitute the named utility (e.g. `text-[hsl(var(--olive-dark))]` → `text-olive-dark`, `bg-[hsl(var(--olive-soft))]/40` → `bg-olive-soft/40`).
 - **Verification:** `npm test`/`pnpm test`, `npm run typecheck`, `npm run build` must pass (build catches `'use server'` violations). Use `npx vitest run <file>` for single-file test runs.
 - **Commit style:** prefixes `feat:`/`fix:`/`refactor:`/`docs:`. No `Co-Authored-By` lines.
@@ -24,7 +24,8 @@
 
 - `src/services/bill-diff.ts` (new) — wraps `hawaii-bill-diff`; `diffVersions()` → normalized `VersionDiff`.
 - `src/lib/committees.ts` (new) — `parseCommitteeCodes()` + static `COMMITTEE_DIRECTORY` placeholder.
-- `src/components/kanban/ai-stub.ts` (new) — `stubSummarize`, `stubBriefing`, `stubDraftNote`.
+- `src/lib/bill-briefing-facts.ts` (new) — pure `deriveBriefingFacts()` (no AI).
+- `src/components/kanban/ai-stub.ts` (new) — `stubSummarize`, `stubBriefingNarrative`.
 - `src/components/kanban/bill-briefing.tsx` (new) — Briefing card.
 - `src/components/kanban/committee-contacts.tsx` (new) — Committees & contacts block.
 - `src/components/kanban/version-diff-inline.tsx` (new) — inline "Diff vs previous" for Timeline.
@@ -322,22 +323,20 @@ git commit -m "feat: add committees helper with placeholder directory"
 - Create: `src/components/kanban/ai-stub.ts`
 
 **Interfaces:**
-- Consumes: `BillDetails` from `@/types/legislation`; `CommitteeMember` from `@/lib/committees`.
+- Consumes: `BillDetails` from `@/types/legislation`.
 - Produces:
   - `stubSummarize(text: string): Promise<string>`
-  - `interface BriefingResult { lede: string; details: string; latestVersion: string; committees: string; nextSteps: { text: string; action: 'testimony' | 'diff' | 'note' }[]; }`
-  - `stubBriefing(bill: BillDetails): Promise<BriefingResult>`
-  - `stubDraftNote(member: CommitteeMember, bill: BillDetails): Promise<string>`
+  - `stubBriefingNarrative(bill: BillDetails): Promise<string>`
 
 - [ ] **Step 1: Implement the module**
 
 Create `src/components/kanban/ai-stub.ts`:
 
 ```typescript
-// One place all AI features are stubbed. Swap these internals for real Genkit
-// calls later; the component API stays the same.
+// One place all OPTIONAL AI features are stubbed. Swap these internals for real
+// Genkit calls later; the component API stays the same. There is NO committee
+// AI-draft this pass.
 import type { BillDetails } from '@/types/legislation';
-import type { CommitteeMember } from '@/lib/committees';
 
 const STUB = '(placeholder — AI not wired yet)';
 
@@ -352,31 +351,11 @@ export function stubSummarize(text: string): Promise<string> {
   );
 }
 
-export interface BriefingResult {
-  lede: string;
-  details: string;
-  latestVersion: string;
-  committees: string;
-  nextSteps: { text: string; action: 'testimony' | 'diff' | 'note' }[];
-}
-
-export function stubBriefing(bill: BillDetails): Promise<BriefingResult> {
-  return delay({
-    lede: `${bill.bill_number} — an AI briefing of what this bill does and where it stands will appear here. ${STUB}`,
-    details: bill.description?.slice(0, 160) || 'Bill details summary.',
-    latestVersion: `Summary of the most recent version (${bill.versions.at(-1)?.label ?? 'n/a'}).`,
-    committees: `Summary of what the ${bill.reports.length} committee report(s) recommend.`,
-    nextSteps: [
-      { text: 'Submit testimony before the next hearing.', action: 'testimony' },
-      { text: 'Compare the two most recent drafts to see what changed.', action: 'diff' },
-      { text: 'Contact a committee chair about this bill.', action: 'note' },
-    ],
-  });
-}
-
-export function stubDraftNote(member: CommitteeMember, bill: BillDetails): Promise<string> {
+// A one-paragraph narrative that AUGMENTS the derived briefing facts. The
+// briefing renders fully without ever calling this.
+export function stubBriefingNarrative(bill: BillDetails): Promise<string> {
   return delay(
-    `Dear ${member.name},\n\nRe: ${bill.bill_number}. A drafted message about this bill will appear here once AI is connected. ${STUB}`,
+    `A plain-language narrative of ${bill.bill_number} — what it does, how it has changed, and what committees recommend — will appear here once AI is connected. ${STUB}`,
   );
 }
 ```
@@ -384,228 +363,389 @@ export function stubDraftNote(member: CommitteeMember, bill: BillDetails): Promi
 - [ ] **Step 2: Verify typecheck**
 
 Run: `npm run typecheck`
-Expected: PASS. (No test — this is a thin stub verified via consuming components. `bill.versions.at(-1)` requires the `versions`/`reports` fields on `BillDetails`, which exist from prior work.)
+Expected: PASS. (No test — thin stub verified via consuming components.)
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add src/components/kanban/ai-stub.ts
-git commit -m "feat: add stubbed-AI module for briefing, summaries, draft notes"
+git commit -m "feat: add stubbed-AI module (summarize, optional briefing narrative)"
 ```
 
 ---
 
-### Task 4: Bill Briefing card
+### Task 4: Bill Briefing — derived facts + card (AI optional)
 
 **Files:**
+- Create: `src/lib/bill-briefing-facts.ts`
 - Create: `src/components/kanban/bill-briefing.tsx`
+- Test: `src/lib/__tests__/bill-briefing-facts.test.ts`
 
 **Interfaces:**
-- Consumes: `BillDetails`; `stubBriefing`, `BriefingResult` (Task 3); shadcn `Button`; `lucide-react`.
-- Produces: `BillBriefing({ bill, onNextStep }: { bill: BillDetails; onNextStep: (action: 'testimony' | 'diff' | 'note') => void }): JSX.Element`
+- Consumes: `BillDetails`, `BillStatus` from `@/types/legislation`; `getTestimonyEligibility`, `isTestimonyUrgent` from `@/lib/testimony-eligibility`; `getNextDeadline`, `getDeadlineTier`, `isFiscalBill`, `parseCommittees` from `@/lib/dead-bill`; `SESSION_DEADLINES` from `@/lib/session-deadlines`; `sortVersions` from `@/lib/bill-versions`; `stubBriefingNarrative` (Task 3); shadcn `Button`; `lucide-react`.
+- Produces:
+  - `interface BriefingStep { text: string; action: 'testimony' | 'diff' | 'reports'; }`
+  - `interface BriefingFacts { testimony: { open: boolean; urgent: boolean; message: string }; standing: string; latestVersionLabel: string | null; latestVersionHtml: string | null; committeeCodes: string[]; reportCount: number; nextSteps: BriefingStep[]; }`
+  - `deriveBriefingFacts(bill: BillDetails, today: string): BriefingFacts` (pure, no DB, no AI)
+  - `BillBriefing({ bill, today, onNextStep }: { bill: BillDetails; today: string; onNextStep: (a: 'testimony' | 'diff' | 'reports') => void }): JSX.Element`
 
-- [ ] **Step 1: Implement the component**
+- [ ] **Step 1: Write the failing test for the facts engine**
 
-Create `src/components/kanban/bill-briefing.tsx`:
+Create `src/lib/__tests__/bill-briefing-facts.test.ts`:
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { deriveBriefingFacts } from '../bill-briefing-facts';
+import type { BillDetails, BillVersion } from '@/types/legislation';
+
+const ver = (label: string): BillVersion => ({
+  id: label, label, htmlLink: `https://x/${label}.htm`, pdfLink: null,
+  originalText: 'text', aiSummary: null, createdAt: null,
+});
+
+const baseBill = (over: Partial<BillDetails> = {}): BillDetails => ({
+  id: 'b1', bill_number: 'HB1334', bill_title: 'T', nickname: null,
+  bill_url: '', year: 2026, current_bill_status: 'scheduled1',
+  current_status_string: '', description: 'A food bill.', archived: false,
+  dead: false, committee_assignment: 'AGR, FIN', introducer: 'X',
+  latest_update: null, food_related: true, created_at: null, updated_at: null,
+  updates: [], versions: [ver('HB1334'), ver('HB1334_HD1')], reports: [],
+  ...over,
+});
+
+describe('deriveBriefingFacts', () => {
+  it('marks testimony open early in session and picks the latest version', () => {
+    const f = deriveBriefingFacts(baseBill(), '2026-02-01');
+    expect(f.testimony.open).toBe(true);
+    expect(f.latestVersionLabel).toBe('HB1334_HD1');
+    expect(f.committeeCodes).toEqual(['AGR', 'FIN']);
+    // testimony open → a testimony next-step is offered
+    expect(f.nextSteps.some((s) => s.action === 'testimony')).toBe(true);
+    // two versions → a diff next-step is offered
+    expect(f.nextSteps.some((s) => s.action === 'diff')).toBe(true);
+  });
+
+  it('marks testimony closed and gives a reason for a dead bill', () => {
+    const f = deriveBriefingFacts(baseBill({ dead: true }), '2026-02-01');
+    expect(f.testimony.open).toBe(false);
+    expect(f.testimony.message.length).toBeGreaterThan(0);
+    expect(f.nextSteps.some((s) => s.action === 'testimony')).toBe(false);
+  });
+
+  it('offers no diff step when there is only one version', () => {
+    const f = deriveBriefingFacts(baseBill({ versions: [ver('HB1334')] }), '2026-02-01');
+    expect(f.nextSteps.some((s) => s.action === 'diff')).toBe(false);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run src/lib/__tests__/bill-briefing-facts.test.ts`
+Expected: FAIL — cannot resolve `../bill-briefing-facts`.
+
+- [ ] **Step 3: Implement the facts engine**
+
+Create `src/lib/bill-briefing-facts.ts`:
+
+```typescript
+// PURE briefing-fact derivation — no DB, no AI. This is what lets the Bill
+// Briefing render a useful summary when the user opts out of AI.
+import type { BillDetails, BillStatus } from '@/types/legislation';
+import type { BillStatus as DBBillStatus } from '@/db/types';
+import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony-eligibility';
+import { getNextDeadline, getDeadlineTier, isFiscalBill } from '@/lib/dead-bill';
+import { SESSION_DEADLINES } from '@/lib/session-deadlines';
+import { sortVersions } from '@/lib/bill-versions';
+import { parseCommitteeCodes } from '@/lib/committees';
+
+export interface BriefingStep {
+  text: string;
+  action: 'testimony' | 'diff' | 'reports';
+}
+
+export interface BriefingFacts {
+  testimony: { open: boolean; urgent: boolean; message: string };
+  standing: string;
+  latestVersionLabel: string | null;
+  latestVersionHtml: string | null;
+  committeeCodes: string[];
+  reportCount: number;
+  nextSteps: BriefingStep[];
+}
+
+export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingFacts {
+  const status = bill.current_bill_status as DBBillStatus;
+  const committeeAssignment = bill.committee_assignment || null;
+
+  const eligibility = getTestimonyEligibility({
+    dead: bill.dead,
+    billStatus: status,
+    committeeAssignment,
+    deadlines: SESSION_DEADLINES,
+    today,
+  });
+  const urgent = eligibility.allowed && isTestimonyUrgent(status);
+  const testimony = {
+    open: eligibility.allowed,
+    urgent,
+    message: eligibility.allowed
+      ? urgent
+        ? 'Testimony is open and a hearing is imminent — submit as soon as possible.'
+        : 'Testimony is open — you can submit on this bill.'
+      : `Testimony is closed — ${eligibility.reason ?? 'not currently accepting testimony'}.`,
+  };
+
+  // Where it stands: dead reason, or next deadline (with days-away + tier), or
+  // a plain status line.
+  const fiscal = committeeAssignment ? isFiscalBill(committeeAssignment) : false;
+  let standing: string;
+  if (bill.dead) {
+    standing = 'This bill is no longer moving (marked failed).';
+  } else {
+    const next = committeeAssignment
+      ? getNextDeadline(bill.bill_number, status, committeeAssignment, SESSION_DEADLINES, today)
+      : null;
+    if (next) {
+      const daysAway = Math.ceil(
+        (new Date(next.date + 'T00:00:00').getTime() - new Date(today + 'T00:00:00').getTime()) /
+          86_400_000,
+      );
+      const tier = getDeadlineTier(daysAway);
+      standing =
+        `Next deadline: ${next.name} on ${next.date}` +
+        (daysAway > 0 ? ` (${daysAway} day${daysAway !== 1 ? 's' : ''} away, ${tier})` : daysAway === 0 ? ' (today)' : '') +
+        (fiscal ? ' · fiscal bill' : '');
+    } else {
+      standing = `Currently ${status}${fiscal ? ' · fiscal bill' : ''}.`;
+    }
+  }
+
+  const sorted = sortVersions(bill.versions);
+  const latest = sorted.length > 0 ? sorted[sorted.length - 1] : null;
+  const committeeCodes = parseCommitteeCodes(committeeAssignment);
+
+  const nextSteps: BriefingStep[] = [];
+  if (testimony.open) {
+    nextSteps.push({ text: 'Write and submit testimony on this bill.', action: 'testimony' });
+  }
+  if (bill.versions.length >= 2) {
+    nextSteps.push({ text: 'Compare the two most recent drafts to see what changed.', action: 'diff' });
+  }
+  if (bill.reports.length > 0) {
+    nextSteps.push({ text: `Review the ${bill.reports.length} committee report(s).`, action: 'reports' });
+  }
+
+  return {
+    testimony,
+    standing,
+    latestVersionLabel: latest?.label ?? null,
+    latestVersionHtml: latest?.htmlLink ?? null,
+    committeeCodes,
+    reportCount: bill.reports.length,
+    nextSteps,
+  };
+}
+```
+
+Note: `BillStatus` import from `@/types/legislation` is used only for the type-cast reference; if unused after implementation, drop it to satisfy the linter. The DB `BillStatus` alias is what the helpers expect.
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run src/lib/__tests__/bill-briefing-facts.test.ts`
+Expected: PASS (3 tests).
+
+- [ ] **Step 5: Implement the briefing card**
+
+Create `src/components/kanban/bill-briefing.tsx`. Derived facts render immediately; the AI narrative is an optional add-on.
 
 ```typescript
 'use client';
 
 import { useState } from 'react';
 import type { BillDetails } from '@/types/legislation';
-import { stubBriefing, type BriefingResult } from './ai-stub';
+import { deriveBriefingFacts } from '@/lib/bill-briefing-facts';
+import { stubBriefingNarrative } from './ai-stub';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Loader2, RotateCw } from 'lucide-react';
+import { Sparkles, Loader2, PenLine, GitCompare, ScrollText, Clock, AlertTriangle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-const AI_ACCENT = 'text-[hsl(var(--olive-dark))]';
+const STEP_ICON = { testimony: PenLine, diff: GitCompare, reports: ScrollText } as const;
 
 export function BillBriefing({
   bill,
+  today,
   onNextStep,
 }: {
   bill: BillDetails;
-  onNextStep: (action: 'testimony' | 'diff' | 'note') => void;
+  today: string;
+  onNextStep: (a: 'testimony' | 'diff' | 'reports') => void;
 }) {
-  const [result, setResult] = useState<BriefingResult | null>(null);
+  const facts = deriveBriefingFacts(bill, today);
+  const [narrative, setNarrative] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function generate() {
+  async function summarize() {
     setLoading(true);
     try {
-      setResult(await stubBriefing(bill));
+      setNarrative(await stubBriefingNarrative(bill));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="rounded-lg border border-[hsl(var(--olive-dark))]/40 bg-card p-4 space-y-3">
+    <div className="rounded-lg border bg-card p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider ${AI_ACCENT}`}>
-          <Sparkles className="h-3.5 w-3.5" /> Bill briefing
-        </span>
+        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Bill briefing</h3>
         <Button
           variant="outline"
           size="sm"
-          onClick={generate}
+          onClick={summarize}
           disabled={loading}
-          className="h-7 gap-1 border-[hsl(var(--olive-dark))]/40 px-2 text-xs text-[hsl(var(--olive-dark))]"
+          className="h-7 gap-1 border-olive-dark/40 px-2 text-xs text-olive-dark"
         >
-          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCw className="h-3.5 w-3.5" />}
-          {result ? 'Regenerate' : 'Generate'}
+          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          {narrative ? 'Regenerate' : 'Summarize with AI'}
         </Button>
       </div>
 
-      {!result && !loading && (
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
-          Generate an AI briefing that summarizes this bill, its latest version, and what committees are reporting — with suggested next steps.
-        </p>
+      {/* Optional AI narrative */}
+      {narrative && (
+        <div className="rounded-md border border-olive-dark/40 bg-olive-soft/40 p-2.5">
+          <p className="text-[12.5px] leading-relaxed text-foreground/80">{narrative}</p>
+        </div>
       )}
 
-      {result && (
-        <>
-          <p className="text-[13.5px] leading-relaxed">{result.lede}</p>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {[
-              { h: 'Bill details', p: result.details },
-              { h: 'Latest version', p: result.latestVersion },
-              { h: 'What committees say', p: result.committees },
-            ].map((cell) => (
-              <div key={cell.h} className="rounded-md border p-2.5">
-                <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">{cell.h}</h4>
-                <p className="text-[12px] text-foreground/80">{cell.p}</p>
-              </div>
-            ))}
-          </div>
-          <div className="border-t border-dashed pt-3">
-            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Suggested next steps</h4>
-            <div className="space-y-1.5">
-              {result.nextSteps.map((step, i) => (
+      {/* Derived — always shown, no AI */}
+      <div
+        className={cn(
+          'flex items-start gap-2 rounded-md border p-2.5 text-[12.5px]',
+          facts.testimony.urgent
+            ? 'border-red-300 bg-red-50 text-red-700'
+            : facts.testimony.open
+              ? 'border-primary/30 bg-primary/5'
+              : 'text-muted-foreground',
+        )}
+      >
+        {facts.testimony.urgent ? <AlertTriangle className="mt-0.5 h-4 w-4 flex-none" /> : <Clock className="mt-0.5 h-4 w-4 flex-none" />}
+        <span>{facts.testimony.message}</span>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="rounded-md border p-2.5">
+          <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Where it stands</h4>
+          <p className="text-[12px] text-foreground/80">{facts.standing}</p>
+        </div>
+        <div className="rounded-md border p-2.5">
+          <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Latest version</h4>
+          <p className="text-[12px] text-foreground/80">
+            {facts.latestVersionLabel ? (
+              facts.latestVersionHtml ? (
+                <a href={facts.latestVersionHtml} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{facts.latestVersionLabel}</a>
+              ) : facts.latestVersionLabel
+            ) : 'No versions on file.'}
+          </p>
+        </div>
+        <div className="rounded-md border p-2.5">
+          <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Committee activity</h4>
+          <p className="text-[12px] text-foreground/80">
+            {facts.committeeCodes.length > 0 ? facts.committeeCodes.join(', ') : 'No committees'} · {facts.reportCount} report(s)
+          </p>
+        </div>
+      </div>
+
+      {facts.nextSteps.length > 0 && (
+        <div className="border-t border-dashed pt-3">
+          <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Suggested next steps</h4>
+          <div className="space-y-1.5">
+            {facts.nextSteps.map((step, i) => {
+              const Icon = STEP_ICON[step.action];
+              return (
                 <div key={i} className="flex items-start gap-2">
-                  <span className="mt-0.5 grid h-4 w-4 flex-none place-items-center rounded-full bg-primary/10 text-[9px] font-bold text-primary">{i + 1}</span>
+                  <Icon className="mt-0.5 h-3.5 w-3.5 flex-none text-primary" />
                   <span className="flex-1 text-[12.5px]">{step.text}</span>
                   <Button variant="ghost" size="sm" className="h-6 flex-none px-2 text-[11px] text-primary" onClick={() => onNextStep(step.action)}>
                     Go
                   </Button>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
 }
 ```
 
-- [ ] **Step 2: Verify typecheck**
+- [ ] **Step 6: Verify typecheck**
 
 Run: `npm run typecheck`
 Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add src/components/kanban/bill-briefing.tsx
-git commit -m "feat: add AI bill briefing card (stubbed)"
+git add src/lib/bill-briefing-facts.ts src/lib/__tests__/bill-briefing-facts.test.ts src/components/kanban/bill-briefing.tsx
+git commit -m "feat: add derived bill briefing (no-AI facts + optional AI narrative)"
 ```
 
 ---
 
-### Task 5: Committee contacts block
+### Task 5: Committee directory block
 
 **Files:**
 - Create: `src/components/kanban/committee-contacts.tsx`
 
 **Interfaces:**
-- Consumes: `BillDetails`; `parseCommitteeCodes`, `getCommitteeInfo`, `CommitteeMember` (Task 2); `stubDraftNote` (Task 3); shadcn `Button`; `lucide-react`; `toast` from `@/hooks/use-toast`.
+- Consumes: `BillDetails`; `parseCommitteeCodes`, `getCommitteeInfo` (Task 2).
 - Produces: `CommitteeContacts({ bill }: { bill: BillDetails }): JSX.Element`
 
-- [ ] **Step 1: Implement the component**
+- [ ] **Step 1: Implement the component (plain list — no email/mailto, no AI-draft)**
 
 Create `src/components/kanban/committee-contacts.tsx`:
 
 ```typescript
 'use client';
 
-import { useState } from 'react';
 import type { BillDetails } from '@/types/legislation';
-import { parseCommitteeCodes, getCommitteeInfo, type CommitteeMember } from '@/lib/committees';
-import { stubDraftNote } from './ai-stub';
-import { Button } from '@/components/ui/button';
-import { Copy, Mail, Sparkles, Loader2 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-
-function MemberRow({ member }: { member: CommitteeMember }) {
-  return (
-    <div className="flex items-center gap-2 py-1 text-[12.5px]">
-      <span className="min-w-0 truncate">{member.name}</span>
-      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${member.role === 'Chair' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-        {member.role}
-      </span>
-      <span className="ml-auto flex items-center gap-1">
-        <Button variant="outline" size="icon" className="h-6 w-6" title="Copy email"
-          onClick={() => { navigator.clipboard?.writeText(member.email); toast({ title: 'Email copied', description: member.email }); }}>
-          <Copy className="h-3 w-3" />
-        </Button>
-        <Button asChild variant="outline" size="icon" className="h-6 w-6" title="Email">
-          <a href={`mailto:${member.email}`}><Mail className="h-3 w-3" /></a>
-        </Button>
-      </span>
-    </div>
-  );
-}
+import { parseCommitteeCodes, getCommitteeInfo } from '@/lib/committees';
 
 export function CommitteeContacts({ bill }: { bill: BillDetails }) {
   const codes = parseCommitteeCodes(bill.committee_assignment);
-  const [draft, setDraft] = useState<string | null>(null);
-  const [draftingCode, setDraftingCode] = useState<string | null>(null);
 
   if (codes.length === 0) {
     return <p className="text-xs text-muted-foreground">No committees assigned.</p>;
-  }
-
-  async function draftFor(code: string, member: CommitteeMember) {
-    setDraftingCode(code);
-    setDraft(null);
-    try {
-      setDraft(await stubDraftNote(member, bill));
-    } finally {
-      setDraftingCode(null);
-    }
   }
 
   return (
     <div className="space-y-2">
       {codes.map((code) => {
         const info = getCommitteeInfo(code);
-        const chair = info.members[0];
         return (
           <div key={code} className="rounded-md border p-2.5">
             <div className="text-[12.5px] font-bold">{code}</div>
             <div className="mb-1 text-[11px] text-muted-foreground">{info.fullName}</div>
             {info.members.length > 0 ? (
-              info.members.map((m) => <MemberRow key={m.email} member={m} />)
+              info.members.map((m) => (
+                <div key={m.email} className="flex items-center gap-2 py-1 text-[12.5px]">
+                  <span className="min-w-0 truncate">{m.name}</span>
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
+                      m.role === 'Chair' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {m.role}
+                  </span>
+                </div>
+              ))
             ) : (
-              <p className="text-[11px] text-muted-foreground">Member contacts unavailable.</p>
-            )}
-            {chair && (
-              <Button variant="outline" size="sm"
-                className="mt-1.5 h-7 gap-1 border-[hsl(var(--olive-dark))]/40 px-2 text-xs text-[hsl(var(--olive-dark))]"
-                disabled={draftingCode === code}
-                onClick={() => draftFor(code, chair)}>
-                {draftingCode === code ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                Draft note with AI
-              </Button>
+              <p className="text-[11px] text-muted-foreground">Member list unavailable.</p>
             )}
           </div>
         );
       })}
-      {draft && (
-        <div className="rounded-md border border-[hsl(var(--olive-dark))]/40 bg-[hsl(var(--olive-soft))]/40 p-2.5">
-          <p className="whitespace-pre-wrap text-[12px] text-foreground/80">{draft}</p>
-        </div>
-      )}
     </div>
   );
 }
@@ -620,10 +760,11 @@ Expected: PASS.
 
 ```bash
 git add src/components/kanban/committee-contacts.tsx
-git commit -m "feat: add committee contacts block (UI shell, placeholder members)"
+git commit -m "feat: add committee directory block (list only, placeholder members)"
 ```
 
 ---
+
 
 ### Task 6: Inline version diff (Timeline) + current-first ordering
 
@@ -968,12 +1109,17 @@ Also add a ref-free tab state near the top of the component body (after `const i
 
 The left panel currently starts (line ~334) with `const leftPanel = (` and a `<ScrollArea>` containing details. Insert the Briefing at the very top of that scroll area's inner `<div className="p-4 sm:p-6 space-y-4 sm:space-y-5">`, before the dead/deadline alert block:
 
+The dialog already computes `const today = todayHawaii();` — pass it. The `'reports'` action switches to the Versions & Reports tab (where reports live):
+
 ```typescript
-                  <BillBriefing bill={billDetails ?? (bill as BillDetails)} onNextStep={(action) => {
-                    if (action === 'diff') setActiveTab('versions');
-                    else if (action === 'testimony') { onClose(); router.push(`/bills/${bill.id}/testimony`); }
-                    // 'note' — the committees section is just below; no-op scroll for now.
-                  }} />
+                  <BillBriefing
+                    bill={billDetails ?? (bill as BillDetails)}
+                    today={today}
+                    onNextStep={(action) => {
+                      if (action === 'diff' || action === 'reports') setActiveTab('versions');
+                      else if (action === 'testimony') { onClose(); router.push(`/bills/${bill.id}/testimony`); }
+                    }}
+                  />
 ```
 
 Then, still in the left panel, add a Committees section. Find the existing "Tracked By" section (`{canSeeTracking && (` block near the end of the left-panel scroll content) and insert BEFORE it:
@@ -1065,7 +1211,7 @@ Expected: both PASS.
 
 Run `npm run dev`; open a demo bill (e.g. HB1334 or SB894 on the jkapali / Jaden Kapali board). Verify:
 - Two top-level tabs: Overview, Versions & Reports.
-- Overview left: Bill Briefing (Generate → placeholder briefing + next steps), Details, Committees & contacts (AGR/FIN with copy/mailto + Draft note). Right: Status Updates scrolls independently.
+- Overview left: Bill Briefing showing DERIVED facts with NO AI click (testimony open/closed message, where-it-stands, latest version, committee activity, next steps), plus an optional "Summarize with AI" that adds a placeholder narrative; Details; Committees directory (AGR/FIN with members + roles, no email/AI). Right: Status Updates scrolls independently.
 - Versions & Reports: Timeline sub-tab is current-first; a version shows "Diff vs <prev>" that expands a real red/green diff. Compare sub-tab: two pickers + side-by-side diff + Summarize changes (placeholder).
 - Mobile width (375px): two tabs; Overview stacks Briefing→Details→Committees→Status Updates; Compare columns stack.
 
@@ -1080,23 +1226,24 @@ git add -A && git commit -m "fix: bill dialog rework polish"  # only if changes 
 ## Self-Review
 
 **Spec coverage:**
-- Bill Briefing + next steps → Task 4 (+ Task 3 stub). ✓
+- Bill Briefing DERIVED (no-AI) with next steps + optional AI narrative → Task 4 (facts engine + card) + Task 3 stub. ✓
+- Briefing usable when AI opted out → Task 4 (`deriveBriefingFacts` renders with no AI call; tested). ✓
 - Version diffs (real, hawaii-bill-diff) → Task 1 (service) + Task 6 (inline) + Task 7 (compare). ✓
 - Per-version & per-report summaries → existing `bill-versions-panel` Summarize (kept) + Task 3 stub; per-version summary shown in timeline. ✓
 - Compare (side-by-side, optional AI summary) → Task 7. ✓
-- Committee contacts (info + copy/mailto + AI draft, UI shell) → Task 2 + Task 5. ✓
+- Committee directory (list only, no email/AI-draft) → Task 2 + Task 5. ✓
 - Two top-level tabs; Overview = Briefing+Details+Committees | Status Updates; Versions full width → Task 9. ✓
 - Timeline current-first + Compare sub-tabs → Task 6 + Task 7 + Task 8. ✓
-- All AI stubbed via one module → Task 3. ✓
+- Optional AI stubbed via one module → Task 3. ✓
 - Diff wrapper in services/ (plain module) → Task 1. ✓
-- Olive=AI, teal=primary, semantic red/green → Tasks 4/5/6/7 class choices. ✓
+- Olive=optional-AI, teal=primary, semantic red/green → Tasks 4/6/7 class choices. ✓
 - Mobile stacking → Task 9 Step 4. ✓
 - Error/empty states (no versions, same-version compare, missing text, diff error) → Task 1 (error flag), Task 6 (guards `previous && originalText`), Task 7 (sameVersion + error + <2 guards). ✓
-- Tests for bill-diff + committees → Tasks 1, 2. ✓
+- Tests for bill-diff + committees + briefing-facts → Tasks 1, 2, 4. ✓
 
-**Placeholder scan:** No TBD/TODO left as work items; the only "(placeholder…)" strings are intentional stubbed-AI output copy, and the `// 'note' — no-op` comment is a deliberate, documented non-action. ✓
+**Placeholder scan:** No TBD/TODO left as work items; the only "(placeholder…)" strings are intentional stubbed-AI output copy. ✓
 
-**Type consistency:** `VersionDiff`/`DiffRow` field names (`type`,`text`,`rows`,`olderLabel`,`newerLabel`,`summaryText`,`error`) identical across Tasks 1, 6, 7. `BriefingResult` (`lede`,`details`,`latestVersion`,`committees`,`nextSteps[{text,action}]`) identical across Tasks 3, 4. `CommitteeInfo`/`CommitteeMember` (`code`,`fullName`,`members[{name,role,email}]`) identical across Tasks 2, 5. `stubSummarize`/`stubBriefing`/`stubDraftNote` signatures match between Task 3 and consumers 4/5/7. `diffVersions(older, newer)` order consistent (older-first) everywhere. ✓
+**Type consistency:** `VersionDiff`/`DiffRow` field names (`type`,`text`,`rows`,`olderLabel`,`newerLabel`,`summaryText`,`error`) identical across Tasks 1, 6, 7. `BriefingFacts`/`BriefingStep` (`testimony{open,urgent,message}`,`standing`,`latestVersionLabel`,`latestVersionHtml`,`committeeCodes`,`reportCount`,`nextSteps[{text,action}]`; action ∈ `testimony|diff|reports`) defined and consumed within Task 4. `CommitteeInfo`/`CommitteeMember` (`code`,`fullName`,`members[{name,role,email}]`) identical across Tasks 2, 5. `stubSummarize`/`stubBriefingNarrative` signatures match between Task 3 and consumers 4/7. `diffVersions(older, newer)` order consistent (older-first) everywhere. ✓
 
 ## Open Items (from spec, follow-ups)
 
