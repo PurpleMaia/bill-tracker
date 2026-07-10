@@ -86,12 +86,18 @@ Existing (from prior work, reused):
 - `getBillDetails` already returns `versions` + `reports` on `BillDetails`.
 - `groupReportsByVersion` / `sortVersions` in `lib/bill-versions.ts`.
 
-New pure logic:
-- `src/lib/bill-diff.ts` — wraps `hawaii-bill-diff`. Exports
-  `diffVersions(older: BillVersion, newer: BillVersion): VersionDiff` where
-  `VersionDiff` is a normalized shape the UI renders (aligned rows with
-  `type: 'add'|'del'|'context'|'modified'`). Pure (no network) — feeds the
-  package `original_text` as `content`. Unit-tested.
+New external-integration wrapper (in `services/`, per CLAUDE.md — third-party
+package wrappers live in `src/services/`, not `src/lib/`):
+- `src/services/bill-diff.ts` — wraps the `hawaii-bill-diff` package. A **plain
+  (non-`'use server'`) module** in the style of `services/email.ts`, so the
+  client Compare/Timeline components import and run it directly (the package is
+  synchronous and pure for our plain-text path — no network, no server-action
+  boundary needed). Exports `diffVersions(older: BillVersion, newer:
+  BillVersion): VersionDiff`, where `VersionDiff` is a normalized, UI-ready
+  shape (aligned rows with `type: 'add'|'del'|'context'|'modified'`). Feeds the
+  package each version's `original_text` as `content`; catches package errors
+  and returns a diff with an `error` flag. Unit-tested (pure transformation of
+  the package output — the package itself is deterministic on given input).
 
 New components (all under `src/components/kanban/`):
 - `bill-briefing.tsx` — the Briefing card (stubbed AI, synthesis cells, next
@@ -124,13 +130,15 @@ Genkit later means replacing this module's internals.
 - A version missing `original_text` → its Diff/Compare option is disabled with
   a hint; Read text hidden (as today).
 - `hawaii-bill-diff` throwing on odd input → the diff area shows a graceful
-  "Couldn't compute a diff for these versions" message (caught in `bill-diff.ts`).
+  "Couldn't compute a diff for these versions" message (caught in
+  `services/bill-diff.ts`, surfaced via the `VersionDiff.error` flag).
 
 ## Testing
 
-- Pure unit tests: `bill-diff.ts` (normalization of `hawaii-bill-diff` output
-  into aligned rows; same-version and empty-text edge cases) and
-  `committees.ts` (`parseCommitteeCodes`). Per the pure-logic test convention.
+- Unit tests: `services/bill-diff.ts` (normalization of `hawaii-bill-diff`
+  output into aligned rows; same-version and empty-text edge cases) and
+  `lib/committees.ts` (`parseCommitteeCodes`). Both are pure transformations,
+  fitting the pure-logic test convention; tests live in `src/lib/__tests__/`.
 - `npm run typecheck`, `npm run build` (build catches `'use server'` export
   violations).
 
