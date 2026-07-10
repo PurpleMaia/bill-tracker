@@ -114,7 +114,6 @@ export function BillsProvider({ children }: { children: ReactNode }) {
       showArchived: archived,
     });
 
-    console.log(`Bills fetched (${mode}):`, results.length);
     return results;
   }, [activeTenant, viewMode, showArchived]);
 

@@ -32,10 +32,8 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
   const { refreshBills } = useBills();
   const { activeTenant } = useAuth();
 
-  console.log('TagManagementDialog render, isOpen:', isOpen);
 
   useEffect(() => {
-    console.log('TagManagementDialog isOpen changed:', isOpen);
     if (isOpen) {
       loadTags();
     }
