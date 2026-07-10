@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { BookOpen } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 interface ReadTextButtonProps {
   label?: string; // e.g. "Read text" (default) or "Read report"
@@ -20,7 +20,7 @@ export function ReadTextButton({ label = 'Read text', onClick }: ReadTextButtonP
       onClick={onClick}
       className="h-7 gap-1 px-1.5 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground focus-visible:bg-transparent"
     >
-      <BookOpen className="h-3.5 w-3.5" />
+      <ChevronRight className="h-3.5 w-3.5" />
       {label}
     </Button>
   );

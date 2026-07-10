@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ReadTextButton } from './version-text-viewer';
 import { BillTextSidePanel, type BillTextView } from './bill-text-side-panel';
 import { FileText, ExternalLink, Sparkles, ScrollText } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 function LinkButtons({ htmlLink, pdfLink }: { htmlLink: string | null; pdfLink: string | null }) {
   if (!htmlLink && !pdfLink) return null;
@@ -109,13 +110,12 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
           {/* Zone A — Latest card */}
           {(latestVersion || latestReport) && (
             <div className="rounded-lg border border-primary/20 bg-card p-3.5 shadow-sm space-y-3">
-              <div className="flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Latest</h4>
-              </div>
-
               {latestVersion && (
                 <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Latest version</h4>
+                  </div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-semibold">{latestVersion.label}</span>
                     <LinkButtons htmlLink={latestVersion.htmlLink} pdfLink={latestVersion.pdfLink} />
@@ -130,10 +130,11 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
               )}
 
               {latestReport && (
-                <div className="border-t pt-2.5">
-                  <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">
-                    Latest report
-                  </p>
+                <div className={cn(latestVersion && 'border-t pt-2.5')}>
+                  <div className="mb-1.5 flex items-center gap-1.5">
+                    <ScrollText className="h-3.5 w-3.5 text-primary" />
+                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Latest committee report</h4>
+                  </div>
                   <ReportRow report={latestReport} onRead={setTextView} />
                 </div>
               )}
