@@ -40,3 +40,12 @@ export interface PublicOrg {
   /** Up to 3 most-recently-updated bills this org tracks, for the Browse card preview. */
   sampleBills: OrgSampleBill[];
 }
+
+/**
+ * The viewer's own org, for the "Your Organization" card. Like PublicOrg but
+ * carries publicBoard (the card shows a public/private badge) and is returned
+ * regardless of public visibility.
+ */
+export interface MyOrg extends PublicOrg {
+  publicBoard: boolean;
+}

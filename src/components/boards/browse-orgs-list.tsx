@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import type { PublicOrg } from '@/types/tenant';
+import type { PublicOrg, MyOrg } from '@/types/tenant';
 import { data } from '@/lib/data-client';
 import { useActiveBoards } from '@/hooks/contexts/active-boards-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Building2, Check, Eye, FileText, Plus, Search, Star, Users } from 'lucide-react';
+import { Building2, Check, Eye, FileText, Globe, Lock, Plus, Search, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { orgMonogram } from '@/lib/org-monogram';
 
@@ -58,7 +58,7 @@ function BrowseIntro({ orgCount }: { orgCount: number }) {
 // only points admins to Org Settings and tells members to ask their admin.
 function MyOrgCard() {
   const { activeTenant } = useAuth();
-  const [org, setOrg] = useState<PublicOrg | null>(null);
+  const [org, setOrg] = useState<MyOrg | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   const tenantId = activeTenant?.tenantId;
@@ -97,9 +97,19 @@ function MyOrgCard() {
         <p className="text-[11px] font-semibold uppercase tracking-wide text-olive-dark">
           Your organization
         </p>
-        <span className="rounded-full bg-olive/15 px-2 py-0.5 text-[11px] font-medium text-olive-dark">
-          {isAdmin ? 'Admin' : 'Member'}
-        </span>
+        {org && (
+          <span
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
+              org.publicBoard
+                ? 'bg-olive/15 text-olive-dark'
+                : 'bg-red-100 text-red-700',
+            )}
+          >
+            {org.publicBoard ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+            {org.publicBoard ? 'Public' : 'Private'}
+          </span>
+        )}
       </div>
 
       <div className="mt-3 flex flex-col gap-5 sm:flex-row sm:items-start">

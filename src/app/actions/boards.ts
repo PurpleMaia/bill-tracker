@@ -1,7 +1,7 @@
 'use server';
 
 import type { Bill } from '@/types/legislation';
-import type { PublicOrg } from '@/types/tenant';
+import type { PublicOrg, MyOrg } from '@/types/tenant';
 import { requireSession, requireAdmin, requireMembership } from '@/lib/auth-guards';
 import { ApiError } from '@/lib/errors';
 import {
@@ -32,7 +32,7 @@ export async function listPublicOrgsAction(): Promise<PublicOrg[]> {
   return listPublicTenants(user.id);
 }
 
-export async function getMyOrgStatsAction(params: MyOrgStatsParams): Promise<PublicOrg | null> {
+export async function getMyOrgStatsAction(params: MyOrgStatsParams): Promise<MyOrg | null> {
   const { user } = await requireMembership.fromAction(params.tenantId);
   return getMyOrgStats(params.tenantId, user.id);
 }

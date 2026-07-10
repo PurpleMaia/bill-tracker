@@ -1,5 +1,5 @@
 import type { Bill } from '@/types/legislation';
-import type { PublicOrg } from '@/types/tenant';
+import type { PublicOrg, MyOrg } from '@/types/tenant';
 import { defineClient } from './define-client';
 import type {
   GetBoardParams,
@@ -38,11 +38,11 @@ async function listFollowedOrgsFetch(): Promise<PublicOrg[]> {
   return ((await res.json()).orgs ?? []) as PublicOrg[];
 }
 
-async function getMyOrgStatsFetch(params: MyOrgStatsParams): Promise<PublicOrg | null> {
+async function getMyOrgStatsFetch(params: MyOrgStatsParams): Promise<MyOrg | null> {
   const qs = new URLSearchParams({ scope: 'mine', tenantId: params.tenantId });
   const res = await fetch(`/api/boards?${qs.toString()}`);
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to load your org');
-  return (((await res.json()).org ?? null) as PublicOrg | null);
+  return (((await res.json()).org ?? null) as MyOrg | null);
 }
 
 async function followOrgFetch(params: FollowParams): Promise<void> {

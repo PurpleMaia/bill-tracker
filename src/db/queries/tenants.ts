@@ -303,6 +303,7 @@ export async function getMyOrgStats(tenantId: string, viewerUserId: string) {
       't.name',
       't.slug',
       't.description',
+      't.public_board as publicBoard',
       'f.id as followId',
       eb
         .selectFrom('org_follows as fc')
@@ -327,6 +328,7 @@ export async function getMyOrgStats(tenantId: string, viewerUserId: string) {
     name: row.name,
     slug: row.slug,
     description: row.description,
+    publicBoard: row.publicBoard,
     isFollowing: row.followId !== null,
     followerCount: Number(row.followerCount ?? 0),
     billCount: Number(row.billCount ?? 0),
