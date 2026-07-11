@@ -104,6 +104,19 @@ describe('groupReportsByVersion', () => {
     expect(groups[0].reports.map((x) => x.reportCode)).toEqual(['HSCR1242', 'HSCR1439', 'HSCR1964']);
   });
 
+  it('orders reports by the label code when report_code is null (not the bill number)', () => {
+    // report_code is a nullable column; the fallback must read the trailing
+    // report-code segment (HSCR65/901), not the leading bill number (139).
+    const nullCode = (label: string): CommitteeReport => ({
+      id: label, label, reportCode: null, htmlLink: null, pdfLink: null,
+      originalText: null, aiSummary: null, createdAt: null,
+    });
+    const versions = [v('HB139_HD2')];
+    const reports = [nullCode('HB139_HD2_HSCR901'), nullCode('HB139_HD2_HSCR65')];
+    const { groups } = groupReportsByVersion(versions, reports);
+    expect(groups[0].reports.map((x) => x.label)).toEqual(['HB139_HD2_HSCR65', 'HB139_HD2_HSCR901']);
+  });
+
 
   it('nests reports under the matching version, preserving version order', () => {
     const versions = [v('HB139'), v('HB139_HD1'), v('HB139_HD2')];

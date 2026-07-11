@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import type { BillDetails } from '@/types/legislation';
 import { deriveBriefingFacts } from '@/lib/bill-briefing-facts';
 import { Button } from '@/components/ui/button';
@@ -29,7 +30,7 @@ export function BillBriefing({
   currentStageName: string;
   onNextStep: (a: 'testimony' | 'diff' | 'reports') => void;
 }) {
-  const facts = deriveBriefingFacts(bill, today);
+  const facts = useMemo(() => deriveBriefingFacts(bill, today), [bill, today]);
 
   return (
     <div className="rounded-lg border bg-card p-4 space-y-3">

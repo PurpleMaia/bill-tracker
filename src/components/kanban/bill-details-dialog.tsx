@@ -118,15 +118,16 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
 
   if (!bill) return null;
 
-  // Panels expect a BillDetails with `versions`/`reports` arrays. Before
-  // getBillDetails resolves, only the plain `bill` (from the list) is available
-  // — it has no versions/reports — so normalize to guaranteed-array fields to
-  // avoid "versions is not iterable" during the pre-load render.
-  const billForPanels: BillDetails = {
+  // Panels expect a fully-loaded BillDetails. Once getBillDetails resolves it's
+  // authoritative (its mapper always sets versions/reports to arrays), so use it
+  // directly. Before it loads, fall back to the list `bill` with empty
+  // versions/reports so the pre-load render never hits "versions is not
+  // iterable". We do NOT merge the two — merging would let the mapper's
+  // intentional `undefined` fields clobber real values on the list bill.
+  const billForPanels: BillDetails = billDetails ?? {
     ...(bill as BillDetails),
-    ...(billDetails ?? {}),
-    versions: billDetails?.versions ?? [],
-    reports: billDetails?.reports ?? [],
+    versions: [],
+    reports: [],
   };
 
   const currentStatus = billDetails?.current_bill_status || bill.current_bill_status;

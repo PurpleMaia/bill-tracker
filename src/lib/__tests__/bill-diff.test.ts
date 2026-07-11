@@ -17,8 +17,12 @@ describe('diffVersions', () => {
     expect(d.error).toBe(false);
     expect(d.rows.length).toBeGreaterThan(0);
     // At least one changed row is surfaced.
-    expect(d.rows.some((r) => r.type === 'add' || r.type === 'modified')).toBe(true);
+    expect(d.rows.some((r) => r.kind === 'add' || r.kind === 'modified')).toBe(true);
     expect(typeof d.summaryText).toBe('string');
+    // A modified row carries BOTH sides so the split view can align them.
+    const modified = d.rows.find((r) => r.kind === 'modified');
+    expect(modified?.left).toContain('$5,000,000');
+    expect(modified?.right).toContain('$2,000,000');
   });
 
   it('returns an error diff when a version has no text', () => {
@@ -31,6 +35,6 @@ describe('diffVersions', () => {
     const same = 'SECTION 1. Identical text.';
     const d = diffVersions(ver('A', same), ver('B', same));
     expect(d.error).toBe(false);
-    expect(d.rows.every((r) => r.type === 'context')).toBe(true);
+    expect(d.rows.every((r) => r.kind === 'context')).toBe(true);
   });
 });

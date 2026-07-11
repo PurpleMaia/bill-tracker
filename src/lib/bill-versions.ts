@@ -119,11 +119,14 @@ export function sortVersions(versions: BillVersion[]): BillVersion[] {
  * over the course of a session.
  */
 export function reportCodeNumber(report: CommitteeReport): number {
-  // Primary number after the letter prefix, ignoring any "-NN" year suffix:
+  // Prefer the report_code column; when it's null, recover the code from the
+  // TRAILING report-code segment of the label (e.g. "HB139_HD1_HSCR65" → 65),
+  // never the leading bill number. Ignores any "-NN" year suffix:
   // "SSCR830" → 830, "CCR50-26" → 50.
-  const source = report.reportCode ?? report.label;
-  const match = source.match(/[A-Z]+(\d+)/);
-  return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+  const source = report.reportCode ?? report.label.match(new RegExp(`${REPORT_CODE.source}$`))?.[0] ?? '';
+  const match = source.match(/(?:H|S)SCR(\d+)|CCR(\d+)/);
+  const digits = match?.[1] ?? match?.[2];
+  return digits ? Number(digits) : Number.MAX_SAFE_INTEGER;
 }
 
 export interface VersionGroup {
