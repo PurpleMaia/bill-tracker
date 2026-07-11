@@ -25,7 +25,7 @@ function LinkButtons({ htmlLink, pdfLink }: { htmlLink: string | null; pdfLink: 
 function ReportRow({ report }: { report: CommitteeReport }) {
   return (
     <div className="rounded-md border border-border/60 bg-card/60 p-2.5">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <ScrollText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span className="truncate text-xs font-medium">{report.reportCode ?? report.label}</span>
@@ -84,7 +84,7 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
                     <FileText className="h-3.5 w-3.5 text-primary" />
                     <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Latest version</h4>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold">{latestVersion.label}</span>
                     <LinkButtons htmlLink={latestVersion.htmlLink} pdfLink={latestVersion.pdfLink} />
                   </div>
@@ -102,7 +102,7 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
                     <ScrollText className="h-3.5 w-3.5 text-primary" />
                     <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Latest committee report</h4>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold">{latestReport.reportCode ?? latestReport.label}</span>
                     <LinkButtons htmlLink={latestReport.htmlLink} pdfLink={latestReport.pdfLink} />
                   </div>
@@ -116,9 +116,8 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
             </div>
           )}
 
-          {/* Zone B — Timeline */}
+          {/* Zone B — Version list (the containing section is already titled) */}
           <div>
-            <h4 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Timeline</h4>
             <ol className="relative space-y-4 border-l border-border/70 pl-4">
               {groups.slice().reverse().map((group, revIdx) => {
                 // groups is oldest→newest (legislative order); render newest→oldest
@@ -130,7 +129,7 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
                 return (
                   <li key={group.version.id} className="relative">
                     <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary" aria-hidden="true" />
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">{group.version.label}</span>
                         {isBase && <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">introduced</Badge>}
