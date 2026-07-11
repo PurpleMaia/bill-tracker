@@ -252,9 +252,9 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                 href={billDetails.bill_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hidden sm:inline-flex shrink-0 items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 hover:underline whitespace-nowrap"
+                className="hidden sm:inline-flex align-middle pt-4 text-sm shrink-0 items-center gap-1.5 text-blue-600 hover:text-blue-800 hover:underline whitespace-nowrap"
               >
-                <ExternalLink className="h-3.5 w-3.5" />
+                <ExternalLink className="h-4 w-4" />
                 View on Hawaii State Legislature
               </a>
             )}

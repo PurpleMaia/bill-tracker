@@ -10,13 +10,12 @@ import { SummarySection } from './report-summary';
 import { VersionDiffInline } from './version-diff-inline';
 import { FileText, ExternalLink, ScrollText } from 'lucide-react';
 
-function LinkButtons({ htmlLink, pdfLink }: { htmlLink: string | null; pdfLink: string | null }) {
-  const href = pdfLink ?? htmlLink;
-  if (!href) return null;
+function LinkButtons({ link, type }: { link: string | null; type: 'version' | 'report' }) {
+  if (!link) return null;
   return (
-    <Button asChild variant="outline" size="sm" className="h-7 px-2 text-xs shrink-0">
-      <a href={href} target="_blank" rel="noopener noreferrer">
-        <ExternalLink className="mr-1 h-3 w-3" /> View
+    <Button asChild variant="outline" size="sm" className="h-7 text-xs shrink-0">
+      <a href={link} target="_blank" rel="noopener noreferrer">
+        <ExternalLink className="h-3 w-3" /> View {type[0].toUpperCase() + type.slice(1)}
       </a>
     </Button>
   );
@@ -30,7 +29,7 @@ function ReportRow({ report }: { report: CommitteeReport }) {
           <ScrollText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span className="truncate text-xs font-medium">{report.reportCode ?? report.label}</span>
         </div>
-        <LinkButtons htmlLink={report.htmlLink} pdfLink={report.pdfLink} />
+        <LinkButtons link={report.pdfLink} type="report" />
       </div>
       <div className="mt-1.5">
         <SummarySection
@@ -84,9 +83,9 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
                     <FileText className="h-3.5 w-3.5 text-primary" />
                     <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Latest version</h4>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-semibold">{latestVersion.label}</span>
-                    <LinkButtons htmlLink={latestVersion.htmlLink} pdfLink={latestVersion.pdfLink} />
+                    <LinkButtons link={latestVersion.pdfLink} type="version" />
                   </div>
                   <SummarySection
                     text={latestVersion.originalText ?? ''}
@@ -102,9 +101,9 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
                     <ScrollText className="h-3.5 w-3.5 text-primary" />
                     <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Latest committee report</h4>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-semibold">{latestReport.reportCode ?? latestReport.label}</span>
-                    <LinkButtons htmlLink={latestReport.htmlLink} pdfLink={latestReport.pdfLink} />
+                    <LinkButtons link={latestReport.pdfLink} type="report" />
                   </div>
                   <SummarySection
                     text={latestReport.originalText ?? ''}
@@ -116,8 +115,9 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
             </div>
           )}
 
-          {/* Zone B — Version list (the containing section is already titled) */}
+          {/* Zone B — Timeline */}
           <div>
+            <h4 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Timeline</h4>
             <ol className="relative space-y-4 border-l border-border/70 pl-4">
               {groups.slice().reverse().map((group, revIdx) => {
                 // groups is oldest→newest (legislative order); render newest→oldest
@@ -129,13 +129,13 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
                 return (
                   <li key={group.version.id} className="relative">
                     <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary" aria-hidden="true" />
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">{group.version.label}</span>
                         {isBase && <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">introduced</Badge>}
                         {isLatest && <Badge variant="default" className="h-4 px-1.5 text-[10px]">current</Badge>}
                       </div>
-                      <LinkButtons htmlLink={group.version.htmlLink} pdfLink={group.version.pdfLink} />
+                      <LinkButtons link={group.version.pdfLink} type="version" />
                     </div>
                     <div className="mt-1.5">
                       <SummarySection
