@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { stubSummarize } from './ai-stub';
@@ -11,8 +11,6 @@ interface SummarySectionProps {
   text: string;
   /** Existing saved AI summary, if any. Rendered directly when present. */
   existingSummary?: string | null;
-  /** The View link(s) to open the source — shown when the user opted out of AI. */
-  viewButtons?: ReactNode;
   /** Word for the source in copy, e.g. "version" or "committee report". */
   noun?: string;
 }
@@ -29,7 +27,7 @@ type State =
  *  2. AI opted in, no summary → a "Summarize" button (stubbed AI for now).
  *  3. AI opted out → verbiage pointing to the View button to read the source.
  */
-export function SummarySection({ text, existingSummary, viewButtons, noun = 'document' }: SummarySectionProps) {
+export function SummarySection({ text, existingSummary, noun = 'document' }: SummarySectionProps) {
   const { preferences } = useAuth();
   const aiOptedIn = preferences?.ai_opt_in === true;
 
@@ -47,7 +45,6 @@ export function SummarySection({ text, existingSummary, viewButtons, noun = 'doc
     return (
       <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
         <span>AI summaries are off. Open the {noun} to read it in full.</span>
-        {viewButtons}
       </div>
     );
   }
