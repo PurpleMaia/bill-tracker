@@ -16,7 +16,7 @@ export const DOCUMENT_SYSTEM_PROMPT = [
   '',
   '## 1. Purpose',
   'You summarize official documents from the Hawaii State Legislature for',
-  'community advocates tracking food-related legislation. You will receive the',
+  'community advocates. You will receive the',
   'full text of one document: either a bill version or a committee report.',
   'Produce a plain-language summary for a reader who is not a lawyer.',
   '',
