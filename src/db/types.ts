@@ -78,6 +78,8 @@ export interface BillVersions {
   label: string;
   original_text: string | null;
   pdf_link: string | null;
+  summary_generated_at: Timestamp | null;
+  summary_prompt_version: string | null;
   updated_at: Generated<Timestamp | null>;
 }
 
@@ -91,6 +93,8 @@ export interface CommitteeReports {
   original_text: string | null;
   pdf_link: string | null;
   report_code: string | null;
+  summary_generated_at: Timestamp | null;
+  summary_prompt_version: string | null;
   updated_at: Generated<Timestamp | null>;
 }
 
