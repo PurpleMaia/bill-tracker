@@ -34,27 +34,32 @@ reader. Storage is **flat in user count**.
 | What opt-out protects against | **Participation**, not display. No inference may occur unless a consenting user triggers it. |
 | Generation timing | **Lazy.** `ai_summary` stays `NULL` until an opted-in user asks. Never on page load. |
 | Cache scope | **Global now, tenant-scoped later.** No `tenant_id` on summaries; a tenant dimension arrives only if orgs want their own prompt lens. |
-| Cache invalidation | **Versioned.** Store model + prompt version; a stale entry is a miss and regenerates. |
+| Cache invalidation | **Versioned.** Store prompt version; a stale entry is a miss and regenerates. |
 | Diff summaries | **Not persisted.** Computed per request. |
-| Provenance | Returned and displayed for **both** kinds, stored only for document summaries. |
+| Provenance | Model identity comes from **app config**, not a column — one model is applied app-wide. Displayed for both kinds. |
+| Bill versions vs. committee reports | **Identical behavior** in every respect. |
 
 ## Architecture
 
 ### 1. Document summaries — persisted
 
+Applies identically to **`bill_versions` and `committee_reports`**. Both tables
+have the same shape (`original_text`, `ai_summary`, `label`, `html_link`), both
+already render through the same `SummarySection` component, and every rule below
+holds for both without exception. Wherever this spec says "version," read
+"version or committee report."
+
 A version is immutable (SD1 is SD1 forever) and its summary is expensive (full
 `original_text`, 6–18 KB). Cache once, serve forever.
 
-`ai_summary` already exists on both tables. Add provenance:
+`ai_summary` already exists on both tables. Add two columns to each:
 
 ```sql
 ALTER TABLE bill_versions
-  ADD COLUMN summary_model           text,
   ADD COLUMN summary_prompt_version  text,
   ADD COLUMN summary_generated_at    timestamptz;
 
 ALTER TABLE committee_reports
-  ADD COLUMN summary_model           text,
   ADD COLUMN summary_prompt_version  text,
   ADD COLUMN summary_generated_at    timestamptz;
 ```
@@ -62,14 +67,21 @@ ALTER TABLE committee_reports
 No new table. Growth is bounded by versions people actually opened — a fraction
 of the ~30 MB a fully-summarized 3,000-bill corpus would occupy.
 
-The three columns do two jobs:
+**No `summary_model` column.** One model is applied app-wide, so it cannot vary
+per row and storing it per row is redundant. Model identity for display comes
+from app config at render time.
 
-- **Provenance.** Answer "which model, under which prompt, when" for any AI
-  claim in the system.
-- **Evolvability.** A row whose `summary_prompt_version` is older than current
-  is treated as a cache miss. Improving the prompt improves summaries
-  retroactively as they're viewed — no backfill job. Retrofitting this later is
-  impossible: existing summaries would have unknown origin forever.
+`summary_prompt_version` buys **evolvability**: a row whose value is older than
+current is treated as a cache miss, so improving the prompt improves summaries
+retroactively as they're viewed — no backfill job. Retrofitting this later is
+impossible; existing summaries would have unknown provenance forever.
+
+**A model swap must bump `summary_prompt_version`.** Because the displayed model
+comes from config rather than the row, a swap without a bump would label old
+summaries with the new model's name despite the old model having written them —
+a small but real provenance lie. Bumping the prompt version invalidates every
+cached summary so it regenerates under the model now being advertised. A model
+change should invalidate summaries anyway.
 
 ### 2. Diff summaries — dynamic
 
@@ -143,9 +155,17 @@ because the copy would get vaguer for no real gain.
 
 ### Document summaries
 
-`SummarySection` (`report-summary.tsx`) keeps its current three-state resolution
-— saved summary → Summarize button → opted-out copy. `SummaryCard` gains a
-provenance footer showing the model that produced the text.
+`SummarySection` (`report-summary.tsx`) keeps its current three-state resolution,
+used identically for bill versions and committee reports:
+
+1. **Saved summary present** → render it. Shown to opted-in users.
+2. **Opted in, no summary** → a Summarize button. Clicking generates, persists,
+   and renders.
+3. **Opted out** → "AI summaries are off. Open the {noun} to read it in full."
+   No Summarize button.
+
+`SummaryCard` gains a provenance footer naming the model, read from app config
+rather than from the row.
 
 ### Diff summaries
 
@@ -164,8 +184,14 @@ free; the narrative is opt-in and on demand.
 Keeping it behind a deliberate click is load-bearing: dynamic summaries scale
 with **traffic**, so auto-generating on open would bill per page view.
 
-Provenance is returned alongside the summary and shown in the same footer style
-as document summaries, so both summary cards read as one system.
+Opt-in governs the button exactly as it does for document summaries. An opted-in
+user sees Summarize; an opted-out user sees the mechanical count alone, with no
+AI affordance. There is no persisted-summary state here, so the three-state
+resolution collapses to two.
+
+Provenance is shown in the same footer style as document summaries — model from
+config, plus the fact that it was generated just now — so both summary cards read
+as one system.
 
 ### Error handling
 
@@ -198,9 +224,14 @@ suppress retries is a follow-on if it shows up in practice.
 
 Per CLAUDE.md's navigation rules:
 
-- **Migration** — `src/db/migrations/000028_add_summary_provenance.{up,down}.sql`
+- **Migration** — `src/db/migrations/000028_add_summary_provenance.{up,down}.sql`,
+  touching both `bill_versions` and `committee_reports`.
 - **Queries** — summary read/write in `src/db/queries/` alongside the existing
-  version queries; mappers updated in `bill-mappers.ts` to carry provenance.
+  version queries, covering both tables; mappers updated in `bill-mappers.ts`
+  (both the version and report mappers) to carry `summary_prompt_version` and
+  `summary_generated_at`.
+- **Model identity for display** — app config, alongside wherever `llm.ts` reads
+  its model name. Not a per-row value.
 - **LLM calls** — `src/services/llm.ts` (both prompts; the diff prompt builds
   from `SectionDiff[]`).
 - **Prompt-building from a comparison** — pure, in `src/lib/version-diff.ts` or a
@@ -217,7 +248,8 @@ Pure unit tests in `src/lib/__tests__/`, per convention:
 
 - Prompt construction from a `VersionComparison` — changed fragments included,
   unchanged bulk excluded, section context preserved.
-- Cache staleness: current `summary_prompt_version` → hit; older → miss.
+- Cache staleness: current `summary_prompt_version` → hit; older or `NULL` →
+  miss. `NULL` covers rows summarized before this migration.
 - The no-diff/no-summary predicate across `error`, empty `sections`, and
   `parseIncomplete` inputs.
 
