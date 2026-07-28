@@ -154,12 +154,7 @@ export function BillVersionsPanel({
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">{group.version.label}</span>
                         {isBase && <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">introduced</Badge>}
-                        {isLatest && <Badge variant="default" className="h-4 px-1.5 text-[10px]">current</Badge>}
-                        {isSelected && (
-                          <Badge variant="outline" className="h-4 gap-1 px-1.5 text-[10px]">
-                            <GitCompare className="h-2.5 w-2.5" aria-hidden="true" /> comparing
-                          </Badge>
-                        )}
+                        {isLatest && <Badge variant="default" className="h-4 px-1.5 text-[10px]">current</Badge>}                        
                       </div>
                       <div className="flex items-center gap-1.5">
                         {/* The base version has no predecessor, so nothing to compare against. */}
