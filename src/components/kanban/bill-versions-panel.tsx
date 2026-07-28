@@ -101,6 +101,7 @@ export function BillVersionsPanel({
                     <LinkButtons link={latestVersion.pdfLink} type="version" />
                   </div>
                   <SummarySection
+                    key={latestVersion.id}
                     target="version"
                     documentId={latestVersion.id}
                     existingSummary={latestVersion.aiSummary}
@@ -120,6 +121,7 @@ export function BillVersionsPanel({
                     <LinkButtons link={latestReport.pdfLink} type="report" />
                   </div>
                   <SummarySection
+                    key={latestReport.id}
                     target="report"
                     documentId={latestReport.id}
                     existingSummary={latestReport.aiSummary}
