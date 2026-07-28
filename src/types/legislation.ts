@@ -25,6 +25,8 @@ export interface BillVersion {
   originalText: string | null;
   aiSummary: string | null;
   createdAt: string | null;
+  /** When the stored AI summary was generated; null if never summarized. */
+  summaryGeneratedAt: string | null;
 }
 
 /**
@@ -41,6 +43,8 @@ export interface CommitteeReport {
   originalText: string | null;
   aiSummary: string | null;
   createdAt: string | null;
+  /** When the stored AI summary was generated; null if never summarized. */
+  summaryGeneratedAt: string | null;
 }
 
 /**

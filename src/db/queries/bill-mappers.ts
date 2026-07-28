@@ -31,6 +31,9 @@ export function mapVersionRow(row: Selectable<BillVersions>): BillVersion {
     originalText: row.original_text,
     aiSummary: row.ai_summary,
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+    summaryGeneratedAt: row.summary_generated_at
+      ? new Date(row.summary_generated_at).toISOString()
+      : null,
   };
 }
 
@@ -44,6 +47,9 @@ export function mapReportRow(row: Selectable<CommitteeReports>): CommitteeReport
     originalText: row.original_text,
     aiSummary: row.ai_summary,
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+    summaryGeneratedAt: row.summary_generated_at
+      ? new Date(row.summary_generated_at).toISOString()
+      : null,
   };
 }
 

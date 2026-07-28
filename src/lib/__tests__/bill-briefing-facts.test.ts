@@ -5,6 +5,7 @@ import type { BillDetails, BillVersion } from '@/types/legislation';
 const ver = (label: string): BillVersion => ({
   id: label, label, htmlLink: `https://x/${label}.htm`, pdfLink: null,
   originalText: 'text', aiSummary: null, createdAt: null,
+  summaryGeneratedAt: null,
 });
 
 const baseBill = (over: Partial<BillDetails> = {}): BillDetails => ({

@@ -9,10 +9,12 @@ import type { BillVersion, CommitteeReport } from '@/types/legislation';
 const v = (label: string): BillVersion => ({
   id: label, label, htmlLink: null, pdfLink: null,
   originalText: null, aiSummary: null, createdAt: null,
+  summaryGeneratedAt: null,
 });
 const r = (label: string, reportCode: string): CommitteeReport => ({
   id: label, label, reportCode, htmlLink: null, pdfLink: null,
   originalText: null, aiSummary: null, createdAt: null,
+  summaryGeneratedAt: null,
 });
 
 describe('parseVersionLabelFromReport', () => {
@@ -110,6 +112,7 @@ describe('groupReportsByVersion', () => {
     const nullCode = (label: string): CommitteeReport => ({
       id: label, label, reportCode: null, htmlLink: null, pdfLink: null,
       originalText: null, aiSummary: null, createdAt: null,
+      summaryGeneratedAt: null,
     });
     const versions = [v('HB139_HD2')];
     const reports = [nullCode('HB139_HD2_HSCR901'), nullCode('HB139_HD2_HSCR65')];
