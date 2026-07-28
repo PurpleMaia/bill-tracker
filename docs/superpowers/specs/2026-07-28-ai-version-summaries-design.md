@@ -95,16 +95,14 @@ of them, or a subset) and they become misses that regenerate on next view. This
 keeps prompt-version bumps free and makes regeneration an explicit, costed
 decision.
 
-Consequence for the model-swap rule above: bumping the prompt version alone no
-longer relabels old summaries, so a swap that must not misattribute requires
-clearing `ai_summary` too.
-
-**A model swap must bump `summary_prompt_version`.** Because the displayed model
-comes from config rather than the row, a swap without a bump would label old
-summaries with the new model's name despite the old model having written them —
-a small but real provenance lie. Bumping the prompt version invalidates every
-cached summary so it regenerates under the model now being advertised. A model
-change should invalidate summaries anyway.
+**Model swaps and the provenance footer.** Because the displayed model name comes
+from config rather than the row, a swap leaves old summaries *labeled* with the
+new model's name despite the old model having written them — a small but real
+provenance lie. Bumping `summary_prompt_version` alone does not fix this, since
+bumps no longer invalidate. A swap that must not misattribute therefore requires
+clearing `ai_summary` for the affected rows so they regenerate under the model
+now being advertised. This is a deliberate, costed operational step — not
+automatic behavior.
 
 ### 2. Diff summaries — dynamic
 
@@ -116,7 +114,7 @@ Different economics on every axis:
 | Cardinality | One per version | `n²/2` possible pairs per bill |
 | Reuse | Every reader wants the same paragraph | Most pairs requested once or never |
 | Persisted | Yes | **No** |
-| Staleness | Handled by `summary_prompt_version` | Impossible — always current |
+| Staleness | Possible; cleared explicitly by wiping `ai_summary` | Impossible — always current |
 | Cost driver | Corpus size, once per version | Traffic, per comparison summarized |
 
 Persisting these would mean a table keyed on `(older_version_id,
@@ -266,7 +264,7 @@ noun changes.
 
 ## 1. Purpose
 You summarize official documents from the Hawaii State Legislature for
-community advocates tracking food-related legislation. You will receive the
+community advocates. You will receive the
 full text of one document: either a bill version or a committee report.
 Produce a plain-language summary for a reader who is not a lawyer.
 
