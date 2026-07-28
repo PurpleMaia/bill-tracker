@@ -4,6 +4,13 @@ import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
 import { OpenAI } from 'openai';
 import { db } from '../db/kysely/client';
 import { sql } from 'kysely';
+import {
+  DOCUMENT_SYSTEM_PROMPT,
+  DIFF_SYSTEM_PROMPT,
+  buildDocumentUserTurn,
+  buildDiffUserTurn,
+} from '@/lib/summary-prompts';
+import type { VersionComparison } from '@/lib/version-diff';
 
 const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -392,4 +399,83 @@ function mapToColumnID(classification: string): string | undefined {
     // Fallback: title match (backwards compatibility)
     const col = KANBAN_COLUMNS.find(col => col.title.trim().toLowerCase() === id.toLowerCase());
     return col ? col.id : undefined;
+}
+
+// ==============================================
+// AI SUMMARIES (documents + version diffs)
+// ==============================================
+// Spec: docs/superpowers/specs/2026-07-28-ai-version-summaries-design.md
+// Prompt construction is PURE and lives in @/lib/summary-prompts — this section
+// only orchestrates the call. Opt-in enforcement is the CALLER's job (the action
+// and route arms); by the time we get here consent is already verified.
+
+/** Same fixed window as classification: cheap protection against click-spam. */
+const SUMMARY_RATE_LIMIT = { limit: 5, windowMs: 60_000 };
+
+/** The configured model, surfaced in the UI's provenance footer. */
+export async function getSummaryModelName(): Promise<string> {
+  return process.env.VLLM || process.env.LLM || 'unknown';
+}
+
+async function runSummary(
+  systemPrompt: string,
+  userTurn: string,
+  rateLimitKey: string,
+): Promise<string | null> {
+  const rl = limitFixedWindow(rateLimitKey, SUMMARY_RATE_LIMIT.limit, SUMMARY_RATE_LIMIT.windowMs);
+  if (!rl.ok) {
+    console.warn('[LLM] summary rate limited', { rateLimitKey, retryAfterMs: retryAfterMs(rl.resetAt) });
+    return null;
+  }
+
+  const model = process.env.VLLM || process.env.LLM || '';
+  if (!model) {
+    console.error('[LLM] model not configured. Set VLLM or LLM.');
+    return null;
+  }
+
+  try {
+    const response = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `${userTurn}\n /no_think` },
+      ],
+      temperature: 0.0,
+    });
+
+    const text = response?.choices?.[0]?.message?.content?.trim();
+    return text ? text : null;
+  } catch (error) {
+    console.error('[LLM] summary failed', error);
+    return null;
+  }
+}
+
+export async function summarizeDocumentWithLLM(input: {
+  label: string;
+  kind: 'bill version' | 'committee report';
+  committees: string | null;
+  text: string;
+  rateLimitKey: string;
+}): Promise<string | null> {
+  const userTurn = buildDocumentUserTurn({
+    label: input.label,
+    kind: input.kind,
+    committees: input.committees,
+    text: input.text,
+  });
+  return runSummary(DOCUMENT_SYSTEM_PROMPT, userTurn, input.rateLimitKey);
+}
+
+export async function summarizeDiffWithLLM(input: {
+  comparison: VersionComparison;
+  committees: string | null;
+  rateLimitKey: string;
+}): Promise<string | null> {
+  const userTurn = buildDiffUserTurn({
+    comparison: input.comparison,
+    committees: input.committees,
+  });
+  return runSummary(DIFF_SYSTEM_PROMPT, userTurn, input.rateLimitKey);
 }
