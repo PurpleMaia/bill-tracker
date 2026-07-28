@@ -107,4 +107,55 @@ describe('buildDiffUserTurn', () => {
     expect(buildDiffUserTurn({ comparison: comparison([]), committees: null }))
       .toContain('Parse incomplete: no');
   });
+
+  it('notes a section present only in the newer version', () => {
+    const turn = buildDiffUserTurn({
+      comparison: comparison([
+        { sectionNumber: '9', kind: 'added', changeCount: 1, presence: 'newerOnly',
+          fragments: [frag('added', 'new section body')] },
+      ]),
+      committees: null,
+    });
+    expect(turn).toContain('only in HB1494_HD2');
+  });
+
+  it('truncates a long unchanged fragment inside a changed section and appends an ellipsis', () => {
+    const longUnchanged = `${'x'.repeat(500)}TAIL_MARKER_UNCHANGED`;
+    const turn = buildDiffUserTurn({
+      comparison: comparison([
+        { sectionNumber: '4', kind: 'modified', changeCount: 1, presence: 'both',
+          fragments: [
+            frag('unchanged', longUnchanged),
+            frag('removed', 'or constructing'),
+          ] },
+      ]),
+      committees: null,
+    });
+    expect(turn).not.toContain('TAIL_MARKER_UNCHANGED');
+    expect(turn).toContain('…');
+  });
+
+  it('emits long added and removed fragments verbatim, in full, without truncation', () => {
+    const longAdded = `${'x'.repeat(500)}TAIL_MARKER_ADDED`;
+    const longRemoved = `${'x'.repeat(500)}TAIL_MARKER_REMOVED`;
+    const turn = buildDiffUserTurn({
+      comparison: comparison([
+        { sectionNumber: '4', kind: 'modified', changeCount: 2, presence: 'both',
+          fragments: [
+            frag('added', longAdded),
+            frag('removed', longRemoved),
+          ] },
+      ]),
+      committees: null,
+    });
+    expect(turn).toContain(`[added] ${longAdded}`);
+    expect(turn).toContain(`[removed] ${longRemoved}`);
+    expect(turn).toContain('TAIL_MARKER_ADDED');
+    expect(turn).toContain('TAIL_MARKER_REMOVED');
+
+    const addedLine = turn.split('\n').find((line) => line.includes('TAIL_MARKER_ADDED'));
+    const removedLine = turn.split('\n').find((line) => line.includes('TAIL_MARKER_REMOVED'));
+    expect(addedLine).not.toContain('…');
+    expect(removedLine).not.toContain('…');
+  });
 });
