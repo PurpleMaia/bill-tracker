@@ -1,11 +1,15 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { ChangeFragment, SectionDiff, VersionComparison } from '@/lib/version-diff';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { SummaryCard } from './report-summary';
+import { AlertTriangle, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/contexts/auth-context';
+import { data } from '@/lib/data-client';
 
 // Hawaii prints bills with deletions struck through and insertions underlined.
 // These fragments carry the source document's own marks, so we render the same
@@ -42,7 +46,25 @@ function Fragment({ fragment }: { fragment: ChangeFragment }) {
   );
 }
 
-export function VersionDiffAccordion({ comparison }: { comparison: VersionComparison }) {
+interface VersionDiffAccordionProps {
+  comparison: VersionComparison;
+  /** All three required to offer an AI summary; omit to render counts only. */
+  billId?: string;
+  olderId?: string;
+  newerId?: string;
+}
+
+type DiffSummaryState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'done'; summary: string; model: string }
+  | { status: 'error'; message: string };
+
+export function VersionDiffAccordion({ comparison, billId, olderId, newerId }: VersionDiffAccordionProps) {
+  const { preferences } = useAuth();
+  const aiOptedIn = preferences?.ai_opt_in === true;
+  const [aiState, setAiState] = useState<DiffSummaryState>({ status: 'idle' });
+
   const { changed, unchanged } = useMemo(() => {
     const sections = comparison.sections;
     return {
@@ -66,6 +88,24 @@ export function VersionDiffAccordion({ comparison }: { comparison: VersionCompar
     totals.added > 0 && `${totals.added} added`,
   ].filter(Boolean) as string[];
 
+  // No diff, no summary (spec §Error handling). Also requires opt-in and ids.
+  const canSummarize =
+    aiOptedIn &&
+    !!billId && !!olderId && !!newerId &&
+    !comparison.error &&
+    comparison.sections.length > 0;
+
+  async function summarizeDiff() {
+    if (!billId || !olderId || !newerId) return;
+    setAiState({ status: 'loading' });
+    try {
+      const result = await data.summaries.summarizeDiff({ billId, olderId, newerId });
+      setAiState({ status: 'done', summary: result.summary, model: result.model });
+    } catch (error: any) {
+      setAiState({ status: 'error', message: error?.message || "Couldn't summarize — try again." });
+    }
+  }
+
   return (
     <div className="space-y-2.5">
       <div className="rounded-md border bg-muted/40 p-2.5">
@@ -76,6 +116,28 @@ export function VersionDiffAccordion({ comparison }: { comparison: VersionCompar
           {comparison.olderLabel} → {comparison.newerLabel}
           {summaryParts.length > 0 ? ` · ${summaryParts.join(' · ')}` : ' · no section changes'}
         </p>
+        {canSummarize && aiState.status !== 'done' && (
+          <div className="mt-2 flex flex-col gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={summarizeDiff}
+              disabled={aiState.status === 'loading'}
+              className="h-7 gap-1 self-start px-1.5 text-xs text-olive-dark hover:bg-transparent hover:text-olive-dark/80 focus-visible:bg-transparent"
+            >
+              {aiState.status === 'loading' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              {aiState.status === 'loading' ? 'Summarizing…' : 'Summarize changes'}
+            </Button>
+            {aiState.status === 'error' && (
+              <span className="px-1.5 text-[11px] text-destructive">{aiState.message}</span>
+            )}
+          </div>
+        )}
+        {aiState.status === 'done' && (
+          <div className="mt-2">
+            <SummaryCard summary={aiState.summary} model={aiState.model} />
+          </div>
+        )}
       </div>
 
       {comparison.parseIncomplete && (
