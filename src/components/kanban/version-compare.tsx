@@ -109,7 +109,7 @@ export function VersionCompare({
           )}
         </div>
       ) : comparison ? (
-        <VersionDiffAccordion comparison={comparison} billId={billId} olderId={olderId} newerId={newerId} />
+        <VersionDiffAccordion key={`${olderId}-${newerId}`} comparison={comparison} billId={billId} olderId={olderId} newerId={newerId} />
       ) : null}
     </div>
   );
