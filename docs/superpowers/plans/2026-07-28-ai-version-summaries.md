@@ -22,6 +22,7 @@
 - **LLM call style** (match `services/llm.ts`): `temperature: 0.0`, ` /no_think` appended to the user turn, model from `process.env.VLLM || process.env.LLM`, rate-limited with `limitFixedWindow`.
 - **Architecture rules (CLAUDE.md):** all queries in `src/db/queries/*`; `src/lib/` is DB-free; client components call `data.*` from `@/lib/data-client`, never raw `fetch`; a `'use server'` file may only export async functions; auth via `@/lib/auth-guards`.
 - **Before committing any task:** `npm test`, `npm run typecheck`, and `npm run build` must all pass.
+- **Generated content held in local `useState` MUST be keyed to the identity of what it describes.** A component that stores an AI summary and whose props can change to a *different* document (or version pair) while it stays mounted will render the old summary under the new heading — a summary of the wrong legislative document. Add `key={<the id(s)>}` at the call site so a change of identity forces a fresh instance. This bit twice during implementation: Tasks 9 and 10 both needed it.
 
 ## File Structure
 
@@ -1487,6 +1488,7 @@ At line ~112 the accordion is rendered as `<VersionDiffAccordion comparison={com
 
 ```tsx
 <VersionDiffAccordion
+  key={`${olderId}-${newerId}`}
   comparison={comparison}
   billId={billId}
   olderId={olderId}
@@ -1495,6 +1497,8 @@ At line ~112 the accordion is rendered as `<VersionDiffAccordion comparison={com
 ```
 
 `billId`, `olderId`, and `newerId` are already in scope in that component (they drive the `useEffect` that fetches the comparison).
+
+**The `key` is load-bearing, not cosmetic.** The accordion holds its generated summary in local `useState`, and the version pickers let the user change `olderId`/`newerId` while the component stays mounted. Without the key, React reuses the instance and the HD1→HD2 summary keeps rendering under HD1→SD1's mechanical count — and since the button is gated on `aiState.status !== 'done'`, it is hidden, so the user cannot regenerate. The key also fixes the in-flight case: switching selection mid-request unmounts the old instance, so a response for the previous pair cannot paint the new one.
 
 - [ ] **Step 3: Typecheck and build**
 
