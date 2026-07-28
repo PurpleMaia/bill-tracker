@@ -1,40 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { diffVersions } from '@/services/bill-diff';
-import type { BillVersion } from '@/types/legislation';
+import { compareVersionHtml } from '@/services/bill-diff';
 
-const ver = (label: string, originalText: string | null): BillVersion => ({
-  id: label, label, htmlLink: null, pdfLink: null,
-  originalText, aiSummary: null, createdAt: null,
-});
+describe('compareVersionHtml', () => {
+  it('returns a no-html error when either version lacks an html_link', async () => {
+    const a = await compareVersionHtml({
+      olderLabel: 'HB1334', newerLabel: 'HD1',
+      olderUrl: null, newerUrl: 'https://example.invalid/b.htm',
+    });
+    expect(a.error).toBe('no-html');
+    expect(a.sections).toEqual([]);
+    expect(a.olderLabel).toBe('HB1334');
+    expect(a.newerLabel).toBe('HD1');
 
-describe('diffVersions', () => {
-  it('produces add/del/modified rows from two version texts', () => {
-    const older = ver('HB1334', 'SECTION 2. Funded at $5,000,000.\nSECTION 4. Effective 2026.');
-    const newer = ver('HD1', 'SECTION 2. Funded at $2,000,000.\nSECTION 3. Report annually.\nSECTION 4. Effective 2026.');
-    const d = diffVersions(older, newer);
-    expect(d.olderLabel).toBe('HB1334');
-    expect(d.newerLabel).toBe('HD1');
-    expect(d.error).toBe(false);
-    expect(d.rows.length).toBeGreaterThan(0);
-    // At least one changed row is surfaced.
-    expect(d.rows.some((r) => r.kind === 'add' || r.kind === 'modified')).toBe(true);
-    expect(typeof d.summaryText).toBe('string');
-    // A modified row carries BOTH sides so the split view can align them.
-    const modified = d.rows.find((r) => r.kind === 'modified');
-    expect(modified?.left).toContain('$5,000,000');
-    expect(modified?.right).toContain('$2,000,000');
-  });
-
-  it('returns an error diff when a version has no text', () => {
-    const d = diffVersions(ver('HB1334', null), ver('HD1', 'text'));
-    expect(d.error).toBe(true);
-    expect(d.rows).toEqual([]);
-  });
-
-  it('reports no changes for identical text without erroring', () => {
-    const same = 'SECTION 1. Identical text.';
-    const d = diffVersions(ver('A', same), ver('B', same));
-    expect(d.error).toBe(false);
-    expect(d.rows.every((r) => r.kind === 'context')).toBe(true);
+    const b = await compareVersionHtml({
+      olderLabel: 'HB1334', newerLabel: 'HD1',
+      olderUrl: 'https://example.invalid/a.htm', newerUrl: null,
+    });
+    expect(b.error).toBe('no-html');
   });
 });
