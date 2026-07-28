@@ -271,15 +271,30 @@ full text of one document: either a bill version or a committee report.
 Produce a plain-language summary for a reader who is not a lawyer.
 
 ## 2. Grounding (CRITICAL)
-- Summarize ONLY what the document says. Do not add background, history, or
-  outside knowledge about the bill, its sponsors, or its likelihood of passing.
+- Summarize ONLY what the document says, plus the pipeline position given to
+  you in section 3. Do not add background, history, or outside knowledge about
+  the bill, its sponsors, prior sessions, or its likelihood of passing.
+- You may have seen this bill number before. Bill numbers are REUSED between
+  sessions — HB1494 in one year is an unrelated measure in another. Anything you
+  recall about a bill number is not evidence. Never use it.
 - Do not speculate about intent, motives, or political implications.
 - If the document is a fragment, malformed, or too short to summarize, say so
-  in one sentence instead of guessing.
+  in one sentence instead of guessing. Do not pad a thin document with the
+  pipeline context to reach the word count.
 - Never invent section numbers, dollar amounts, dates, or agency names. Every
   figure you state must appear in the text.
 
-## 3. What to cover
+## 3. Pipeline position (supplied, verified)
+The user turn gives you where this document sits in the legislative process —
+its version label, the bill's committee assignments in order, and which body
+produced it. This comes from official records, not from your memory, so you may
+state it.
+
+Use it for at most ONE clause of orientation, e.g. "the version reported by the
+House Finance Committee". Then summarize the document. Do not narrate the bill's
+journey, predict what happens next, or explain the legislative process.
+
+## 4. What to cover
 In order of importance:
 1. What the measure would do, in one or two sentences.
 2. Who it affects — agencies, industries, populations named in the text.
@@ -288,19 +303,34 @@ In order of importance:
 5. For a committee report only: the committee's recommendation (pass, pass as
    amended, defer, hold) and the amendments it describes.
 
-## 4. Style
+## 5. Style
 - 100–180 words. No preamble, no "This bill...", no restating the title.
 - Plain language. Expand legislative jargon on first use.
 - Use "would" for anything not yet law.
 - Prose, not bullets. No markdown headings.
 - Neutral. You are not advocating for or against the measure.
 
-## 5. Output
+## 6. Output
 Return only the summary text. No title, no labels, no commentary.
 ```
 
 **User turn:** the document label, its type (`bill version` | `committee
-report`), and `original_text`.
+report`), the pipeline-position block, and `original_text`:
+
+```
+Document: HB1494_HD1 (bill version)
+Committees (in order): AGR, ECD, FIN
+Produced by: House, first committee draft
+
+Text:
+<original_text>
+```
+
+The `Produced by` line is derived from the label (`HD*` → House draft, `SD*` →
+Senate draft, `CD*` → conference draft, bare number → as introduced) plus
+`bills.committee_assignment`, which is the same field the status classifier
+already consumes. Every element is a stored fact — nothing is inferred by the
+model.
 
 `original_text` is whitespace-collapsed single-line plain text (per the
 comparison design's findings) — adequate for summarization, which needs no line
@@ -334,7 +364,25 @@ YOU MUST NOT look for changes yourself, contradict a tag, or claim something
 changed that is not tagged as changed. Do not describe [unchanged] text as new
 or removed. If the diff shows no substantive change, say exactly that.
 
-## 3. What to cover
+You may have seen these bill numbers before. Bill numbers are REUSED between
+sessions, so anything you recall about them is not evidence. The diff and the
+pipeline position below are your only sources.
+
+## 3. Who made this change (supplied, verified)
+The user turn tells you which body produced each version — e.g. HD1 is a House
+draft, SD1 a Senate draft, CD1 a conference draft — and the bill's committee
+assignments in order. This comes from official records, so you may state it.
+
+Use it to make the changes legible: an appropriation cut in a Finance committee
+draft, or scope narrowed when the bill crossed to the Senate, is more meaningful
+to a reader than the same change described without attribution. One clause is
+enough.
+
+Do NOT claim a specific committee or legislator authored a specific change
+unless the input says so — the version label identifies the chamber and draft
+stage, not the author of any individual edit.
+
+## 4. What to cover
 1. The single most consequential change first — what it does, not where it is.
 2. Then remaining substantive changes, grouped by what they affect rather than
    by section order.
@@ -345,7 +393,7 @@ or removed. If the diff shows no substantive change, say exactly that.
    or newly excluded.
 5. Ignore pure renumbering, punctuation, and formatting churn.
 
-## 4. Style
+## 5. Style
 - 80–150 words. Shorter when the changes are minor.
 - Lead with substance: "The appropriation drops from $500,000 to $250,000."
   Not: "In section 4, the bill was amended."
@@ -353,18 +401,22 @@ or removed. If the diff shows no substantive change, say exactly that.
 - Plain language, neutral, "would" for anything not yet law.
 - Prose, not bullets. No markdown headings.
 
-## 5. Partial diffs
+## 6. Partial diffs
 If told the parse was incomplete, add one final sentence noting that some
 sections could not be compared. Do not speculate about their contents.
 
-## 6. Output
+## 7. Output
 Return only the summary text. No title, no labels, no commentary.
 ```
 
-**User turn**, built by a pure function from a `VersionComparison`:
+**User turn**, built by a pure function from a `VersionComparison` plus the
+bill's committee assignments:
 
 ```
 Comparing HB1494_HD1 (older) to HB1494_HD2 (newer).
+Older: House, first committee draft
+Newer: House, second committee draft
+Committees (in order): AGR, ECD, FIN
 Parse incomplete: no
 
 SECTION 4 [modified]
@@ -387,7 +439,10 @@ Construction rules — this is where cost and quality are actually decided:
 - Long runs of `[unchanged]` are truncated to a window around the nearest change.
 - `presence: 'olderOnly' | 'newerOnly'` becomes an explicit note, since a
   whole-section add/drop is a major change that fragment tags alone under-state.
-- `parseIncomplete` is passed through to trigger §5.
+- `parseIncomplete` is passed through to trigger §6.
+- The `Older:` / `Newer:` lines come from the same label-parsing helper the
+  document prompt uses, so chamber/draft-stage derivation lives in one pure
+  function shared by both.
 
 This is why diff summaries are cheap: a 12-section bill with changes in 3
 sections sends 3 sections of fragments, not two 17 KB documents.
@@ -420,6 +475,9 @@ Pure unit tests in `src/lib/__tests__/`, per convention:
 
 - Prompt construction from a `VersionComparison` — changed fragments included,
   unchanged bulk excluded, section context preserved.
+- Label → chamber/draft-stage derivation: `HD1` → House first draft, `SD2` →
+  Senate second draft, `CD1` → conference draft, bare `HB1494` → as introduced,
+  and an unrecognized label degrades to omitting the line rather than guessing.
 - Cache staleness: a summary is a **hit** when `ai_summary` is non-NULL and
   `summary_prompt_version` is non-NULL; a **miss** only when `ai_summary` is
   NULL. Backfilled `'v0'` rows are hits. (Prompt-version comparison is not a
