@@ -33,7 +33,8 @@ function ReportRow({ report }: { report: CommitteeReport }) {
       </div>
       <div className="mt-1.5">
         <SummarySection
-          text={report.originalText ?? ''}
+          target="report"
+          documentId={report.id}
           existingSummary={report.aiSummary}
           noun="committee report"
         />
@@ -100,7 +101,8 @@ export function BillVersionsPanel({
                     <LinkButtons link={latestVersion.pdfLink} type="version" />
                   </div>
                   <SummarySection
-                    text={latestVersion.originalText ?? ''}
+                    target="version"
+                    documentId={latestVersion.id}
                     existingSummary={latestVersion.aiSummary}
                     noun="version"
                   />
@@ -118,7 +120,8 @@ export function BillVersionsPanel({
                     <LinkButtons link={latestReport.pdfLink} type="report" />
                   </div>
                   <SummarySection
-                    text={latestReport.originalText ?? ''}
+                    target="report"
+                    documentId={latestReport.id}
                     existingSummary={latestReport.aiSummary}
                     noun="committee report"
                   />
@@ -175,7 +178,8 @@ export function BillVersionsPanel({
                     </div>
                     <div className="mt-1.5">
                       <SummarySection
-                        text={group.version.originalText ?? ''}
+                        target="version"
+                        documentId={group.version.id}
                         existingSummary={group.version.aiSummary}
                         noun="version"
                       />
