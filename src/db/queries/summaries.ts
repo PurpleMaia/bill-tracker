@@ -65,3 +65,18 @@ export async function saveSummary(
     .where('id', '=', id)
     .execute();
 }
+
+/**
+ * The bill's committee assignments, for the diff-summary prompt's pipeline-
+ * position block. Null both when the bill row is missing and when the column
+ * itself is null.
+ */
+export async function getBillCommittees(billId: string): Promise<string | null> {
+  const row = await db
+    .selectFrom('bills')
+    .select('committee_assignment')
+    .where('id', '=', billId)
+    .executeTakeFirst();
+
+  return row?.committee_assignment ?? null;
+}
