@@ -1,13 +1,16 @@
 'use server';
 
-import type { Bill } from '@/types/legislation';
+import type { Bill, CompareVersionsParams } from '@/types/legislation';
+import type { VersionComparison } from '@/lib/version-diff';
 import { optionalSession, requireMembership, requireSession } from '@/lib/auth-guards';
 import {
   getAllTrackedBills,
   getAllFoodRelatedBills,
   getUserTrackedBills,
+  getVersionHtmlLinks,
 } from '@/db/queries/bills-read';
 import { updateBillStatus } from '@/db/queries/bills-write';
+import { compareVersionHtml } from '@/services/bill-diff';
 
 // ==============================================
 // BILLS — SERVER ACTION ARM
@@ -65,4 +68,24 @@ export async function updateBillStatusAction(params: UpdateBillStatusParams): Pr
   // user is required for the mutation path (matches the route's auth requirement)
   void user;
   await updateBillStatus(billId, newStatus, tenantId);
+}
+
+/**
+ * Mirrors GET /api/bills/[id]?resource=version-diff. Public data (bill text is
+ * public record), so optional auth only — matching the bills-list branch.
+ */
+export async function compareVersionsAction(
+  params: CompareVersionsParams,
+): Promise<VersionComparison> {
+  const { billId, olderId, newerId } = params;
+  await optionalSession.fromAction();
+
+  const { older, newer } = await getVersionHtmlLinks(billId, olderId, newerId);
+
+  return compareVersionHtml({
+    olderLabel: older?.label ?? 'older',
+    newerLabel: newer?.label ?? 'newer',
+    olderUrl: older?.htmlLink ?? null,
+    newerUrl: newer?.htmlLink ?? null,
+  });
 }

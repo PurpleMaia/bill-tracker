@@ -279,6 +279,34 @@ export async function getBillVersionsAndReports(
 }
 
 /**
+ * Fetches the label and source-document link for two specific versions of a
+ * bill, for the version-comparison diff. Scoped by bill_id so a caller cannot
+ * pull versions belonging to another bill by guessing ids.
+ */
+export async function getVersionHtmlLinks(
+  billId: string,
+  olderId: string,
+  newerId: string,
+): Promise<{
+  older: { label: string; htmlLink: string | null } | null;
+  newer: { label: string; htmlLink: string | null } | null;
+}> {
+  const rows = await db
+    .selectFrom('bill_versions')
+    .select(['id', 'label', 'html_link'])
+    .where('bill_id', '=', billId)
+    .where('id', 'in', [olderId, newerId])
+    .execute();
+
+  const find = (id: string) => {
+    const row = rows.find((r) => r.id === id);
+    return row ? { label: row.label, htmlLink: row.html_link } : null;
+  };
+
+  return { older: find(olderId), newer: find(newerId) };
+}
+
+/**
  * Fetches detailed bill information including status updates and extended metadata.
  * Used by BillDetailsDialog to get full bill information on-demand.
  *

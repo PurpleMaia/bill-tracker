@@ -7,8 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SummarySection } from './report-summary';
-import { VersionDiffInline } from './version-diff-inline';
-import { FileText, ExternalLink, ScrollText } from 'lucide-react';
+import { FileText, ExternalLink, ScrollText, GitCompare } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 function LinkButtons({ link, type }: { link: string | null; type: 'version' | 'report' }) {
   if (!link) return null;
@@ -42,7 +42,19 @@ function ReportRow({ report }: { report: CommitteeReport }) {
   );
 }
 
-export function BillVersionsPanel({ versions, reports }: { versions: BillVersion[]; reports: CommitteeReport[] }) {
+export function BillVersionsPanel({
+  versions,
+  reports,
+  selectedOlderId,
+  selectedNewerId,
+  onCompare,
+}: {
+  versions: BillVersion[];
+  reports: CommitteeReport[];
+  selectedOlderId: string;
+  selectedNewerId: string;
+  onCompare: (olderId: string, newerId: string) => void;
+}) {
   const { groups, orphanReports } = useMemo(
     () => groupReportsByVersion(versions, reports),
     [versions, reports],
@@ -126,16 +138,45 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
                 const isBase = origIdx === 0;
                 const isLatest = latestVersion?.id === group.version.id;
                 const previous = origIdx > 0 ? groups[origIdx - 1].version : null;
+                const isSelected =
+                  selectedNewerId === group.version.id && previous?.id === selectedOlderId;
                 return (
-                  <li key={group.version.id} className="relative">
+                  <li
+                    key={group.version.id}
+                    className={cn(
+                      'relative rounded-md transition-colors',
+                      isSelected && '-mx-2 bg-primary/5 px-2 py-1.5 ring-1 ring-primary/25',
+                    )}
+                    aria-current={isSelected ? 'true' : undefined}
+                  >
                     <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary" aria-hidden="true" />
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">{group.version.label}</span>
                         {isBase && <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">introduced</Badge>}
                         {isLatest && <Badge variant="default" className="h-4 px-1.5 text-[10px]">current</Badge>}
+                        {isSelected && (
+                          <Badge variant="outline" className="h-4 gap-1 px-1.5 text-[10px]">
+                            <GitCompare className="h-2.5 w-2.5" aria-hidden="true" /> comparing
+                          </Badge>
+                        )}
                       </div>
-                      <LinkButtons link={group.version.pdfLink} type="version" />
+                      <div className="flex items-center gap-1.5">
+                        {/* The base version has no predecessor, so nothing to compare against. */}
+                        {previous && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onCompare(previous.id, group.version.id)}
+                            className="h-7 gap-1 px-1.5 text-xs text-primary hover:bg-transparent hover:text-primary/80"
+                          >
+                            <GitCompare className="h-3.5 w-3.5" aria-hidden="true" />
+                            Compare
+                            <span className="sr-only"> {group.version.label} with {previous.label}</span>
+                          </Button>
+                        )}
+                        <LinkButtons link={group.version.pdfLink} type="version" />
+                      </div>
                     </div>
                     <div className="mt-1.5">
                       <SummarySection
@@ -144,11 +185,6 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
                         noun="version"
                       />
                     </div>
-                    {previous && group.version.originalText && previous.originalText && (
-                      <div className="mt-1">
-                        <VersionDiffInline older={previous} newer={group.version} />
-                      </div>
-                    )}
                     {group.reports.length > 0 && (
                       <div className="mt-2 space-y-1.5">
                         {group.reports.map((report) => (

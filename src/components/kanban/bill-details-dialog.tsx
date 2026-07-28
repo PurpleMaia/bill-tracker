@@ -597,7 +597,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                       </div>
                     </TabsContent>
                     <TabsContent value="versions" className="flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden">
-                      <VersionsReportsTab versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
+                      <VersionsReportsTab billId={billID ?? ""} versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
                     </TabsContent>
                   </Tabs>
 
@@ -642,7 +642,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                   </div>
                 </TabsContent>
                 <TabsContent value="versions" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
-                  <VersionsReportsTab versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
+                  <VersionsReportsTab billId={billID ?? ""} versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
                 </TabsContent>
               </Tabs>
             );

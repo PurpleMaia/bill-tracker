@@ -142,3 +142,13 @@ export interface Tag {
   created_at?: Date | string;
   updated_at?: Date | string;
 }
+
+/**
+ * Params for a version-to-version diff request. Declared here rather than in
+ * actions/bills.ts because a 'use server' file may only export async functions.
+ */
+export interface CompareVersionsParams {
+  billId: string;
+  olderId: string;
+  newerId: string;
+}

@@ -3,8 +3,9 @@ import { validateSession } from '@/lib/auth';
 import { getSessionCookie } from '@/lib/cookies';
 import { validateMembership } from '@/db/queries/tenants';
 import { updateBillStatus, untrackBill } from '@/db/queries/bills-write';
-import { getBillDetails } from '@/db/queries/bills-read';
+import { getBillDetails, getVersionHtmlLinks } from '@/db/queries/bills-read';
 import { updateBillTags } from '@/db/queries/tags';
+import { compareVersionHtml } from '@/services/bill-diff';
 
 export async function GET(
   request: NextRequest,
@@ -12,6 +13,28 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const url = new URL(request.url);
+
+    // Version-diff branch: /api/bills/[id]?resource=version-diff&olderId=..&newerId=..
+    if (url.searchParams.get('resource') === 'version-diff') {
+      const olderId = url.searchParams.get('olderId');
+      const newerId = url.searchParams.get('newerId');
+      if (!olderId || !newerId) {
+        return NextResponse.json(
+          { error: 'olderId and newerId are required' },
+          { status: 400 },
+        );
+      }
+      const { older, newer } = await getVersionHtmlLinks(id, olderId, newerId);
+      const comparison = await compareVersionHtml({
+        olderLabel: older?.label ?? 'older',
+        newerLabel: newer?.label ?? 'newer',
+        olderUrl: older?.htmlLink ?? null,
+        newerUrl: newer?.htmlLink ?? null,
+      });
+      return NextResponse.json({ comparison }, { status: 200 });
+    }
+
     const bill = await getBillDetails(id);
     return NextResponse.json({ bill }, { status: 200 });
   } catch (error: any) {

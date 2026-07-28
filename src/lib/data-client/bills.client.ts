@@ -1,8 +1,10 @@
-import type { Bill } from '@/types/legislation';
+import type { Bill, CompareVersionsParams } from '@/types/legislation';
+import type { VersionComparison } from '@/lib/version-diff';
 import { defineClient } from './define-client';
 import {
   getBillsAction,
   updateBillStatusAction,
+  compareVersionsAction,
   type GetBillsParams,
   type UpdateBillStatusParams,
 } from '@/app/actions/bills';
@@ -40,7 +42,24 @@ async function updateBillStatusFetch(params: UpdateBillStatusParams): Promise<vo
   }
 }
 
+async function compareVersionsFetch(params: CompareVersionsParams): Promise<VersionComparison> {
+  const qs = new URLSearchParams({
+    resource: 'version-diff',
+    olderId: params.olderId,
+    newerId: params.newerId,
+  });
+
+  const res = await fetch(`/api/bills/${params.billId}?${qs.toString()}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to compare versions');
+  }
+  const data = await res.json();
+  return data.comparison as VersionComparison;
+}
+
 export const billsClient = defineClient('bills', {
   getBills: { action: getBillsAction, fetch: getBillsFetch },
   updateStatus: { action: updateBillStatusAction, fetch: updateBillStatusFetch },
+  compareVersions: { action: compareVersionsAction, fetch: compareVersionsFetch },
 });
