@@ -760,6 +760,7 @@ git commit -m "feat: LLM summary functions for documents and version diffs"
   - `type SummaryTarget = 'version' | 'report'`
   - `getSummarySource(target: SummaryTarget, id: string): Promise<{ billId: string; label: string; originalText: string | null; aiSummary: string | null; committees: string | null } | null>`
   - `saveSummary(target: SummaryTarget, id: string, summary: string): Promise<void>`
+  - `getBillCommittees(billId: string): Promise<string | null>` — `bills.committee_assignment` for the diff prompt's pipeline-position block. (Added during Task 6's fix round: the diff action needs committees without a version/report row to hang them on, and inline `db.*` in an action violates CLAUDE.md.)
 
 - [ ] **Step 1: Write the implementation**
 
@@ -877,10 +878,10 @@ git commit -m "feat: summary read/write queries for versions and reports"
 
 import { requireSession } from '@/lib/auth-guards';
 import { getUserPreferences } from '@/db/queries/user-preferences';
-import { getSummarySource, saveSummary, type SummaryTarget } from '@/db/queries/summaries';
+import { getSummarySource, saveSummary, getBillCommittees, type SummaryTarget } from '@/db/queries/summaries';
+import { getVersionHtmlLinks } from '@/db/queries/bills-read';
 import { summarizeDocumentWithLLM, summarizeDiffWithLLM, getSummaryModelName } from '@/services/llm';
 import { compareVersionHtml } from '@/services/bill-diff';
-import { db } from '@/db/kysely/client';
 import { ApiError } from '@/lib/errors';
 
 export interface SummaryResult {
@@ -944,27 +945,24 @@ export async function summarizeDiffAction(input: {
 
   // Diff summaries are never persisted (spec §2), so this recomputes the
   // comparison every call. The input is small — changed fragments only.
-  const versions = await db
-    .selectFrom('bill_versions')
-    .select(['id', 'label', 'html_link'])
-    .where('bill_id', '=', input.billId)
-    .execute();
-
-  const older = versions.find((v) => v.id === input.olderId);
-  const newer = versions.find((v) => v.id === input.newerId);
+  //
+  // NOTE: no inline db.* queries here. Per CLAUDE.md, queries live in
+  // src/db/queries/* and actions are thin transports over them.
+  // getVersionHtmlLinks already exists and filters `id IN (older, newer)`.
+  const { older, newer } = await getVersionHtmlLinks(
+    input.billId,
+    input.olderId,
+    input.newerId,
+  );
   if (!older || !newer) throw new ApiError('NOT_FOUND', 404, 'Version not found.');
 
-  const bill = await db
-    .selectFrom('bills')
-    .select('committee_assignment')
-    .where('id', '=', input.billId)
-    .executeTakeFirst();
+  const committees = await getBillCommittees(input.billId);
 
   const comparison = await compareVersionHtml({
     olderLabel: older.label,
     newerLabel: newer.label,
-    olderUrl: older.html_link,
-    newerUrl: newer.html_link,
+    olderUrl: older.htmlLink,
+    newerUrl: newer.htmlLink,
   });
 
   // No diff, no summary (spec §Error handling). An ungrounded account of a
@@ -975,7 +973,7 @@ export async function summarizeDiffAction(input: {
 
   const summary = await summarizeDiffWithLLM({
     comparison,
-    committees: bill?.committee_assignment ?? null,
+    committees,
     rateLimitKey: `llm:diff:${input.olderId}:${input.newerId}`,
   });
 
