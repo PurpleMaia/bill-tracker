@@ -152,3 +152,9 @@ export interface CompareVersionsParams {
   olderId: string;
   newerId: string;
 }
+
+/** A generated AI summary plus the model that produced it. */
+export interface SummaryResult {
+  summary: string;
+  model: string;
+}
