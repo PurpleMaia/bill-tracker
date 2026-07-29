@@ -199,13 +199,31 @@ describe('REPORT_SYSTEM_PROMPT', () => {
   it('demands the hearing be reported, not the bill', () => {
     expect(REPORT_SYSTEM_PROMPT).toMatch(/Report the hearing, not the bill/);
     expect(REPORT_SYSTEM_PROMPT).toMatch(/record of ACTIONS TAKEN/);
-    expect(REPORT_SYSTEM_PROMPT).toMatch(/That is BACKGROUND, not the story/);
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/read as identical/);
   });
 
-  it('leads with the committee decision and covers amendments and testimony', () => {
-    expect(REPORT_SYSTEM_PROMPT).toMatch(/THE DECISION, first sentence/);
-    expect(REPORT_SYSTEM_PROMPT).toMatch(/AMENDMENTS/);
-    expect(REPORT_SYSTEM_PROMPT).toMatch(/TESTIMONY/);
+  it('covers the four hearing facts: committee, decision, sides, next step', () => {
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/WHICH COMMITTEE met/);
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/WHAT THEY DECIDED/);
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/WHO SUPPORTED OR OPPOSED/);
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/NEXT STEP/);
+  });
+
+  // A bill averages 3 reports (up to 7), all shown in one timeline. Paragraph
+  // summaries there are unreadable AND near-identical, because 99.9% of reports
+  // restate the bill's purpose. Length is the fix, so it is asserted.
+  it('is capped at a few sentences, not a paragraph', () => {
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/TWO TO FOUR SENTENCES/);
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/25–70 words/);
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/Going long is a failure/);
+    // The bill-version prompt stays long-form; only reports are capped.
+    expect(DOCUMENT_SYSTEM_PROMPT).toMatch(/100–180 words/);
+  });
+
+  it('bans restating the bill and the committee findings', () => {
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/SKIP IT ENTIRELY/);
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/DO NOT describe what the bill or measure would do/);
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/DO NOT include the committee's findings/);
   });
 
   // Reporting only supporters would misrepresent a contested hearing; 33% of
@@ -265,5 +283,80 @@ describe('buildReportUserTurn', () => {
     });
     expect(turn).not.toContain('Committees (in order)');
     expect(turn).toMatch(/report names the committees that acted/);
+  });
+});
+
+describe('DIFF_SYSTEM_PROMPT — mark interpretation', () => {
+  // Hawaiʻi drafts are cumulative (12,027 of 12,123 versions are full drafts
+  // averaging ~9,400 chars), so the reader is never short of bill descriptions.
+  // What they cannot do is find the few edits buried in that text.
+  it('states that the change explanation is the main thing, not the bill', () => {
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/THIS IS THE MAIN THING THE READER WANTS/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/cumulative/);
+  });
+
+  // The accordion shows struck/underlined fragments faithfully but leaves the
+  // reader to derive the net effect. That derivation is this prompt's job.
+  it('frames the task as interpreting the raw marks, not restating them', () => {
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/YOUR JOB IS THAT INTERPRETATION/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/Do not restate the marks; say what they mean/);
+  });
+
+  it('gives an explicit procedure for reading removed/added pairs', () => {
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/HOW TO READ THE MARKS/);
+    // A removed+added pair is ONE replacement, not two separate edits.
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/usually ONE edit — a REPLACEMENT/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/\[removed\] alone is a DELETION/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/\[added\] alone is an INSERTION/);
+    // Whole-section adds/removes are the largest edits and must lead.
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/provision was dropped or\s+appeared/);
+  });
+
+  it('requires reading changed fragments against surrounding unchanged text', () => {
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/Read changed fragments against the \[unchanged\] words/);
+  });
+
+  // The prompt grew to 8,658 chars while adding the mark-reading rules and,
+  // combined with a large user turn, started timing the endpoint out (HTTP 524,
+  // no body). Keep it lean — this is a real operational ceiling, not style.
+  it('stays lean enough not to crowd out the diff payload', () => {
+    expect(DIFF_SYSTEM_PROMPT.length).toBeLessThan(8000);
+  });
+});
+
+// Prompt examples leak into output. Observed twice with this model:
+//  1. "Farmers selling at roadside stands would no longer need a county permit"
+//     copied verbatim from a document-prompt example into a hemp-permit summary.
+//  2. "The economic development fund was removed" copied from a diff-prompt
+//     example into an SB2575 criminal-sentencing summary, where no such fund
+//     exists anywhere in the diff.
+// Concrete nouns in examples are the vector, so no prompt may contain a
+// plausible-looking legislative noun phrase that a model could lift wholesale.
+describe('prompt examples cannot be mistaken for content', () => {
+  const LEAKED_PHRASES = [
+    'economic development fund',
+    'climate resiliency',
+    'roadside stand',
+    'county permit',
+    'university of Hawaii at Manoa',
+    'stadium',
+  ];
+
+  for (const [name, prompt] of Object.entries({
+    DOCUMENT_SYSTEM_PROMPT,
+    REPORT_SYSTEM_PROMPT,
+    DIFF_SYSTEM_PROMPT,
+  })) {
+    it(`${name} contains no liftable concrete legislative nouns`, () => {
+      for (const phrase of LEAKED_PHRASES) {
+        expect(prompt.toLowerCase()).not.toContain(phrase.toLowerCase());
+      }
+    });
+  }
+
+  it('each prompt states that every value must come from the input', () => {
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/must appear in the tagged\s+fragments/);
+    expect(DOCUMENT_SYSTEM_PROMPT).toMatch(/must appear in the text/);
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/Never invent a committee name/);
   });
 });

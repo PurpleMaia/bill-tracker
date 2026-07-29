@@ -131,7 +131,16 @@ export async function summarizeDiffAction(input: {
   });
 
   if (!summary) {
-    throw new ApiError('SUMMARY_FAILED', 502, "Couldn't summarize these changes. Try again.");
+    // A large comparison is the usual cause here: the model runs past the
+    // gateway timeout and returns nothing. Suggest a smaller comparison rather
+    // than a retry that would time out the same way.
+    throw new ApiError(
+      'SUMMARY_FAILED',
+      502,
+      changedSections.length > 12
+        ? `Couldn't summarize ${changedSections.length} changed sections — that comparison is too large. Try two adjacent drafts instead.`
+        : "Couldn't summarize these changes. Try again.",
+    );
   }
 
   return { summary, model: await getSummaryModelName() };

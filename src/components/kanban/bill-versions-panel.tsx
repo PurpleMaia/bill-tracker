@@ -178,14 +178,12 @@ export function BillVersionsPanel({
                         <LinkButtons link={group.version.pdfLink} type="version" />
                       </div>
                     </div>
-                    <div className="mt-1.5">
-                      <SummarySection
-                        target="version"
-                        documentId={group.version.id}
-                        existingSummary={group.version.aiSummary}
-                        noun="version"
-                      />
-                    </div>
+                    {/* No per-version AI summary here. Hawaiʻi drafts are
+                        cumulative — each restates the whole bill with a few
+                        edits woven in — so a summary per row produced several
+                        near-identical paragraphs and buried the one thing that
+                        differs. Zone A carries the summary for the current
+                        version; what changed at each step belongs to Compare. */}
                     {group.reports.length > 0 && (
                       <div className="mt-2 space-y-1.5">
                         {group.reports.map((report) => (

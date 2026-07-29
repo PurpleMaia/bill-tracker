@@ -414,6 +414,15 @@ function mapToColumnID(classification: string): string | undefined {
 /** Same fixed window as classification: cheap protection against click-spam. */
 const SUMMARY_RATE_LIMIT = { limit: 5, windowMs: 60_000 };
 
+/**
+ * Client-side ceiling on a summary request. Kept under the typical Cloudflare
+ * 100s gateway limit so we fail with a real error instead of a bodiless 524.
+ */
+const SUMMARY_TIMEOUT_MS = 90_000;
+
+/** Summaries run 25-180 words; this is generous headroom, not a target. */
+const SUMMARY_MAX_TOKENS = 700;
+
 /** The configured model, surfaced in the UI's provenance footer. */
 export async function getSummaryModelName(): Promise<string> {
   return process.env.VLLM || process.env.LLM || 'unknown';
@@ -437,18 +446,38 @@ async function runSummary(
   }
 
   try {
-    const response = await client.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `${userTurn}\n /no_think` },
-      ],
-      temperature: 0.0,
-    });
+    const response = await client.chat.completions.create(
+      {
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `${userTurn}\n /no_think` },
+        ],
+        temperature: 0.0,
+        // Summaries are 25-180 words. Without a ceiling a confused model can
+        // run for minutes and get killed by the gateway (observed: HTTP 524,
+        // no body) instead of returning something usable.
+        max_tokens: SUMMARY_MAX_TOKENS,
+      },
+      // Fail fast and locally rather than waiting for the upstream gateway to
+      // drop the connection — a 524 arrives with no body and no useful error.
+      { timeout: SUMMARY_TIMEOUT_MS },
+    );
 
     const text = response?.choices?.[0]?.message?.content?.trim();
     return text ? text : null;
   } catch (error) {
+    // A timeout is worth distinguishing: "try again" is bad advice when the
+    // request will simply time out again. 524 is the gateway's own timeout.
+    const status = (error as { status?: number })?.status;
+    const isTimeout =
+      status === 524 ||
+      status === 504 ||
+      (error as { name?: string })?.name === 'APIConnectionTimeoutError';
+    if (isTimeout) {
+      console.error('[LLM] summary timed out', { rateLimitKey, status, promptChars: userTurn.length });
+      return null;
+    }
     console.error('[LLM] summary failed', error);
     return null;
   }
