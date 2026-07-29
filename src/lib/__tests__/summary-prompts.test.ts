@@ -32,6 +32,37 @@ describe('system prompts', () => {
   it('the diff prompt forbids finding changes itself', () => {
     expect(DIFF_SYSTEM_PROMPT).toMatch(/MUST NOT look for changes yourself/);
   });
+
+  // The diff prompt is a CHANGELOG, not a bill summary. Earlier output drifted
+  // into describing the bill and editorializing about the direction of the
+  // edits ("reflects a shift in focus toward..."), so both bans are explicit.
+  it('the diff prompt demands a changelog, not a bill summary', () => {
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/changelog, not a summary/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/still be true of the older version, delete it/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/reflects a shift in focus/);
+  });
+
+  // Section markers survive in original_text; page/line structure does not
+  // (it is one line with zero newlines). Some documents quote page/line refs
+  // that belong to a DIFFERENT document — citing those would mislead.
+  it('both prompts allow section citations but ban page/line citations', () => {
+    for (const prompt of [DOCUMENT_SYSTEM_PROMPT, DIFF_SYSTEM_PROMPT]) {
+      expect(prompt).toMatch(/§/);
+      expect(prompt).toMatch(/cite a page or line number|cite page or line numbers/);
+      expect(prompt).toMatch(/no page or line/);
+    }
+  });
+
+  it('the document prompt leads with real-world consequence and bans jargon', () => {
+    expect(DOCUMENT_SYSTEM_PROMPT).toMatch(/real-world consequence/);
+    expect(DOCUMENT_SYSTEM_PROMPT).toMatch(/pursuant to/);
+  });
+
+  // The UI renders the disclaimer, so the model must not emit its own.
+  it('both prompts tell the model not to add its own disclaimer', () => {
+    expect(DOCUMENT_SYSTEM_PROMPT).toMatch(/Do not add\s+a disclaimer/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/Do not add\s+a disclaimer/);
+  });
 });
 
 describe('buildDocumentUserTurn', () => {
