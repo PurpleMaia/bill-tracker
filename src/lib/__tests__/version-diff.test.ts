@@ -4,7 +4,11 @@ import {
   compareSectionNumbers,
   hasSectionGaps,
   errorComparison,
+  cleanFragmentText,
+  stripBoilerplate,
+  coalesceFragments,
   type RawSectionChange,
+  type ChangeFragment,
 } from '@/lib/version-diff';
 
 const frag = (type: string, text: string, fmt?: Record<string, boolean>) => ({
@@ -153,5 +157,148 @@ describe('errorComparison', () => {
     expect(c.sections).toEqual([]);
     expect(c.totals).toEqual({ added: 0, removed: 0, modified: 0, unchanged: 0 });
     expect(c.parseIncomplete).toBe(false);
+  });
+});
+
+// ==============================================
+// FRAGMENT CLEANUP FOR LLM CONSUMPTION
+// ==============================================
+// hawaii-bill-diff tags at WORD level. A single edited sentence arrives as a
+// dozen micro-fragments, most of them grammatical glue, which the model must
+// reassemble before it can interpret anything. These helpers run only on the
+// prompt path — the accordion keeps the parser's exact fragments.
+
+function f(kind: ChangeFragment['kind'], text: string): ChangeFragment {
+  return { kind, text, struck: kind === 'removed', underlined: kind === 'added' };
+}
+
+describe('cleanFragmentText', () => {
+  it('strips Word-export artifacts and collapses whitespace', () => {
+    expect(cleanFragmentText('**__§706-__** Sentence of   imprisonment')).toBe('§706- Sentence of imprisonment');
+    expect(cleanFragmentText('(c)~~]~~')).toBe('(c)]');
+  });
+
+  it('never drops real words', () => {
+    expect(cleanFragmentText('twenty years')).toBe('twenty years');
+  });
+
+  it('returns empty string for artifact-only text', () => {
+    expect(cleanFragmentText('~~**__')).toBe('');
+  });
+});
+
+describe('stripBoilerplate', () => {
+  // Markers are matched on the BARE label: cleanFragmentText has already
+  // stripped the ** / __ markup by the time this runs, so a marker written as
+  // '** Report Title:**' would never match. This was a real bug — the block
+  // survived into the prompt until the markers dropped their markup.
+  it('cuts the trailing Report Title block after markup has been cleaned', () => {
+    const text = 'SECTION 7. This Act shall take effect. Report Title: Firearms; Mandatory Minimum';
+    expect(stripBoilerplate(text)).toBe('SECTION 7. This Act shall take effect.');
+  });
+
+  it('takes the Description half with it, since it follows Report Title', () => {
+    const text = 'Body text. Report Title: Firearms Description: Establishes mandatory minimums.';
+    expect(stripBoilerplate(text)).toBe('Body text.');
+  });
+
+  it('cuts the informational-purposes disclaimer', () => {
+    const text = 'Real text here. The summary description of legislation appearing on this page is for informational purposes only';
+    expect(stripBoilerplate(text)).toBe('Real text here.');
+  });
+
+  it('leaves text without boilerplate untouched', () => {
+    expect(stripBoilerplate('SECTION 2. Chapter 706 is amended.')).toBe('SECTION 2. Chapter 706 is amended.');
+  });
+
+  // 'Description:' on its own is NOT a marker: a bill may legitimately use the
+  // word mid-text, and cutting there would silently drop real legislative
+  // content — far worse than leaving a little boilerplate in.
+  it('does NOT cut on a bare "Description:" in body text', () => {
+    const text = 'SECTION 3. Description: of the property shall be recorded.';
+    expect(stripBoilerplate(text)).toBe(text);
+  });
+
+  it('cuts at the EARLIEST marker when several are present', () => {
+    const text = 'Body. The summary description of legislation appearing on this page x. Report Title: y';
+    expect(stripBoilerplate(text)).toBe('Body.');
+  });
+});
+
+describe('coalesceFragments', () => {
+  it('merges adjacent same-kind fragments into one', () => {
+    const out = coalesceFragments([
+      f('removed', 'or'), f('removed', 'constructing'),
+      f('unchanged', 'the'), f('unchanged', 'stadium'),
+    ]);
+    expect(out.map((x) => `${x.kind}:${x.text}`)).toEqual([
+      'removed:or constructing', 'unchanged:the stadium',
+    ]);
+  });
+
+  // The real SB2575 case: an edited sentence shredded into eight fragments,
+  // most of them particles that tell a reader nothing on their own.
+  it('drops changed fragments that are bare grammatical particles', () => {
+    const out = coalesceFragments([
+      f('removed', 'of any'), f('unchanged', 'of'), f('removed', 'the'),
+      f('modified', 'a'), f('unchanged', 'class A'),
+      f('added', 'under the following sections:'),
+    ]);
+    // 'the' (removed) and 'a' (modified) are noise and go; 'of any' stays
+    // because it is not a single particle; unchanged 'of' stays as context.
+    expect(out.map((x) => x.text)).not.toContain('the');
+    expect(out.map((x) => x.text)).not.toContain('a');
+    expect(out.map((x) => `${x.kind}:${x.text}`)).toContain('added:under the following sections:');
+  });
+
+  it('keeps unchanged particles, which are the connective context', () => {
+    const out = coalesceFragments([f('unchanged', 'the'), f('removed', 'stadium')]);
+    expect(out.map((x) => `${x.kind}:${x.text}`)).toEqual(['unchanged:the', 'removed:stadium']);
+  });
+
+  // A particle inside a longer changed phrase must survive — "the stadium" is
+  // the edit, even though "the" alone would be dropped.
+  it('does not strip particles that are part of a substantive change', () => {
+    const out = coalesceFragments([f('removed', 'the stadium')]);
+    expect(out).toHaveLength(1);
+    expect(out[0].text).toBe('the stadium');
+  });
+
+  it('drops fragments that clean to nothing', () => {
+    expect(coalesceFragments([f('removed', '~~**'), f('added', 'real text')]))
+      .toEqual([expect.objectContaining({ kind: 'added', text: 'real text' })]);
+  });
+
+  it('preserves struck/underlined flags when merging', () => {
+    const out = coalesceFragments([f('added', 'first'), f('added', 'second')]);
+    expect(out[0].underlined).toBe(true);
+  });
+
+  it('returns an empty array for empty input', () => {
+    expect(coalesceFragments([])).toEqual([]);
+  });
+});
+
+// Regression: an earlier implementation filtered particles BEFORE merging, so
+// "[removed] or" + "[removed] constructing" lost the "or" and the edit read as
+// deleting only the word "constructing". Silent meaning change in a
+// legislative diff — the exact failure this whole feature must not have.
+describe('coalesceFragments — particle filtering order', () => {
+  it('keeps a leading particle that is part of a multi-fragment change', () => {
+    const out = coalesceFragments([
+      { kind: 'removed', text: 'or', struck: true, underlined: false },
+      { kind: 'removed', text: 'constructing', struck: true, underlined: false },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].text).toBe('or constructing');
+  });
+
+  it('still drops a changed run that is ONLY a particle', () => {
+    const out = coalesceFragments([
+      { kind: 'unchanged', text: 'class A', struck: false, underlined: false },
+      { kind: 'modified', text: 'a', struck: false, underlined: false },
+      { kind: 'unchanged', text: 'felony', struck: false, underlined: false },
+    ]);
+    expect(out.map((x) => x.text)).not.toContain('a');
   });
 });

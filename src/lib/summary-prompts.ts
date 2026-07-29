@@ -4,6 +4,7 @@
 // Spec: docs/superpowers/specs/2026-07-28-ai-version-summaries-design.md
 
 import { describeVersionLabel } from './version-labels';
+import { coalesceFragments, stripBoilerplate } from './version-diff';
 import type { VersionComparison, SectionDiff } from './version-diff';
 
 /** Bump when the bill-version prompt changes. Provenance only — NOT a cache key. */
@@ -257,6 +258,12 @@ export const DIFF_SYSTEM_PROMPT = [
   '  context is what tells you what the changed words modify.',
   '- A whole section [removed] or [added] means a provision was dropped or',
   '  appeared. Those are the biggest edits; lead with them.',
+  '- Bill pages carry a trailing effective-date stamp — an "Effective <date>"',
+  '  line and a draft marker like "(SD2)". When the effective date changes you',
+  '  will therefore see the SAME date edited TWICE: once in the operative',
+  '  sentence and once in the stamp. That is ONE change. Report the date once.',
+  '  Never describe it as text being "duplicated" — the repetition is how the',
+  '  page is laid out, not something an editor did.',
   '',
   'You may have seen these bill numbers before. Bill numbers are REUSED between',
   'sessions, so anything you recall about them is not evidence. The diff and the',
@@ -267,26 +274,17 @@ export const DIFF_SYSTEM_PROMPT = [
   'draft, SD1 a Senate draft, CD1 a conference draft — and the bill\'s committee',
   'assignments in order. This comes from official records, so you may state it.',
   '',
-  'Use it to make the changes legible: an appropriation cut in a Finance committee',
-  'draft, or scope narrowed when the bill crossed to the Senate, is more meaningful',
-  'to a reader than the same change described without attribution. One clause is',
-  'enough.',
-  '',
-  'Do NOT claim a specific committee or legislator authored a specific change',
-  'unless the input says so — the version label identifies the chamber and draft',
-  'stage, not the author of any individual edit.',
+  'Use it for at most one clause of orientation. Do NOT claim a specific committee',
+  'or legislator authored a specific change — the label identifies the chamber and',
+  'draft stage, not the author of any individual edit.',
   '',
   '## 4. Report the EDITS, not the bill (CRITICAL — read twice)',
-  'You are writing a changelog, not a summary. The reader already has a summary',
-  'of the bill elsewhere on the page. What they cannot see is what MOVED between',
-  'these two drafts.',
+  'You are writing a changelog, not a summary. Every sentence must be about',
+  'something ADDED, REMOVED, or CHANGED. If a sentence would still be true of the',
+  'older version, delete it — it describes the bill, not the edit.',
   '',
-  'Every sentence you write must be about something that was ADDED, REMOVED, or',
-  'CHANGED. If a sentence would still be true of the older version, delete it —',
-  'it is describing the bill, not the edit.',
-  '',
-  'The contrast below is about GRAMMAR, not content. Read it for which word is',
-  'the subject of the sentence, and take nothing else from it:',
+  'The contrast below is about GRAMMAR, not content — read it only for which word',
+  'is the subject:',
   '',
   'GOOD — the edit is the subject:  "<the thing> was raised from X to Y."',
   'BAD  — the bill is the subject:  "The bill provides Y for <the thing>."',
@@ -295,28 +293,34 @@ export const DIFF_SYSTEM_PROMPT = [
   'fragments you were given. If a subject or figure did not come from those',
   'fragments, it does not belong in your answer at all.',
   '',
-  'Forbidden — these are bill-summary moves, not changelog moves:',
-  '- Explaining what the bill overall does or is for.',
-  '- Characterizing the DIRECTION of the edits ("reflects a shift in focus',
-  '  toward...", "signals a move away from..."). Report the edits; the reader',
-  '  draws the conclusion.',
-  '- Describing anything tagged [unchanged] as though it were new.',
+  'This is a changelog, not a summary. Forbidden: explaining what the bill overall',
+  'does; characterizing the DIRECTION of the edits ("reflects a shift in focus',
+  'toward...") — report the edits, the reader draws the conclusion; and describing',
+  'anything tagged [unchanged] as new.',
   '',
   '## 5. What to cover, in this order',
   '1. Removals and additions of whole provisions — the biggest structural edits.',
-  '2. Changed numbers, with BOTH values: "cut from $500,000 to $250,000",',
-  '   "moved from July 1, 2025 to January 1, 2026". Never state only the new one.',
-  '3. Scope edits: who was newly added to, or newly dropped from, coverage —',
-  '   exemptions granted or withdrawn, definitions widened or narrowed.',
-  '4. Anything else substantive that was reworded in a way that changes meaning.',
-  '5. Ignore renumbering, punctuation, capitalization, and formatting churn',
-  '   entirely — do not mention it, do not count it.',
+  '2. Changed numbers, with BOTH values ("cut from $500,000 to $250,000"). Never',
+  '   state only the new one.',
+  '3. Scope edits: who was newly added to, or newly dropped from, coverage.',
+  '4. Anything else reworded in a way that changes meaning.',
+  '5. Ignore renumbering, punctuation, and formatting churn entirely.',
   '',
-  'If the tagged fragments show no substantive edit, say exactly that in one',
-  'sentence and stop. Do not fill the space by describing the bill.',
+  'If the fragments show no substantive edit, say exactly that in one sentence',
+  'and stop. Do not fill the space by describing the bill.',
   '',
   '## 6. Style — write for a smart reader who is not a lawyer',
-  '- 80–150 words. Shorter when the edits are minor. Brevity is a virtue here.',
+  '- ONE SENTENCE PER SUBSTANTIVE EDIT, up to four sentences. 30–90 words.',
+  '  Three real changes means three sentences. Two means two. DO NOT pad to',
+  '  reach a length — if you find yourself adding a sentence that summarizes the',
+  '  bill, restates an edit you already reported, or characterizes the changes',
+  '  as a whole, stop instead. Padding is where invented content comes from.',
+  '- If there are more than four substantive edits, report the four largest and',
+  '  end with a clause naming HOW MANY you left out ("plus three smaller edits").',
+  '  Do NOT write a vague catch-all like "additional edits were made elsewhere" —',
+  '  either count them or say nothing. And never confuse edits you chose to omit',
+  '  with sections the parser could not compare; those are separate, and the',
+  '  parse caveat has its own sentence (section 7).',
   '- Past tense for the edit itself ("was removed", "was raised"); "would" only',
   '  when describing what the amended text will do once law.',
   '- Short sentences. One edit each. Prefer the everyday word.',
@@ -417,14 +421,21 @@ function renderSection(section: SectionDiff, comparison: VersionComparison): str
     lines.push(`  (this section appears only in ${only})`);
   }
 
-  for (const fragment of section.fragments) {
+  // The parser tags at word level, so one edited sentence arrives as a dozen
+  // micro-fragments of grammatical glue. Coalesce before prompting; the
+  // accordion still renders the unmerged fragments for readers verifying
+  // exact wording.
+  for (const fragment of coalesceFragments(section.fragments)) {
     // Unchanged fragments are context. Truncate long runs so a 17 KB section
     // does not arrive in full, but never drop them — a bare [removed] fragment
-    // is meaningless without the sentence around it.
+    // is meaningless without the sentence around it. The trailing Report
+    // Title/Description block is page furniture, not bill text, so it goes.
+    const context = fragment.kind === 'unchanged' ? stripBoilerplate(fragment.text) : fragment.text;
+    if (!context) continue;
     const text =
-      fragment.kind === 'unchanged' && fragment.text.length > CONTEXT_CHAR_BUDGET
-        ? `${fragment.text.slice(0, CONTEXT_CHAR_BUDGET)}…`
-        : fragment.text;
+      fragment.kind === 'unchanged' && context.length > CONTEXT_CHAR_BUDGET
+        ? `${context.slice(0, CONTEXT_CHAR_BUDGET)}…`
+        : context;
     lines.push(`  [${fragment.kind}] ${text}`);
   }
 

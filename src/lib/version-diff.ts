@@ -154,3 +154,121 @@ export function normalizeComparison(
     error: null,
   };
 }
+
+// ==============================================
+// FRAGMENT CLEANUP FOR LLM CONSUMPTION
+// ==============================================
+// hawaii-bill-diff tags changes at WORD level, so one edited sentence arrives
+// shredded into micro-fragments:
+//
+//   [removed] of any / [unchanged] of / [removed] the / [modified] a /
+//   [unchanged] class A / [added] under the following sections:
+//
+// Most of those are grammatical glue ("of", "the", "a"). The model has to
+// reassemble the sentence before it can interpret the edit, and the noise
+// crowds out the one substantive change. These helpers coalesce runs and strip
+// Word-export artifacts before the fragments reach a prompt.
+//
+// PURE: no DB, no network. Used by lib/summary-prompts, never by the renderer —
+// the accordion still shows the parser's exact fragments, because a reader
+// verifying wording needs the unmerged marks.
+
+/**
+ * Word-export debris that survives parsing: strikethrough/bold/underline
+ * markers the HTML-to-text step leaves behind. They carry no meaning for a
+ * language model and consume attention.
+ */
+const ARTIFACT_PATTERN = /(\*\*|__|~~|\[\]|\{\})/g;
+
+/**
+ * Trailing boilerplate every Hawaiʻi bill page carries. It is not legislative
+ * text, and it duplicates content the model is told not to summarize.
+ */
+// NOTE: written WITHOUT the surrounding ** markup. cleanFragmentText strips
+// Word artifacts before this runs, so a marker containing '**' would never
+// match. Matching on the bare label is also more robust to markup variation.
+//
+// 'Description:' alone is deliberately NOT a marker: a bill can legitimately
+// use that word mid-text, and cutting there would silently drop real
+// legislative content. Only 'Report Title:' — which introduces the trailing
+// page-furniture block — and the disclaimer sentence are safe to cut on.
+const BOILERPLATE_MARKERS = [
+  'The summary description of legislation appearing on this page',
+  'Report Title:',
+];
+
+/**
+ * Strips Word artifacts and collapses whitespace. Never drops real words.
+ *
+ * Artifacts are removed rather than replaced with a space, so "(c)~~]~~"
+ * becomes "(c)]" — inserting a space there would fabricate a token boundary
+ * inside what is really one string.
+ */
+export function cleanFragmentText(text: string): string {
+  return text.replace(ARTIFACT_PATTERN, '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Cuts the trailing "Report Title / Description / disclaimer" block, which is
+ * page furniture rather than bill text. Returns the text unchanged when no
+ * marker is present.
+ */
+export function stripBoilerplate(text: string): string {
+  let cut = text.length;
+  for (const marker of BOILERPLATE_MARKERS) {
+    const at = text.indexOf(marker);
+    if (at !== -1 && at < cut) cut = at;
+  }
+  return cut === text.length ? text : text.slice(0, cut).trim();
+}
+
+/**
+ * Merges adjacent fragments of the same kind into one, after cleaning each and
+ * dropping any that become empty.
+ *
+ * 'modified' is folded into the neighbouring kind it sits inside rather than
+ * kept separate: the parser emits it for single reworded words, and on its own
+ * a bare `[modified] a` tells a reader nothing. It is preserved only when it
+ * stands alone in a run.
+ *
+ * Fragments whose cleaned text is pure punctuation or a single grammatical
+ * particle are dropped when they are NOT part of a substantive change — an
+ * isolated `[removed] the` is noise, but `[removed] the stadium` is the edit.
+ */
+export function coalesceFragments(fragments: ChangeFragment[]): ChangeFragment[] {
+  const PARTICLES = new Set([
+    'a', 'an', 'the', 'of', 'or', 'and', 'to', 'in', 'on', 'at', 'by', 'for',
+    ',', ';', ':', '.', '(', ')', '"', "'",
+  ]);
+
+  const cleaned: ChangeFragment[] = [];
+  for (const fragment of fragments) {
+    const text = cleanFragmentText(fragment.text);
+    if (text) cleaned.push({ ...fragment, text });
+  }
+
+  // MERGE FIRST, then filter. Filtering before merging would drop the "or" from
+  // an "[removed] or" + "[removed] constructing" pair and silently change what
+  // the edit says — the particle only counts as noise when it is the ENTIRE run.
+  const merged: ChangeFragment[] = [];
+  for (const fragment of cleaned) {
+    const previous = merged[merged.length - 1];
+    if (previous && previous.kind === fragment.kind) {
+      merged[merged.length - 1] = {
+        ...previous,
+        text: `${previous.text} ${fragment.text}`,
+        struck: previous.struck || fragment.struck,
+        underlined: previous.underlined || fragment.underlined,
+      };
+      continue;
+    }
+    merged.push(fragment);
+  }
+
+  // A CHANGED run that is nothing but one grammatical particle carries no
+  // information a reader could act on (a bare "[modified] a"). Unchanged
+  // particles stay — they are the connective tissue of the surrounding context.
+  return merged.filter(
+    (fragment) => fragment.kind === 'unchanged' || !PARTICLES.has(fragment.text.toLowerCase()),
+  );
+}

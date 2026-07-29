@@ -40,7 +40,7 @@ describe('system prompts', () => {
   // edits ("reflects a shift in focus toward..."), so both bans are explicit.
   it('the diff prompt demands a changelog, not a bill summary', () => {
     expect(DIFF_SYSTEM_PROMPT).toMatch(/changelog, not a summary/);
-    expect(DIFF_SYSTEM_PROMPT).toMatch(/still be true of the older version, delete it/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/still be true of the\s+older version, delete it/);
     expect(DIFF_SYSTEM_PROMPT).toMatch(/reflects a shift in focus/);
   });
 
@@ -358,5 +358,32 @@ describe('prompt examples cannot be mistaken for content', () => {
     expect(DIFF_SYSTEM_PROMPT).toMatch(/must appear in the tagged\s+fragments/);
     expect(DOCUMENT_SYSTEM_PROMPT).toMatch(/must appear in the text/);
     expect(REPORT_SYSTEM_PROMPT).toMatch(/Never invent a committee name/);
+  });
+});
+
+// Length and accuracy rules added after live testing surfaced two failures.
+describe('DIFF_SYSTEM_PROMPT — length discipline and stamp handling', () => {
+  it('caps output at one sentence per edit, max four', () => {
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/ONE SENTENCE PER SUBSTANTIVE EDIT/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/30–90 words/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/DO NOT pad to/);
+    // Padding is where invented content came from, so the reason is stated.
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/Padding is where invented content comes from/);
+  });
+
+  // Observed: "Additional edits were made to sections not included in this
+  // comparison" — a vague catch-all that also conflated omitted edits with
+  // sections the parser failed on. Those are separate facts.
+  it('requires a counted overflow clause, not a vague catch-all', () => {
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/naming HOW MANY you left out/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/never confuse edits you chose to omit/);
+  });
+
+  // Observed: the model reported the effective date as "duplicated" because
+  // bill pages repeat it in a trailing "Effective <date> (SD2)" stamp.
+  it('explains the trailing effective-date stamp is one change, not duplication', () => {
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/trailing effective-date stamp/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/That is ONE change/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/Never describe it as text being "duplicated"/);
   });
 });
