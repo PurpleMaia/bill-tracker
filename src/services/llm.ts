@@ -6,8 +6,10 @@ import { db } from '../db/kysely/client';
 import { sql } from 'kysely';
 import {
   DOCUMENT_SYSTEM_PROMPT,
+  REPORT_SYSTEM_PROMPT,
   DIFF_SYSTEM_PROMPT,
   buildDocumentUserTurn,
+  buildReportUserTurn,
   buildDiffUserTurn,
 } from '@/lib/summary-prompts';
 import type { VersionComparison } from '@/lib/version-diff';
@@ -466,6 +468,29 @@ export async function summarizeDocumentWithLLM(input: {
     text: input.text,
   });
   return runSummary(DOCUMENT_SYSTEM_PROMPT, userTurn, input.rateLimitKey);
+}
+
+/**
+ * Committee reports get their OWN prompt, not the bill-version one. A report
+ * records what a committee DID — passed, amended, deferred, who testified — and
+ * the shared prompt was summarizing the bill the report restates instead. 75% of
+ * the 7,827 reports in the corpus amend the bill, so those actions are the
+ * substance, not a footnote.
+ */
+export async function summarizeReportWithLLM(input: {
+  label: string;
+  reportCode: string | null;
+  versionLabel: string | null;
+  text: string;
+  rateLimitKey: string;
+}): Promise<string | null> {
+  const userTurn = buildReportUserTurn({
+    label: input.label,
+    reportCode: input.reportCode,
+    versionLabel: input.versionLabel,
+    text: input.text,
+  });
+  return runSummary(REPORT_SYSTEM_PROMPT, userTurn, input.rateLimitKey);
 }
 
 export async function summarizeDiffWithLLM(input: {

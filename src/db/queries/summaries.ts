@@ -22,6 +22,8 @@ export interface SummarySource {
   aiSummary: string | null;
   /** bills.committee_assignment — the same field the status classifier uses. */
   committees: string | null;
+  /** committee_reports.report_code (e.g. "HSCR65"); always null for versions. */
+  reportCode: string | null;
 }
 
 /**
@@ -46,7 +48,21 @@ export async function getSummarySource(
     .where(`${TABLE[target]}.id`, '=', id)
     .executeTakeFirst();
 
-  return row ?? null;
+  if (!row) return null;
+
+  // report_code exists only on committee_reports, so it cannot be part of the
+  // shared select above. Fetched separately rather than duplicating the whole
+  // query per table.
+  if (target === 'report') {
+    const codeRow = await db
+      .selectFrom('committee_reports')
+      .select('report_code')
+      .where('id', '=', id)
+      .executeTakeFirst();
+    return { ...row, reportCode: codeRow?.report_code ?? null };
+  }
+
+  return { ...row, reportCode: null };
 }
 
 /** Persists a generated summary with its provenance. */

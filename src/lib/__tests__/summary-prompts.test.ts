@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
   DOCUMENT_SYSTEM_PROMPT,
+  REPORT_SYSTEM_PROMPT,
   DIFF_SYSTEM_PROMPT,
   buildDocumentUserTurn,
+  buildReportUserTurn,
   buildDiffUserTurn,
 } from '../summary-prompts';
 import type { VersionComparison, SectionDiff } from '../version-diff';
@@ -188,5 +190,80 @@ describe('buildDiffUserTurn', () => {
     const removedLine = turn.split('\n').find((line) => line.includes('TAIL_MARKER_REMOVED'));
     expect(addedLine).not.toContain('…');
     expect(removedLine).not.toContain('…');
+  });
+});
+
+describe('REPORT_SYSTEM_PROMPT', () => {
+  // A committee report restates the bill's purpose at length. The whole point of
+  // this separate prompt is that the ACTIONS are the story, not the measure.
+  it('demands the hearing be reported, not the bill', () => {
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/Report the hearing, not the bill/);
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/record of ACTIONS TAKEN/);
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/That is BACKGROUND, not the story/);
+  });
+
+  it('leads with the committee decision and covers amendments and testimony', () => {
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/THE DECISION, first sentence/);
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/AMENDMENTS/);
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/TESTIMONY/);
+  });
+
+  // Reporting only supporters would misrepresent a contested hearing; 33% of
+  // the corpus records opposition.
+  it('requires both sides of testimony when both are present', () => {
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/never report only one side/);
+  });
+
+  it('bans invented committees, testifiers, votes, and amendments', () => {
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/Never invent a committee name, a testifier, a vote count/);
+  });
+
+  it('carries the same plain-language bans as the other prompts', () => {
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/pursuant to/);
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/beg leave to report/);
+  });
+
+  it('tells the model not to add its own disclaimer', () => {
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/Do not add\s+a disclaimer/);
+  });
+
+  it('is a distinct prompt, not the bill-version one', () => {
+    expect(REPORT_SYSTEM_PROMPT).not.toBe(DOCUMENT_SYSTEM_PROMPT);
+    expect(REPORT_SYSTEM_PROMPT).toMatch(/Committee Report Summarizer/);
+    // The bill prompt should no longer carry report-specific instructions.
+    expect(DOCUMENT_SYSTEM_PROMPT).not.toMatch(/For a committee report only/);
+  });
+});
+
+describe('buildReportUserTurn', () => {
+  it('identifies the report by its code and names the version it concerns', () => {
+    const turn = buildReportUserTurn({
+      label: 'HB139_HD1_HSCR65',
+      reportCode: 'HSCR65',
+      versionLabel: 'HB139_HD1',
+      text: 'Your Committee on Agriculture...',
+    });
+    expect(turn).toContain('Committee report: HSCR65');
+    expect(turn).toContain('Concerns bill version: HB139_HD1');
+    expect(turn).toContain('Your Committee on Agriculture...');
+  });
+
+  it('falls back to the label when report_code is null', () => {
+    // report_code is a nullable column.
+    const turn = buildReportUserTurn({
+      label: 'HB139_HD1_HSCR65', reportCode: null, versionLabel: null, text: 't',
+    });
+    expect(turn).toContain('Committee report: HB139_HD1_HSCR65');
+    expect(turn).not.toContain('Concerns bill version:');
+  });
+
+  // The report names its own committees; passing the bill's committee_assignment
+  // would invite attributing an action to a committee that never heard it.
+  it('does not carry a bill-level committee list', () => {
+    const turn = buildReportUserTurn({
+      label: 'HB139_HD1_HSCR65', reportCode: 'HSCR65', versionLabel: 'HB139_HD1', text: 't',
+    });
+    expect(turn).not.toContain('Committees (in order)');
+    expect(turn).toMatch(/report names the committees that acted/);
   });
 });

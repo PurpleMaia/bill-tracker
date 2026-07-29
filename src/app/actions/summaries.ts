@@ -15,7 +15,13 @@ import {
   type SummaryTarget,
 } from '@/db/queries/summaries';
 import { getVersionHtmlLinks } from '@/db/queries/bills-read';
-import { summarizeDocumentWithLLM, summarizeDiffWithLLM, getSummaryModelName } from '@/services/llm';
+import { parseVersionLabelFromReport } from '@/lib/bill-versions';
+import {
+  summarizeDocumentWithLLM,
+  summarizeReportWithLLM,
+  summarizeDiffWithLLM,
+  getSummaryModelName,
+} from '@/services/llm';
 import { compareVersionHtml } from '@/services/bill-diff';
 import { ApiError } from '@/lib/errors';
 import type { SummaryResult } from '@/types/legislation';
@@ -51,13 +57,29 @@ export async function summarizeDocumentAction(input: {
     throw new ApiError('NO_TEXT', 422, 'This document has no stored text to summarize.');
   }
 
-  const summary = await summarizeDocumentWithLLM({
-    label: source.label,
-    kind: input.target === 'version' ? 'bill version' : 'committee report',
-    committees: source.committees,
-    text: source.originalText,
-    rateLimitKey: `llm:summary:${input.target}:${input.id}`,
-  });
+  // Bill versions and committee reports get DIFFERENT prompts. A version is the
+  // proposed law; a report is a record of what a committee did to it (passed,
+  // amended, deferred, who testified). Summarizing a report with the bill prompt
+  // produced a description of the measure and buried the actions.
+  const rateLimitKey = `llm:summary:${input.target}:${input.id}`;
+  const summary =
+    input.target === 'report'
+      ? await summarizeReportWithLLM({
+          label: source.label,
+          reportCode: source.reportCode,
+          // A report label embeds the version it belongs to, e.g.
+          // HB139_HD1_HSCR65 -> HB139_HD1.
+          versionLabel: parseVersionLabelFromReport(source.label),
+          text: source.originalText,
+          rateLimitKey,
+        })
+      : await summarizeDocumentWithLLM({
+          label: source.label,
+          kind: 'bill version',
+          committees: source.committees,
+          text: source.originalText,
+          rateLimitKey,
+        });
 
   if (!summary) {
     throw new ApiError('SUMMARY_FAILED', 502, "Couldn't summarize this document. Try again.");
