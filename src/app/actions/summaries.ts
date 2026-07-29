@@ -90,7 +90,15 @@ export async function summarizeDiffAction(input: {
 
   // No diff, no summary (spec §Error handling). An ungrounded account of a
   // legislative amendment is worse than none.
-  if (comparison.error || comparison.sections.length === 0) {
+  //
+  // "Nothing to summarize" covers two cases: the comparison failed outright, and
+  // the comparison succeeded but found no CHANGED section. The second is why we
+  // count changed sections rather than all sections — a parse can return a full
+  // set of sections all tagged 'unchanged' (comparing a version against itself
+  // does exactly this), and paying for an inference to be told "nothing changed"
+  // is waste when the diff already knows it for free.
+  const changedSections = comparison.sections.filter((s) => s.kind !== 'unchanged');
+  if (comparison.error || changedSections.length === 0) {
     throw new ApiError('NO_DIFF', 422, 'These versions could not be compared, so there is nothing to summarize.');
   }
 

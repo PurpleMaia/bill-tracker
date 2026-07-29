@@ -89,11 +89,14 @@ export function VersionDiffAccordion({ comparison, billId, olderId, newerId }: V
   ].filter(Boolean) as string[];
 
   // No diff, no summary (spec §Error handling). Also requires opt-in and ids.
+  // Gated on CHANGED sections, not all sections: a parse can succeed with every
+  // section tagged 'unchanged', and there is nothing to narrate in that case.
+  // Mirrors the server-side guard in actions/summaries.ts.
   const canSummarize =
     aiOptedIn &&
     !!billId && !!olderId && !!newerId &&
     !comparison.error &&
-    comparison.sections.length > 0;
+    changed.length > 0;
 
   async function summarizeDiff() {
     if (!billId || !olderId || !newerId) return;
