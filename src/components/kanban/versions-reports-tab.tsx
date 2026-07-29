@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { BillVersion, CommitteeReport } from '@/types/legislation';
 import { BillVersionsPanel } from './bill-versions-panel';
 import { VersionCompare } from './version-compare';
-import { sortVersions } from '@/lib/bill-versions';
+import { sortVersions, resolveComparisonOrder } from '@/lib/bill-versions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
@@ -45,12 +45,18 @@ export function VersionsReportsTab({
     if (!ids.has(newerId)) setNewerId(ordered[ordered.length - 1].id);
   }, [ordered, olderId, newerId]);
 
-  const handleCompare = useCallback((nextOlderId: string, nextNewerId: string) => {
-    setOlderId(nextOlderId);
-    setNewerId(nextNewerId);
-    // On mobile the panels are sub-tabs, so without this the tap looks inert.
-    setTab('compare');
-  }, []);
+  const handleCompare = useCallback(
+    (nextOlderId: string, nextNewerId: string) => {
+      // The timeline is a second way into a comparison, so it gets the same
+      // ordering guarantee as the dropdowns: a diff only reads older -> newer.
+      const { olderId: o, newerId: n } = resolveComparisonOrder(ordered, nextOlderId, nextNewerId);
+      setOlderId(o);
+      setNewerId(n);
+      // On mobile the panels are sub-tabs, so without this the tap looks inert.
+      setTab('compare');
+    },
+    [ordered],
+  );
 
   const timeline = (
     <div className="flex min-h-0 flex-1 flex-col">

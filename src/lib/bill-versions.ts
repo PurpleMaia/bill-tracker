@@ -176,3 +176,44 @@ export function groupReportsByVersion(
 
   return { groups, orphanReports };
 }
+
+/**
+ * Resolves a version-comparison selection so the pair is always in chronological
+ * order (older on the left, newer on the right).
+ *
+ * A diff only means anything in one direction: comparing HB1334_CD2 against
+ * HB1334 would report the bill's own amendments backwards — additions shown as
+ * removals. Rather than filtering the dropdowns (which can strand a selection
+ * the user can no longer reach), both pickers keep every option and an
+ * out-of-order pick is corrected here.
+ *
+ * The correction is a swap, which keeps BOTH of the user's chosen versions in
+ * play — whichever picker they just touched, the two documents they asked to see
+ * are the two they get, only assigned to the correct sides. That is why no
+ * "which side changed" argument is needed: the resolved pair is the same either
+ * way.
+ *
+ * @param versions Any order; sorted internally via sortVersions.
+ * @returns The resolved pair, plus whether a correction was applied.
+ */
+export function resolveComparisonOrder(
+  versions: BillVersion[],
+  olderId: string,
+  newerId: string,
+): { olderId: string; newerId: string; swapped: boolean } {
+  const ordered = sortVersions(versions);
+  const olderIdx = ordered.findIndex((v) => v.id === olderId);
+  const newerIdx = ordered.findIndex((v) => v.id === newerId);
+
+  // An id we don't recognise (or an incomplete selection) is left alone —
+  // callers already handle the empty/same-version cases.
+  if (olderIdx === -1 || newerIdx === -1) return { olderId, newerId, swapped: false };
+  if (olderIdx < newerIdx) return { olderId, newerId, swapped: false };
+
+  // Equal indices mean the same version on both sides. That is not an ordering
+  // error, and the UI already tells the user to pick two different versions.
+  if (olderIdx === newerIdx) return { olderId, newerId, swapped: false };
+
+  // Out of order: swap, so the user still sees the two versions they picked.
+  return { olderId: newerId, newerId: olderId, swapped: true };
+}

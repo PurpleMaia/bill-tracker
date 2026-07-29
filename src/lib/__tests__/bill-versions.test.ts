@@ -3,6 +3,7 @@ import {
   parseVersionLabelFromReport,
   groupReportsByVersion,
   sortVersions,
+  resolveComparisonOrder,
 } from '../bill-versions';
 import type { BillVersion, CommitteeReport } from '@/types/legislation';
 
@@ -149,5 +150,53 @@ describe('groupReportsByVersion', () => {
     const reports = [r('HB139', 'WEIRD')];
     const { orphanReports } = groupReportsByVersion(versions, reports);
     expect(orphanReports).toHaveLength(1);
+  });
+});
+
+describe('resolveComparisonOrder', () => {
+  // The user's own example: HB1334 must be on the left, HB1334_CD2 on the right.
+  const hb1334 = [v('HB1334'), v('HB1334_HD3'), v('HB1334_SD2'), v('HB1334_CD2')];
+
+  it('leaves an already-correct pair untouched', () => {
+    expect(resolveComparisonOrder(hb1334, 'HB1334', 'HB1334_CD2')).toEqual({
+      olderId: 'HB1334', newerId: 'HB1334_CD2', swapped: false,
+    });
+  });
+
+  it('swaps an inverted pair so the older version lands on the left', () => {
+    expect(resolveComparisonOrder(hb1334, 'HB1334_CD2', 'HB1334')).toEqual({
+      olderId: 'HB1334', newerId: 'HB1334_CD2', swapped: true,
+    });
+  });
+
+  it('respects the full draft ordering, not just base-vs-rest', () => {
+    // sortVersions ranks origin-chamber drafts before the other chamber's,
+    // with conference drafts last: HD3 -> SD2 is in order, SD2 -> HD3 is not.
+    expect(resolveComparisonOrder(hb1334, 'HB1334_HD3', 'HB1334_SD2').swapped).toBe(false);
+    expect(resolveComparisonOrder(hb1334, 'HB1334_SD2', 'HB1334_HD3')).toEqual({
+      olderId: 'HB1334_HD3', newerId: 'HB1334_SD2', swapped: true,
+    });
+    expect(resolveComparisonOrder(hb1334, 'HB1334_CD2', 'HB1334_SD2').swapped).toBe(true);
+  });
+
+  it('treats the same version on both sides as not an ordering error', () => {
+    // The UI already tells the user to pick two different versions; swapping
+    // identical ids would be a pointless state change.
+    expect(resolveComparisonOrder(hb1334, 'HB1334_HD3', 'HB1334_HD3')).toEqual({
+      olderId: 'HB1334_HD3', newerId: 'HB1334_HD3', swapped: false,
+    });
+  });
+
+  it('leaves unknown or empty ids alone rather than guessing', () => {
+    expect(resolveComparisonOrder(hb1334, '', 'HB1334_CD2').swapped).toBe(false);
+    expect(resolveComparisonOrder(hb1334, 'HB1334', 'nope').swapped).toBe(false);
+    expect(resolveComparisonOrder([], 'HB1334', 'HB1334_CD2').swapped).toBe(false);
+  });
+
+  it('does not depend on the input array already being sorted', () => {
+    const shuffled = [v('HB1334_CD2'), v('HB1334'), v('HB1334_SD2'), v('HB1334_HD3')];
+    expect(resolveComparisonOrder(shuffled, 'HB1334_CD2', 'HB1334')).toEqual({
+      olderId: 'HB1334', newerId: 'HB1334_CD2', swapped: true,
+    });
   });
 });

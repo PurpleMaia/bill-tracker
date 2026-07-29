@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import type { BillVersion } from '@/types/legislation';
 import type { VersionComparison } from '@/lib/version-diff';
 import { data } from '@/lib/data-client';
-import { sortVersions } from '@/lib/bill-versions';
+import { sortVersions, resolveComparisonOrder } from '@/lib/bill-versions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ArrowLeftRight } from 'lucide-react';
 import { VersionDiffAccordion } from './version-diff-accordion';
 
 const ERROR_COPY: Record<NonNullable<VersionComparison['error']>, string> = {
@@ -38,6 +39,26 @@ export function VersionCompare({
   const [loading, setLoading] = useState(false);
   // Bumping this re-runs the effect for Retry without changing the selection.
   const [attempt, setAttempt] = useState(0);
+  // Set when a pick was out of chronological order and we reordered it, so the
+  // correction is visible rather than the dropdowns silently disagreeing with
+  // what the user clicked.
+  const [reordered, setReordered] = useState(false);
+
+  // A diff is only meaningful older -> newer: comparing HB1334_CD2 against
+  // HB1334 would render the bill's own amendments backwards, showing additions
+  // as removals. Both pickers keep every option (filtering one list can strand
+  // a selection the user can no longer reach); an inverted pick is swapped so
+  // they still get the two versions they asked for, on the correct sides.
+  function selectVersion(side: 'older' | 'newer', id: string) {
+    const next = resolveComparisonOrder(
+      ordered,
+      side === 'older' ? id : olderId,
+      side === 'newer' ? id : newerId,
+    );
+    setReordered(next.swapped);
+    if (next.olderId !== olderId) onOlderChange(next.olderId);
+    if (next.newerId !== newerId) onNewerChange(next.newerId);
+  }
 
   useEffect(() => {
     if (!billId || !olderId || !newerId || sameVersion) {
@@ -83,10 +104,27 @@ export function VersionCompare({
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <VersionPicker value={olderId} onChange={onOlderChange} versions={ordered} label="Older version" />
+        <VersionPicker
+          value={olderId}
+          onChange={(id) => selectVersion('older', id)}
+          versions={ordered}
+          label="Older version"
+        />
         <span className="text-xs font-medium text-muted-foreground">compared with</span>
-        <VersionPicker value={newerId} onChange={onNewerChange} versions={ordered} label="Newer version" />
+        <VersionPicker
+          value={newerId}
+          onChange={(id) => selectVersion('newer', id)}
+          versions={ordered}
+          label="Newer version"
+        />
       </div>
+
+      {reordered && (
+        <p className="mb-3 flex items-start gap-1.5 text-[11.5px] text-muted-foreground" role="status">
+          <ArrowLeftRight className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span>Swapped so the earlier version is on the left — a comparison only reads one way.</span>
+        </p>
+      )}
 
       {sameVersion ? (
         <p className="py-8 text-center text-sm text-muted-foreground">Pick two different versions.</p>
