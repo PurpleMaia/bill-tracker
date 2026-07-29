@@ -136,7 +136,9 @@ export function VersionDiffAccordion({ comparison, billId, olderId, newerId }: V
             )}
           </div>
         )}
-        {aiState.status === 'done' && (
+        {/* Re-checks opt-in rather than trusting the state machine: a summary
+            generated before the user turned AI off must stop rendering too. */}
+        {aiOptedIn && aiState.status === 'done' && (
           <div className="mt-2">
             <SummaryCard summary={aiState.summary} model={aiState.model} />
           </div>

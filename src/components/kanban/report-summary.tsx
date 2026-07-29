@@ -25,9 +25,12 @@ type State =
 
 /**
  * Per-item AI summary. Resolves in priority order:
- *  1. A saved `existingSummary` → render it.
- *  2. AI opted in, no summary → a "Summarize" button.
- *  3. AI opted out → verbiage pointing to the View button to read the source.
+ *  1. AI opted out → verbiage pointing to the View button to read the source.
+ *     This outranks everything else: with the toggle off we show no AI summary
+ *     at all, not even one already saved on the row or generated earlier this
+ *     session. Opting out is about what the user sees, not just what we infer.
+ *  2. A saved `existingSummary` (or one generated just now) → render it.
+ *  3. AI opted in, no summary → a "Summarize" button.
  *
  * The opt-in check here is a UI courtesy only — the server re-checks it before
  * any inference (see actions/summaries.ts).
@@ -41,20 +44,26 @@ export function SummarySection({
   const { preferences } = useAuth();
   const aiOptedIn = preferences?.ai_opt_in === true;
 
-  const [state, setState] = useState<State>(
-    existingSummary ? { status: 'done', summary: existingSummary, model: null } : { status: 'idle' },
-  );
+  const [state, setState] = useState<State>({ status: 'idle' });
 
-  if (state.status === 'done') {
-    return <SummaryCard summary={state.summary} model={state.model} />;
-  }
-
+  // Checked before any summary is read so toggling AI off hides one that is
+  // already on screen, rather than only suppressing the next generation.
   if (!aiOptedIn) {
     return (
       <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
         <span>AI summaries are off. Open the {noun} to read it in full.</span>
       </div>
     );
+  }
+
+  // Derived, not seeded into state: `existingSummary` can arrive after mount
+  // once the panel's fetch resolves.
+  if (state.status === 'done') {
+    return <SummaryCard summary={state.summary} model={state.model} />;
+  }
+
+  if (existingSummary) {
+    return <SummaryCard summary={existingSummary} model={null} />;
   }
 
   async function summarize() {
