@@ -272,3 +272,56 @@ export function coalesceFragments(fragments: ChangeFragment[]): ChangeFragment[]
     (fragment) => fragment.kind === 'unchanged' || !PARTICLES.has(fragment.text.toLowerCase()),
   );
 }
+
+/**
+ * How comprehensively a comparison rewrites the bill. Drives how much the
+ * change summary should say — see summarizeDiffAction and DIFF_SYSTEM_PROMPT.
+ */
+export type DiffScale = 'minor' | 'substantial' | 'rewrite';
+
+/**
+ * A comparison is a REWRITE when nearly every section changed and most of them
+ * are wholly new. Measured on the real HB1334 -> HB1334_CD2 pair (base version
+ * to conference draft): 9 of 9 sections changed, 6 of them newerOnly, zero
+ * unchanged. A changelog of that degenerates into a summary of the new bill —
+ * which the page already shows for the current version — so the UI says so and
+ * points there instead of duplicating it.
+ */
+const REWRITE_CHANGED_RATIO = 0.9;
+const REWRITE_NEW_SECTION_RATIO = 0.5;
+
+/** Above this many changed sections, one-sentence-per-edit needs more room. */
+const SUBSTANTIAL_CHANGED_SECTIONS = 4;
+
+/**
+ * Classifies a comparison by how much of the bill it rewrites. PURE.
+ *
+ * An empty or errored comparison is 'minor': callers gate on error/emptiness
+ * before ever asking for a summary, so there is nothing to scale.
+ */
+export function classifyDiffScale(comparison: VersionComparison): DiffScale {
+  const sections = comparison.sections;
+  if (sections.length === 0) return 'minor';
+
+  const changed = sections.filter((s) => s.kind !== 'unchanged');
+  if (changed.length === 0) return 'minor';
+
+  const newSections = changed.filter((s) => s.presence === 'newerOnly');
+  const isRewrite =
+    changed.length / sections.length >= REWRITE_CHANGED_RATIO &&
+    newSections.length / changed.length >= REWRITE_NEW_SECTION_RATIO;
+  if (isRewrite) return 'rewrite';
+
+  return changed.length > SUBSTANTIAL_CHANGED_SECTIONS ? 'substantial' : 'minor';
+}
+
+/**
+ * Sentence budget for a change summary at a given scale. Small diffs stay
+ * tight; genuinely multi-edit diffs get room to be complete rather than
+ * silently dropping real legislative changes behind a count.
+ */
+export function sentenceBudgetFor(scale: DiffScale, changedSections: number): number {
+  if (scale === 'rewrite') return 2;
+  if (scale === 'minor') return 4;
+  return Math.min(8, Math.max(4, changedSections));
+}

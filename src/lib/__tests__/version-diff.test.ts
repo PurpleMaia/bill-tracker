@@ -7,8 +7,12 @@ import {
   cleanFragmentText,
   stripBoilerplate,
   coalesceFragments,
+  classifyDiffScale,
+  sentenceBudgetFor,
   type RawSectionChange,
   type ChangeFragment,
+  type SectionDiff,
+  type VersionComparison,
 } from '@/lib/version-diff';
 
 const frag = (type: string, text: string, fmt?: Record<string, boolean>) => ({
@@ -300,5 +304,96 @@ describe('coalesceFragments — particle filtering order', () => {
       { kind: 'unchanged', text: 'felony', struck: false, underlined: false },
     ]);
     expect(out.map((x) => x.text)).not.toContain('a');
+  });
+});
+
+// ==============================================
+// DIFF SCALE (drives the change-summary length)
+// ==============================================
+// A FIXED four-sentence cap forced the model to choose between obeying the limit
+// and reporting real edits. On the real HB1334 -> HB1334_CD2 pair it reported
+// ten changes against a cap of four, and padded with bill-describing sentences.
+// The budget is now computed from the diff itself.
+
+function section(
+  number: string,
+  kind: SectionDiff['kind'],
+  presence: SectionDiff['presence'] = 'both',
+): SectionDiff {
+  return { sectionNumber: number, kind, changeCount: kind === 'unchanged' ? 0 : 1, fragments: [], presence };
+}
+
+function cmp(sections: SectionDiff[]): VersionComparison {
+  return {
+    olderLabel: 'A', newerLabel: 'B', sections,
+    totals: { added: 0, removed: 0, modified: 0, unchanged: 0 },
+    parseIncomplete: false, error: null,
+  };
+}
+
+describe('classifyDiffScale', () => {
+  // Measured from the live corpus: HB1334 -> HB1334_CD2 is 9 of 9 sections
+  // changed with 6 newerOnly. CD2 is effectively a different bill.
+  it('calls a base -> conference-draft rewrite a rewrite', () => {
+    const sections = [
+      section('1', 'modified'), section('5', 'modified'), section('6', 'modified'),
+      section('2', 'added', 'newerOnly'), section('3', 'added', 'newerOnly'),
+      section('4', 'added', 'newerOnly'), section('7', 'added', 'newerOnly'),
+      section('8', 'added', 'newerOnly'), section('9', 'added', 'newerOnly'),
+    ];
+    expect(classifyDiffScale(cmp(sections))).toBe('rewrite');
+  });
+
+  it('is not a rewrite when most changed sections existed before', () => {
+    // Everything changed, but nothing is new — that is a heavy amendment, not a
+    // replacement, and itemizing it is still useful.
+    const sections = [
+      section('1', 'modified'), section('2', 'modified'), section('3', 'modified'),
+      section('4', 'modified'), section('5', 'modified'),
+    ];
+    expect(classifyDiffScale(cmp(sections))).toBe('substantial');
+  });
+
+  it('is not a rewrite when much of the bill is untouched', () => {
+    const sections = [
+      section('1', 'unchanged'), section('2', 'unchanged'), section('3', 'unchanged'),
+      section('4', 'added', 'newerOnly'), section('5', 'added', 'newerOnly'),
+    ];
+    expect(classifyDiffScale(cmp(sections))).toBe('minor');
+  });
+
+  it('calls a few changed sections minor', () => {
+    expect(classifyDiffScale(cmp([
+      section('1', 'unchanged'), section('2', 'modified'), section('3', 'modified'),
+    ]))).toBe('minor');
+  });
+
+  it('treats empty and all-unchanged comparisons as minor', () => {
+    expect(classifyDiffScale(cmp([]))).toBe('minor');
+    expect(classifyDiffScale(cmp([section('1', 'unchanged')]))).toBe('minor');
+  });
+});
+
+describe('sentenceBudgetFor', () => {
+  // A rewrite gets almost no room on purpose: itemizing it duplicates the
+  // current-version summary the page already shows.
+  it('gives a rewrite only two sentences', () => {
+    expect(sentenceBudgetFor('rewrite', 9)).toBe(2);
+  });
+
+  it('gives a minor diff four', () => {
+    expect(sentenceBudgetFor('minor', 2)).toBe(4);
+  });
+
+  // Scales with the diff so real edits are not hidden behind a count, but
+  // never unbounded.
+  it('scales a substantial diff with the changed-section count, capped at eight', () => {
+    expect(sentenceBudgetFor('substantial', 5)).toBe(5);
+    expect(sentenceBudgetFor('substantial', 8)).toBe(8);
+    expect(sentenceBudgetFor('substantial', 40)).toBe(8);
+  });
+
+  it('never returns fewer than four for a substantial diff', () => {
+    expect(sentenceBudgetFor('substantial', 1)).toBe(4);
   });
 });

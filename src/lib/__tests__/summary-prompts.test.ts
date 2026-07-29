@@ -299,7 +299,7 @@ describe('DIFF_SYSTEM_PROMPT — mark interpretation', () => {
   // reader to derive the net effect. That derivation is this prompt's job.
   it('frames the task as interpreting the raw marks, not restating them', () => {
     expect(DIFF_SYSTEM_PROMPT).toMatch(/YOUR JOB IS THAT INTERPRETATION/);
-    expect(DIFF_SYSTEM_PROMPT).toMatch(/Do not restate the marks; say what they mean/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/do not restate the marks,\s+say what they mean/);
   });
 
   it('gives an explicit procedure for reading removed/added pairs', () => {
@@ -309,7 +309,7 @@ describe('DIFF_SYSTEM_PROMPT — mark interpretation', () => {
     expect(DIFF_SYSTEM_PROMPT).toMatch(/\[removed\] alone is a DELETION/);
     expect(DIFF_SYSTEM_PROMPT).toMatch(/\[added\] alone is an INSERTION/);
     // Whole-section adds/removes are the largest edits and must lead.
-    expect(DIFF_SYSTEM_PROMPT).toMatch(/provision was dropped or\s+appeared/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/dropped or created a provision/);
   });
 
   it('requires reading changed fragments against surrounding unchanged text', () => {
@@ -363,12 +363,24 @@ describe('prompt examples cannot be mistaken for content', () => {
 
 // Length and accuracy rules added after live testing surfaced two failures.
 describe('DIFF_SYSTEM_PROMPT — length discipline and stamp handling', () => {
-  it('caps output at one sentence per edit, max four', () => {
+  // A FIXED cap made the model choose between obeying the limit and reporting
+  // real edits — on HB1334 -> CD2 it reported ten changes against a cap of four.
+  // The budget is now computed from the diff and supplied in the user turn.
+  it('defers to the supplied sentence budget rather than a fixed cap', () => {
     expect(DIFF_SYSTEM_PROMPT).toMatch(/ONE SENTENCE PER SUBSTANTIVE EDIT/);
-    expect(DIFF_SYSTEM_PROMPT).toMatch(/30–90 words/);
-    expect(DIFF_SYSTEM_PROMPT).toMatch(/DO NOT pad to/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/"Sentence budget" given in the/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/THAT NUMBER IS A HARD LIMIT/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/Never\s+exceed it/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/DO NOT pad to reach the budget/);
     // Padding is where invented content came from, so the reason is stated.
-    expect(DIFF_SYSTEM_PROMPT).toMatch(/Padding is where invented content comes from/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/Padding is where\s+invented content comes from/);
+  });
+
+  // Observed: two sentences described the amended text rather than the change
+  // ("the program will operate on islands under 200,000 people").
+  it('gives a concrete test for cutting bill-describing sentences', () => {
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/THE TEST, applied to every sentence/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/read ONLY the newer version/);
   });
 
   // Observed: "Additional edits were made to sections not included in this
@@ -376,14 +388,22 @@ describe('DIFF_SYSTEM_PROMPT — length discipline and stamp handling', () => {
   // sections the parser failed on. Those are separate facts.
   it('requires a counted overflow clause, not a vague catch-all', () => {
     expect(DIFF_SYSTEM_PROMPT).toMatch(/naming HOW MANY you left out/);
-    expect(DIFF_SYSTEM_PROMPT).toMatch(/never confuse edits you chose to omit/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/either count them or say nothing/);
+  });
+
+  // Observed: the model emitted BOTH "plus three smaller edits" and "the parse
+  // was incomplete". With an incomplete parse it cannot know what it missed, so
+  // only the parse caveat is honest.
+  it('forbids emitting the omitted-count and parse caveat together', () => {
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/DIFFERENT facts/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/never emit both in the same summary/);
   });
 
   // Observed: the model reported the effective date as "duplicated" because
   // bill pages repeat it in a trailing "Effective <date> (SD2)" stamp.
   it('explains the trailing effective-date stamp is one change, not duplication', () => {
-    expect(DIFF_SYSTEM_PROMPT).toMatch(/trailing effective-date stamp/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/"Effective <date> \(SD2\)" stamp/);
     expect(DIFF_SYSTEM_PROMPT).toMatch(/That is ONE change/);
-    expect(DIFF_SYSTEM_PROMPT).toMatch(/Never describe it as text being "duplicated"/);
+    expect(DIFF_SYSTEM_PROMPT).toMatch(/never call it\s+"duplicated"/);
   });
 });
