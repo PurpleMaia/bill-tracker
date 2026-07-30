@@ -258,7 +258,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                           }
                         />
                       )}
-                      {canAssign && (
+                      {canAssign && !bill.dead && (
                       <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -542,6 +542,43 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                   billUrl={bill.bill_url}
                   committeeAssignment={bill.committee_assignment}
                   latestUpdate={bill.latest_update}
+                  removeSlot={canAssign ? (
+                    <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full h-8 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={(e) => { e.stopPropagation(); setShowRemoveDialog(true); }}
+                          disabled={isRemoving}
+                          aria-label={`Remove ${bill.bill_number} from the board`}
+                        >
+                          <X className="h-3.5 w-3.5 mr-1.5" />
+                          Remove from board
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remove Bill from Board?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {activeTenant
+                              ? `This bill will be removed from your organization's list, including for anyone else in ${activeTenant.name} tracking it. You can track it again anytime using the Track Bill button.`
+                              : 'This bill will no longer be tracked on your list, and it will be removed for anyone else tracking it. You can track it again anytime using the Track Bill button.'}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={(e) => { e.stopPropagation(); handleRemoveBill(); }}
+                            className="bg-destructive hover:bg-destructive/90"
+                            disabled={isRemoving}
+                          >
+                            {isRemoving ? 'Removing...' : 'Remove'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  ) : undefined}
                 >
                   <button
                     className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-sm"

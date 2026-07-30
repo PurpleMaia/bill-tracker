@@ -22,6 +22,8 @@ interface DeadBillInfoPopoverProps {
   /** Full status updates for detailed analysis — optional, falls back to latestUpdate only */
   statusUpdates?: StatusUpdate[];
   billUrl: string;
+  /** Optional "Remove from board" action rendered in the body, under the revival note. */
+  removeSlot?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -32,6 +34,7 @@ export function DeadBillInfoPopover({
   latestUpdate,
   statusUpdates,
   billUrl,
+  removeSlot,
   children,
 }: DeadBillInfoPopoverProps) {
   const today = todayHawaii();
@@ -123,8 +126,11 @@ export function DeadBillInfoPopover({
 
           {/* Revival note */}
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Bills that fail in committee can sometimes be revived in subsequent sessions or attached to other bills as amendments. This is procedural — not always a final stop.
+            Bills that fail in committee can sometimes be revived in subsequent sessions or attached to other bills as amendments. This is procedural and not always a final stop.
           </p>
+
+          {/* Remove from board action */}
+          {removeSlot && <div className="pt-1">{removeSlot}</div>}
         </div>
 
         {/* Footer */}
