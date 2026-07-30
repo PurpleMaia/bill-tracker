@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { BillVersion } from '@/types/legislation';
-import type { VersionComparison } from '@/lib/version-diff';
+import type { VersionComparison } from '@/lib/versions/version-diff';
 import { data } from '@/lib/data-client';
-import { sortVersions, resolveComparisonOrder } from '@/lib/bill-versions';
+import { sortVersions, resolveComparisonOrder } from '@/lib/versions/bill-versions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';

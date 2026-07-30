@@ -7,11 +7,11 @@ import type { Bill, TempBill } from '@/types/legislation';
 import { KanbanCard } from './kanban-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Draggable } from '@hello-pangea/dnd';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/core/utils';
 import { TempBillCard } from './temp-card';
 import { HelpCircle, Loader2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { COLUMN_DESCRIPTIONS } from '@/lib/kanban-columns';
+import { COLUMN_DESCRIPTIONS } from '@/lib/bills/kanban-columns';
 import ColumnOptionsMenu from './column-options-menu';
 import { useAuth } from '@/hooks/contexts/auth-context';
 
@@ -56,7 +56,7 @@ export interface KanbanColumnProps extends React.HTMLAttributes<HTMLDivElement> 
 
   enableDnd?: boolean;
 
-  boardMode?: import('@/lib/board-display').BoardMode;
+  boardMode?: import('@/lib/bills/board-display').BoardMode;
   orgTestimonyBillIds?: Set<string>;
   trackedBillIds?: Set<string>;
   onTrackForSelf?: (bill: Bill) => void;

@@ -2,7 +2,7 @@
 
 import { BillWithInterns, InternWithBills, PendingProposal, PendingUser, SupervisorWithInterns } from '@/types/admin';
 import { revalidatePath } from 'next/cache';
-import { requireAdmin } from '@/lib/auth-guards';
+import { requireAdmin } from '@/lib/auth/auth-guards';
 import * as adminQueries from '@/db/queries/admin';
 
 interface ActionResult<T = void> {

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSession } from '@/lib/auth';
-import { getSessionCookie } from '@/lib/cookies';
+import { validateSession } from '@/lib/auth/session';
+import { getSessionCookie } from '@/lib/auth/cookies';
 import { validateMembership } from '@/db/queries/tenants';
 import { updateBillStatus, untrackBill } from '@/db/queries/bills-write';
 import { getBillDetails, getVersionHtmlLinks } from '@/db/queries/bills-read';
 import { updateBillTags } from '@/db/queries/tags';
 import { compareVersionHtml } from '@/services/bill-diff';
-import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
-import { getClientIp } from '@/lib/client-ip';
+import { limitFixedWindow, retryAfterMs } from '@/lib/core/ratelimit-memory';
+import { getClientIp } from '@/lib/core/client-ip';
 
 /**
  * Per-IP ceiling on the version-diff branch. Bill text is public record, so this

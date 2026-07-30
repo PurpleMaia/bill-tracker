@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { COMMITTEE_NAMES, committeeFullName, parseCommitteeCodes } from '../committees';
+import { COMMITTEE_NAMES, committeeFullName, parseCommitteeCodes } from '../testimony/committees';
 
 describe('committeeFullName', () => {
   it('translates known House and Senate codes', () => {

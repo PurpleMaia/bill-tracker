@@ -2,13 +2,13 @@
 
 import { useMemo } from 'react';
 import type { BillVersion, CommitteeReport } from '@/types/legislation';
-import { groupReportsByVersion } from '@/lib/bill-versions';
+import { groupReportsByVersion } from '@/lib/versions/bill-versions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SummarySection } from './report-summary';
 import { FileText, ExternalLink, ScrollText, GitCompare } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/core/utils';
 
 function LinkButtons({ link, type }: { link: string | null; type: 'version' | 'report' }) {
   if (!link) return null;

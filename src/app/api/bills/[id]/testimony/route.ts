@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSession, requireMembership } from '@/lib/auth-guards';
+import { requireSession, requireMembership } from '@/lib/auth/auth-guards';
 import {
   deleteTestimony,
   getTestimonyDraft,

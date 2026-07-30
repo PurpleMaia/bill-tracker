@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { KANBAN_COLUMNS, COLUMN_TITLES, COLUMN_INDEX, SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED, COLUMN_DESCRIPTIONS, AWAITING_HEARING_STATUSES, isAwaitingHearing } from '../kanban-columns';
+import { KANBAN_COLUMNS, COLUMN_TITLES, COLUMN_INDEX, SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED, COLUMN_DESCRIPTIONS, AWAITING_HEARING_STATUSES, isAwaitingHearing } from '../bills/kanban-columns';
 
 describe('KANBAN_COLUMNS', () => {
   it('is a non-empty array', () => {

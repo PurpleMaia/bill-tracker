@@ -6,7 +6,7 @@
 // re-bill the corpus. Regeneration is explicit: clear ai_summary.
 
 import { db } from '@/db/kysely/client';
-import { SUMMARY_PROMPT_VERSION } from '@/lib/summary-prompts';
+import { SUMMARY_PROMPT_VERSION } from '@/lib/ai/summary-prompts';
 
 export type SummaryTarget = 'version' | 'report';
 

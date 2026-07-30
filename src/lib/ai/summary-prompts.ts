@@ -3,14 +3,14 @@
 //
 // Spec: docs/superpowers/specs/2026-07-28-ai-version-summaries-design.md
 
-import { describeVersionLabel } from './version-labels';
+import { describeVersionLabel } from '../versions/version-labels';
 import {
   coalesceFragments,
   stripBoilerplate,
   classifyDiffScale,
   sentenceBudgetFor,
-} from './version-diff';
-import type { VersionComparison, SectionDiff } from './version-diff';
+} from '../versions/version-diff';
+import type { VersionComparison, SectionDiff } from '../versions/version-diff';
 
 /** Bump when the bill-version prompt changes. Provenance only — NOT a cache key. */
 export const SUMMARY_PROMPT_VERSION = 'v1';

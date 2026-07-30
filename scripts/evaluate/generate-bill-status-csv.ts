@@ -1,5 +1,5 @@
 import { db } from '@/db/kysely/client';
-import { KANBAN_COLUMNS } from '@/lib/kanban-columns';
+import { KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
 import fs from 'fs';
 import path from 'path';
 

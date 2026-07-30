@@ -4,9 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { BillVersion, CommitteeReport } from '@/types/legislation';
 import { BillVersionsPanel } from './bill-versions-panel';
 import { VersionCompare } from './version-compare';
-import { sortVersions, resolveComparisonOrder } from '@/lib/bill-versions';
+import { sortVersions, resolveComparisonOrder } from '@/lib/versions/bill-versions';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/core/utils';
 
 const SECTION_HEAD = 'shrink-0 border-b px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground';
 

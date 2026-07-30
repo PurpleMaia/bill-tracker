@@ -5,9 +5,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-import type { Bills } from '../db/types';
-import type { Bill } from '../types/legislation';
-import { KANBAN_COLUMNS } from "./kanban-columns";
+import type { Bills } from '../../db/types';
+import type { Bill } from '../../types/legislation';
+import { KANBAN_COLUMNS } from "../bills/kanban-columns";
 
 // Helper to safely convert Kysely Timestamp/Generated<Timestamp|null> to Date|null
 export function toDate(val: unknown): Date | null {

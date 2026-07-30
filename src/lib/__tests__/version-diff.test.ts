@@ -13,7 +13,7 @@ import {
   type ChangeFragment,
   type SectionDiff,
   type VersionComparison,
-} from '@/lib/version-diff';
+} from '@/lib/versions/version-diff';
 
 const frag = (type: string, text: string, fmt?: Record<string, boolean>) => ({
   type,

@@ -8,7 +8,7 @@
 // hearing time minus 24h.
 
 import type { BillStatus } from '@/db/types';
-import { isTestimonyUrgent } from '@/lib/testimony-eligibility';
+import { isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 
 const HEARING_DATETIME_PATTERN =
   /(\d{1,2})-(\d{1,2})-(\d{2,4})[,\s]+(?:at\s+)?(\d{1,2}):(\d{2})\s*([AP])\.?M\.?/i;

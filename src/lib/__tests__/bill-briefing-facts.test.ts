@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deriveBriefingFacts } from '../bill-briefing-facts';
+import { deriveBriefingFacts } from '../bills/bill-briefing-facts';
 import type { BillDetails, BillVersion } from '@/types/legislation';
 
 const ver = (label: string): BillVersion => ({

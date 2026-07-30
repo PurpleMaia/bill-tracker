@@ -6,8 +6,8 @@ import { Toaster } from "@/components/ui/toaster" // Import Toaster for potentia
 import { BillsProvider } from '@/hooks/contexts/bills-context';
 import { AuthProvider } from '@/hooks/contexts/auth-context';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '@/lib/react-query';
-import { Providers } from '@/lib/providers';
+import { queryClient } from '@/lib/core/react-query';
+import { Providers } from '@/lib/core/providers';
 
 
 

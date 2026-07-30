@@ -1,5 +1,5 @@
 import type { Bill, CompareVersionsParams } from '@/types/legislation';
-import type { VersionComparison } from '@/lib/version-diff';
+import type { VersionComparison } from '@/lib/versions/version-diff';
 import { defineClient } from './define-client';
 import {
   getBillsAction,

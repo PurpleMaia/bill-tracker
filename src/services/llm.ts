@@ -1,6 +1,6 @@
 'use server'
-import { KANBAN_COLUMNS, COLUMN_INDEX } from '@/lib/kanban-columns';
-import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
+import { KANBAN_COLUMNS, COLUMN_INDEX } from '@/lib/bills/kanban-columns';
+import { limitFixedWindow, retryAfterMs } from '@/lib/core/ratelimit-memory';
 import { OpenAI } from 'openai';
 import { db } from '../db/kysely/client';
 import { sql } from 'kysely';
@@ -11,8 +11,8 @@ import {
   buildDocumentUserTurn,
   buildReportUserTurn,
   buildDiffUserTurn,
-} from '@/lib/summary-prompts';
-import type { VersionComparison } from '@/lib/version-diff';
+} from '@/lib/ai/summary-prompts';
+import type { VersionComparison } from '@/lib/versions/version-diff';
 
 const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,

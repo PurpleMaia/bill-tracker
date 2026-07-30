@@ -4,7 +4,7 @@
  * you export" always agree. No DB access — safe for src/lib.
  */
 
-import { searchBillsLocal } from '@/lib/bill-search';
+import { searchBillsLocal } from '@/lib/bills/bill-search';
 import type { Bill } from '@/types/legislation';
 
 export type DeadFilter = 'all' | 'dead' | 'alive';

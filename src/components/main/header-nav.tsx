@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FileText, KanbanSquareIcon, LayoutGrid, Search } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/core/utils';
 
 export const NAV_ITEMS = [
   { href: '/search', label: 'Search', icon: Search },

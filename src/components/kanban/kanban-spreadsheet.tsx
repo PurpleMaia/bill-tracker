@@ -12,12 +12,12 @@ import { Badge } from '@/components/ui/badge';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { BillDetailsDialog } from './bill-details-dialog';
-import { cn, formatBillStatusName, todayHawaii } from '@/lib/utils';
-import { filterBills } from '@/lib/bill-filters';
-import { getNextDeadline } from '@/lib/dead-bill';
-import type { SessionDeadlines, DeadlineEntry } from '@/lib/dead-bill';
+import { cn, formatBillStatusName, todayHawaii } from '@/lib/core/utils';
+import { filterBills } from '@/lib/bills/bill-filters';
+import { getNextDeadline } from '@/lib/bills/dead-bill';
+import type { SessionDeadlines, DeadlineEntry } from '@/lib/bills/dead-bill';
 import type { BillStatus as DBBillStatus } from '@/db/types';
-import { SESSION_DEADLINES } from '@/lib/session-deadlines';
+import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { ArrowUp, ArrowDown, ArrowUpDown, Clock } from 'lucide-react';
 
 // ─── Sort Types ──────────────────────────────────────────────

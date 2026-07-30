@@ -6,7 +6,7 @@ import { RefreshCw, WandSparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { classifyStatusWithLLM } from '@/services/llm';
 import { useBills } from '@/hooks/contexts/bills-context';
-import { KANBAN_COLUMNS } from '@/lib/kanban-columns';
+import { KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
 import { useAuth } from '@/hooks/contexts/auth-context';
 
 interface Props {

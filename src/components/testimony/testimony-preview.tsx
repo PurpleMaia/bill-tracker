@@ -8,7 +8,7 @@ import TextStyle from '@tiptap/extension-text-style';
 import FontFamily from '@tiptap/extension-font-family';
 import type { TestimonyMeta } from '@/lib/testimony-export/blocks';
 import { composeHeaderLines } from '@/lib/testimony-export/blocks';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/core/utils';
 
 interface TestimonyPreviewProps {
   meta: TestimonyMeta;

@@ -2,7 +2,7 @@
 
 import { CalendarDays, CheckCircle2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { SessionDeadlines } from '@/lib/dead-bill';
+import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import deadlinesJson from '@/data/session-deadlines-2026.json';
 
 // Official video by the Hawai'i State Senate: "Participate in the

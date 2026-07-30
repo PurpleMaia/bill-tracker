@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony-eligibility';
-import type { SessionDeadlines } from '@/lib/dead-bill';
+import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
+import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 
 const DEADLINES: SessionDeadlines = {
   session: 2026,

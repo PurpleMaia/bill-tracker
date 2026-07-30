@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { limitFixedWindow, retryAfterMs } from '../ratelimit-memory';
+import { limitFixedWindow, retryAfterMs } from '../core/ratelimit-memory';
 
 describe('limitFixedWindow', () => {
   // Use unique keys per test to avoid interference

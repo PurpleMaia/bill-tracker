@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ApiError, Errors } from '../errors';
+import { ApiError, Errors } from '../core/errors';
 
 describe('ApiError', () => {
   it('creates an error with code, statusCode, and message', () => {

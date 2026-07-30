@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth-guards';
+import { requireAdmin } from '@/lib/auth/auth-guards';
 import { db } from '@/db/kysely/client';
-import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
-import { emailSchema } from '@/lib/validators';
+import { limitFixedWindow, retryAfterMs } from '@/lib/core/ratelimit-memory';
+import { emailSchema } from '@/lib/auth/validators';
 import { sendInviteEmail } from '@/services/email';
 import { randomUUID } from 'crypto';
 

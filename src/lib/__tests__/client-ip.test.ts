@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getClientIp } from '../client-ip';
+import { getClientIp } from '../core/client-ip';
 
 /** Minimal stand-in for the Headers subset getClientIp reads. */
 function req(headers: Record<string, string>) {

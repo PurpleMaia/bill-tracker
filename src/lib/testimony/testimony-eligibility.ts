@@ -7,8 +7,8 @@
 // bills (FIN/WAM) get the later fiscal decking date.
 
 import type { BillStatus } from '@/db/types';
-import type { SessionDeadlines } from '@/lib/dead-bill';
-import { isFiscalBill } from '@/lib/dead-bill';
+import type { SessionDeadlines } from '@/lib/bills/dead-bill';
+import { isFiscalBill } from '@/lib/bills/dead-bill';
 
 const ENACTED_STATUSES: BillStatus[] = ['governorSigns', 'lawWithoutSignature'];
 

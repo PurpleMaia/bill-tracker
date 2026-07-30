@@ -16,16 +16,16 @@ import {
   Trash2,
   XCircle,
 } from 'lucide-react';
-import { cn, formatBillStatusName } from '@/lib/utils';
+import { cn, formatBillStatusName } from '@/lib/core/utils';
 import { data } from '@/lib/data-client';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useTestimonies } from '@/hooks/use-testimonies';
 import { toast } from '@/hooks/use-toast';
-import { tiptapPlainText } from '@/lib/tiptap-text';
-import { getTestimonyEligibility } from '@/lib/testimony-eligibility';
-import { getTestimonyDeadline } from '@/lib/hearing-schedule';
-import { getNextDeadline } from '@/lib/dead-bill';
-import type { DeadlineEntry, SessionDeadlines } from '@/lib/dead-bill';
+import { tiptapPlainText } from '@/lib/testimony/tiptap-text';
+import { getTestimonyEligibility } from '@/lib/testimony/testimony-eligibility';
+import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
+import { getNextDeadline } from '@/lib/bills/dead-bill';
+import type { DeadlineEntry, SessionDeadlines } from '@/lib/bills/dead-bill';
 import type { BillStatus } from '@/db/types';
 import type { TestimonyListItem, TestimonyPosition, TestimonyProspect } from '@/types/testimony';
 import deadlinesJson from '@/data/session-deadlines-2026.json';

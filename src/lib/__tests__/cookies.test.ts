@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { setSessionCookie, getClearSessionCookie } from '../cookies';
+import { setSessionCookie, getClearSessionCookie } from '../auth/cookies';
 
 describe('setSessionCookie', () => {
   it('sets the session cookie with the token value', () => {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSession } from '@/lib/auth';
-import { getSessionCookie } from '@/lib/cookies';
+import { validateSession } from '@/lib/auth/session';
+import { getSessionCookie } from '@/lib/auth/cookies';
 import {
   validateMembership,
   getTenantMembers,
@@ -9,7 +9,7 @@ import {
   updateMemberRole,
 } from '@/db/queries/tenants';
 import { db } from '@/db/kysely/client';
-import { uuidSchema, emailSchema } from '@/lib/validators';
+import { uuidSchema, emailSchema } from '@/lib/auth/validators';
 import type { OrgRole } from '@/types/tenant';
 
 const ORG_ROLES: OrgRole[] = ['admin', 'worker'];

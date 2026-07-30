@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { escapeCsvField, billsToCsv, billsToRows } from '../bills-csv';
+import { escapeCsvField, billsToCsv, billsToRows } from '../bills/bills-csv';
 import type { Bill } from '@/types/legislation';
 
 function makeBill(overrides: Partial<Bill> = {}): Bill {

@@ -6,8 +6,8 @@ import {
   buildDocumentUserTurn,
   buildReportUserTurn,
   buildDiffUserTurn,
-} from '../summary-prompts';
-import type { VersionComparison, SectionDiff } from '../version-diff';
+} from '../ai/summary-prompts';
+import type { VersionComparison, SectionDiff } from '../versions/version-diff';
 
 function frag(kind: SectionDiff['fragments'][number]['kind'], text: string) {
   return { kind, text, struck: kind === 'removed', underlined: kind === 'added' };

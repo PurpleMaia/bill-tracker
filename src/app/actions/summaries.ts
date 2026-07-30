@@ -6,7 +6,7 @@
 //
 // A cache hit is not an inference — it returns without calling the model.
 
-import { requireSession } from '@/lib/auth-guards';
+import { requireSession } from '@/lib/auth/auth-guards';
 import { getUserPreferences } from '@/db/queries/user-preferences';
 import {
   getSummarySource,
@@ -15,7 +15,7 @@ import {
   type SummaryTarget,
 } from '@/db/queries/summaries';
 import { getVersionHtmlLinks } from '@/db/queries/bills-read';
-import { parseVersionLabelFromReport } from '@/lib/bill-versions';
+import { parseVersionLabelFromReport } from '@/lib/versions/bill-versions';
 import {
   summarizeDocumentWithLLM,
   summarizeReportWithLLM,
@@ -23,7 +23,7 @@ import {
   getSummaryModelName,
 } from '@/services/llm';
 import { compareVersionHtml } from '@/services/bill-diff';
-import { ApiError } from '@/lib/errors';
+import { ApiError } from '@/lib/core/errors';
 import type { SummaryResult } from '@/types/legislation';
 
 const AI_NOT_OPTED_IN = new ApiError(

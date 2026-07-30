@@ -2,7 +2,7 @@
 
 import { badgeVariants } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/core/utils';
 import { Archive, X } from 'lucide-react';
 import type { Tag } from '@/types/legislation';
 

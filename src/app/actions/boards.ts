@@ -2,8 +2,8 @@
 
 import type { Bill } from '@/types/legislation';
 import type { PublicOrg, MyOrg } from '@/types/tenant';
-import { requireSession, requireAdmin, requireMembership } from '@/lib/auth-guards';
-import { ApiError } from '@/lib/errors';
+import { requireSession, requireAdmin, requireMembership } from '@/lib/auth/auth-guards';
+import { ApiError } from '@/lib/core/errors';
 import {
   listPublicTenants,
   listFollowedTenants,

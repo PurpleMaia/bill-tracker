@@ -1,7 +1,7 @@
 import { sql } from 'kysely';
 import { db } from '@/db/kysely/client';
-import { tiptapExcerpt } from '@/lib/tiptap-text';
-import { SCHEDULED_STATUSES } from '@/lib/testimony-eligibility';
+import { tiptapExcerpt } from '@/lib/testimony/tiptap-text';
+import { SCHEDULED_STATUSES } from '@/lib/testimony/testimony-eligibility';
 import type {
   TestimonyDraft,
   TestimonyDraftInput,

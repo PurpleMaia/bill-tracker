@@ -1,8 +1,8 @@
 'use server';
 
 import type { Bill, CompareVersionsParams } from '@/types/legislation';
-import type { VersionComparison } from '@/lib/version-diff';
-import { optionalSession, requireMembership, requireSession } from '@/lib/auth-guards';
+import type { VersionComparison } from '@/lib/versions/version-diff';
+import { optionalSession, requireMembership, requireSession } from '@/lib/auth/auth-guards';
 import {
   getAllTrackedBills,
   getAllFoodRelatedBills,

@@ -14,8 +14,8 @@ import {
   getApplicableDeadlines,
   getRelevantDeadline,
   isBillDead,
-} from '../dead-bill';
-import type { SessionDeadlines, StatusUpdate } from '../dead-bill';
+} from '../bills/dead-bill';
+import type { SessionDeadlines, StatusUpdate } from '../bills/dead-bill';
 
 // --- Test fixtures ---
 

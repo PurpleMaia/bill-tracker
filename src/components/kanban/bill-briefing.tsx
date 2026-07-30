@@ -2,12 +2,12 @@
 
 import { useMemo } from 'react';
 import type { BillDetails } from '@/types/legislation';
-import { deriveBriefingFacts } from '@/lib/bill-briefing-facts';
+import { deriveBriefingFacts } from '@/lib/bills/bill-briefing-facts';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { PenLine, GitCompare, ScrollText, Clock, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/core/utils';
 
 const STEP_ICON = { testimony: PenLine, diff: GitCompare, reports: ScrollText } as const;
 

@@ -4,7 +4,7 @@ import {
   canTrackOwnBills,
   getAssignableRoles,
   canCommitStatus,
-} from '../permissions';
+} from '../auth/permissions';
 
 describe('canAssignBills', () => {
   it('returns true for admin', () => {

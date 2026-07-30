@@ -7,9 +7,9 @@ import {
   getRelevantDeadline,
   isExplicitlyDeferred,
   isBillDead,
-} from '@/lib/dead-bill';
-import type { SessionDeadlines } from '@/lib/dead-bill';
-import { COLUMN_INDEX } from '@/lib/kanban-columns';
+} from '@/lib/bills/dead-bill';
+import type { SessionDeadlines } from '@/lib/bills/dead-bill';
+import { COLUMN_INDEX } from '@/lib/bills/kanban-columns';
 import type { BillStatus } from '@/db/types';
 import deadlinesJson from '@/data/session-deadlines-2026.json';
 

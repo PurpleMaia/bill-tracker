@@ -2,8 +2,8 @@
 
 import { db } from '@/db/kysely/client';
 import type { Membership, OrgRole } from '@/types/tenant';
-import { Errors } from '@/lib/errors';
-import { auth } from '@/lib/auth';
+import { Errors } from '@/lib/core/errors';
+import { auth } from '@/lib/auth/session';
 
 type MutationOptions = { skipAuth?: boolean };
 

@@ -1,4 +1,4 @@
-import type { KANBAN_COLUMNS } from '@/lib/kanban-columns';
+import type { KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
 import { Timestamp } from '../db/types';
 
 // Extract column IDs as possible statuses

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterBills, hasActiveFilters, type BillFilters } from '@/lib/bill-filters';
+import { filterBills, hasActiveFilters, type BillFilters } from '@/lib/bills/bill-filters';
 import type { Bill, Tag } from '@/types/legislation';
 
 const tag = (id: string, name: string): Tag =>

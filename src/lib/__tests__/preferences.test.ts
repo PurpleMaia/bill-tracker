@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyPreferenceDefaults, DEFAULT_PREFERENCES } from '@/lib/preferences';
+import { applyPreferenceDefaults, DEFAULT_PREFERENCES } from '@/lib/core/preferences';
 
 describe('applyPreferenceDefaults', () => {
   it('returns all-false defaults for null', () => {

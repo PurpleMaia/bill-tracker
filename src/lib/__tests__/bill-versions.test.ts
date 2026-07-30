@@ -4,7 +4,7 @@ import {
   groupReportsByVersion,
   sortVersions,
   resolveComparisonOrder,
-} from '../bill-versions';
+} from '../versions/bill-versions';
 import type { BillVersion, CommitteeReport } from '@/types/legislation';
 
 const v = (label: string): BillVersion => ({

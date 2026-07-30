@@ -1,7 +1,7 @@
 'use client';
 
 import type { BillDetails } from '@/types/legislation';
-import { parseCommitteeCodes, committeeFullName } from '@/lib/committees';
+import { parseCommitteeCodes, committeeFullName } from '@/lib/testimony/committees';
 
 /**
  * Lists the committees a bill is assigned to (code + full name). A plain

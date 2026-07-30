@@ -1,5 +1,5 @@
-import { SIMPLIFIED_COLUMNS } from "@/lib/kanban-columns";
-import { cn } from '@/lib/utils';
+import { SIMPLIFIED_COLUMNS } from "@/lib/bills/kanban-columns";
+import { cn } from '@/lib/core/utils';
 
 /**
  * Loading placeholders that mirror the real board: same exact-fit column

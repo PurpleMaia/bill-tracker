@@ -1,13 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { ChangeFragment, SectionDiff, VersionComparison } from '@/lib/version-diff';
+import type { ChangeFragment, SectionDiff, VersionComparison } from '@/lib/versions/version-diff';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SummaryCard } from './report-summary';
 import { AlertTriangle, Sparkles, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/core/utils';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { data } from '@/lib/data-client';
 

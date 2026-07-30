@@ -25,7 +25,7 @@ import {
 import AdminHeader from './admin-header';
 import { useAdminDashboard } from '@/hooks/use-query-admin';
 import { useAuth } from '@/hooks/contexts/auth-context';
-import { formatBillStatusName } from '@/lib/utils';
+import { formatBillStatusName } from '@/lib/core/utils';
 import { BillWithInterns, InternWithBills, PendingProposal, PendingUser, SupervisorWithInterns } from '@/types/admin';
 import { InternSelector } from './intern-selector';
 import { AssignMultipleBillsDialog } from './assign-multiple-bills-dialog';

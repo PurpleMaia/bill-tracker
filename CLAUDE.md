@@ -45,10 +45,19 @@ src/
     contexts/       # React contexts (auth-context, bills-context, kanban-board-context)
   lib/              # Pure utilities, validators, constants — NO database access
     data-client/    # Switchable transport seam (see "Data Access" below)
-    auth-guards.ts  # Shared session/membership/admin guards for routes AND actions
-    permissions.ts  # Pure role-permission helpers (canAssignBills, canCommitStatus, ...)
-    derived-status.ts # PURE status-derivation algorithm (no DB)
-    __tests__/      # Vitest test files (pure logic only)
+    auth/           # session.ts (validateSession/auth), auth-guards.ts, cookies.ts,
+                    #   permissions.ts (canAssignBills, ...), validators.ts (zod schemas)
+    bills/          # kanban-columns.ts, dead-bill.ts, derived-status.ts (PURE derivation),
+                    #   bill-filters.ts, bill-search.ts, bill-briefing-facts.ts,
+                    #   bills-csv.ts, board-display.ts
+    versions/       # version-diff.ts, version-labels.ts, bill-versions.ts
+    testimony/      # testimony-eligibility.ts, hearing-schedule.ts, tiptap-text.ts,
+                    #   session-deadlines.ts, committees.ts
+    testimony-export/ # Tiptap → PDF/DOCX (the one Tiptap traversal)
+    ai/             # summary-prompts.ts — LLM prompt construction (no inference)
+    core/           # utils.ts (cn, toDate, ...), errors.ts, preferences.ts,
+                    #   client-ip.ts, ratelimit-memory.ts, react-query.ts, providers.tsx
+    __tests__/      # Vitest test files (pure logic only) — FLAT, not mirrored
   db/               # Everything about OUR Postgres
     kysely/         # Kysely client + retry driver
     migrations/     # SQL migration files (up/down)
@@ -102,7 +111,7 @@ Tenant service mutation functions (`addMember`, `removeMember`, etc.) also have 
 
 ### Derived Status Algorithm
 
-`deriveBillStatus()` in `src/lib/derived-status.ts` is a PURE function (no DB) that computes the public bill status:
+`deriveBillStatus()` in `src/lib/bills/derived-status.ts` is a PURE function (no DB) that computes the public bill status:
 1. AI status is the floor (official records).
 2. Org consensus (mode, or median if no mode) is the ceiling.
 3. If consensus >= floor, use consensus (orgs have fresher info). Otherwise use AI.
@@ -121,6 +130,7 @@ The DB-backed `recomputeDerivedStatus()` (reads `ai_status` + `org_bills`, write
 - **Kysely for all queries** — no raw SQL. Parameterized by default (no injection risk). All queries live in `src/db/queries/*` — that is the single source of truth. Routes and actions are thin transports over them; do not put inline `db.*` queries in a route/action.
 - **Tenant scoping** — all queries touching `user_bills`, `org_bills`, `tags`, `bill_tags` must filter by `tenant_id` when in a tenant context.
 - **`src/lib/` is DB-free** — pure utilities, validators, constants, permission helpers, and the auth-guards/data-client wiring. Anything that runs a query belongs in `src/db/queries/`.
+- **`src/lib/` is grouped by domain, imported by deep path** — `@/lib/core/utils`, `@/lib/bills/kanban-columns`, `@/lib/auth/session`. There are deliberately NO barrel `index.ts` files: import the actual module so dependencies stay visible and bundles stay tight. Note `@/lib/auth/session` holds what used to be `lib/auth.ts` (renamed so it couldn't shadow the `auth/` directory).
 - **Auth via guards** — routes and actions both authorize through `@/lib/auth-guards` (`requireSession`/`optionalSession`/`requireMembership`/`requireAdmin`). Don't hand-roll the cookie→session→membership preamble.
 - **Client data via the data-client** — client components call `data.*` from `@/lib/data-client`, not raw `fetch`. See "Data Access" above.
 - **A `'use server'` file may only export async functions** — no `export *`, no re-export statements, no type exports. Keep shared types/mappers in plain (non-`'use server'`) modules like `db/queries/bill-mappers.ts`.

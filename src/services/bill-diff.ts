@@ -15,13 +15,13 @@
 // metadata) where compareBillContent finds 9 real section changes.
 import { compareBillContent, parseBillHtml } from 'hawaii-bill-diff';
 import { fetchBillHtml, BillHtmlError } from './bill-html';
-import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
+import { limitFixedWindow, retryAfterMs } from '@/lib/core/ratelimit-memory';
 import {
   normalizeComparison,
   errorComparison,
   type VersionComparison,
   type RawSectionChange,
-} from '@/lib/version-diff';
+} from '@/lib/versions/version-diff';
 
 /**
  * Cost ceiling on the expensive path, keyed by the version PAIR rather than by

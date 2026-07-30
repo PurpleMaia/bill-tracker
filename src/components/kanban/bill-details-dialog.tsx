@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn, todayHawaii } from '@/lib/utils';
+import { cn, todayHawaii } from '@/lib/core/utils';
 import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -20,7 +20,7 @@ import { useMemo, useState } from 'react';
 import RefreshStatusesButton from '../scraper/scrape-updates-button';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
-import { COLUMN_TITLES, KANBAN_COLUMNS } from '@/lib/kanban-columns';
+import { COLUMN_TITLES, KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
 import {
   Select,
   SelectContent,
@@ -38,16 +38,16 @@ import { TagSelector } from '../tags/tag-selector';
 import { BillBriefing } from './bill-briefing';
 import { CommitteeContacts } from './committee-contacts';
 import { VersionsReportsTab } from './versions-reports-tab';
-import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/dead-bill';
-import type { SessionDeadlines } from '@/lib/dead-bill';
-import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony-eligibility';
-import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/hearing-schedule';
+import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/bills/dead-bill';
+import type { SessionDeadlines } from '@/lib/bills/dead-bill';
+import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
+import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/testimony/hearing-schedule';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 // Real calendar for deriving why a bill already failed (historical fact);
 // switchable calendar for upcoming-deadline displays (demo-aware).
 import deadlinesJson from '@/data/session-deadlines-2026.json';
-import type { BoardMode } from '@/lib/board-display';
-import { SESSION_DEADLINES } from '@/lib/session-deadlines';
+import type { BoardMode } from '@/lib/bills/board-display';
+import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 
 interface BillDetailsDialogProps {
   billID: string | null;

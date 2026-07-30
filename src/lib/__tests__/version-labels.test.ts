@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { describeVersionLabel } from '../version-labels';
+import { describeVersionLabel } from '../versions/version-labels';
 
 describe('describeVersionLabel', () => {
   it('describes House drafts by ordinal', () => {

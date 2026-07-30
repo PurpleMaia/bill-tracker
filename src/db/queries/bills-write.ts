@@ -1,7 +1,7 @@
 'use server';
 
 import type { Bill, BillDetails } from '@/types/legislation';
-import { KANBAN_COLUMNS } from '@/lib/kanban-columns';
+import { KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
 import { db } from '@/db/kysely/client';
 import { BillStatus } from '@/db/types';
 import { convertDataToBillShape } from '@/db/queries/bill-mappers';

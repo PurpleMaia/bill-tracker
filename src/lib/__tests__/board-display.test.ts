@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cardVisibility } from '@/lib/board-display';
+import { cardVisibility } from '@/lib/bills/board-display';
 
 describe('cardVisibility', () => {
   it('own mode shows all owner controls', () => {

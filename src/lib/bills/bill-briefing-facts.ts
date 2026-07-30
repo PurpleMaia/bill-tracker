@@ -2,11 +2,11 @@
 // Briefing render a useful summary when the user opts out of AI.
 import type { BillDetails } from '@/types/legislation';
 import type { BillStatus as DBBillStatus } from '@/db/types';
-import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony-eligibility';
-import { getNextDeadline, getDeadlineTier, isFiscalBill } from '@/lib/dead-bill';
-import { SESSION_DEADLINES } from '@/lib/session-deadlines';
-import { sortVersions } from '@/lib/bill-versions';
-import { parseCommitteeCodes } from '@/lib/committees';
+import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
+import { getNextDeadline, getDeadlineTier, isFiscalBill } from '@/lib/bills/dead-bill';
+import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
+import { sortVersions } from '@/lib/versions/bill-versions';
+import { parseCommitteeCodes } from '@/lib/testimony/committees';
 
 export interface BriefingStep {
   text: string;

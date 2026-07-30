@@ -1,7 +1,7 @@
 'use server';
 
 import type { TempBill } from '@/types/legislation';
-import { requireSession, requireMembership } from '@/lib/auth-guards';
+import { requireSession, requireMembership } from '@/lib/auth/auth-guards';
 import { updateBillStatus } from '@/db/queries/bills-write';
 import {
   getPendingProposals,

@@ -15,7 +15,7 @@
 // resident heap that is never released. Immutability justifies caching; it does
 // not justify keeping every document forever.
 
-import type { DiffError } from '@/lib/version-diff';
+import type { DiffError } from '@/lib/versions/version-diff';
 
 export class BillHtmlError extends Error {
   constructor(

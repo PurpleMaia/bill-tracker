@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseHearingDatetime, getTestimonyCountdownLabel, getTestimonyDeadline } from '@/lib/hearing-schedule';
+import { parseHearingDatetime, getTestimonyCountdownLabel, getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 
 describe('parseHearingDatetime', () => {
   it('parses house hearing notices (MM-DD-YY H:MMAM)', () => {

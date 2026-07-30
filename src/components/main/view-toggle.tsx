@@ -4,7 +4,7 @@ import { KanbanSquareIcon, Table, Users2Icon } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/core/utils';
 
 const VIEW_META = {
   kanban: { label: 'Kanban', Icon: KanbanSquareIcon },

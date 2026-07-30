@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth-guards';
+import { requireSession } from '@/lib/auth/auth-guards';
 import { requestAdminAccess } from '@/db/queries/access';
-import { emailSchema } from '@/lib/validators';
+import { emailSchema } from '@/lib/auth/validators';
 
 // Fetch arm for data.access.requestAdmin. The logged-in user requests admin
 // access for the given email (their own).
