@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { cn, formatBillHeadline, formatBillStatusName, formatRelativeDate, todayHawaii } from '@/lib/utils';
-import { canAssignBills } from '@/lib/permissions';
-import { parseCommittees } from '@/lib/dead-bill';
-import { isAwaitingHearing } from '@/lib/kanban-columns';
-import { committeeFullName } from '@/lib/committees';
+import { cn, formatBillHeadline, formatBillStatusName, formatRelativeDate, todayHawaii } from '@/lib/core/utils';
+import { canAssignBills } from '@/lib/auth/permissions';
+import { parseCommittees } from '@/lib/bills/dead-bill';
+import { isAwaitingHearing } from '@/lib/bills/kanban-columns';
+import { committeeFullName } from '@/lib/testimony/committees';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 /** Shadcn tooltip wrapper for the card's chips — replaces native title attrs. */
@@ -23,11 +23,11 @@ import { Sparkles, X, Check, Users, Info, PenLine, UserPlus, Hourglass, AlarmClo
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTagSelector } from '../tags/card-tag-selector';
-import { getNextDeadline, getDeadlineTier } from '@/lib/dead-bill';
-import { SESSION_DEADLINES } from '@/lib/session-deadlines';
-import { isTestimonyUrgent } from '@/lib/testimony-eligibility';
-import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/hearing-schedule';
-import type { SessionDeadlines } from '@/lib/dead-bill';
+import { getNextDeadline, getDeadlineTier } from '@/lib/bills/dead-bill';
+import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
+import { isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
+import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/testimony/hearing-schedule';
+import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import { DeadBillInfoPopover } from './dead-bill-info-popover';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import { useBills } from '@/hooks/contexts/bills-context';
@@ -47,7 +47,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { updateFoodStatusOrCreateBill } from '@/db/queries/bills-write';
 import { toast } from '@/hooks/use-toast';
-import { cardVisibility } from '@/lib/board-display';
+import { cardVisibility } from '@/lib/bills/board-display';
 
 interface KanbanCardProps extends React.HTMLAttributes<HTMLDivElement> {
   bill: Bill;
@@ -56,7 +56,7 @@ interface KanbanCardProps extends React.HTMLAttributes<HTMLDivElement> {
   onUnadopt?: (billId: string) => void;
   showUnadoptButton?: boolean;
   isHighlighted?: boolean;
-  boardMode?: import('@/lib/board-display').BoardMode;
+  boardMode?: import('@/lib/bills/board-display').BoardMode;
   orgTestimonyState?: 'submitted' | undefined;
   isTracked?: boolean;
   onTrackForSelf?: (bill: Bill) => void | Promise<void>;

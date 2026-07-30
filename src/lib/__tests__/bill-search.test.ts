@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { searchBillsLocal, type SearchableBill } from '../bill-search';
+import { searchBillsLocal, type SearchableBill } from '../bills/bill-search';
 
 function bill(over: Partial<SearchableBill> & { id: string }): SearchableBill {
   return { bill_number: 'XX0', bill_title: '', description: '', ...over };

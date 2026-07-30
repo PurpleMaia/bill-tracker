@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSession, requireMembership, requireAdmin } from '@/lib/auth-guards';
+import { requireSession, requireMembership, requireAdmin } from '@/lib/auth/auth-guards';
 import { db } from '@/db/kysely/client';
 
 export async function GET(

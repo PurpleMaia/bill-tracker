@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { tiptapExcerpt, tiptapPlainText } from '@/lib/tiptap-text';
+import { tiptapExcerpt, tiptapPlainText } from '@/lib/testimony/tiptap-text';
 
 function doc(...paragraphs: string[]) {
   return {

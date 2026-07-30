@@ -12,17 +12,15 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Progress } from "@/components/ui/progress";
-import { cn, todayHawaii } from '@/lib/utils';
-import { FileText, Loader2, ExternalLink, Clock, PenLine } from 'lucide-react';
+import { cn, todayHawaii } from '@/lib/core/utils';
+import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
-import AIUpdateSingleButton from '../llm/llm-update-single-button';
 import RefreshStatusesButton from '../scraper/scrape-updates-button';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
-import { COLUMN_TITLES, KANBAN_COLUMNS } from '@/lib/kanban-columns';
+import { COLUMN_TITLES, KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
 import {
   Select,
   SelectContent,
@@ -34,19 +32,22 @@ import { toast } from '@/hooks/use-toast';
 import { updateBillStatus, updateBillDeadFlag } from '@/db/queries/bills-write';
 import { getBillDetails } from '@/db/queries/bills-read';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
-import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/dead-bill';
-import type { SessionDeadlines } from '@/lib/dead-bill';
-import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony-eligibility';
-import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/hearing-schedule';
+import { BillBriefing } from './bill-briefing';
+import { CommitteeContacts } from './committee-contacts';
+import { VersionsReportsTab } from './versions-reports-tab';
+import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/bills/dead-bill';
+import type { SessionDeadlines } from '@/lib/bills/dead-bill';
+import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
+import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/testimony/hearing-schedule';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 // Real calendar for deriving why a bill already failed (historical fact);
 // switchable calendar for upcoming-deadline displays (demo-aware).
 import deadlinesJson from '@/data/session-deadlines-2026.json';
-import type { BoardMode } from '@/lib/board-display';
-import { SESSION_DEADLINES } from '@/lib/session-deadlines';
+import type { BoardMode } from '@/lib/bills/board-display';
+import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 
 interface BillDetailsDialogProps {
   billID: string | null;
@@ -54,6 +55,30 @@ interface BillDetailsDialogProps {
   onClose: () => void;
   boardMode?: BoardMode;
 }
+
+interface DialogTab {
+  id: 'overview' | 'versions' | 'updates';
+  label: string;
+  /** Used below the `sm` breakpoint, where three full labels don't fit. */
+  shortLabel?: string;
+  icon: React.ElementType;
+  /** Hidden on desktop — see the note on the `updates` tab below. */
+  mobileOnly?: boolean;
+}
+
+/**
+ * Dialog tabs. `mobileOnly` tabs are filtered out on desktop: Status Updates is
+ * a side-by-side panel there, so it needs no tab of its own.
+ *
+ * Typed as DialogTab[] rather than `as const` so the optional keys are visible
+ * on every element — `as const` narrows each entry to its own literal type, and
+ * reading `.mobileOnly` off the resulting union does not compile.
+ */
+const TABS: readonly DialogTab[] = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'versions', label: 'Versions & Reports', shortLabel: 'Versions', icon: Files },
+  { id: 'updates', label: 'Status Updates', shortLabel: 'Updates', icon: Clock, mobileOnly: true },
+];
 
 const PROGRESS_STAGES = [
   { name: 'Introduced', statuses: ['introduced'] },
@@ -87,6 +112,10 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
   const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState<boolean>(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
+  // 'updates' is a MOBILE-ONLY tab. On desktop Status Updates is a side-by-side
+  // panel, so promoting it to a tab there would hide it behind a click; on mobile
+  // the panels stack and it was stranded below a long Overview scroll.
+  const [activeTab, setActiveTab] = useState<'overview' | 'versions' | 'updates'>('overview');
 
   const bill = useMemo(() => bills.find(b => b.id === billID), [bills, billID]);
 
@@ -111,10 +140,29 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
   }, [isOpen, billID]);
 
   useEffect(() => {
-    if (!isOpen) { setSelectedStatus(''); setBillDetails(null); setDetailsError(null); }
+    if (!isOpen) { setSelectedStatus(''); setBillDetails(null); setDetailsError(null); setActiveTab('overview'); }
   }, [isOpen]);
 
+  // 'updates' only exists on mobile. Crossing to desktop while it is selected
+  // would leave every TabsContent inactive and the body blank, so fall back to
+  // Overview — where Status Updates is visible as the right-hand panel anyway.
+  useEffect(() => {
+    if (!isMobile && activeTab === 'updates') setActiveTab('overview');
+  }, [isMobile, activeTab]);
+
   if (!bill) return null;
+
+  // Panels expect a fully-loaded BillDetails. Once getBillDetails resolves it's
+  // authoritative (its mapper always sets versions/reports to arrays), so use it
+  // directly. Before it loads, fall back to the list `bill` with empty
+  // versions/reports so the pre-load render never hits "versions is not
+  // iterable". We do NOT merge the two — merging would let the mapper's
+  // intentional `undefined` fields clobber real values on the list bill.
+  const billForPanels: BillDetails = billDetails ?? {
+    ...(bill as BillDetails),
+    versions: [],
+    reports: [],
+  };
 
   const currentStatus = billDetails?.current_bill_status || bill.current_bill_status;
   const progressValue = getProgressValue(currentStatus as BillStatus);
@@ -122,6 +170,8 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
   const isInternInAllBillsView = user?.role === 'user' && viewMode === 'all-bills';
   const canEditBill = !isInternInAllBillsView;
   const canSeeTracking = boardMode !== 'active-boards' && activeTenant?.orgRole === 'admin';
+  // Only org admins may change a bill's org status; workers and public users don't see the control.
+  const canChangeStatus = activeTenant?.orgRole === 'admin';
 
   // Derive dead reason and deadline
   const committeeAssign = billDetails?.committee_assignment || bill.committee_assignment;
@@ -211,12 +261,15 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[100vw] sm:max-w-6xl h-[100dvh] sm:h-[95vh] flex flex-col p-0 gap-0 rounded-none sm:rounded-lg [&>button]:p-2 [&>button]:rounded-md sm:[&>button]:p-0 sm:[&>button]:rounded-sm">
-        {/* Header — compact, with progress */}
-        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b shrink-0">
+      <DialogContent className="max-w-[100vw] sm:max-w-7xl h-[100dvh] sm:h-[95vh] flex flex-col p-0 gap-0 rounded-none sm:rounded-lg [&>button]:p-2 [&>button]:rounded-md sm:[&>button]:p-0 sm:[&>button]:rounded-sm">
+        {/* Header — compact, with progress.
+            text-left overrides DialogHeader's `text-center sm:text-left` default,
+            which centered the "RELATING TO ..." title on mobile while the bill
+            number beside it read as left-aligned (it sits in a flex row). */}
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b shrink-0 text-left">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <DialogTitle className="text-lg font-semibold tracking-tight">
                   {bill.bill_number}
                 </DialogTitle>
@@ -231,8 +284,61 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                 {bill.bill_title}
               </DialogDescription>
             </div>
-            {/* Desktop only — on mobile the testimony CTA lives in the sticky
-                bottom action bar where the thumb can reach it */}
+            {/* Source link — in line with the title, desktop only */}
+            {billDetails?.bill_url && (
+              <a
+                href={billDetails.bill_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:inline-flex align-middle pt-4 text-sm shrink-0 items-center gap-1.5 text-blue-600 hover:text-blue-800 hover:underline whitespace-nowrap"
+              >
+                <ExternalLink className="h-4 w-4" />
+                View on Hawaii State Legislature
+              </a>
+            )}
+          </div>
+
+          {/* Tab row — sub-nav styling (light-gray pill, dark-teal active),
+              matching the main header's sub-nav; source link on the right */}
+          <div className="mt-3 flex items-center justify-between gap-3">
+            {/* Three short labels fit at 375px with roughly 45px to spare, but the
+                margin is thin enough to depend on font rendering — so the row
+                scrolls horizontally rather than clipping the last tab.
+                min-w-0 lets it actually shrink inside the flex parent. */}
+            <nav
+              aria-label="Bill views"
+              className="inline-flex h-10 min-w-0 max-w-full items-center overflow-x-auto rounded-md bg-secondary p-1 shadow-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {TABS.filter((t) => !t.mobileOnly || isMobile).map(({ id, label, shortLabel, icon: Icon }) => {
+                const active = activeTab === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActiveTab(id)}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-sm px-2.5 sm:px-3 py-1.5 text-sm font-medium transition-all',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background',
+                      active
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-secondary-foreground hover:bg-white/50',
+                    )}
+                  >
+                    <Icon className="h-4 w-4 sm:mr-2" />
+                    {/* Three tabs don't fit at 375px with full labels, so mobile
+                        gets the short form. The icon carries the rest. The update
+                        COUNT deliberately lives only in the panel heading next to
+                        Refresh, not here — showing it in both puts the same number
+                        twice on one screen. */}
+                    <span className="ml-1.5 sm:ml-0 sm:hidden">{shortLabel ?? label}</span>
+                    <span className="hidden sm:inline">{label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+            {/* Write Testimony CTA — in line with the tabs, desktop only.
+                On mobile it lives in the sticky bottom action bar. */}
             {testimonyEligibility.allowed ? (
               <div className="hidden sm:flex shrink-0 items-center gap-2">
                 {testimonyUrgent && testimonyCountdown && (
@@ -288,25 +394,6 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
               </TooltipProvider>
             )}
           </div>
-
-          {/* Progress bar */}
-          <div className="mt-3">
-            <TooltipProvider delayDuration={100}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Progress value={progressValue} className="w-full h-1.5" />
-                </TooltipTrigger>
-                <TooltipContent><p>{currentStageName} ({Math.round(progressValue)}%)</p></TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            {/* Full stage labels on desktop; single current-stage label on mobile */}
-            <div className="hidden sm:flex justify-between text-[10px] text-muted-foreground mt-1">
-              {PROGRESS_STAGES.map(s => <span key={s.name}>{s.name}</span>)}
-            </div>
-            <div className="sm:hidden text-[10px] text-muted-foreground mt-1">
-              {currentStageName}
-            </div>
-          </div>
         </DialogHeader>
 
         {/* Body — split layout */}
@@ -334,39 +421,43 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
             const leftPanel = (
             <div className={cn("flex flex-col min-h-0", isMobile ? "h-full" : "w-[55%] border-r")}>
               <ScrollArea className="flex-1">
-                <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
+                <div className="p-4 sm:p-5 space-y-4 sm:space-y-5">
 
-                  {/* Dead / Deadline alert */}
+                  {/* AI-optional briefing — derived facts render with no AI call */}
+                  <BillBriefing
+                    bill={billForPanels}
+                    today={today}
+                    dead={bill.dead}
+                    deadReason={deadReason}
+                    progressValue={progressValue}
+                    progressStages={PROGRESS_STAGES.map(s => s.name)}
+                    currentStageName={currentStageName}
+                    onNextStep={(action) => {
+                      if (action === 'diff' || action === 'reports') setActiveTab('versions');
+                      else if (action === 'testimony') { onClose(); router.push(`/bills/${bill.id}/testimony`); }
+                    }}
+                  />
+
+                  {/* Deadline alert (dead state is shown in the briefing's
+                      "Bill failed" cell). Admins get a compact dead/alive toggle. */}
                   {bill.dead ? (
-                    <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-sm text-red-700">Bill Failed</span>
-                          </div>
-                          {deadReason && (
-                            <p className="text-xs text-red-600">{deadReason}</p>
-                          )}
-                        </div>
-                        {canSeeTracking && (
-                          <Switch
-                            checked={bill.dead}
-                            onCheckedChange={async (checked) => {
-                              try {
-                                await updateBillDeadFlag(bill.id, checked);
-                                updateBill(bill.id, { dead: checked });
-                                toast({
-                                  title: checked ? 'Marked Failed' : 'Marked Active',
-                                  description: `${bill.bill_number} updated.`,
-                                });
-                              } catch {
-                                toast({ title: 'Error', description: 'Failed to update.', variant: 'destructive' });
-                              }
-                            }}
-                          />
-                        )}
+                    canSeeTracking ? (
+                      <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50/60 px-4 py-2.5">
+                        <span className="text-xs font-medium text-red-700">Marked failed</span>
+                        <Switch
+                          checked={bill.dead}
+                          onCheckedChange={async (checked) => {
+                            try {
+                              await updateBillDeadFlag(bill.id, checked);
+                              updateBill(bill.id, { dead: checked });
+                              toast({ title: checked ? 'Marked Failed' : 'Marked Active', description: `${bill.bill_number} updated.` });
+                            } catch {
+                              toast({ title: 'Error', description: 'Failed to update.', variant: 'destructive' });
+                            }
+                          }}
+                        />
                       </div>
-                    </div>
+                    ) : null
                   ) : nextDeadline ? (
                     <div className={cn(
                       "rounded-lg border p-4",
@@ -406,38 +497,27 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                     </div>
                   ) : null}
 
-                  {/* Bill details grid */}
+                  {/* Bill details */}
                   <div className="space-y-4">
                     <div>
                       <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Description</h3>
                       <p className="text-sm leading-relaxed">{billDetails?.description || bill.description}</p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Committees</h3>
-                        <p className="text-sm">{billDetails?.committee_assignment || bill.committee_assignment || 'Not Assigned'}</p>
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Introducers</h3>
-                        <p className="text-sm">{billDetails?.introducer || 'N/A'}</p>
-                      </div>
+                    <div>
+                      <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Introducers</h3>
+                      <p className="text-sm">{billDetails?.introducer || 'N/A'}</p>
                     </div>
-
-                    {billDetails?.bill_url && (
-                      <a
-                        href={billDetails.bill_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        View on Hawaii State Legislature
-                      </a>
-                    )}
                   </div>
 
-                  {/* Tags */}
+                  {/* Committees (the directory shows codes + full names, so the
+                      old raw "committee_assignment" details field is dropped) */}
+                  <div>
+                    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Committees</h3>
+                    <CommitteeContacts bill={billForPanels} />
+                  </div>
+
+                  {/* Tags — below committees */}
                   <div>
                     <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Tags</h3>
                     <TagSelector billId={bill.id} />
@@ -463,9 +543,9 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                 </div>
               </ScrollArea>
 
-              {/* Status change — pinned to bottom of left panel; org members only
-                  (org statuses are tenant-scoped, so public users have nothing to set) */}
-              {activeTenant && (
+              {/* Status change — pinned to bottom of left panel; org ADMINS only
+                  (org statuses are tenant-scoped; workers and public users don't set them) */}
+              {canChangeStatus && (
                 <div className="border-t p-4 shrink-0 bg-muted/30">
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Change Status</h3>
@@ -486,15 +566,14 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                     <Button onClick={handleSave} disabled={!selectedStatus || !canEditBill} size="sm" className="px-6 h-9">
                       Save
                     </Button>
-                    <AIUpdateSingleButton bill={bill} />
                   </div>
                 </div>
               )}
             </div>
             );
 
-            const rightPanel = (
-            <div className={cn("flex flex-col bg-muted/20 min-h-0", isMobile ? "h-full" : "w-[45%]")}>
+            const activityPanel = (
+            <div className="flex flex-col min-h-0 h-full">
               <div className="px-4 sm:px-5 pt-4 sm:pt-5 pb-3 border-b shrink-0 flex items-center justify-between">
                 <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Status Updates
@@ -553,21 +632,22 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
             if (isMobile) {
               return (
                 <>
-                  <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-                    <TabsList className="mx-4 mt-3 shrink-0 grid grid-cols-2">
-                      <TabsTrigger value="details">Details</TabsTrigger>
-                      <TabsTrigger value="activity">
-                        Activity
-                        {billDetails?.updates && billDetails.updates.length > 0 && (
-                          <span className="ml-1 text-muted-foreground/70">({billDetails.updates.length})</span>
-                        )}
-                      </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="details" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
+                  <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex-1 flex flex-col min-h-0">
+                    {/* Tab switcher lives in the dialog header */}
+                    {/* Status Updates is its own tab on mobile, so Overview no
+                        longer stacks it below a long scroll. leftPanel is h-full
+                        with its own ScrollArea and a pinned Change Status footer,
+                        so this holds it to the available height (flex + min-h-0)
+                        rather than letting it grow inside an outer overflow-auto —
+                        which would nest two scrollers and unpin the footer. */}
+                    <TabsContent value="overview" className="flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden">
                       {leftPanel}
                     </TabsContent>
-                    <TabsContent value="activity" className="flex-1 min-h-0 mt-2 data-[state=inactive]:hidden">
-                      {rightPanel}
+                    <TabsContent value="versions" className="flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden">
+                      <VersionsReportsTab billId={billID ?? ""} versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
+                    </TabsContent>
+                    <TabsContent value="updates" className="flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden">
+                      {activityPanel}
                     </TabsContent>
                   </Tabs>
 
@@ -601,10 +681,20 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
             }
 
             return (
-              <div className="flex-1 flex min-h-0">
-                {leftPanel}
-                {rightPanel}
-              </div>
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex-1 flex flex-col min-h-0">
+                {/* Tab switcher lives in the dialog header */}
+                <TabsContent value="overview" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
+                  <div className="flex h-full min-h-0">
+                    {leftPanel}
+                    <div className="flex flex-col bg-muted/20 min-h-0 w-[45%]">
+                      {activityPanel}
+                    </div>
+                  </div>
+                </TabsContent>
+                <TabsContent value="versions" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
+                  <VersionsReportsTab billId={billID ?? ""} versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
+                </TabsContent>
+              </Tabs>
             );
           })()
         )}

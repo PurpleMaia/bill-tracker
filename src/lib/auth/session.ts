@@ -1,9 +1,9 @@
 'use server';
 
 import bcrypt from 'bcryptjs';
-import { db } from '../db/kysely/client';
+import { db } from '../../db/kysely/client';
 import { createHash, randomUUID } from 'crypto';
-import { Errors } from './errors';
+import { Errors } from '../core/errors';
 import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { User } from '@/types/user';

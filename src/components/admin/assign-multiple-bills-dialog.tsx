@@ -10,7 +10,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Skeleton } from '@/components/ui/skeleton';
 import { Check, X } from 'lucide-react';
 import { Bill } from '@/types/legislation';
-import { formatBillStatusName } from '@/lib/utils';
+import { formatBillStatusName } from '@/lib/core/utils';
 import { assignMultipleBillsToUsers } from '@/app/actions/admin';
 
 interface User {

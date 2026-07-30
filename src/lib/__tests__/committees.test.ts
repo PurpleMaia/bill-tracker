@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { COMMITTEE_NAMES, committeeFullName } from '../committees';
+import { COMMITTEE_NAMES, committeeFullName, parseCommitteeCodes } from '../testimony/committees';
 
 describe('committeeFullName', () => {
   it('translates known House and Senate codes', () => {
@@ -28,5 +28,18 @@ describe('committeeFullName', () => {
     for (const [code, name] of Object.entries(COMMITTEE_NAMES)) {
       expect(name.length, `empty name for ${code}`).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('parseCommitteeCodes', () => {
+  it('splits comma- and slash-separated codes, trimmed and de-duped', () => {
+    expect(parseCommitteeCodes('AGR, EDN/FIN, AGR')).toEqual(['AGR', 'EDN', 'FIN']);
+  });
+  it('upper-cases and trims', () => {
+    expect(parseCommitteeCodes(' fin , agr ')).toEqual(['FIN', 'AGR']);
+  });
+  it('returns [] for null or empty', () => {
+    expect(parseCommitteeCodes(null)).toEqual([]);
+    expect(parseCommitteeCodes('   ')).toEqual([]);
   });
 });

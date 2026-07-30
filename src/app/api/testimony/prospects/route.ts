@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth-guards';
+import { requireSession } from '@/lib/auth/auth-guards';
 import { listTestimonyProspects } from '@/db/queries/testimony';
 
 export async function GET(request: NextRequest) {

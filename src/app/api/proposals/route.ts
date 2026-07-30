@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSession } from '@/lib/auth';
-import { getSessionCookie } from '@/lib/cookies';
+import { validateSession } from '@/lib/auth/session';
+import { getSessionCookie } from '@/lib/auth/cookies';
 import { validateMembership } from '@/db/queries/tenants';
 import { updateBillStatus } from '@/db/queries/bills-write';
 import {
@@ -14,7 +14,7 @@ import {
   findProposalById,
   deleteProposalById,
 } from '@/db/queries/proposals';
-import { proposalSchema, uuidSchema } from '@/lib/validators';
+import { proposalSchema, uuidSchema } from '@/lib/auth/validators';
 
 // GET - Load proposals (scoped by tenant)
 export async function GET(request: NextRequest) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSession, requireMembership } from '@/lib/auth-guards';
+import { requireSession, requireMembership } from '@/lib/auth/auth-guards';
 import { listPublicTenants, listFollowedTenants, getMyOrgStats } from '@/db/queries/tenants';
 
 export async function GET(request: NextRequest) {

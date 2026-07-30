@@ -21,10 +21,10 @@
 import type { NextRequest } from 'next/server';
 import type { User } from '@/types/user';
 import type { OrgRole } from '@/db/types';
-import { auth, validateSession } from '@/lib/auth';
-import { getSessionCookie } from '@/lib/cookies';
+import { auth, validateSession } from '@/lib/auth/session';
+import { getSessionCookie } from '@/lib/auth/cookies';
 import { validateMembership } from '@/db/queries/tenants';
-import { Errors } from '@/lib/errors';
+import { Errors } from '@/lib/core/errors';
 
 export interface AuthContext {
   user: User;

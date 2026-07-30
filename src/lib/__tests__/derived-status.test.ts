@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deriveBillStatus } from '../derived-status';
+import { deriveBillStatus } from '../bills/derived-status';
 import type { BillStatus } from '@/db/types';
 
 describe('deriveBillStatus', () => {

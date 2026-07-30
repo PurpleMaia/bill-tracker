@@ -1,4 +1,4 @@
-import type { KANBAN_COLUMNS } from '@/lib/kanban-columns';
+import type { KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
 import { Timestamp } from '../db/types';
 
 // Extract column IDs as possible statuses
@@ -14,13 +14,37 @@ export interface Introducer {
 }
 
 /**
- * Represents a specific draft version of a bill.
+ * A specific draft version of a bill (e.g. HB139, HB139_HD1, HB139_SD1).
+ * Backed by the bill_versions table.
  */
-export interface BillDraft {
-  version: string; // e.g., "HD1", "SD2", "Final"
-  htmlUrl: string;
-  pdfUrl: string;
-  date: Date; // Date this draft was published
+export interface BillVersion {
+  id: string;
+  label: string;
+  htmlLink: string | null;
+  pdfLink: string | null;
+  originalText: string | null;
+  aiSummary: string | null;
+  createdAt: string | null;
+  /** When the stored AI summary was generated; null if never summarized. */
+  summaryGeneratedAt: string | null;
+}
+
+/**
+ * A committee report on a bill (e.g. HSCR65, SSCR1197).
+ * Backed by the committee_reports table. The label embeds the version it
+ * belongs to, e.g. "HB139_HD1_HSCR65" belongs to the "HB139_HD1" version.
+ */
+export interface CommitteeReport {
+  id: string;
+  label: string;
+  reportCode: string | null;
+  htmlLink: string | null;
+  pdfLink: string | null;
+  originalText: string | null;
+  aiSummary: string | null;
+  createdAt: string | null;
+  /** When the stored AI summary was generated; null if never summarized. */
+  summaryGeneratedAt: string | null;
 }
 
 /**
@@ -73,6 +97,8 @@ export interface BillDetails extends Bill {
   updated_at: Date | null;
 
   updates: StatusUpdate[];
+  versions: BillVersion[];
+  reports: CommitteeReport[];
 }
 
 export interface BillTracker {
@@ -119,4 +145,20 @@ export interface Tag {
   tenant_id: string;
   created_at?: Date | string;
   updated_at?: Date | string;
+}
+
+/**
+ * Params for a version-to-version diff request. Declared here rather than in
+ * actions/bills.ts because a 'use server' file may only export async functions.
+ */
+export interface CompareVersionsParams {
+  billId: string;
+  olderId: string;
+  newerId: string;
+}
+
+/** A generated AI summary plus the model that produced it. */
+export interface SummaryResult {
+  summary: string;
+  model: string;
 }

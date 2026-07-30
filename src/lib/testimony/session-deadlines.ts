@@ -1,4 +1,4 @@
-import type { SessionDeadlines } from '@/lib/dead-bill';
+import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import realDeadlines from '@/data/session-deadlines-2026.json';
 import demoDeadlines from '@/data/session-deadlines-demo.json';
 

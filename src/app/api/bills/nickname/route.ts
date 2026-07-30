@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth-guards';
+import { requireSession } from '@/lib/auth/auth-guards';
 import { db } from '../../../../db/kysely/client';
 import crypto from 'crypto';
-import { nicknameSchema } from '@/lib/validators';
+import { nicknameSchema } from '@/lib/auth/validators';
 
 export async function POST(request: NextRequest) {
   try {

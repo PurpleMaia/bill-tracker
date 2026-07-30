@@ -1,5 +1,5 @@
 import { BillStatus } from '@/db/types';
-import { COLUMN_INDEX } from '@/lib/kanban-columns';
+import { COLUMN_INDEX } from '@/lib/bills/kanban-columns';
 
 // --- Types ---
 

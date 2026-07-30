@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Bill, BillStatus, TempBill } from '@/types/legislation';
-import { KANBAN_COLUMNS, COLUMN_TITLES, SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED } from '@/lib/kanban-columns';
+import { KANBAN_COLUMNS, COLUMN_TITLES, SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED } from '@/lib/bills/kanban-columns';
 import { ScrollBar } from '@/components/ui/scroll-area';
 import * as ScrollAreaPrimitive from '@radix-ui/react-scroll-area';
-import { searchBillsLocal } from '@/lib/bill-search';
-import { filterBills } from '@/lib/bill-filters';
+import { searchBillsLocal } from '@/lib/bills/bill-search';
+import { filterBills } from '@/lib/bills/bill-filters';
 import { data as dataClient } from '@/lib/data-client';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
@@ -24,7 +24,7 @@ interface KanbanBoardProps {
   readOnly: boolean;
   onUnadopt?: (billId: string) => void;
   showUnadoptButton?: boolean;
-  boardMode?: import('@/lib/board-display').BoardMode;
+  boardMode?: import('@/lib/bills/board-display').BoardMode;
   orgTestimonyBillIds?: Set<string>;
   trackedBillIds?: Set<string>;
   onTrackForSelf?: (bill: Bill) => void;

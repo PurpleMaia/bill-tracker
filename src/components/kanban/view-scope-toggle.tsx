@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Building2, Loader2, User } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/core/utils';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useBills } from '@/hooks/contexts/bills-context';
 

@@ -1,4 +1,4 @@
-import { KANBAN_COLUMNS, COLUMN_INDEX } from '@/lib/kanban-columns';
+import { KANBAN_COLUMNS, COLUMN_INDEX } from '@/lib/bills/kanban-columns';
 import type { BillStatus } from '@/db/types';
 
 const EXTENDED_INDEX: Record<string, number> = {

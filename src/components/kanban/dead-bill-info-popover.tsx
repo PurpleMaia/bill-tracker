@@ -8,9 +8,9 @@ import {
 import {
   isBillDead,
   parseCommittees,
-} from '@/lib/dead-bill';
-import type { SessionDeadlines, StatusUpdate, DeadBillResult } from '@/lib/dead-bill';
-import { todayHawaii } from '@/lib/utils';
+} from '@/lib/bills/dead-bill';
+import type { SessionDeadlines, StatusUpdate, DeadBillResult } from '@/lib/bills/dead-bill';
+import { todayHawaii } from '@/lib/core/utils';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import deadlinesJson from '@/data/session-deadlines-2026.json';
 

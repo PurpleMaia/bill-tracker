@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { X, Settings, Filter, Check, Archive } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/core/utils';
 import type { Tag } from '@/types/legislation';
 import { TagManagementDialog } from './tag-management-dialog';
 import { useAuth } from '@/hooks/contexts/auth-context';

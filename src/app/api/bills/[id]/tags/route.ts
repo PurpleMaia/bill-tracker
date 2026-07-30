@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '../../../../../db/kysely/client';
-import { validateSession } from '@/lib/auth';
-import { getSessionCookie } from '@/lib/cookies';
-import { tagsSchema } from '@/lib/validators';
+import { validateSession } from '@/lib/auth/session';
+import { getSessionCookie } from '@/lib/auth/cookies';
+import { tagsSchema } from '@/lib/auth/validators';
 import { validateMembership } from '@/db/queries/tenants';
 
 // GET - Get tags for a specific bill (requires tenant context)

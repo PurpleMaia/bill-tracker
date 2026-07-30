@@ -1,6 +1,6 @@
 import { db } from '@/db/kysely/client';
 import type { BillStatus } from '@/db/types';
-import { deriveBillStatus } from '@/lib/derived-status';
+import { deriveBillStatus } from '@/lib/bills/derived-status';
 
 /**
  * Side-effect function: recomputes the derived status for a bill and writes it

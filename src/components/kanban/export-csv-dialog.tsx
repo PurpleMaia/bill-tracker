@@ -18,8 +18,8 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useToast } from '@/hooks/use-toast';
-import { filterBills, hasActiveFilters } from '@/lib/bill-filters';
-import { billsToCsv, billsToRows, type ExportFormat } from '@/lib/bills-csv';
+import { filterBills, hasActiveFilters } from '@/lib/bills/bill-filters';
+import { billsToCsv, billsToRows, type ExportFormat } from '@/lib/bills/bills-csv';
 import type { Bill } from '@/types/legislation';
 
 interface ExportCsvDialogProps {

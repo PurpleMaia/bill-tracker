@@ -12,6 +12,7 @@ import { accessClient } from './access.client';
 import { preferencesClient } from './preferences.client';
 import { testimonyClient } from './testimony.client';
 import { boardsClient } from './boards.client';
+import { summariesClient } from './summaries.client';
 
 export const data = {
   bills: billsClient,
@@ -20,6 +21,7 @@ export const data = {
   preferences: preferencesClient,
   testimony: testimonyClient,
   boards: boardsClient,
+  summaries: summariesClient,
 };
 
 export type { Transport } from './transport';

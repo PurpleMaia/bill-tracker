@@ -58,3 +58,17 @@ export function committeeFullName(code: string): string {
     })
     .join(' / ');
 }
+
+/**
+ * Split a committee_assignment string ("AGR, EDN/FIN") into unique, upper-cased
+ * committee codes. Splits on commas and slashes, trims, and de-dupes.
+ * Empty/null-safe.
+ */
+export function parseCommitteeCodes(assignment: string | null): string[] {
+  if (!assignment) return [];
+  const codes = assignment
+    .split(/[,/]/)
+    .map((c) => c.trim().toUpperCase())
+    .filter((c) => c.length > 0);
+  return Array.from(new Set(codes));
+}

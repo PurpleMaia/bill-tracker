@@ -1,6 +1,6 @@
 import { db } from '@/db/kysely/client';
-import { isBillDead } from '@/lib/dead-bill';
-import type { SessionDeadlines, StatusUpdate } from '@/lib/dead-bill';
+import { isBillDead } from '@/lib/bills/dead-bill';
+import type { SessionDeadlines, StatusUpdate } from '@/lib/bills/dead-bill';
 import type { BillStatus } from '@/db/types';
 import deadlinesJson from '@/data/session-deadlines-2026.json';
 

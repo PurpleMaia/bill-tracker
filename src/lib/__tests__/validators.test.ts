@@ -10,7 +10,7 @@ import {
   newTagSchema,
   usersSchema,
   userIdSchema,
-} from '../validators';
+} from '../auth/validators';
 
 describe('uuidSchema', () => {
   it('accepts a valid UUID', () => {

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSession } from '@/lib/auth';
-import { getSessionCookie } from '@/lib/cookies';
+import { validateSession } from '@/lib/auth/session';
+import { getSessionCookie } from '@/lib/auth/cookies';
 import { validateMembership } from '@/db/queries/tenants';
 import { db } from '@/db/kysely/client';
-import { uuidSchema } from '@/lib/validators';
+import { uuidSchema } from '@/lib/auth/validators';
 import crypto from 'crypto';
 
 // GET /api/supervisors

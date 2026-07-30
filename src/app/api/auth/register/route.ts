@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { registerUser, createSession } from '@/lib/auth';
+import { registerUser, createSession } from '@/lib/auth/session';
 import { db } from '@/db/kysely/client';
-import { registerSchema } from '@/lib/validators';
-import { setSessionCookie } from '@/lib/cookies';
+import { registerSchema } from '@/lib/auth/validators';
+import { setSessionCookie } from '@/lib/auth/cookies';
 import { createTenant, addMember, getUserMemberships } from '@/db/queries/tenants';
-import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
-import { ApiError } from '@/lib/errors';
+import { limitFixedWindow, retryAfterMs } from '@/lib/core/ratelimit-memory';
+import { ApiError } from '@/lib/core/errors';
 
 const REGISTER_RATE_LIMIT = { limit: 5, windowMs: 15 * 60_000 };
 

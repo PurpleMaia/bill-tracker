@@ -3,7 +3,7 @@
 import { useCallback, Dispatch, SetStateAction } from 'react';
 import type { Bill, BillStatus, TempBill } from '@/types/legislation';
 import { toast } from '@/hooks/use-toast';
-import { canCommitStatus } from '@/lib/permissions';
+import { canCommitStatus } from '@/lib/auth/permissions';
 import { data } from '@/lib/data-client';
 
 interface ActiveTenant {

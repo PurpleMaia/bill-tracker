@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '../../../../db/kysely/client';
 import { sendVerificationEmail } from '@/services/email';
-import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
+import { limitFixedWindow, retryAfterMs } from '@/lib/core/ratelimit-memory';
 
 const RESEND_RATE_LIMIT = { limit: 3, windowMs: 15 * 60_000 };
 

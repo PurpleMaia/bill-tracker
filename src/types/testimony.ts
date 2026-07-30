@@ -1,6 +1,11 @@
-import type { TestimonyPosition } from '@/db/types';
-
-export type { TestimonyPosition };
+/**
+ * A testimony position. Mirrors the `testimonies.position` CHECK constraint
+ * (`support | oppose | comments`). Defined here — not imported from generated
+ * `@/db/types` — because in some environments the column is a text+CHECK
+ * column rather than a Postgres enum, so kysely-codegen types it as plain
+ * `string` and emits no enum. This is the app's canonical source for the type.
+ */
+export type TestimonyPosition = 'support' | 'oppose' | 'comments';
 
 /** A user's saved testimony draft for one bill (already unwrapped for the client). */
 export interface TestimonyDraft {

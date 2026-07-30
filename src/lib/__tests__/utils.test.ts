@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toDate, formatBillStatusName, todayHawaii, formatBillHeadline, formatRelativeDate } from '../utils';
+import { toDate, formatBillStatusName, todayHawaii, formatBillHeadline, formatRelativeDate } from '../core/utils';
 
 describe('toDate', () => {
   it('returns null for null/undefined', () => {

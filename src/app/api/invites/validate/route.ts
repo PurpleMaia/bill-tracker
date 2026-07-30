@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/kysely/client';
-import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
+import { limitFixedWindow, retryAfterMs } from '@/lib/core/ratelimit-memory';
 
 const VALIDATE_RATE_LIMIT = { limit: 60, windowMs: 15 * 60_000 };
 

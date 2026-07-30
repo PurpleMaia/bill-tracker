@@ -4,7 +4,7 @@ import type { BillDetails } from '@/types/legislation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, FileText } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/core/utils';
 
 interface TestimonyReferencePanelProps {
   bill: BillDetails;

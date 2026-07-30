@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth-guards';
+import { requireSession } from '@/lib/auth/auth-guards';
 import { getPublicTenant } from '@/db/queries/tenants';
 import { getOrgTestimonyBillIds } from '@/db/queries/testimony';
 import { getAllTrackedBills } from '@/db/queries/bills-read';
