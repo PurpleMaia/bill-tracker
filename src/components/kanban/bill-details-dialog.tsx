@@ -301,9 +301,9 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
           {/* Tab row — sub-nav styling (light-gray pill, dark-teal active),
               matching the main header's sub-nav; source link on the right */}
           <div className="mt-3 flex items-center justify-between gap-3">
-            {/* Three tabs fit at 375px with ~25px to spare, which is not enough
-                headroom to trust across fonts and a 3-digit update count — so the
-                row scrolls horizontally instead of clipping the last tab.
+            {/* Three short labels fit at 375px with roughly 45px to spare, but the
+                margin is thin enough to depend on font rendering — so the row
+                scrolls horizontally rather than clipping the last tab.
                 min-w-0 lets it actually shrink inside the flex parent. */}
             <nav
               aria-label="Bill views"
@@ -311,7 +311,6 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
             >
               {TABS.filter((t) => !t.mobileOnly || isMobile).map(({ id, label, shortLabel, icon: Icon }) => {
                 const active = activeTab === id;
-                const count = id === 'updates' ? billDetails?.updates?.length : undefined;
                 return (
                   <button
                     key={id}
@@ -328,14 +327,12 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                   >
                     <Icon className="h-4 w-4 sm:mr-2" />
                     {/* Three tabs don't fit at 375px with full labels, so mobile
-                        gets the short form. The icon carries the rest. */}
+                        gets the short form. The icon carries the rest. The update
+                        COUNT deliberately lives only in the panel heading next to
+                        Refresh, not here — showing it in both puts the same number
+                        twice on one screen. */}
                     <span className="ml-1.5 sm:ml-0 sm:hidden">{shortLabel ?? label}</span>
                     <span className="hidden sm:inline">{label}</span>
-                    {count !== undefined && count > 0 && (
-                      <span className={cn('ml-1 tabular-nums', active ? 'text-white/70' : 'text-muted-foreground/70')}>
-                        ({count})
-                      </span>
-                    )}
                   </button>
                 );
               })}
@@ -577,22 +574,13 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
 
             const activityPanel = (
             <div className="flex flex-col min-h-0 h-full">
-              {/* On mobile the "Updates (n)" tab is already this panel's heading,
-                  so repeating it here would be a second title on the same screen.
-                  The Refresh control stays either way — it is the only way to pull
-                  fresh updates. */}
-              <div className={cn(
-                'px-4 sm:px-5 pt-4 sm:pt-5 pb-3 border-b shrink-0 flex items-center',
-                isMobile ? 'justify-end' : 'justify-between',
-              )}>
-                {!isMobile && (
-                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Status Updates
-                    {billDetails?.updates && (
-                      <span className="ml-1.5 text-muted-foreground/60">({billDetails.updates.length})</span>
-                    )}
-                  </h3>
-                )}
+              <div className="px-4 sm:px-5 pt-4 sm:pt-5 pb-3 border-b shrink-0 flex items-center justify-between">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Status Updates
+                  {billDetails?.updates && (
+                    <span className="ml-1.5 text-muted-foreground/60">({billDetails.updates.length})</span>
+                  )}
+                </h3>
                 {user && (
                   <RefreshStatusesButton bill={bill} onRefresh={handleStatusUpdateRefresh} />
                 )}
