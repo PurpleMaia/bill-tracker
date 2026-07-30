@@ -21,7 +21,7 @@ function LinkButtons({ link, type }: { link: string | null; type: 'version' | 'r
   );
 }
 
-function ReportRow({ report }: { report: CommitteeReport }) {
+function ReportRow({ billId, report }: { billId: string; report: CommitteeReport }) {
   return (
     <div className="rounded-md border border-border/60 bg-card/60 p-2.5">
       <div className="flex items-center gap-2">
@@ -34,6 +34,7 @@ function ReportRow({ report }: { report: CommitteeReport }) {
       <div className="mt-1.5">
         <SummarySection
           target="report"
+          billId={billId}
           documentId={report.id}
           existingSummary={report.aiSummary}
           noun="committee report"
@@ -44,12 +45,14 @@ function ReportRow({ report }: { report: CommitteeReport }) {
 }
 
 export function BillVersionsPanel({
+  billId,
   versions,
   reports,
   selectedOlderId,
   selectedNewerId,
   onCompare,
 }: {
+  billId: string;
   versions: BillVersion[];
   reports: CommitteeReport[];
   selectedOlderId: string;
@@ -103,6 +106,7 @@ export function BillVersionsPanel({
                   <SummarySection
                     key={latestVersion.id}
                     target="version"
+                    billId={billId}
                     documentId={latestVersion.id}
                     existingSummary={latestVersion.aiSummary}
                     noun="version"
@@ -123,6 +127,7 @@ export function BillVersionsPanel({
                   <SummarySection
                     key={latestReport.id}
                     target="report"
+                    billId={billId}
                     documentId={latestReport.id}
                     existingSummary={latestReport.aiSummary}
                     noun="committee report"
@@ -159,7 +164,7 @@ export function BillVersionsPanel({
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">{group.version.label}</span>
                         {isBase && <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">introduced</Badge>}
-                        {isLatest && <Badge variant="default" className="h-4 px-1.5 text-[10px]">current</Badge>}                        
+                        {isLatest && <Badge variant="default" className="h-4 px-1.5 text-[10px]">current</Badge>}
                       </div>
                       <div className="flex items-center gap-1.5">
                         {/* The base version has no predecessor, so nothing to compare against. */}
@@ -187,7 +192,7 @@ export function BillVersionsPanel({
                     {group.reports.length > 0 && (
                       <div className="mt-2 space-y-1.5">
                         {group.reports.map((report) => (
-                          <ReportRow key={report.id} report={report} />
+                          <ReportRow key={report.id} billId={billId} report={report} />
                         ))}
                       </div>
                     )}
@@ -201,7 +206,7 @@ export function BillVersionsPanel({
                 <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Other reports</h4>
                 <div className="space-y-1.5">
                   {orphanReports.map((report) => (
-                    <ReportRow key={report.id} report={report} />
+                    <ReportRow key={report.id} billId={billId} report={report} />
                   ))}
                 </div>
               </div>

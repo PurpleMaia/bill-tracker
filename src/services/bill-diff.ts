@@ -15,12 +15,31 @@
 // metadata) where compareBillContent finds 9 real section changes.
 import { compareBillContent, parseBillHtml } from 'hawaii-bill-diff';
 import { fetchBillHtml, BillHtmlError } from './bill-html';
+import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
 import {
   normalizeComparison,
   errorComparison,
   type VersionComparison,
   type RawSectionChange,
 } from '@/lib/version-diff';
+
+/**
+ * Cost ceiling on the expensive path, keyed by the version PAIR rather than by
+ * caller. Two fetches of ~2 MB plus two full parses is the most expensive thing
+ * this app does per request, and the work is identical for every caller asking
+ * for the same pair — so limiting the pair caps total spend regardless of who
+ * asks or how many of them there are.
+ *
+ * This sits in the service, not the route, deliberately: the data-client can
+ * flip between the action and fetch arms, and a guard in only one arm would
+ * silently disappear when the flag moved. Everything expensive goes through
+ * here.
+ *
+ * A cache hit still counts against the window. That is intentional — the limit
+ * exists to bound work, and a hit is cheap enough that a caller inside the
+ * window will not notice, while a cold pair is exactly what needs bounding.
+ */
+const DIFF_RATE_LIMIT = { limit: 12, windowMs: 60_000 };
 
 /**
  * Runs the package's parsers with console output suppressed. compareBillContent
@@ -78,6 +97,7 @@ export function diffParsedHtml(
  *  - 'no-html'      the version row has no html_link (never retryable)
  *  - 'fetch-failed' network error, timeout, or non-2xx (retryable)
  *  - 'parse-failed' fetched, but the package yielded nothing usable
+ *  - 'rate-limited' too many comparisons of this pair (retryable, after a wait)
  */
 export async function compareVersionHtml(input: {
   olderLabel: string;
@@ -89,6 +109,23 @@ export async function compareVersionHtml(input: {
 
   if (!olderUrl || !newerUrl) {
     return errorComparison(olderLabel, newerLabel, 'no-html');
+  }
+
+  // Keyed on the URL pair: that is what identifies the work, and it is stable
+  // across both transport arms. Checked AFTER the no-html guard so a version
+  // that can never be compared does not consume anyone's budget.
+  const rl = limitFixedWindow(
+    `diff:${olderUrl}:${newerUrl}`,
+    DIFF_RATE_LIMIT.limit,
+    DIFF_RATE_LIMIT.windowMs,
+  );
+  if (!rl.ok) {
+    console.warn('[diff] comparison rate limited', {
+      olderLabel,
+      newerLabel,
+      retryAfterMs: retryAfterMs(rl.resetAt),
+    });
+    return errorComparison(olderLabel, newerLabel, 'rate-limited');
   }
 
   let olderHtml: string;

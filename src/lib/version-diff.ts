@@ -10,7 +10,7 @@
 
 export type ChangeKind = 'added' | 'removed' | 'modified' | 'unchanged';
 
-export type DiffError = 'no-html' | 'fetch-failed' | 'parse-failed';
+export type DiffError = 'no-html' | 'fetch-failed' | 'parse-failed' | 'rate-limited';
 
 /** One run of text within a section, carrying Hawaii's amendment marks. */
 export interface ChangeFragment {

@@ -9,6 +9,8 @@ import { Sparkles, Loader2, Info } from 'lucide-react';
 interface SummarySectionProps {
   /** Which table the document lives in. */
   target: 'version' | 'report';
+  /** The bill this document belongs to; scopes the server-side lookup. */
+  billId: string;
   /** The bill_versions.id or committee_reports.id being summarized. */
   documentId: string;
   /** Existing saved AI summary, if any. Rendered directly when present. */
@@ -37,6 +39,7 @@ type State =
  */
 export function SummarySection({
   target,
+  billId,
   documentId,
   existingSummary,
   noun = 'document',
@@ -69,7 +72,7 @@ export function SummarySection({
   async function summarize() {
     setState({ status: 'loading' });
     try {
-      const result = await data.summaries.summarizeDocument({ target, id: documentId });
+      const result = await data.summaries.summarizeDocument({ target, billId, id: documentId });
       setState({ status: 'done', summary: result.summary, model: result.model });
     } catch (error: any) {
       setState({ status: 'error', message: error?.message || "Couldn't summarize — try again." });

@@ -15,7 +15,14 @@ const ERROR_COPY: Record<NonNullable<VersionComparison['error']>, string> = {
   'no-html': 'This version has no source document to compare.',
   'fetch-failed': "Couldn't reach the source document.",
   'parse-failed': "Couldn't read the source document for these versions.",
+  'rate-limited': 'This comparison has been requested too many times just now. Try again in a minute.',
 };
+
+/** Errors a second attempt could plausibly resolve. */
+const RETRYABLE: ReadonlySet<NonNullable<VersionComparison['error']>> = new Set([
+  'fetch-failed',
+  'rate-limited',
+]);
 
 export function VersionCompare({
   billId,
@@ -138,9 +145,10 @@ export function VersionCompare({
       ) : comparison?.error ? (
         <div className="py-8 text-center">
           <p className="text-sm text-muted-foreground">{ERROR_COPY[comparison.error]}</p>
-          {/* Only a fetch failure can succeed on a second try — a missing
-              html_link never will, so no Retry is offered there. */}
-          {comparison.error === 'fetch-failed' && (
+          {/* Only a transient failure can succeed on a second try — a missing
+              html_link or an unparseable document never will, so no Retry is
+              offered there. */}
+          {RETRYABLE.has(comparison.error) && (
             <Button variant="outline" size="sm" className="mt-2 h-7 text-xs" onClick={() => setAttempt((a) => a + 1)}>
               Retry
             </Button>

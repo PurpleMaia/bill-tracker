@@ -61,6 +61,7 @@ export function VersionsReportsTab({
   const timeline = (
     <div className="flex min-h-0 flex-1 flex-col">
       <BillVersionsPanel
+        billId={billId}
         versions={versions}
         reports={reports}
         selectedOlderId={olderId}

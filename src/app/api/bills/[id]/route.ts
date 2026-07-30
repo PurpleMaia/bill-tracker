@@ -6,6 +6,21 @@ import { updateBillStatus, untrackBill } from '@/db/queries/bills-write';
 import { getBillDetails, getVersionHtmlLinks } from '@/db/queries/bills-read';
 import { updateBillTags } from '@/db/queries/tags';
 import { compareVersionHtml } from '@/services/bill-diff';
+import { limitFixedWindow, retryAfterMs } from '@/lib/ratelimit-memory';
+import { getClientIp } from '@/lib/client-ip';
+
+/**
+ * Per-IP ceiling on the version-diff branch. Bill text is public record, so this
+ * branch stays readable without a session (matching compareVersionsAction, which
+ * uses optionalSession) — but "no login required" must not mean "unmetered".
+ * A cold comparison costs two ~2 MB fetches against data.capitol.hawaii.gov plus
+ * two full document parses, so an unmetered anonymous endpoint would make this
+ * app an amplifier against a state government host.
+ *
+ * This is the per-CALLER limit. compareVersionHtml separately limits per version
+ * PAIR, which bounds total work across all callers and covers the action arm too.
+ */
+const DIFF_IP_RATE_LIMIT = { limit: 20, windowMs: 60_000 };
 
 export async function GET(
   request: NextRequest,
@@ -17,6 +32,21 @@ export async function GET(
 
     // Version-diff branch: /api/bills/[id]?resource=version-diff&olderId=..&newerId=..
     if (url.searchParams.get('resource') === 'version-diff') {
+      const rl = limitFixedWindow(
+        `version-diff:${getClientIp(request)}`,
+        DIFF_IP_RATE_LIMIT.limit,
+        DIFF_IP_RATE_LIMIT.windowMs,
+      );
+      if (!rl.ok) {
+        return NextResponse.json(
+          { error: 'Too many comparison requests. Please try again shortly.' },
+          {
+            status: 429,
+            headers: { 'Retry-After': Math.ceil(retryAfterMs(rl.resetAt) / 1000).toString() },
+          },
+        );
+      }
+
       const olderId = url.searchParams.get('olderId');
       const newerId = url.searchParams.get('newerId');
       if (!olderId || !newerId) {

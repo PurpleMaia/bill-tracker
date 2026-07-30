@@ -5,15 +5,16 @@ import type { SummaryTarget } from '@/db/queries/summaries';
 // Fetch arm for data.summaries.summarizeDocument. Thin transport over the
 // action, which owns the opt-in check — so both arms share one consent path.
 //
-// NOTE: the [id] path segment is intentionally unused. A bill version or
-// committee report is addressed by its own globally-unique primary key, which
-// the body carries as `id`; the action and the query underneath take no bill id
-// to cross-check against. The segment exists only so this route sits alongside
-// the other /api/bills/[id]/* endpoints. Unlike ../summarize-diff, which
-// genuinely needs the bill id to enumerate that bill's versions, nothing here
-// is scoped by it — do not assume it constrains the lookup.
-export async function POST(request: NextRequest) {
+// The [id] path segment is the BILL id, and it is load-bearing: the action scopes
+// the document lookup to it, so a version or report id that belongs to a
+// different bill resolves as not-found instead of being summarized. Do not drop
+// it from the call.
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
+    const { id: billId } = await params;
     const body = await request.json().catch(() => ({}));
     const target = body.target as SummaryTarget;
     const id = body.id as string;
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid request parameters.' }, { status: 400 });
     }
 
-    const result = await summarizeDocumentAction({ target, id });
+    const result = await summarizeDocumentAction({ target, billId, id });
     return NextResponse.json(result);
   } catch (error: any) {
     if (error?.statusCode) {

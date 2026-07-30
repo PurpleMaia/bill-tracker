@@ -7,14 +7,15 @@ import type { SummaryTarget } from '@/db/queries/summaries';
 
 async function summarizeDocumentFetch(input: {
   target: SummaryTarget;
+  billId: string;
   id: string;
 }): Promise<SummaryResult> {
-  // The [id] segment is unused by the document route (the body carries the
-  // target + id), but the path must still resolve — use the document id.
-  const res = await fetch(`/api/bills/${input.id}/summarize`, {
+  // The [id] segment carries the BILL id, which the server uses to scope the
+  // document lookup — the document's own id goes in the body.
+  const res = await fetch(`/api/bills/${input.billId}/summarize`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
+    body: JSON.stringify({ target: input.target, id: input.id }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

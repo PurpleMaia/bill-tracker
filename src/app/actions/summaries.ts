@@ -41,11 +41,17 @@ async function requireAiOptIn(): Promise<void> {
 
 export async function summarizeDocumentAction(input: {
   target: SummaryTarget;
+  billId: string;
   id: string;
 }): Promise<SummaryResult> {
   await requireAiOptIn();
 
-  const source = await getSummarySource(input.target, input.id);
+  // billId scopes the lookup: the document id is client-supplied, and without
+  // this a logged-in opted-in caller could summarize (and persist a summary
+  // against) any version or report in the corpus by guessing ids. A document
+  // that does not belong to this bill is indistinguishable from one that does
+  // not exist, which is the correct response either way.
+  const source = await getSummarySource(input.target, input.billId, input.id);
   if (!source) throw new ApiError('NOT_FOUND', 404, 'Document not found.');
 
   const model = await getSummaryModelName();
@@ -85,7 +91,7 @@ export async function summarizeDocumentAction(input: {
     throw new ApiError('SUMMARY_FAILED', 502, "Couldn't summarize this document. Try again.");
   }
 
-  await saveSummary(input.target, input.id, summary);
+  await saveSummary(input.target, input.billId, input.id, summary);
   return { summary, model };
 }
 

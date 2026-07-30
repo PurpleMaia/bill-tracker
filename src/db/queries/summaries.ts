@@ -30,9 +30,17 @@ export interface SummarySource {
  * Loads everything needed to summarize one document, plus the bill's committee
  * assignments for the prompt's pipeline-position block. Returns null when the
  * row does not exist.
+ *
+ * SCOPED BY bill_id, for the same reason getVersionHtmlLinks is: the document id
+ * arrives from the client, and a bare primary-key lookup would let any caller
+ * summarize — and persist an ai_summary against — any row in the corpus by
+ * guessing ids, including documents for bills they cannot see. Requiring the
+ * document to belong to the bill in the request path means a mismatched pair
+ * reads as "not found" rather than silently succeeding.
  */
 export async function getSummarySource(
   target: SummaryTarget,
+  billId: string,
   id: string,
 ): Promise<SummarySource | null> {
   const row = await db
@@ -46,18 +54,23 @@ export async function getSummarySource(
       'bills.committee_assignment as committees',
     ])
     .where(`${TABLE[target]}.id`, '=', id)
+    .where(`${TABLE[target]}.bill_id`, '=', billId)
     .executeTakeFirst();
 
   if (!row) return null;
 
   // report_code exists only on committee_reports, so it cannot be part of the
   // shared select above. Fetched separately rather than duplicating the whole
-  // query per table.
+  // query per table. Carries the same bill_id predicate as the row above — this
+  // point is only reachable once the scoped lookup succeeded, so it is redundant
+  // today, but an unscoped lookup here would quietly become a hole if this block
+  // were ever hoisted above that check.
   if (target === 'report') {
     const codeRow = await db
       .selectFrom('committee_reports')
       .select('report_code')
       .where('id', '=', id)
+      .where('bill_id', '=', billId)
       .executeTakeFirst();
     return { ...row, reportCode: codeRow?.report_code ?? null };
   }
@@ -65,9 +78,15 @@ export async function getSummarySource(
   return { ...row, reportCode: null };
 }
 
-/** Persists a generated summary with its provenance. */
+/**
+ * Persists a generated summary with its provenance. Scoped by bill_id to match
+ * getSummarySource — the read is the authorization check, so the write must be
+ * constrained identically or it reintroduces the id-guessing hole on the write
+ * side.
+ */
 export async function saveSummary(
   target: SummaryTarget,
+  billId: string,
   id: string,
   summary: string,
 ): Promise<void> {
@@ -79,6 +98,7 @@ export async function saveSummary(
       summary_generated_at: new Date(),
     })
     .where('id', '=', id)
+    .where('bill_id', '=', billId)
     .execute();
 }
 
