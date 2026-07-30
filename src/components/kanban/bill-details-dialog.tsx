@@ -56,6 +56,30 @@ interface BillDetailsDialogProps {
   boardMode?: BoardMode;
 }
 
+interface DialogTab {
+  id: 'overview' | 'versions' | 'updates';
+  label: string;
+  /** Used below the `sm` breakpoint, where three full labels don't fit. */
+  shortLabel?: string;
+  icon: React.ElementType;
+  /** Hidden on desktop — see the note on the `updates` tab below. */
+  mobileOnly?: boolean;
+}
+
+/**
+ * Dialog tabs. `mobileOnly` tabs are filtered out on desktop: Status Updates is
+ * a side-by-side panel there, so it needs no tab of its own.
+ *
+ * Typed as DialogTab[] rather than `as const` so the optional keys are visible
+ * on every element — `as const` narrows each entry to its own literal type, and
+ * reading `.mobileOnly` off the resulting union does not compile.
+ */
+const TABS: readonly DialogTab[] = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'versions', label: 'Versions & Reports', shortLabel: 'Versions', icon: Files },
+  { id: 'updates', label: 'Status Updates', shortLabel: 'Updates', icon: Clock, mobileOnly: true },
+];
+
 const PROGRESS_STAGES = [
   { name: 'Introduced', statuses: ['introduced'] },
   { name: 'Orig. Chamber', statuses: ['scheduled1', 'deferred1', 'waiting2', 'scheduled2', 'deferred2', 'waiting3', 'scheduled3', 'deferred3', 'crossoverWaiting1'] },
@@ -88,7 +112,10 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
   const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState<boolean>(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'versions'>('overview');
+  // 'updates' is a MOBILE-ONLY tab. On desktop Status Updates is a side-by-side
+  // panel, so promoting it to a tab there would hide it behind a click; on mobile
+  // the panels stack and it was stranded below a long Overview scroll.
+  const [activeTab, setActiveTab] = useState<'overview' | 'versions' | 'updates'>('overview');
 
   const bill = useMemo(() => bills.find(b => b.id === billID), [bills, billID]);
 
@@ -113,8 +140,15 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
   }, [isOpen, billID]);
 
   useEffect(() => {
-    if (!isOpen) { setSelectedStatus(''); setBillDetails(null); setDetailsError(null); }
+    if (!isOpen) { setSelectedStatus(''); setBillDetails(null); setDetailsError(null); setActiveTab('overview'); }
   }, [isOpen]);
+
+  // 'updates' only exists on mobile. Crossing to desktop while it is selected
+  // would leave every TabsContent inactive and the body blank, so fall back to
+  // Overview — where Status Updates is visible as the right-hand panel anyway.
+  useEffect(() => {
+    if (!isMobile && activeTab === 'updates') setActiveTab('overview');
+  }, [isMobile, activeTab]);
 
   if (!bill) return null;
 
@@ -228,8 +262,11 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[100vw] sm:max-w-7xl h-[100dvh] sm:h-[95vh] flex flex-col p-0 gap-0 rounded-none sm:rounded-lg [&>button]:p-2 [&>button]:rounded-md sm:[&>button]:p-0 sm:[&>button]:rounded-sm">
-        {/* Header — compact, with progress */}
-        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b shrink-0">
+        {/* Header — compact, with progress.
+            text-left overrides DialogHeader's `text-center sm:text-left` default,
+            which centered the "RELATING TO ..." title on mobile while the bill
+            number beside it read as left-aligned (it sits in a flex row). */}
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b shrink-0 text-left">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -264,15 +301,17 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
           {/* Tab row — sub-nav styling (light-gray pill, dark-teal active),
               matching the main header's sub-nav; source link on the right */}
           <div className="mt-3 flex items-center justify-between gap-3">
+            {/* Three tabs fit at 375px with ~25px to spare, which is not enough
+                headroom to trust across fonts and a 3-digit update count — so the
+                row scrolls horizontally instead of clipping the last tab.
+                min-w-0 lets it actually shrink inside the flex parent. */}
             <nav
               aria-label="Bill views"
-              className="inline-flex h-10 items-center rounded-md bg-secondary p-1 shadow-sm"
+              className="inline-flex h-10 min-w-0 max-w-full items-center overflow-x-auto rounded-md bg-secondary p-1 shadow-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
-              {([
-                { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-                { id: 'versions', label: 'Versions & Reports', icon: Files },
-              ] as const).map(({ id, label, icon: Icon }) => {
+              {TABS.filter((t) => !t.mobileOnly || isMobile).map(({ id, label, shortLabel, icon: Icon }) => {
                 const active = activeTab === id;
+                const count = id === 'updates' ? billDetails?.updates?.length : undefined;
                 return (
                   <button
                     key={id}
@@ -280,15 +319,23 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                     onClick={() => setActiveTab(id)}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
-                      'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all',
+                      'inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-sm px-2.5 sm:px-3 py-1.5 text-sm font-medium transition-all',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background',
                       active
                         ? 'bg-primary text-white shadow-sm'
                         : 'text-secondary-foreground hover:bg-white/50',
                     )}
                   >
-                    <Icon className="h-4 w-4 mr-2" />
-                    {label}
+                    <Icon className="h-4 w-4 sm:mr-2" />
+                    {/* Three tabs don't fit at 375px with full labels, so mobile
+                        gets the short form. The icon carries the rest. */}
+                    <span className="ml-1.5 sm:ml-0 sm:hidden">{shortLabel ?? label}</span>
+                    <span className="hidden sm:inline">{label}</span>
+                    {count !== undefined && count > 0 && (
+                      <span className={cn('ml-1 tabular-nums', active ? 'text-white/70' : 'text-muted-foreground/70')}>
+                        ({count})
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -530,13 +577,22 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
 
             const activityPanel = (
             <div className="flex flex-col min-h-0 h-full">
-              <div className="px-4 sm:px-5 pt-4 sm:pt-5 pb-3 border-b shrink-0 flex items-center justify-between">
-                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Status Updates
-                  {billDetails?.updates && (
-                    <span className="ml-1.5 text-muted-foreground/60">({billDetails.updates.length})</span>
-                  )}
-                </h3>
+              {/* On mobile the "Updates (n)" tab is already this panel's heading,
+                  so repeating it here would be a second title on the same screen.
+                  The Refresh control stays either way — it is the only way to pull
+                  fresh updates. */}
+              <div className={cn(
+                'px-4 sm:px-5 pt-4 sm:pt-5 pb-3 border-b shrink-0 flex items-center',
+                isMobile ? 'justify-end' : 'justify-between',
+              )}>
+                {!isMobile && (
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Status Updates
+                    {billDetails?.updates && (
+                      <span className="ml-1.5 text-muted-foreground/60">({billDetails.updates.length})</span>
+                    )}
+                  </h3>
+                )}
                 {user && (
                   <RefreshStatusesButton bill={bill} onRefresh={handleStatusUpdateRefresh} />
                 )}
@@ -588,16 +644,22 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
             if (isMobile) {
               return (
                 <>
-                  <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'overview' | 'versions')} className="flex-1 flex flex-col min-h-0">
+                  <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex-1 flex flex-col min-h-0">
                     {/* Tab switcher lives in the dialog header */}
-                    <TabsContent value="overview" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden overflow-auto">
-                      <div className="flex flex-col">
-                        {leftPanel}
-                        {activityPanel}
-                      </div>
+                    {/* Status Updates is its own tab on mobile, so Overview no
+                        longer stacks it below a long scroll. leftPanel is h-full
+                        with its own ScrollArea and a pinned Change Status footer,
+                        so this holds it to the available height (flex + min-h-0)
+                        rather than letting it grow inside an outer overflow-auto —
+                        which would nest two scrollers and unpin the footer. */}
+                    <TabsContent value="overview" className="flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden">
+                      {leftPanel}
                     </TabsContent>
                     <TabsContent value="versions" className="flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden">
                       <VersionsReportsTab billId={billID ?? ""} versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
+                    </TabsContent>
+                    <TabsContent value="updates" className="flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden">
+                      {activityPanel}
                     </TabsContent>
                   </Tabs>
 
@@ -631,7 +693,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
             }
 
             return (
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'overview' | 'versions')} className="flex-1 flex flex-col min-h-0">
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex-1 flex flex-col min-h-0">
                 {/* Tab switcher lives in the dialog header */}
                 <TabsContent value="overview" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
                   <div className="flex h-full min-h-0">
