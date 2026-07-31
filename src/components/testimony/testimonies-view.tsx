@@ -25,10 +25,13 @@ import { tiptapPlainText } from '@/lib/testimony/tiptap-text';
 import { getTestimonyEligibility } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import { getNextDeadline } from '@/lib/bills/dead-bill';
-import type { DeadlineEntry, SessionDeadlines } from '@/lib/bills/dead-bill';
+import type { DeadlineEntry } from '@/lib/bills/dead-bill';
 import type { BillStatus } from '@/db/types';
 import type { TestimonyListItem, TestimonyPosition, TestimonyProspect } from '@/types/testimony';
-import deadlinesJson from '@/data/session-deadlines-2026.json';
+// Switchable session calendar (respects NEXT_PUBLIC_DEMO_DEADLINES), matching the
+// card / dialog / spreadsheet. Previously this view hardcoded the real 2026
+// calendar, so it ignored demo mode and closed testimony once the real session ended.
+import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -90,7 +93,7 @@ function decorate(item: TestimonyListItem, now: Date): DecoratedTestimony {
       dead: item.dead,
       billStatus: item.billStatus as BillStatus,
       committeeAssignment: item.committeeAssignment,
-      deadlines: deadlinesJson as SessionDeadlines,
+      deadlines: SESSION_DEADLINES,
       today: now.toISOString().split('T')[0],
     });
 
@@ -118,7 +121,7 @@ function decorate(item: TestimonyListItem, now: Date): DecoratedTestimony {
         item.billNumber,
         item.billStatus as BillStatus,
         item.committeeAssignment,
-        deadlinesJson as SessionDeadlines,
+        SESSION_DEADLINES,
         now.toISOString().split('T')[0],
       );
     }
