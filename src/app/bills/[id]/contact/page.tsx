@@ -8,6 +8,7 @@ import { data } from '@/lib/data-client';
 import type { CommitteeChair } from '@/db/queries/committee-chairs';
 import {
   buildBaseScript,
+  buildCallScript,
   personalizeScript,
   type ContactPosition,
 } from '@/lib/legislators/contact-script';
@@ -23,7 +24,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  ChevronDown,
   Copy,
   ExternalLink,
   Gavel,
@@ -72,10 +72,11 @@ export default function ContactLegislatorPage() {
   const [step, setStep] = useState<ContactStep>(1);
   const [position, setPosition] = useState<ContactPosition | null>(null);
 
-  // The one shared, user-editable script. Seeded when a position is chosen;
-  // null until then. The user's edits are preserved as they move between steps.
+  // The shared, user-editable scripts. Seeded when a position is chosen; null
+  // until then. Edits are preserved as the user moves between steps.
   const [scriptBody, setScriptBody] = useState<string | null>(null);
   const [scriptSubject, setScriptSubject] = useState<string>('');
+  const [callScript, setCallScript] = useState<string | null>(null);
 
   useEffect(() => {
     if (!billId) return;
@@ -114,6 +115,14 @@ export default function ContactLegislatorPage() {
       });
       setScriptBody(base.body);
       setScriptSubject(base.subject);
+      setCallScript(
+        buildCallScript({
+          billNumber: bill.bill_number,
+          billTitle: bill.bill_title ?? null,
+          position: p,
+          userName,
+        }),
+      );
     }
     setPosition(p);
   };
@@ -187,6 +196,8 @@ export default function ContactLegislatorPage() {
                 subject={scriptSubject}
                 body={scriptBody ?? ''}
                 onChange={setScriptBody}
+                callScript={callScript ?? ''}
+                onCallChange={setCallScript}
                 onBack={() => goToStep(1)}
               />
             )}
@@ -305,32 +316,30 @@ function StepCompose({
   subject,
   body,
   onChange,
+  callScript,
+  onCallChange,
   onBack,
 }: {
   groups: CommitteeGroup[];
   subject: string;
   body: string;
   onChange: (v: string) => void;
+  callScript: string;
+  onCallChange: (v: string) => void;
   onBack: () => void;
 }) {
-  // One preview open at a time across the whole contact list; rendered
-  // full-width beneath the grid rather than inside a card.
-  const [previewKey, setPreviewKey] = useState<string | null>(null);
-
-  const previewChair = useMemo(
-    () => groups.flatMap((g) => g.chairs).find((c) => chairKey(c) === previewKey) ?? null,
-    [groups, previewKey],
-  );
-  const previewText = previewChair ? personalizeScript(body, previewChair) : '';
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Left — the one editable script */}
-        <div className="lg:sticky lg:top-0 lg:self-start">
+        {/* Left — the editable email + call scripts */}
+        <div className="space-y-4 lg:sticky lg:top-0 lg:self-start">
+          {/* Email script */}
           <div className="rounded-lg border bg-card p-4">
-            <h2 className="text-sm font-semibold">Your message</h2>
-            <p className="mb-3 mt-0.5 text-xs text-muted-foreground">
+            <div className="mb-1 flex items-center gap-1.5">
+              <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+              <h2 className="text-sm font-semibold">Email script</h2>
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
               One message goes to every chair. Edit it freely — the greeting is filled in for each legislator when you
               send.
             </p>
@@ -341,14 +350,32 @@ function StepCompose({
             <Textarea
               value={body}
               onChange={(e) => onChange(e.target.value)}
-              rows={16}
+              rows={14}
               className="resize-y font-mono text-sm leading-relaxed"
-              aria-label="Message to legislators"
+              aria-label="Email message to legislators"
             />
             <p className="mt-2 text-[11px] text-muted-foreground">
               Tip: replace <span className="font-medium">[Your name]</span> and add a sentence about why this bill
               matters to you.
             </p>
+          </div>
+
+          {/* Call script */}
+          <div className="rounded-lg border bg-card p-4">
+            <div className="mb-1 flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+              <h2 className="text-sm font-semibold">Call script</h2>
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              What to say when you call an office. Keep it short — staff just note your position.
+            </p>
+            <Textarea
+              value={callScript}
+              onChange={(e) => onCallChange(e.target.value)}
+              rows={7}
+              className="resize-y font-mono text-sm leading-relaxed"
+              aria-label="Phone call script"
+            />
           </div>
         </div>
 
@@ -364,41 +391,11 @@ function StepCompose({
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {group.chairs.map((chair) => (
-                  <ChairCard
-                    key={chairKey(chair)}
-                    chair={chair}
-                    subject={subject}
-                    body={body}
-                    isPreviewing={previewKey === chairKey(chair)}
-                    onTogglePreview={() =>
-                      setPreviewKey((k) => (k === chairKey(chair) ? null : chairKey(chair)))
-                    }
-                  />
+                  <ChairCard key={chairKey(chair)} chair={chair} subject={subject} body={body} />
                 ))}
               </div>
             </div>
           ))}
-
-          {/* Full-width preview row — spans the whole contact column */}
-          {previewChair && (
-            <div className="rounded-lg border bg-card p-3">
-              <div className="mb-1.5 flex items-center justify-between">
-                <p className="text-xs font-semibold">
-                  Preview — to {previewChair.legislatorName}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setPreviewKey(null)}
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  Close
-                </button>
-              </div>
-              <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap break-words rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
-                {previewText}
-              </pre>
-            </div>
-          )}
         </div>
       </div>
 
@@ -422,14 +419,10 @@ function ChairCard({
   chair,
   subject,
   body,
-  isPreviewing,
-  onTogglePreview,
 }: {
   chair: CommitteeChair;
   subject: string;
   body: string;
-  isPreviewing: boolean;
-  onTogglePreview: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const RoleIcon = chair.role === 'chair' ? Gavel : ShieldCheck;
@@ -483,16 +476,6 @@ function ChairCard({
           </a>
         )}
       </div>
-
-      <button
-        type="button"
-        onClick={onTogglePreview}
-        aria-expanded={isPreviewing}
-        className="mt-2 flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
-      >
-        <ChevronDown className={['h-3.5 w-3.5 transition-transform', isPreviewing ? 'rotate-180' : ''].join(' ')} />
-        {isPreviewing ? 'Hide preview' : 'Preview email'}
-      </button>
 
       <div className="mt-auto space-y-2 pt-3">
         {chair.email && (mailto || gmail) && (

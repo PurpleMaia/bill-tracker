@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildContactScript,
   buildBaseScript,
+  buildCallScript,
   personalizeScript,
   NEUTRAL_GREETING,
 } from '@/lib/legislators/contact-script';
@@ -80,6 +81,29 @@ describe('buildBaseScript', () => {
     const { body } = buildBaseScript({ billNumber: 'HB9950', billTitle: null, position: 'oppose' });
     expect(body).not.toContain('null');
     expect(body).toMatch(/oppose/i);
+  });
+});
+
+describe('buildCallScript', () => {
+  it('is a short spoken script with no greeting or signature', () => {
+    const script = buildCallScript({
+      billNumber: 'HB9950',
+      billTitle: 'Relating to Local Agriculture',
+      position: 'support',
+      userName: 'Jaden Kapali',
+    });
+    expect(script).toContain('Jaden Kapali');
+    expect(script).toContain('HB9950');
+    expect(script).toMatch(/support/i);
+    expect(script).not.toContain('Dear');
+    expect(script).not.toContain('Sincerely');
+  });
+
+  it('reflects the oppose position and handles a missing title', () => {
+    const script = buildCallScript({ billNumber: 'HB9950', billTitle: null, position: 'oppose' });
+    expect(script).toMatch(/oppose/i);
+    expect(script).not.toContain('null');
+    expect(script).toContain('[Your name]');
   });
 });
 

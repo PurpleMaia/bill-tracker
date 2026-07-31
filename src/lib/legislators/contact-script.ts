@@ -91,6 +91,33 @@ export function buildBaseScript(input: {
 }
 
 /**
+ * A short spoken phone script — what to say when calling a committee office.
+ * Position-aware, first-person, no greeting/signature. Pure.
+ */
+export function buildCallScript(input: {
+  billNumber: string;
+  billTitle: string | null;
+  position: ContactPosition;
+  userName?: string;
+}): string {
+  const { billNumber, billTitle, position, userName } = input;
+  const verb = position === 'support' ? 'support' : 'oppose';
+  const measure = billTitle ? `${billNumber}, ${billTitle}` : billNumber;
+  const ask =
+    position === 'support'
+      ? `I'm asking the committee to advance it.`
+      : `I'm asking the committee to hold it.`;
+
+  return [
+    `Hi, my name is ${userName ?? '[Your name]'} and I'm a Hawaii resident.`,
+    ``,
+    `I'm calling to ask the chair to ${verb} ${measure}. ${ask}`,
+    ``,
+    `This measure matters to our community. Thank you for your time.`,
+  ].join('\n');
+}
+
+/**
  * Swaps the leading greeting line of a shared script for one addressed to a
  * specific chair (`Dear Rep. …,`). Only the first line is replaced, so the
  * user's edits to the rest of the body are preserved. If the body doesn't
