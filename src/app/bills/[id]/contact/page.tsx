@@ -7,6 +7,7 @@ import { getBillDetails } from '@/db/queries/bills-read';
 import { data } from '@/lib/data-client';
 import type { CommitteeChair } from '@/db/queries/committee-chairs';
 import { buildContactScript, type ContactPosition } from '@/lib/legislators/contact-script';
+import { parseCommitteeCodes, committeeFullName } from '@/lib/testimony/committees';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -121,7 +122,7 @@ export default function ContactLegislatorPage() {
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl space-y-5 p-4 sm:p-6">
           {/* Bill context — the whole point of the page */}
-          {bill && <BillContext bill={bill} committeeCount={groups.length} />}
+          {bill && <BillContext bill={bill} />}
 
           {!hasChairs ? (
             <EmptyState />
@@ -194,7 +195,12 @@ export default function ContactLegislatorPage() {
 
 /* ------------------------------------------------------------------ */
 
-function BillContext({ bill, committeeCount }: { bill: BillDetails; committeeCount: number }) {
+function BillContext({ bill }: { bill: BillDetails }) {
+  const committees = parseCommitteeCodes(bill.committee_assignment).map((code) => ({
+    code,
+    name: committeeFullName(code),
+  }));
+
   return (
     <div className="rounded-lg border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
@@ -203,12 +209,9 @@ function BillContext({ bill, committeeCount }: { bill: BillDetails; committeeCou
           {bill.bill_title && (
             <p className="mt-0.5 text-sm text-muted-foreground">{bill.bill_title}</p>
           )}
-          <p className="mt-2 text-xs text-muted-foreground">
-            {committeeCount > 0
-              ? `Before ${committeeCount} committee${committeeCount === 1 ? '' : 's'}`
-              : 'Not yet referred to a committee'}
-            {bill.introducer ? ` · Introduced by ${bill.introducer}` : ''}
-          </p>
+          {bill.introducer && (
+            <p className="mt-2 text-xs text-muted-foreground">Introduced by {bill.introducer}</p>
+          )}
         </div>
         {bill.bill_url && (
           <Button asChild variant="outline" size="sm" className="shrink-0">
@@ -218,6 +221,29 @@ function BillContext({ bill, committeeCount }: { bill: BillDetails; committeeCou
               <span className="sm:hidden">Bill</span>
             </a>
           </Button>
+        )}
+      </div>
+
+      {/* Which committees this bill is currently before */}
+      <div className="mt-3 border-t pt-3">
+        <p className="mb-2 text-xs font-medium text-muted-foreground">
+          {committees.length > 0
+            ? `Before ${committees.length} committee${committees.length === 1 ? '' : 's'}`
+            : 'Not yet referred to a committee'}
+        </p>
+        {committees.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {committees.map((c) => (
+              <span
+                key={c.code}
+                className="inline-flex items-center gap-1.5 rounded-full border bg-muted/40 px-2.5 py-1 text-xs"
+                title={c.name}
+              >
+                <span className="font-semibold">{c.code}</span>
+                <span className="text-muted-foreground">{c.name}</span>
+              </span>
+            ))}
+          </div>
         )}
       </div>
     </div>
