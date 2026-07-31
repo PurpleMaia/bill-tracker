@@ -2,6 +2,7 @@
 
 import type { Bill, BillDetails } from '@/types/legislation';
 import { KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
+import { isEnacted } from '@/lib/bills/dead-bill';
 import { db } from '@/db/kysely/client';
 import { BillStatus } from '@/db/types';
 import { convertDataToBillShape } from '@/db/queries/bill-mappers';
@@ -75,6 +76,19 @@ export async function updateBillStatus(billId: string, newStatus: string, tenant
 }
 
 export async function updateBillDeadFlag(billId: string, dead: boolean): Promise<void> {
+    // A bill that has become law (signed, or law without signature) is a terminal
+    // success — it cannot be marked failed. Enforce here so the invariant holds no
+    // matter which caller/transport sets the flag.
+    if (dead) {
+        const current = await db.selectFrom('bills')
+          .select('bill_status')
+          .where('id', '=', billId)
+          .executeTakeFirst();
+        if (isEnacted(current?.bill_status)) {
+            throw new Error('A bill that has been signed into law cannot be marked as failed');
+        }
+    }
+
     await db.updateTable('bills')
       .set({ dead, updated_at: new Date() })
       .where('id', '=', billId)

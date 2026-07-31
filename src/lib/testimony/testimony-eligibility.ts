@@ -8,9 +8,7 @@
 
 import type { BillStatus } from '@/db/types';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
-import { isFiscalBill } from '@/lib/bills/dead-bill';
-
-const ENACTED_STATUSES: BillStatus[] = ['governorSigns', 'lawWithoutSignature'];
+import { isFiscalBill, isEnacted } from '@/lib/bills/dead-bill';
 
 export const SCHEDULED_STATUSES: BillStatus[] = [
   'scheduled1',
@@ -52,7 +50,7 @@ export function getTestimonyEligibility(params: {
    */
   hearingPassed?: boolean;
 }): TestimonyEligibility {
-  if (ENACTED_STATUSES.includes(params.billStatus)) {
+  if (isEnacted(params.billStatus)) {
     return { allowed: false, reason: 'This bill has been enacted into law' };
   }
 

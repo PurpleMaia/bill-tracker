@@ -38,7 +38,7 @@ import { TagSelector } from '../tags/tag-selector';
 import { BillBriefing } from './bill-briefing';
 import { CommitteeContacts } from './committee-contacts';
 import { VersionsReportsTab } from './versions-reports-tab';
-import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/bills/dead-bill';
+import { isBillDead, getNextDeadline, isFiscalBill, isEnacted } from '@/lib/bills/dead-bill';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
@@ -165,6 +165,9 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
   };
 
   const currentStatus = billDetails?.current_bill_status || bill.current_bill_status;
+  // A bill that has become law cannot be marked failed — the "Marked failed" toggle
+  // is disabled in that case (the server rejects it too; see updateBillDeadFlag).
+  const enacted = isEnacted(currentStatus as BillStatus);
   const progressValue = getProgressValue(currentStatus as BillStatus);
   const currentStageName = getCurrentStageName(currentStatus as BillStatus);
   const isInternInAllBillsView = user?.role === 'user' && viewMode === 'all-bills';
@@ -492,13 +495,14 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                         {canSeeTracking && (
                           <Switch
                             checked={bill.dead}
+                            disabled={enacted}
                             onCheckedChange={async (checked) => {
                               try {
                                 await updateBillDeadFlag(bill.id, checked);
                                 updateBill(bill.id, { dead: checked });
                                 toast({ title: checked ? 'Marked Failed' : 'Marked Active', description: `${bill.bill_number} updated.` });
                               } catch {
-                                toast({ title: 'Error', description: 'Failed to update.', variant: 'destructive' });
+                                toast({ title: 'Error', description: 'A bill signed into law cannot be marked failed.', variant: 'destructive' });
                               }
                             }}
                           />
