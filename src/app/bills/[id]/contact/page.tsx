@@ -30,6 +30,8 @@ import {
   Info,
   Loader2,
   Mail,
+  PanelLeftClose,
+  PanelLeftOpen,
   Phone,
   ShieldCheck,
   ThumbsDown,
@@ -71,6 +73,7 @@ export default function ContactLegislatorPage() {
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState<ContactStep>(1);
   const [position, setPosition] = useState<ContactPosition | null>(null);
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
 
   // The shared, user-editable scripts. Seeded when a position is chosen; null
   // until then. Edits are preserved as the user moves between steps.
@@ -158,13 +161,48 @@ export default function ContactLegislatorPage() {
       </header>
 
       <div className="flex min-h-0 flex-1">
-        {/* Reference panel — sidebar on desktop, sheet on mobile */}
+        {/* Reference panel — collapsible sidebar on desktop, sheet on mobile */}
         {!isMobile && referencePanel && (
-          <aside className="w-[340px] shrink-0 border-r bg-muted/20">{referencePanel}</aside>
+          panelCollapsed ? (
+            <aside className="flex w-10 shrink-0 flex-col items-center border-r bg-muted/20 py-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setPanelCollapsed(false)}
+                aria-label="Show bill information"
+                title="Show bill information"
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+              </Button>
+            </aside>
+          ) : (
+            <aside className="flex w-[340px] shrink-0 flex-col border-r bg-muted/20">
+              <div className="flex items-center justify-between border-b px-3 py-2">
+                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Bill info</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setPanelCollapsed(true)}
+                  aria-label="Hide bill information"
+                  title="Hide bill information"
+                >
+                  <PanelLeftClose className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="min-h-0 flex-1">{referencePanel}</div>
+            </aside>
+          )
         )}
 
         <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className={['mx-auto space-y-4 p-4 sm:p-6', step === 2 ? 'max-w-5xl' : 'max-w-3xl'].join(' ')}>
+          <div
+            className={[
+              'mx-auto space-y-4 p-4 sm:p-6',
+              step !== 2 ? 'max-w-3xl' : panelCollapsed ? 'max-w-6xl' : 'max-w-5xl',
+            ].join(' ')}
+          >
             {isMobile && referencePanel && (
               <Sheet>
                 <SheetTrigger asChild>
