@@ -26,7 +26,7 @@ import { CardTagSelector } from '../tags/card-tag-selector';
 import { getNextDeadline, getDeadlineTier } from '@/lib/bills/dead-bill';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
-import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/testimony/hearing-schedule';
+import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import { DeadBillInfoPopover } from './dead-bill-info-popover';
 import type { BillStatus as DBBillStatus } from '@/db/types';
@@ -152,14 +152,23 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
       ? Math.ceil((new Date(nextDeadline.date + 'T00:00:00').getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
       : null;
 
-    // Testimony progress: submitted > draft written > due (hearing scheduled)
+    // Testimony progress: submitted > draft written > due (hearing scheduled) > closed (hearing passed)
     const testimonyState = boardMode === 'active-boards' ? orgTestimonyState : testimonyStatuses[bill.id]; // undefined | 'draft' | 'submitted'
-    const testimonyDue =
-      !testimonyState && !bill.dead && isTestimonyUrgent(bill.current_bill_status as DBBillStatus);
-    const hearingAt = testimonyDue && bill.latest_update
-      ? parseHearingDatetime(bill.latest_update.statustext)
+    // One derivation for hearing datetime → countdown / passed, shared with the
+    // dialog and testimonies view so the card can't drift from them.
+    const testimonyDeadline = !bill.dead && isTestimonyUrgent(bill.current_bill_status as DBBillStatus)
+      ? getTestimonyDeadline({
+          billStatus: bill.current_bill_status as DBBillStatus,
+          latestStatusText: bill.latest_update?.statustext ?? null,
+          now: new Date(),
+        })
       : null;
-    const countdownLabel = hearingAt ? getTestimonyCountdownLabel(hearingAt, new Date()) : null;
+    const hearingAt = testimonyDeadline?.hearingAt ?? null;
+    // Still-open hearing: show the "Testimony due" chip when no draft/submission exists yet.
+    const testimonyDue = !testimonyState && !!testimonyDeadline && !testimonyDeadline.hearingPassed && !!hearingAt;
+    // Hearing has passed: show a muted "Testimony closed" chip instead.
+    const testimonyClosed = !testimonyState && !!testimonyDeadline?.hearingPassed;
+    const countdownLabel = testimonyDeadline?.countdown ?? null;
 
     // Bottom-right fate countdown while the bill waits for a hearing: if the
     // committee chair doesn't schedule it before the next deadline, it fails.
@@ -174,6 +183,9 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const testimonyChipTitle = hearingAt
       ? `Hearing ${hearingAt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} — submit testimony at least 24 hours before the hearing`
       : 'Hearing scheduled — submit testimony at least 24 hours before the hearing';
+    const testimonyClosedTitle = hearingAt
+      ? `Hearing was held ${hearingAt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} — the testimony submission window has closed`
+      : 'The testimony submission window has closed';
 
     return (
         <div
@@ -383,7 +395,15 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                         </span>
                       </ChipTooltip>
                     )}
-                    {!testimonyState && !testimonyDue && committeeCodes && (
+                    {testimonyClosed && (
+                      <ChipTooltip content={testimonyClosedTitle}>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 h-5 text-[10px] font-medium text-muted-foreground shrink-0">
+                          <History className="h-2.5 w-2.5" />
+                          Testimony closed
+                        </span>
+                      </ChipTooltip>
+                    )}
+                    {!testimonyState && !testimonyDue && !testimonyClosed && committeeCodes && (
                       <ChipTooltip
                         content={
                           <div className="space-y-0.5">
