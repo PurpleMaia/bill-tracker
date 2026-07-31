@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, todayHawaii } from '@/lib/core/utils';
-import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files } from 'lucide-react';
+import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
@@ -36,7 +36,6 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
 import { BillBriefing } from './bill-briefing';
-import { CommitteeContacts } from './committee-contacts';
 import { VersionsReportsTab } from './versions-reports-tab';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/bills/dead-bill';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
@@ -337,62 +336,77 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                 );
               })}
             </nav>
-            {/* Write Testimony CTA — in line with the tabs, desktop only.
-                On mobile it lives in the sticky bottom action bar. */}
-            {testimonyEligibility.allowed ? (
-              <div className="hidden sm:flex shrink-0 items-center gap-2">
-                {testimonyUrgent && testimonyCountdown && (
-                  <span className="text-xs font-medium text-red-600 whitespace-nowrap">
-                    Testimony {testimonyCountdown}
-                  </span>
-                )}
+            {/* Write Testimony + Contact Legislator CTAs — in line with the tabs,
+                desktop only. On mobile they live in the sticky bottom action bar.
+                Contact Legislator is always enabled, so it sits in this shared
+                wrapper alongside whichever Write Testimony variant renders. */}
+            <div className="hidden sm:flex shrink-0 items-center gap-2">
+              {testimonyEligibility.allowed ? (
+                <>
+                  {testimonyUrgent && testimonyCountdown && (
+                    <span className="text-xs font-medium text-red-600 whitespace-nowrap">
+                      Testimony {testimonyCountdown}
+                    </span>
+                  )}
+                  <TooltipProvider delayDuration={100}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="relative"
+                          onClick={() => {
+                            onClose();
+                            router.push(`/bills/${bill.id}/testimony`);
+                          }}
+                        >
+                          {testimonyUrgent && (
+                            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5" aria-hidden="true">
+                              <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 motion-safe:animate-ping" />
+                              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                            </span>
+                          )}
+                          <PenLine className="mr-1.5 h-3.5 w-3.5" />
+                          Write Testimony
+                        </Button>
+                      </TooltipTrigger>
+                      {testimonyUrgent && (
+                        <TooltipContent>
+                          <p>{urgentTooltip}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                </>
+              ) : (
                 <TooltipProvider delayDuration={100}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="relative"
-                        onClick={() => {
-                          onClose();
-                          router.push(`/bills/${bill.id}/testimony`);
-                        }}
-                      >
-                        {testimonyUrgent && (
-                          <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5" aria-hidden="true">
-                            <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 motion-safe:animate-ping" />
-                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
-                          </span>
-                        )}
-                        <PenLine className="mr-1.5 h-3.5 w-3.5" />
-                        Write Testimony
-                      </Button>
+                      <span className="inline-block shrink-0 cursor-not-allowed">
+                        <Button size="sm" variant="outline" disabled className="pointer-events-none">
+                          <PenLine className="mr-1.5 h-3.5 w-3.5" />
+                          Write Testimony
+                        </Button>
+                      </span>
                     </TooltipTrigger>
-                    {testimonyUrgent && (
-                      <TooltipContent>
-                        <p>{urgentTooltip}</p>
-                      </TooltipContent>
-                    )}
+                    <TooltipContent>
+                      <p>{testimonyEligibility.reason} — testimony is closed.</p>
+                    </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-              </div>
-            ) : (
-              <TooltipProvider delayDuration={100}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="hidden sm:inline-block shrink-0 cursor-not-allowed">
-                      <Button size="sm" variant="outline" disabled className="pointer-events-none">
-                        <PenLine className="mr-1.5 h-3.5 w-3.5" />
-                        Write Testimony
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{testimonyEligibility.reason} — testimony is closed.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  onClose();
+                  router.push(`/bills/${bill.id}/contact`);
+                }}
+              >
+                <Users className="mr-1.5 h-3.5 w-3.5" />
+                Contact Legislator
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
@@ -510,14 +524,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                     </div>
                   </div>
 
-                  {/* Committees (the directory shows codes + full names, so the
-                      old raw "committee_assignment" details field is dropped) */}
-                  <div>
-                    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Committees</h3>
-                    <CommitteeContacts bill={billForPanels} />
-                  </div>
-
-                  {/* Tags — below committees */}
+                  {/* Tags */}
                   <div>
                     <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Tags</h3>
                     <TagSelector billId={bill.id} />
@@ -664,6 +671,17 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                     >
                       <PenLine className="mr-2 h-4 w-4" />
                       Write Testimony
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full h-11"
+                      onClick={() => {
+                        onClose();
+                        router.push(`/bills/${bill.id}/contact`);
+                      }}
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      Contact Legislator
                     </Button>
                     {testimonyEligibility.allowed && testimonyUrgent && testimonyCountdown && (
                       <p className="text-center text-xs font-medium text-red-600">
