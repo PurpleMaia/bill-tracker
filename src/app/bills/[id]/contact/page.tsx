@@ -237,6 +237,7 @@ export default function ContactLegislatorPage() {
                 callScript={callScript ?? ''}
                 onCallChange={setCallScript}
                 onBack={() => goToStep(1)}
+                panelCollapsed={panelCollapsed}
               />
             )}
           </div>
@@ -357,6 +358,7 @@ function StepCompose({
   callScript,
   onCallChange,
   onBack,
+  panelCollapsed,
 }: {
   groups: CommitteeGroup[];
   subject: string;
@@ -365,12 +367,18 @@ function StepCompose({
   callScript: string;
   onCallChange: (v: string) => void;
   onBack: () => void;
+  panelCollapsed: boolean;
 }) {
+  // Scripts get the larger share. When the bill panel is collapsed there's more
+  // width overall, so push the scripts even wider (5/8 → 2/3 of the row).
+  const scriptSpan = panelCollapsed ? 'lg:col-span-5' : 'lg:col-span-4';
+  const contactSpan = panelCollapsed ? 'lg:col-span-3' : 'lg:col-span-4';
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-8">
         {/* Left — the editable email + call scripts */}
-        <div className="space-y-4 lg:sticky lg:top-0 lg:self-start">
+        <div className={['space-y-4 lg:sticky lg:top-0 lg:self-start', scriptSpan].join(' ')}>
           {/* Email script */}
           <div className="rounded-lg border bg-card p-4">
             <div className="mb-1 flex items-center gap-1.5">
@@ -418,16 +426,16 @@ function StepCompose({
         </div>
 
         {/* Right — the contact list */}
-        <div className="space-y-5">
+        <div className={['space-y-4', contactSpan].join(' ')}>
           {groups.map((group) => (
             <div key={group.code}>
-              <div className="mb-2.5 flex items-center gap-2 border-b pb-1.5">
+              <div className="mb-2 flex items-center gap-2 border-b pb-1.5">
                 <span className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary">
                   {group.code}
                 </span>
                 <h3 className="truncate text-sm font-semibold">{group.name}</h3>
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {group.chairs.map((chair) => (
                   <ChairCard key={chairKey(chair)} chair={chair} subject={subject} body={body} />
                 ))}
@@ -485,65 +493,60 @@ function ChairCard({
   };
 
   return (
-    <div className="flex flex-col rounded-lg border bg-card p-3">
-      <div className="flex items-center gap-2">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-          <RoleIcon className="h-4 w-4" />
+    <div className="flex flex-col rounded-md border bg-card p-2.5">
+      <div className="flex items-center gap-1.5">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted">
+          <RoleIcon className="h-3 w-3" />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">{chair.legislatorName}</p>
-          <p className="truncate text-xs text-muted-foreground">{roleLabel}</p>
+          <p className="truncate text-xs font-semibold">{chair.legislatorName}</p>
+          <p className="truncate text-[11px] text-muted-foreground">{roleLabel}</p>
         </div>
       </div>
 
-      <div className="mt-2 space-y-1 text-xs">
+      <div className="mt-1.5 space-y-0.5 text-[11px]">
         {chair.email && (
           <a
             href={`mailto:${chair.email}`}
-            className="flex items-center gap-1.5 break-all text-muted-foreground hover:text-foreground hover:underline"
+            className="flex items-center gap-1 break-all text-muted-foreground hover:text-foreground hover:underline"
           >
-            <Mail className="h-3.5 w-3.5 shrink-0" /> {chair.email}
+            <Mail className="h-3 w-3 shrink-0" /> {chair.email}
           </a>
         )}
         {chair.phone && (
           <a
             href={`tel:${chair.phone.replace(/[^\d+]/g, '')}`}
-            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground hover:underline"
+            className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
           >
-            <Phone className="h-3.5 w-3.5 shrink-0" /> {chair.phone}
+            <Phone className="h-3 w-3 shrink-0" /> {chair.phone}
           </a>
         )}
       </div>
 
-      <div className="mt-auto space-y-2 pt-3">
-        {chair.email && (mailto || gmail) && (
-          <div className="flex gap-2">
-            {mailto && (
-              <Button asChild size="sm" className="flex-1">
-                <a href={mailto}>
-                  <Mail className="mr-1.5 h-3.5 w-3.5" /> Email
-                </a>
-              </Button>
-            )}
-            {gmail && (
-              <Button asChild size="sm" variant="outline" className="flex-1">
-                <a href={gmail} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Gmail
-                </a>
-              </Button>
-            )}
-          </div>
+      <div className="mt-auto flex items-center gap-1 pt-2">
+        {mailto && (
+          <Button asChild size="sm" className="h-7 flex-1 px-2 text-[11px]">
+            <a href={mailto}>
+              <Mail className="mr-1 h-3 w-3" /> Email
+            </a>
+          </Button>
         )}
-        <Button size="sm" variant="ghost" className="w-full" onClick={copyScript}>
-          {copied ? (
-            <>
-              <Check className="mr-1.5 h-3.5 w-3.5" /> Copied
-            </>
-          ) : (
-            <>
-              <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy message
-            </>
-          )}
+        {gmail && (
+          <Button asChild size="sm" variant="outline" className="h-7 flex-1 px-2 text-[11px]">
+            <a href={gmail} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="mr-1 h-3 w-3" /> Gmail
+            </a>
+          </Button>
+        )}
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 shrink-0"
+          onClick={copyScript}
+          aria-label="Copy message"
+          title="Copy message"
+        >
+          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
         </Button>
       </div>
     </div>
