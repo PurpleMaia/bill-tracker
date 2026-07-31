@@ -88,6 +88,28 @@ describe('getTestimonyEligibility', () => {
       getTestimonyEligibility({ ...base, billStatus: 'governorSigns', today: '2026-06-01' }),
     ).toEqual({ allowed: false, reason: 'This bill has been enacted into law' });
   });
+
+  it('closes testimony when the scheduled hearing has already passed', () => {
+    // Before the session deadline and alive, but this hearing's window closed.
+    expect(
+      getTestimonyEligibility({ ...base, billStatus: 'scheduled1', hearingPassed: true }),
+    ).toEqual({ allowed: false, reason: 'The hearing has already been held' });
+  });
+
+  it('still allows testimony when a hearing is scheduled but has not passed', () => {
+    expect(
+      getTestimonyEligibility({ ...base, billStatus: 'scheduled1', hearingPassed: false }),
+    ).toEqual({ allowed: true, reason: null });
+  });
+
+  it('prefers the dead/enacted reason over a passed hearing', () => {
+    expect(
+      getTestimonyEligibility({ ...base, dead: true, hearingPassed: true }),
+    ).toEqual({ allowed: false, reason: 'This bill is dead' });
+    expect(
+      getTestimonyEligibility({ ...base, billStatus: 'governorSigns', hearingPassed: true }),
+    ).toEqual({ allowed: false, reason: 'This bill has been enacted into law' });
+  });
 });
 
 describe('isTestimonyUrgent', () => {

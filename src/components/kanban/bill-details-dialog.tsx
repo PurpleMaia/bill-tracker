@@ -41,7 +41,7 @@ import { VersionsReportsTab } from './versions-reports-tab';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/bills/dead-bill';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
-import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/testimony/hearing-schedule';
+import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 // Real calendar for deriving why a bill already failed (historical fact);
 // switchable calendar for upcoming-deadline displays (demo-aware).
@@ -206,20 +206,30 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
   const isUrgent = deadlineDaysAway !== null && deadlineDaysAway <= 7;
   const fiscal = committeeAssign ? isFiscalBill(committeeAssign) : false;
 
+  const latestUpdateText =
+    billDetails?.updates?.[0]?.statustext ?? bill.latest_update?.statustext ?? null;
+  // Derive the hearing window first (shared with the card / testimonies view) so
+  // eligibility can close testimony once THIS hearing has passed, not only at the
+  // session's final deadline — otherwise the card's "Testimony closed" chip and
+  // the dialog's Write action disagree.
+  const testimonyDeadline = getTestimonyDeadline({
+    billStatus: currentStatus as DBBillStatus,
+    latestStatusText: latestUpdateText,
+    now: new Date(),
+  });
+
   const testimonyEligibility = getTestimonyEligibility({
     dead: bill.dead,
     billStatus: currentStatus as DBBillStatus,
     committeeAssignment: committeeAssign ?? null,
     deadlines: SESSION_DEADLINES,
     today,
+    hearingPassed: testimonyDeadline.hearingPassed,
   });
   const testimonyUrgent =
     testimonyEligibility.allowed && isTestimonyUrgent(currentStatus as DBBillStatus);
-  const latestUpdateText =
-    billDetails?.updates?.[0]?.statustext ?? bill.latest_update?.statustext ?? null;
-  const hearingAt =
-    testimonyUrgent && latestUpdateText ? parseHearingDatetime(latestUpdateText) : null;
-  const testimonyCountdown = hearingAt ? getTestimonyCountdownLabel(hearingAt, new Date()) : null;
+  const hearingAt = testimonyDeadline.hearingAt;
+  const testimonyCountdown = testimonyEligibility.allowed ? testimonyDeadline.countdown : null;
   const urgentTooltip = hearingAt
     ? `Hearing ${hearingAt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Submit testimony at least 24 hours before the hearing.`
     : 'Hearing scheduled — submit testimony at least 24 hours before the hearing.';
