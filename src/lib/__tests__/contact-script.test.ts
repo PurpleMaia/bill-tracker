@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { buildContactScript } from '@/lib/legislators/contact-script';
+import {
+  buildContactScript,
+  buildBaseScript,
+  personalizeScript,
+  NEUTRAL_GREETING,
+} from '@/lib/legislators/contact-script';
 import type { CommitteeChair } from '@/db/queries/committee-chairs';
 
 const CHAIR: CommitteeChair = {
@@ -52,5 +57,46 @@ describe('buildContactScript', () => {
       billNumber: 'HB9950', billTitle: 'X', chair: CHAIR, position: 'support',
     });
     expect(body).toMatch(/Sincerely,/);
+  });
+});
+
+describe('buildBaseScript', () => {
+  it('uses the neutral greeting and no specific chair name', () => {
+    const { subject, body } = buildBaseScript({
+      billNumber: 'HB9950',
+      billTitle: 'Relating to Local Agriculture',
+      position: 'support',
+      userName: 'Jaden Kapali',
+    });
+    expect(subject).toBe('Support for HB9950');
+    expect(body.startsWith(NEUTRAL_GREETING)).toBe(true);
+    expect(body).not.toContain('Rep.');
+    expect(body).toContain('HB9950');
+    expect(body).toContain('Relating to Local Agriculture');
+    expect(body).toContain('Jaden Kapali');
+  });
+
+  it('handles a missing title without printing null', () => {
+    const { body } = buildBaseScript({ billNumber: 'HB9950', billTitle: null, position: 'oppose' });
+    expect(body).not.toContain('null');
+    expect(body).toMatch(/oppose/i);
+  });
+});
+
+describe('personalizeScript', () => {
+  it('replaces the neutral greeting with the chair name, preserving edits', () => {
+    const base = buildBaseScript({ billNumber: 'HB9950', billTitle: 'X', position: 'support', userName: 'Jaden' }).body;
+    const edited = base.replace('our community', 'Hawaii families');
+    const personalized = personalizeScript(edited, CHAIR);
+    expect(personalized.startsWith('Dear Rep. Kirstin Kahaloa,')).toBe(true);
+    expect(personalized).not.toContain(NEUTRAL_GREETING);
+    // the user's edit to the body survives
+    expect(personalized).toContain('Hawaii families');
+  });
+
+  it('prepends a greeting when the body has none', () => {
+    const personalized = personalizeScript('I am writing about HB9950.', CHAIR);
+    expect(personalized.startsWith('Dear Rep. Kirstin Kahaloa,')).toBe(true);
+    expect(personalized).toContain('I am writing about HB9950.');
   });
 });

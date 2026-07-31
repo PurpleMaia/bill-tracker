@@ -14,7 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { TestimonyStepper, type TestimonyStep } from '@/components/testimony/testimony-stepper';
-import { TestimonyReferencePanel } from '@/components/testimony/testimony-reference-panel';
+import { BillReferencePanel } from '@/components/bills/bill-reference-panel';
 import { TestimonyHeaderForm, type TestimonyHeaderValue } from '@/components/testimony/testimony-header-form';
 import { TestimonyEditor } from '@/components/testimony/testimony-editor';
 import { TestimonyExportStep } from '@/components/testimony/testimony-export-step';
@@ -222,7 +222,7 @@ export default function TestimonyPage() {
   const saveLabel =
     saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : saveState === 'error' ? 'Save failed' : '';
 
-  const referencePanel = <TestimonyReferencePanel bill={bill} />;
+  const referencePanel = <BillReferencePanel bill={bill} />;
 
   return (
     <div className="flex h-dvh flex-col">

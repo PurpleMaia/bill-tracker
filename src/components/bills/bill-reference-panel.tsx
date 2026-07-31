@@ -6,11 +6,16 @@ import { Badge } from '@/components/ui/badge';
 import { ExternalLink, FileText } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 
-interface TestimonyReferencePanelProps {
+interface BillReferencePanelProps {
   bill: BillDetails;
 }
 
-export function TestimonyReferencePanel({ bill }: TestimonyReferencePanelProps) {
+/**
+ * Read-only bill reference sidebar: number, title, description, introducers,
+ * committees, capitol link, and status updates. Used by any full-page bill flow
+ * (testimony writer, contact legislator) as the left context panel.
+ */
+export function BillReferencePanel({ bill }: BillReferencePanelProps) {
   return (
     <ScrollArea className="h-full">
       <div className="space-y-5 p-4">

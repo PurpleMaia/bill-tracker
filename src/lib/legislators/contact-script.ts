@@ -2,6 +2,44 @@ import type { CommitteeChair } from '@/db/queries/committee-chairs';
 
 export type ContactPosition = 'support' | 'oppose';
 
+/** The greeting line placeholder used by the shared (un-personalized) script. */
+export const NEUTRAL_GREETING = 'Dear Chair,';
+
+function scriptBody(input: {
+  greeting: string;
+  billNumber: string;
+  billTitle: string | null;
+  position: ContactPosition;
+  userName?: string;
+  /** Optional committee name for the per-recipient variant. */
+  committeeName?: string;
+}): string {
+  const { greeting, billNumber, billTitle, position, userName, committeeName } = input;
+  const verb = position === 'support' ? 'support' : 'oppose';
+  const measure = billTitle ? `${billNumber}, ${billTitle},` : `${billNumber}`;
+  const before = committeeName ? ` currently before the ${committeeName} committee` : ' currently before your committee';
+
+  return [
+    greeting,
+    ``,
+    `My name is ${userName ?? '[Your name]'}, and I am writing to ask you to ${verb} ${measure}${before}.`,
+    ``,
+    position === 'support'
+      ? `This measure matters to our community, and I respectfully urge the committee to advance it.`
+      : `I have serious concerns about this measure, and I respectfully urge the committee to hold it.`,
+    ``,
+    `Thank you for your time and your service.`,
+    ``,
+    `Sincerely,`,
+    `${userName ?? '[Your name]'}`,
+  ].join('\n');
+}
+
+function subjectLine(position: ContactPosition, billNumber: string): string {
+  const stance = position === 'support' ? 'Support' : 'Oppose';
+  return `${stance} for ${billNumber}`;
+}
+
 /**
  * Builds a short, polite advocacy message to a committee chair/vice-chair.
  * Pure — no DB, no LLM, no network. `subject` feeds a mailto link.
@@ -14,27 +52,56 @@ export function buildContactScript(input: {
   userName?: string;
 }): { subject: string; body: string } {
   const { billNumber, billTitle, chair, position, userName } = input;
+  return {
+    subject: subjectLine(position, billNumber),
+    body: scriptBody({
+      greeting: `Dear ${chair.legislatorName},`,
+      billNumber,
+      billTitle,
+      position,
+      userName,
+      committeeName: chair.committeeName,
+    }),
+  };
+}
 
-  const stance = position === 'support' ? 'Support' : 'Oppose';
-  const verb = position === 'support' ? 'support' : 'oppose';
-  const measure = billTitle ? `${billNumber}, ${billTitle},` : `${billNumber}`;
+/**
+ * The ONE shared, editable script for a bill+position — greeting is neutral
+ * (`Dear Chair,`) so the user edits a single message and sends it to any
+ * committee chair. Personalize per-recipient at send time with
+ * {@link personalizeScript}.
+ */
+export function buildBaseScript(input: {
+  billNumber: string;
+  billTitle: string | null;
+  position: ContactPosition;
+  userName?: string;
+}): { subject: string; body: string } {
+  const { billNumber, billTitle, position, userName } = input;
+  return {
+    subject: subjectLine(position, billNumber),
+    body: scriptBody({
+      greeting: NEUTRAL_GREETING,
+      billNumber,
+      billTitle,
+      position,
+      userName,
+    }),
+  };
+}
 
-  const subject = `${stance} for ${billNumber}`;
-
-  const body = [
-    `Dear ${chair.legislatorName},`,
-    ``,
-    `My name is ${userName ?? '[Your name]'}, and I am writing to ask you to ${verb} ${measure} currently before the ${chair.committeeName} committee.`,
-    ``,
-    position === 'support'
-      ? `This measure matters to our community, and I respectfully urge the committee to advance it.`
-      : `I have serious concerns about this measure, and I respectfully urge the committee to hold it.`,
-    ``,
-    `Thank you for your time and your service.`,
-    ``,
-    `Sincerely,`,
-    `${userName ?? '[Your name]'}`,
-  ].join('\n');
-
-  return { subject, body };
+/**
+ * Swaps the leading greeting line of a shared script for one addressed to a
+ * specific chair (`Dear Rep. …,`). Only the first line is replaced, so the
+ * user's edits to the rest of the body are preserved. If the body doesn't
+ * start with a `Dear …` line, the personalized greeting is prepended.
+ */
+export function personalizeScript(body: string, chair: CommitteeChair): string {
+  const greeting = `Dear ${chair.legislatorName},`;
+  const lines = body.split('\n');
+  if (lines.length > 0 && /^\s*Dear\b.*$/.test(lines[0])) {
+    lines[0] = greeting;
+    return lines.join('\n');
+  }
+  return `${greeting}\n\n${body}`;
 }
