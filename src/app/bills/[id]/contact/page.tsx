@@ -173,12 +173,24 @@ export default function ContactLegislatorPage() {
                         </p>
                       )}
                     </div>
-                    {mailto && (
-                      <Button asChild size="sm" variant="outline" className="mt-2 w-full" disabled={!position}>
-                        <a href={mailto}>
+                    {chair.email && (
+                      position && mailto ? (
+                        <Button asChild size="sm" variant="outline" className="mt-2 w-full">
+                          <a href={mailto}>
+                            <Mail className="mr-1.5 h-3.5 w-3.5" /> Email {chair.role === 'chair' ? 'Chair' : 'Vice-Chair'}
+                          </a>
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2 w-full"
+                          disabled
+                          aria-disabled="true"
+                        >
                           <Mail className="mr-1.5 h-3.5 w-3.5" /> Email {chair.role === 'chair' ? 'Chair' : 'Vice-Chair'}
-                        </a>
-                      </Button>
+                        </Button>
+                      )
                     )}
                     {!position && chair.email && (
                       <p className="mt-1 text-[11px] text-muted-foreground">Pick a position to fill the email.</p>
