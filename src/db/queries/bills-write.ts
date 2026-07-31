@@ -280,15 +280,21 @@ export async function trackBill(userId: string, billUrl: string, tenantId?: stri
         .executeTakeFirst();
 
       if (!existingOrgBill) {
+        // Seed the org's status from the bill's current derived status
+        // (bill_status), NOT ai_status — ai_status is NULL for ~2/3 of real
+        // bills, which used to force newly-tracked bills to 'unassigned'
+        // (rendering in the first column regardless of true classification).
         const billData = await db.selectFrom('bills')
-          .select('ai_status')
+          .select(['bill_status', 'ai_status'])
           .where('id', '=', billId)
           .executeTakeFirst();
 
         await db.insertInto('org_bills').values({
           tenant_id: tenantId,
           bill_id: billId,
-          bill_status: (billData?.ai_status as BillStatus) ?? 'unassigned',
+          bill_status: (billData?.bill_status as BillStatus)
+            ?? (billData?.ai_status as BillStatus)
+            ?? 'unassigned',
         }).execute();
       }
     }
