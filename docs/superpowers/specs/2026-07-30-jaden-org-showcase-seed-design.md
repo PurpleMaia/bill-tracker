@@ -80,7 +80,6 @@ existing dummies). Chamber prefix chosen per committee mix to land the intended 
 | # | Case | Status / column | Committee mix | Dates & latest status_update |
 |---|------|-----------------|---------------|------------------------------|
 | 1 | **Testimony nearly due**, writable | `scheduled1` (SCHEDULED) | non-fiscal (e.g. `AGR`) | latest update dated ~2026-07-29 with hearing **~2026-08-01 (≈36h out)** → "Testimony due in ~36h", warning tier; Write Testimony open (before final decking 10/07) |
-| 1b | Testimony **urgent** variant (optional) | `scheduled2` | non-fiscal | hearing **≈2026-07-31 (<24h)** → "Testimony due now", urgent tier |
 | 2 | **Testimony closed** (hearing passed) | `scheduled3` (SCHEDULED) | non-fiscal | latest update with hearing **~2026-07-29 (≈12h ago)** → `hearingPassed`; observe how card + testimonies view render the closed window |
 | 3a | Failed: **deferred by committee** | `scheduled1`, `dead=true` | `JDC` | latest update: "The committee(s) on JDC deferred the measure." → **Deferred by JDC** |
 | 3b | Failed: **recommendation not adopted** | `waiting2`, `dead=true` | `WAM` | latest update: "The committee(s) on WAM recommended that the recommendation was not adopted." → **Recommendation not adopted by WAM** (verified: the "committee(s) on X" form is required for the committee name to attach) |
@@ -93,7 +92,7 @@ existing dummies). Chamber prefix chosen per committee mix to land the intended 
 (some already satisfied by cases 1–3):
 
 - **INTRODUCED & WAITING** — `introduced` (also covered by 3c) and/or `waiting2`
-- **SCHEDULED** — `scheduled1/2/3` (covered by 1, 1b, 2)
+- **SCHEDULED** — `scheduled1` (case 1) and `scheduled3` (case 2)
 - **CROSSOVER & WAITING** — `crossoverWaiting1`
 - **CROSSOVER SCHEDULED** — `crossoverScheduled1` (add hearing text for a second testimony-due card here if desired)
 - **CONFERENCE** — `passedCommittees`
