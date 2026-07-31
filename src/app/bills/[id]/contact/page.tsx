@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import type { BillDetails } from '@/types/legislation';
 import { getBillDetails } from '@/db/queries/bills-read';
@@ -10,7 +10,42 @@ import { buildContactScript, type ContactPosition } from '@/lib/legislators/cont
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Copy, Gavel, Loader2, Mail, Phone, ShieldCheck } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  Copy,
+  ExternalLink,
+  Gavel,
+  Loader2,
+  Mail,
+  Phone,
+  ShieldCheck,
+  ThumbsDown,
+  ThumbsUp,
+} from 'lucide-react';
+
+/** Chairs for one committee, chair(s) before vice-chair(s), preserving query order. */
+interface CommitteeGroup {
+  code: string;
+  name: string;
+  chairs: CommitteeChair[];
+}
+
+function groupByCommittee(chairs: CommitteeChair[]): CommitteeGroup[] {
+  const order: string[] = [];
+  const map = new Map<string, CommitteeGroup>();
+  for (const c of chairs) {
+    let group = map.get(c.committeeCode);
+    if (!group) {
+      group = { code: c.committeeCode, name: c.committeeName, chairs: [] };
+      map.set(c.committeeCode, group);
+      order.push(c.committeeCode);
+    }
+    group.chairs.push(c);
+  }
+  return order.map((code) => map.get(code)!);
+}
 
 export default function ContactLegislatorPage() {
   const { id: billId } = useParams<{ id: string }>();
@@ -46,160 +81,370 @@ export default function ContactLegislatorPage() {
 
   const userName = user?.username ?? undefined;
 
-  const scriptFor = useCallback(
-    (chair: CommitteeChair) =>
-      position && bill
-        ? buildContactScript({
-            billNumber: bill.bill_number,
-            billTitle: bill.bill_title ?? null,
-            chair, position, userName,
-          })
-        : null,
-    [position, bill, userName],
-  );
-
-  const genericScript = useMemo(() => {
-    if (!position || !bill || chairs.length === 0) return null;
-    return buildContactScript({
-      billNumber: bill.bill_number, billTitle: bill.bill_title ?? null,
-      chair: chairs[0], position, userName,
-    });
+  // One correctly-addressed script per chair, memoized on the inputs that change it.
+  const scripts = useMemo(() => {
+    const out = new Map<string, { subject: string; body: string }>();
+    if (!position || !bill) return out;
+    for (const chair of chairs) {
+      out.set(
+        `${chair.committeeCode}-${chair.role}`,
+        buildContactScript({
+          billNumber: bill.bill_number,
+          billTitle: bill.bill_title ?? null,
+          chair,
+          position,
+          userName,
+        }),
+      );
+    }
+    return out;
   }, [position, bill, chairs, userName]);
 
-  const copy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast({ title: 'Copied', description: 'Script copied to your clipboard.' });
-    } catch {
-      toast({ title: 'Copy failed', description: 'Select and copy the text manually.', variant: 'destructive' });
-    }
-  };
+  const groups = useMemo(() => groupByCommittee(chairs), [chairs]);
+  const hasChairs = chairs.length > 0;
 
   if (loading) {
-    return (
-      <div className="flex h-dvh items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <ContactSkeleton onBack={() => router.push(backHref)} />;
   }
 
   return (
     <div className="flex h-dvh flex-col">
-      {/* Back header */}
+      {/* Header */}
       <div className="flex items-center gap-2 border-b px-4 py-3">
         <Button variant="ghost" size="sm" onClick={() => router.push(backHref)}>
           <ArrowLeft className="h-4 w-4" />
           <span className="ml-1 hidden sm:inline">Back</span>
         </Button>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">
-            Contact Legislator{bill ? ` — ${bill.bill_number}` : ''}
-          </p>
-        </div>
+        <p className="truncate text-sm font-semibold">Contact Legislator</p>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-3xl space-y-4 p-4 sm:p-6">
-          {/* Position selector — REQUIRED, no default */}
-          <div className="rounded-lg border bg-card p-4">
-            <p className="mb-2 text-sm font-medium">Choose your position</p>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Position">
-              {(['support', 'oppose'] as ContactPosition[]).map((p) => (
-                <button
-                  key={p}
-                  role="radio"
-                  aria-checked={position === p}
-                  onClick={() => setPosition(p)}
-                  className={[
-                    'h-11 rounded-md border text-sm font-medium capitalize transition-colors',
-                    position === p ? 'border-primary bg-primary text-primary-foreground' : 'bg-background hover:bg-muted',
-                  ].join(' ')}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-            {!position && (
-              <p className="mt-2 text-xs text-muted-foreground">Pick support or oppose to generate a script.</p>
-            )}
-          </div>
+        <div className="mx-auto max-w-3xl space-y-5 p-4 sm:p-6">
+          {/* Bill context — the whole point of the page */}
+          {bill && <BillContext bill={bill} committeeCount={groups.length} />}
 
-          {/* Generic script */}
-          {genericScript && (
-            <div className="rounded-lg border bg-card p-4">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-sm font-medium">Your script</p>
-                <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => copy(genericScript.body)}>
-                  <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy
-                </Button>
-              </div>
-              <pre className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{genericScript.body}</pre>
-            </div>
-          )}
-
-          {/* Chairs */}
-          {chairs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No committees assigned yet.</p>
+          {!hasChairs ? (
+            <EmptyState />
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {chairs.map((chair, i) => {
-                const script = scriptFor(chair);
-                const RoleIcon = chair.role === 'chair' ? Gavel : ShieldCheck;
-                const mailto = chair.email && script
-                  ? `mailto:${chair.email}?subject=${encodeURIComponent(script.subject)}&body=${encodeURIComponent(script.body)}`
-                  : chair.email ? `mailto:${chair.email}` : null;
-                return (
-                  <div key={`${chair.committeeCode}-${chair.role}-${i}`} className="rounded-lg border bg-card p-3">
-                    <div className="flex items-center gap-2">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                        <RoleIcon className="h-4 w-4" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold">{chair.legislatorName}</p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {chair.role === 'chair' ? 'Chair' : 'Vice-Chair'} · {chair.committeeName}
-                        </p>
+            <>
+              {/* Step 1 — Position */}
+              <StepSection index={1} title="Choose your position">
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Tell the committee whether you want this measure to move forward. This sets the tone of every script below.
+                </p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Position">
+                  <PositionButton
+                    active={position === 'support'}
+                    onClick={() => setPosition('support')}
+                    icon={ThumbsUp}
+                    label="Support"
+                    help="Advance this bill"
+                    tone="support"
+                  />
+                  <PositionButton
+                    active={position === 'oppose'}
+                    onClick={() => setPosition('oppose')}
+                    icon={ThumbsDown}
+                    label="Oppose"
+                    help="Hold this bill"
+                    tone="oppose"
+                  />
+                </div>
+              </StepSection>
+
+              {/* Step 2 — Contacts + scripts, gated on position */}
+              <StepSection
+                index={2}
+                title="Contact the committee"
+                muted={!position}
+              >
+                {!position ? (
+                  <p className="text-sm text-muted-foreground">
+                    Pick a position above to unlock a ready-to-send message for each chair.
+                  </p>
+                ) : (
+                  <div className="space-y-5">
+                    {groups.map((group) => (
+                      <div key={group.code}>
+                        <div className="mb-2 flex items-baseline gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-wide">{group.code}</span>
+                          <span className="truncate text-xs text-muted-foreground">{group.name}</span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          {group.chairs.map((chair) => (
+                            <ChairCard
+                              key={`${chair.committeeCode}-${chair.role}`}
+                              chair={chair}
+                              script={scripts.get(`${chair.committeeCode}-${chair.role}`) ?? null}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    <div className="mt-2 space-y-1 text-xs">
-                      {chair.email && (
-                        <p className="flex items-center gap-1.5 break-all">
-                          <Mail className="h-3.5 w-3.5 shrink-0" /> {chair.email}
-                        </p>
-                      )}
-                      {chair.phone && (
-                        <p className="flex items-center gap-1.5">
-                          <Phone className="h-3.5 w-3.5 shrink-0" /> {chair.phone}
-                        </p>
-                      )}
-                    </div>
-                    {chair.email && (
-                      position && mailto ? (
-                        <Button asChild size="sm" variant="outline" className="mt-2 w-full">
-                          <a href={mailto}>
-                            <Mail className="mr-1.5 h-3.5 w-3.5" /> Email {chair.role === 'chair' ? 'Chair' : 'Vice-Chair'}
-                          </a>
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-2 w-full"
-                          disabled
-                          aria-disabled="true"
-                        >
-                          <Mail className="mr-1.5 h-3.5 w-3.5" /> Email {chair.role === 'chair' ? 'Chair' : 'Vice-Chair'}
-                        </Button>
-                      )
-                    )}
-                    {!position && chair.email && (
-                      <p className="mt-1 text-[11px] text-muted-foreground">Pick a position to fill the email.</p>
-                    )}
+                    ))}
                   </div>
-                );
-              })}
-            </div>
+                )}
+              </StepSection>
+            </>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+function BillContext({ bill, committeeCount }: { bill: BillDetails; committeeCount: number }) {
+  return (
+    <div className="rounded-lg border bg-card p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-base font-semibold">{bill.bill_number}</p>
+          {bill.bill_title && (
+            <p className="mt-0.5 text-sm text-muted-foreground">{bill.bill_title}</p>
+          )}
+          <p className="mt-2 text-xs text-muted-foreground">
+            {committeeCount > 0
+              ? `Before ${committeeCount} committee${committeeCount === 1 ? '' : 's'}`
+              : 'Not yet referred to a committee'}
+            {bill.introducer ? ` · Introduced by ${bill.introducer}` : ''}
+          </p>
+        </div>
+        {bill.bill_url && (
+          <Button asChild variant="outline" size="sm" className="shrink-0">
+            <a href={bill.bill_url} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Capitol page</span>
+              <span className="sm:hidden">Bill</span>
+            </a>
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StepSection({
+  index,
+  title,
+  muted,
+  children,
+}: {
+  index: number;
+  title: string;
+  muted?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      className={[
+        'rounded-lg border bg-card p-4 transition-opacity',
+        muted ? 'opacity-70' : 'opacity-100',
+      ].join(' ')}
+    >
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+          {index}
+        </span>
+        <h2 className="text-sm font-semibold">{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function PositionButton({
+  active,
+  onClick,
+  icon: Icon,
+  label,
+  help,
+  tone,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: typeof ThumbsUp;
+  label: string;
+  help: string;
+  tone: 'support' | 'oppose';
+}) {
+  const activeClasses =
+    tone === 'support'
+      ? 'border-green-600 bg-green-50 text-green-800 dark:border-green-500 dark:bg-green-950 dark:text-green-200'
+      : 'border-red-600 bg-red-50 text-red-800 dark:border-red-500 dark:bg-red-950 dark:text-red-200';
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={active}
+      onClick={onClick}
+      className={[
+        'flex items-center gap-3 rounded-md border p-3 text-left transition-colors',
+        active ? activeClasses : 'bg-background hover:bg-muted',
+      ].join(' ')}
+    >
+      <span
+        className={[
+          'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
+          active ? 'bg-white/60 dark:bg-black/20' : 'bg-muted',
+        ].join(' ')}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0">
+        <span className="flex items-center gap-1.5 text-sm font-semibold">
+          {label}
+          {active && <Check className="h-3.5 w-3.5" />}
+        </span>
+        <span className="block text-xs opacity-80">{help}</span>
+      </span>
+    </button>
+  );
+}
+
+function ChairCard({
+  chair,
+  script,
+}: {
+  chair: CommitteeChair;
+  script: { subject: string; body: string } | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const RoleIcon = chair.role === 'chair' ? Gavel : ShieldCheck;
+  const roleLabel = chair.role === 'chair' ? 'Chair' : 'Vice-Chair';
+
+  const mailto =
+    chair.email && script
+      ? `mailto:${chair.email}?subject=${encodeURIComponent(script.subject)}&body=${encodeURIComponent(script.body)}`
+      : null;
+
+  const copyScript = async () => {
+    if (!script) return;
+    try {
+      await navigator.clipboard.writeText(script.body);
+      setCopied(true);
+      toast({ title: 'Copied', description: `Script for ${chair.legislatorName} copied.` });
+      // reset the inline confirmation after a moment
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ title: 'Copy failed', description: 'Open the preview and copy manually.', variant: 'destructive' });
+    }
+  };
+
+  return (
+    <div className="flex flex-col rounded-lg border bg-card p-3">
+      <div className="flex items-center gap-2">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+          <RoleIcon className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">{chair.legislatorName}</p>
+          <p className="truncate text-xs text-muted-foreground">{roleLabel}</p>
+        </div>
+      </div>
+
+      <div className="mt-2 space-y-1 text-xs">
+        {chair.email && (
+          <a
+            href={`mailto:${chair.email}`}
+            className="flex items-center gap-1.5 break-all text-muted-foreground hover:text-foreground hover:underline"
+          >
+            <Mail className="h-3.5 w-3.5 shrink-0" /> {chair.email}
+          </a>
+        )}
+        {chair.phone && (
+          <a
+            href={`tel:${chair.phone.replace(/[^\d+]/g, '')}`}
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground hover:underline"
+          >
+            <Phone className="h-3.5 w-3.5 shrink-0" /> {chair.phone}
+          </a>
+        )}
+      </div>
+
+      {/* Script preview toggle */}
+      {script && (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="mt-2 flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+        >
+          <ChevronDown className={['h-3.5 w-3.5 transition-transform', open ? 'rotate-180' : ''].join(' ')} />
+          {open ? 'Hide script' : 'Preview script'}
+        </button>
+      )}
+      {script && open && (
+        <pre className="mt-2 max-h-56 overflow-y-auto whitespace-pre-wrap break-words rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
+          {script.body}
+        </pre>
+      )}
+
+      {/* Actions */}
+      <div className="mt-auto flex gap-2 pt-3">
+        <Button
+          size="sm"
+          variant="outline"
+          className="flex-1"
+          onClick={copyScript}
+          disabled={!script}
+        >
+          {copied ? (
+            <>
+              <Check className="mr-1.5 h-3.5 w-3.5" /> Copied
+            </>
+          ) : (
+            <>
+              <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy
+            </>
+          )}
+        </Button>
+        {chair.email &&
+          (mailto ? (
+            <Button asChild size="sm" className="flex-1">
+              <a href={mailto}>
+                <Mail className="mr-1.5 h-3.5 w-3.5" /> Email
+              </a>
+            </Button>
+          ) : (
+            <Button size="sm" className="flex-1" disabled aria-disabled="true">
+              <Mail className="mr-1.5 h-3.5 w-3.5" /> Email
+            </Button>
+          ))}
+      </div>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="rounded-lg border border-dashed bg-card p-8 text-center">
+      <Gavel className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+      <p className="text-sm font-medium">No committees assigned yet</p>
+      <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
+        Committee chairs appear once this bill is referred to a committee. Check back after the referral, then return
+        here to send your message.
+      </p>
+    </div>
+  );
+}
+
+function ContactSkeleton({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="flex h-dvh flex-col">
+      <div className="flex items-center gap-2 border-b px-4 py-3">
+        <Button variant="ghost" size="sm" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4" />
+          <span className="ml-1 hidden sm:inline">Back</span>
+        </Button>
+        <p className="truncate text-sm font-semibold">Contact Legislator</p>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-3xl space-y-5 p-4 sm:p-6">
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
         </div>
       </div>
     </div>
