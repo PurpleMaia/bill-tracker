@@ -41,4 +41,33 @@ describe('deriveBriefingFacts', () => {
     const f = deriveBriefingFacts(baseBill({ versions: [ver('HB1334')] }), '2026-02-01');
     expect(f.nextSteps.some((s) => s.action === 'diff')).toBe(false);
   });
+
+  it('closes testimony once the scheduled hearing has passed', () => {
+    // Scheduled bill, well before the session deadline, but the hearing in its
+    // latest update was held in the past — testimony can no longer be submitted.
+    const bill = baseBill({
+      current_bill_status: 'scheduled1',
+      latest_update: {
+        id: 'u1', chamber: 'H', date: '1/15/2026',
+        statustext: 'The committee(s) on AGR has scheduled a public hearing on 01-15-26 9:00AM in room 325.',
+      },
+    });
+    const f = deriveBriefingFacts(bill, '2026-02-01');
+    expect(f.testimony.open).toBe(false);
+    expect(f.testimony.message.toLowerCase()).toContain('hearing');
+    expect(f.nextSteps.some((s) => s.action === 'testimony')).toBe(false);
+  });
+
+  it('keeps testimony open when the scheduled hearing is still ahead', () => {
+    const bill = baseBill({
+      current_bill_status: 'scheduled1',
+      latest_update: {
+        id: 'u2', chamber: 'H', date: '2/20/2026',
+        statustext: 'The committee(s) on AGR has scheduled a public hearing on 02-20-26 9:00AM in room 325.',
+      },
+    });
+    const f = deriveBriefingFacts(bill, '2026-02-01');
+    expect(f.testimony.open).toBe(true);
+    expect(f.nextSteps.some((s) => s.action === 'testimony')).toBe(true);
+  });
 });
