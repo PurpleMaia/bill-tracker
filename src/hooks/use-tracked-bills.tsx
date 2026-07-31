@@ -29,10 +29,15 @@ export function useTrackedBills() {
         console.log('Bill tracked successfully, adding to list...');
         addBill(trackedBill);
 
-        // Fetch tags for the newly tracked bill
-        console.log('Fetching tags for newly tracked bill...');
-        const tags = await getBillTags(trackedBill.id, activeTenant!.tenantId);
-        updateBill(trackedBill.id, { tags });
+        // Tags are tenant-scoped, so only fetch them when in an org context.
+        // Public users have no tenant — dereferencing activeTenant here used to
+        // throw, which was caught below and misreported the successful track as
+        // a failure ("Bill URL not found or already tracked").
+        if (activeTenant) {
+          console.log('Fetching tags for newly tracked bill...');
+          const tags = await getBillTags(trackedBill.id, activeTenant.tenantId);
+          updateBill(trackedBill.id, { tags });
+        }
 
         toast({
           title: 'Bill tracked',
