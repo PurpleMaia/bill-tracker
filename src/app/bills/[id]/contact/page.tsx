@@ -270,8 +270,8 @@ function PositionButton({
 }) {
   const activeClasses =
     tone === 'support'
-      ? 'border-green-600 bg-green-50 text-green-800 dark:border-green-500 dark:bg-green-950 dark:text-green-200'
-      : 'border-red-600 bg-red-50 text-red-800 dark:border-red-500 dark:bg-red-950 dark:text-red-200';
+      ? 'border-green-200 bg-green-100 text-green-800'
+      : 'border-red-200 bg-red-100 text-red-800';
   return (
     <button
       type="button"
@@ -286,7 +286,7 @@ function PositionButton({
       <span
         className={[
           'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
-          active ? 'bg-white/60 dark:bg-black/20' : 'bg-muted',
+          active ? 'bg-white' : 'bg-muted',
         ].join(' ')}
       >
         <Icon className="h-4 w-4" />
@@ -340,7 +340,9 @@ function ChairCard({
         </span>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{chair.legislatorName}</p>
-          <p className="truncate text-xs text-muted-foreground">{roleLabel}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {roleLabel} · {chair.committeeName}
+          </p>
         </div>
       </div>
 
