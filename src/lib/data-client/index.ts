@@ -13,6 +13,7 @@ import { preferencesClient } from './preferences.client';
 import { testimonyClient } from './testimony.client';
 import { boardsClient } from './boards.client';
 import { summariesClient } from './summaries.client';
+import { legislatorsClient } from './legislators.client';
 
 export const data = {
   bills: billsClient,
@@ -22,6 +23,7 @@ export const data = {
   testimony: testimonyClient,
   boards: boardsClient,
   summaries: summariesClient,
+  legislators: legislatorsClient,
 };
 
 export type { Transport } from './transport';
