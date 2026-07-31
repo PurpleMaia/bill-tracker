@@ -132,6 +132,9 @@ deterministic template — cheap and testable. `subject` feeds the `mailto:` lin
 
 ### 4. UI
 
+Responsive/mobile behavior for every element below is specified in **section 5 (Mobile &
+responsive formatting)**.
+
 **Button** — `src/components/kanban/bill-details-dialog.tsx`:
 - Add a `Contact Legislator` button next to `Write Testimony` in the desktop dialog header
   and in the mobile action bar. Icon: `Mail` or `Users` (lucide). **Always enabled** — no
@@ -154,6 +157,41 @@ deterministic template — cheap and testable. `subject` feeds the `mailto:` lin
 **Removal**: delete the `CommitteeContacts` render from `bill-details-dialog.tsx` and the
 `committee-contacts.tsx` component. `committees.ts` (names/codes helper) stays — it is
 reused by the new query and page.
+
+### 5. Mobile & responsive formatting
+
+The dialog and the testimony page already carry a mobile convention; this feature follows
+it exactly rather than inventing a new one. Concretely:
+
+**Button entry point (bill details dialog):**
+- **Desktop** (`hidden sm:flex`): `Contact Legislator` sits inline in the dialog header
+  next to `Write Testimony`, matching that button's `size="sm" variant="outline"` treatment.
+- **Mobile**: it does NOT go in the header (no room — three tabs already crowd 375px).
+  It joins the **sticky bottom action bar** alongside Write Testimony, in thumb reach.
+  Two full-width buttons stacked (`w-full h-11`), Contact Legislator as the secondary
+  (`variant="outline"`). The bar keeps the existing
+  `pb-[max(0.75rem,env(safe-area-inset-bottom))]` safe-area padding.
+- **No tooltips on mobile** — tooltips don't fire on touch. Since Contact Legislator is
+  always enabled, there is no disabled-reason text to surface (unlike Write Testimony).
+
+**Contact page (`/bills/[id]/contact`) — full-page responsive layout:**
+- Root `flex h-dvh flex-col`; a back header row; scrollable body
+  `mx-auto max-w-3xl space-y-4 p-4 sm:p-6` — identical container to the testimony page so
+  the two flows feel the same. Back label collapses on mobile
+  (`<span className="ml-1 hidden sm:inline">Back</span>`).
+- **Position selector (support / oppose)** — the media form control. On mobile it is a
+  **stacked, full-width segmented control / two large tap targets** (min ~44px height),
+  full width; on `sm+` it sits inline. Selection is required before the script/mailto
+  unlock, on every breakpoint. Use radio semantics for a11y; large hit areas on touch.
+- **Chair cards** — single column on mobile, `sm:grid-cols-2` on wider screens. Each card
+  wraps its own contact rows; long emails/committee names use `break-words` / `truncate`
+  as appropriate so nothing forces horizontal scroll. Role shown as an icon medallion/chip
+  (NOT a colored left-edge strip).
+- **Script block** — full-width textarea/readonly block that grows with content; **Copy**
+  button full-width on mobile, inline on desktop. `mailto:` links are plain anchors (open
+  the device mail app). Nothing here relies on hover.
+- **No horizontal scroll at 375px** — the body never scrolls sideways; wide content
+  (emails, phone, committee names) wraps or truncates within its card.
 
 ## Testing
 
