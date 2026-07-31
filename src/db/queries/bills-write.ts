@@ -343,3 +343,36 @@ export async function untrackBill(userId: string, billId: string, tenantId?: str
     return false;
   }
 }
+
+/**
+ * Removes a bill from an organization's board entirely — deletes EVERY member's
+ * tracking row for this bill in this tenant plus the org's status row. After
+ * this, the bill no longer appears on the org board for anyone (the board query
+ * joins user_bills scoped by tenant_id; org_bills is cleaned up too).
+ *
+ * This is the org-admin "Remove from board" action, matching the confirmation
+ * copy ("...including for anyone else in {org} tracking it"). It does NOT touch
+ * the global bill row (food_related, status) or other tenants' tracking.
+ *
+ * @returns the number of user_bills rows removed.
+ */
+export async function removeBillFromOrg(billId: string, tenantId: string): Promise<number> {
+  console.log('removeBillFromOrg called with:', { billId, tenantId });
+  return await db.transaction().execute(async (trx) => {
+    const deleted = await trx
+      .deleteFrom('user_bills')
+      .where('bill_id', '=', billId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    await trx
+      .deleteFrom('org_bills')
+      .where('bill_id', '=', billId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    const removed = deleted.numDeletedRows != null ? Number(deleted.numDeletedRows) : 0;
+    console.log(`Removed bill ${billId} from org ${tenantId} (${removed} tracking row(s)).`);
+    return removed;
+  });
+}

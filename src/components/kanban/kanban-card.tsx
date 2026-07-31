@@ -45,7 +45,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { updateFoodStatusOrCreateBill } from '@/db/queries/bills-write';
+import { removeBillFromOrg } from '@/db/queries/bills-write';
 import { toast } from '@/hooks/use-toast';
 import { cardVisibility } from '@/lib/bills/board-display';
 
@@ -79,8 +79,12 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const trackedCount = bill.tracked_count ?? trackedBy.length;
 
     const canAssign = canAssignBills(user, activeTenant?.orgRole);
-    // Users who can't remove a bill from the board can still stop tracking it.
-    const canUntrack = !canAssign && showUnadoptButton && !!onUnadopt;
+    // Removing a bill takes it off the board for EVERYONE in the org, so it is
+    // restricted to org admins (not merely anyone who can assign bills).
+    const canRemoveFromBoard = activeTenant?.orgRole === 'admin';
+    // Anyone who can't remove the bill org-wide can still stop tracking it
+    // themselves (org workers, and default/no-org users removing their own list).
+    const canUntrack = !canRemoveFromBoard && showUnadoptButton && !!onUnadopt;
 
     const headline = formatBillHeadline(bill);
     const committeeReferrals = bill.committee_assignment ? parseCommittees(bill.committee_assignment) : [];
@@ -113,9 +117,16 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     };
 
     const handleRemoveBill = async () => {
+      // Org-wide removal deletes every member's tracking row for this bill in the
+      // tenant, so it requires an active org context and admin role. Without a
+      // tenant there is no org board to remove from.
+      if (!activeTenant?.tenantId) {
+        console.error('Cannot remove bill: no active organization.');
+        return;
+      }
       setIsRemoving(true);
       try {
-        await updateFoodStatusOrCreateBill(bill, false, activeTenant?.tenantId);
+        await removeBillFromOrg(bill.id, activeTenant.tenantId);
         removeBill(bill.id);
         toast({ title: 'Bill Removed', description: `${bill.bill_number} removed from the board.`, duration: 5000 });
         setShowRemoveDialog(false);
@@ -227,7 +238,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                       {bill.year}
                     </Badge>
                   )}
-                  {(canAssign || canUntrack) && (
+                  {(canAssign || canUntrack || canRemoveFromBoard) && (
                     <div className="ml-auto flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       {canUntrack && (
                         <Button
@@ -258,7 +269,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                           }
                         />
                       )}
-                      {canAssign && !bill.dead && (
+                      {canRemoveFromBoard && !bill.dead && (
                       <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -542,7 +553,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                   billUrl={bill.bill_url}
                   committeeAssignment={bill.committee_assignment}
                   latestUpdate={bill.latest_update}
-                  removeSlot={canAssign ? (
+                  removeSlot={canRemoveFromBoard ? (
                     <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
                       <AlertDialogTrigger asChild>
                         <Button
