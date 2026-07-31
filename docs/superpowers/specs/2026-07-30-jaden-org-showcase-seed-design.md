@@ -1,4 +1,4 @@
-# Jaden Kapali Org — Showcase Board Seed (real bills)
+# Jaden Kapali Org — Showcase Board Seed (dummy bills)
 
 **Date:** 2026-07-30
 **Status:** Approved design, pending implementation-plan
@@ -7,7 +7,7 @@
 ## Goal
 
 Populate the **Jaden Kapali** organization board (`tenants.slug = 'jaden-kapali'`,
-id `dea7be8b-3aba-4dbd-9be0-0206927b2861`) with a curated set of **real** bills so
+id `dea7be8b-3aba-4dbd-9be0-0206927b2861`) with a curated set of **dummy** bills so
 every meaningful board state is demonstrable for a walkthrough:
 
 - A bill whose **testimony is nearly due** and still writable (live countdown).
@@ -16,114 +16,137 @@ every meaningful board state is demonstrable for a walkthrough:
   (deferred by committee, recommendation not adopted, missed deadline).
 - **One card in each simple-view column** to showcase end-to-end usage.
 
-## Hard constraints (from the user)
+## Constraints (from the user)
 
-1. **Do not create new bills.** Use bills already stored in the DB (6,110 real bills exist).
+1. **Use dummy bills** (fake `dummy.test` URL prefix), not real bills — full control
+   over status, dates, dead-flag, and hearing text; trivially removable.
 2. **Only fill gaps** — do not modify the ~62 bills already in the Jaden org.
-3. **Seed data only** — no UI work this task (we observe how current UI renders closed testimony afterward).
+3. **Seed data only** — no UI work this task (we observe how current UI renders closed
+   testimony afterward, then decide on any UI follow-up).
 4. Track showcase bills under **`jkapali`** (org admin, user id `ca18f8b7`).
 5. Tune deadline/testimony dates to the **demo calendar**
    (`NEXT_PUBLIC_DEMO_DEADLINES=1`, dates near today 2026-07-30).
-6. Everything **reversible** via an undo script that restores exactly what was touched.
+6. **Reversible** via an undo script keyed on the dummy URL prefix.
 
-## How the board reads status (verified)
+## Pattern to follow
 
-- Tenant board fetch (`getAllTrackedBills` / member views) `innerJoin`s `user_bills`
-  filtered by `tenant_id` → a bill needs a **`user_bills` row** for the org to appear.
-- Card placement uses `current_bill_status`, which the mapper resolves as
-  **`org_bills.bill_status` ?? global `bills.bill_status`** (`bill-mappers.ts:156`).
-  → Setting **`org_bills.bill_status`** moves a card in *this org only*, without
-  touching the bill's global status or any other org.
+Mirror the existing `scripts/seed-dummy-column-bills.ts` +
+`scripts/undo-seed-dummy-column-bills.ts` pair. New scripts use a **distinct** URL prefix
+so undo removes only this showcase set and never the column-stress dummies (HB9910–…) or
+the older HB9901–SB9904 dummies.
+
+- Seed prefix: `https://dummy.test/jaden-showcase/`
+- Seed: `scripts/seed-jaden-org-showcase.ts`
+- Undo: `scripts/undo-jaden-org-showcase.ts` (delete referencing rows then bills, keyed on prefix)
+
+## How the board reads status (verified against code)
+
+- Tenant board fetch `innerJoin`s `user_bills` filtered by `tenant_id` → each dummy bill
+  needs a **`user_bills` row** `{ user_id: jkapali, bill_id, tenant_id: jaden }`.
+- Card placement uses `current_bill_status` = **`org_bills.bill_status` ?? global
+  `bills.bill_status`** (`bill-mappers.ts:156`). We control both, so we simply set the
+  dummy bill's global `bill_status` and an `org_bills` row to the **same** target status.
 - Testimony countdown (`kanban-card.tsx:146-151`): shows when
   `isTestimonyUrgent(current_bill_status)` (status is `scheduled*`) **and** the bill's
-  **latest** `status_update` text contains a parseable hearing datetime. Countdown
-  targets *hearing − 24h*; `getDeadlineTier` colors it (≤7d urgent, ≤14d warning).
-- "Latest" status_update = newest `date` cast to date, desc (`bills-read.ts:363`).
-- Closed testimony: `getTestimonyDeadline` returns `hearingPassed: true` once the
-  hearing datetime is in the past; `testimonies-view.tsx` already renders a
-  "submission window closed" note for it.
+  **latest** `status_update` text has a parseable hearing datetime. Countdown targets
+  *hearing − 24h*; `getDeadlineTier` colors it (≤7d urgent, ≤14d warning, else safe).
+- "Latest" status_update = newest `date` cast to date, desc (`bills-read.ts:363`) — the
+  seed makes the hearing-notice row the newest-dated one.
+- Closed testimony: `getTestimonyDeadline` → `hearingPassed: true` once the hearing
+  datetime is past; `testimonies-view.tsx` already renders a "submission window closed"
+  note. (Kanban card simply drops the countdown once passed — a candidate gap to note.)
+- Dead/failed cards: driven by `bills.dead = true` plus the latest status_update text.
+  `getDeadReasonFromUpdate` (dead-bill.ts) derives the reason label shown in the card /
+  dead-bill popover from that text:
+  - "deferred the measure" (no "until") → **Deferred by <CMTE>**
+  - "recommendation was not adopted" → **Recommendation not adopted by <CMTE>**
+  - neither → **Missed deadline**
 
-## Why real hearing dates don't work as-is
+## Demo calendar anchors (for date tuning)
 
-All real status_updates carry **2025** hearing datetimes (2025-session scrape). Relative
-to today (2026-07-30) every real hearing is a year in the past, so no untouched real
-bill can render "nearly due". Therefore the two testimony cases require rewriting the
-**latest status_update's date + hearing datetime** into the demo window. Approved.
+From `session-deadlines-demo.json`, today = 2026-07-30:
+- first_triple_referral_filing HB 2026-07-10 / SB 2026-07-12 (already passed → failure)
+- first_lateral 2026-07-17 (passed)
+- single_referral_filing SB 2026-07-21 (passed), HB 2026-08-20 (upcoming)
+- first_decking 2026-08-07, first_crossover 2026-08-14 (upcoming)
+- final_decking_non_fiscal 2026-10-07 / fiscal 2026-10-09 (testimony stays open until then)
 
-## The showcase set
+## The showcase set (dummy bills)
 
-All bills are real and food-related. Exact bill numbers are finalized in the
-implementation plan against a fresh DB read (avoid ones already in the org). Candidates
-below are confirmed present.
+Each row is one dummy bill. `bill_status` and `org_bills.bill_status` are set to the same
+target. Bill numbers are illustrative; finalized in the plan (unique, non-colliding with
+existing dummies). Chamber prefix chosen per committee mix to land the intended tier.
 
-| # | Case | Real bill (candidate) | Mechanism |
-|---|------|----------------------|-----------|
-| 1 | Testimony **nearly due**, writable | a real `scheduled1/2` food bill (e.g. `SB1191`) | org_bills.bill_status = its scheduled status; rewrite latest status_update → hearing ~**36h out** (warning tier), demo window |
-| 2 | Testimony **closed** (hearing passed) | another real scheduled food bill | org status scheduled; rewrite latest status_update → hearing ~**12h ago** → `hearingPassed` |
-| 3a | Failed: **deferred by committee** | `SB729` (real, dead, deferred) | add to org as-is (global status + dead flag drive it) |
-| 3b | Failed: **recommendation not adopted** | `SB12` (real, dead) | add to org as-is |
-| 3c | Failed: **missed deadline** | `SB688 SD1` (real, dead) | add to org as-is |
-| 4a | Column: `conferenceAssigned` (AWAITING COMMITTEES) | real bill in that status (e.g. `HB1450 HD2 SD1`) | add to org as-is |
-| 4b | Column: `governorSigns` (SIGNED INTO LAW) | real bill in that status (e.g. `HB345…`) | add to org as-is |
-| 5 | Columns with **no real bill in that status** — `passedCommittees` (CONFERENCE), `crossoverWaiting*`, `crossoverScheduled*`, `conferencePassed`, `transmittedGovernor`, `vetoList`, `lawWithoutSignature` | real food bills chosen from a lower status | **repoint `org_bills.bill_status`** to the target column (org-only; global status untouched) |
+| # | Case | Status / column | Committee mix | Dates & latest status_update |
+|---|------|-----------------|---------------|------------------------------|
+| 1 | **Testimony nearly due**, writable | `scheduled1` (SCHEDULED) | non-fiscal (e.g. `AGR`) | latest update dated ~2026-07-29 with hearing **~2026-08-01 (≈36h out)** → "Testimony due in ~36h", warning tier; Write Testimony open (before final decking 10/07) |
+| 1b | Testimony **urgent** variant (optional) | `scheduled2` | non-fiscal | hearing **≈2026-07-31 (<24h)** → "Testimony due now", urgent tier |
+| 2 | **Testimony closed** (hearing passed) | `scheduled3` (SCHEDULED) | non-fiscal | latest update with hearing **~2026-07-29 (≈12h ago)** → `hearingPassed`; observe how card + testimonies view render the closed window |
+| 3a | Failed: **deferred by committee** | `scheduled1`, `dead=true` | `JDC` | latest update: "The committee(s) on JDC deferred the measure." → **Deferred by JDC** |
+| 3b | Failed: **recommendation not adopted** | `waiting2`, `dead=true` | `WAM` | latest update: "The committee(s) on WAM recommended that the recommendation was not adopted." → **Recommendation not adopted by WAM** (verified: the "committee(s) on X" form is required for the committee name to attach) |
+| 3c | Failed: **missed deadline** | `introduced`, `dead=true` | triple `AGR, EDN, FIN` | no scheduling; triple-referral filing deadline (7/10) already passed while still `introduced` → **Missed First Triple Referral Filing deadline** |
+| 4 | **Every simple-view column** | one dummy per column not otherwise covered | mix | placed by status/org_bills; see column list below |
 
-Net: one card in every simple-view column, plus the three failure exemplars and the two
-testimony exemplars. Existing org bills provide additional coverage and are left alone.
+### Simple-view columns to guarantee one card each
 
-## What gets written (per showcase bill)
+`STATUS_TO_SIMPLIFIED` maps statuses to these simple columns. One dummy per column
+(some already satisfied by cases 1–3):
 
-1. `user_bills` row: `{ user_id: jkapali, bill_id, tenant_id: jaden }` (idempotent — skip if present).
-2. `org_bills` row: `{ tenant_id: jaden, bill_id, bill_status: <target-column-status> }`.
-   If no org_bills row exists for (tenant, bill), **insert** it; if one exists with a
-   different `bill_status`, **update** it to the target (recording the prior value in
-   provenance for undo). Showcase bills are chosen to not already be in the org, so this
-   is normally an insert — the update path is a safety net, not the intent.
-3. Cases 1 & 2 only: `UPDATE status_updates` on the bill's latest row —
-   set `date` and `statustext` hearing datetime into the demo window.
+- **INTRODUCED & WAITING** — `introduced` (also covered by 3c) and/or `waiting2`
+- **SCHEDULED** — `scheduled1/2/3` (covered by 1, 1b, 2)
+- **CROSSOVER & WAITING** — `crossoverWaiting1`
+- **CROSSOVER SCHEDULED** — `crossoverScheduled1` (add hearing text for a second testimony-due card here if desired)
+- **CONFERENCE** — `passedCommittees`
+- **AWAITING COMMITTEES** — `conferenceAssigned`
+- **SCHEDULED (conference)** — `conferenceScheduled`
+- **PASSED CONFERENCE** — `conferencePassed`
+- **TRANSMITTED TO GOVERNOR** — `transmittedGovernor`
+- **GOVERNOR VETOED** — `vetoList`
+- **GOVERNOR SIGNED INTO LAW** — `governorSigns`
+- **LAW WITHOUT SIGNATURE** — `lawWithoutSignature`
 
-The target `org_bills.bill_status` equals the bill's real status **except** for case-5
-repointed columns and the two testimony bills (whose org status is forced to a
-`scheduled*` value).
+Net: ~12–15 dummy bills. Existing org bills are left untouched and provide extra coverage.
+
+## What the seed writes (per dummy bill)
+
+Following `seed-dummy-column-bills.ts`:
+
+1. `bills` row: `bill_url = <prefix><billNumber>_2026`, `bill_title`, `nickname`
+   (`Showcase — …`), `description` (marked dummy), `bill_number`, `introducer`,
+   `committee_assignment`, `bill_status = target`, `ai_status = target`,
+   `food_related = true`, `year = 2026`, `dead = <case>`.
+2. `status_updates` rows: an intro row plus, for scheduled/failed cases, a **latest-dated**
+   row carrying the hearing-notice or deferral text that drives the UI state.
+3. `user_bills` row `{ user_id: jkapali, bill_id, tenant_id: jaden }`.
+4. `org_bills` row `{ tenant_id: jaden, bill_id, bill_status: target }`
+   (`onConflict doNothing`).
+
+Idempotent: bills keyed by URL; re-run is a no-op / only ensures tracking rows.
 
 ## Reversibility
 
-A single seed script (`scripts/seed-jaden-org-showcase.ts`) and undo
-(`scripts/undo-jaden-org-showcase.ts`), following the existing
-`seed-dummy-column-bills.ts` / `undo-*` pattern.
-
-- Seed keys every touched bill by a **known list of bill_numbers** (the showcase set),
-  scoped to the Jaden tenant.
-- **Provenance table for exact restore:** because we mutate `org_bills.bill_status` and
-  `status_updates` on *pre-existing real rows*, "doNothing on conflict" is not enough to
-  undo cleanly. The seed script records, into a small JSON provenance file under
-  `scripts/.jaden-showcase-provenance.json` (git-ignored), the **prior value** of each
-  row it changed or inserted:
-  - which `user_bills` rows it inserted (to delete on undo),
-  - which `org_bills` rows it inserted vs. updated, and their prior `bill_status`,
-  - the prior `date` + `statustext` of any edited `status_updates` row.
-- Undo replays the provenance in reverse: restore edited status_updates text/date,
-  restore or delete org_bills rows, delete inserted user_bills rows. Bills themselves
-  are never inserted or deleted, so nothing global is at risk.
-- Idempotent: re-running seed detects existing showcase membership and is a no-op for
-  already-seeded bills (provenance is not double-written).
+`scripts/undo-jaden-org-showcase.ts` deletes all rows referencing bills whose
+`bill_url LIKE 'https://dummy.test/jaden-showcase/%'`, then the bills — same structure as
+`undo-seed-dummy-column-bills.ts`. Because these are dedicated dummy bills, cleanup is
+total and cannot affect real bills, existing org bills, or other tenants. No provenance
+file needed.
 
 ## Verification (after seeding)
 
-1. `npm run typecheck` on the scripts.
-2. Run seed; run a read query asserting the Jaden org now has one bill in each targeted
-   simple-view column and the three failure exemplars are `dead` with the expected reasons.
-3. Launch the app with `NEXT_PUBLIC_DEMO_DEADLINES=1`, open the Jaden org board in simple
-   view as `jkapali`, and confirm:
-   - Case 1 shows "Testimony due in ~36h" (warning tier), Write Testimony open.
-   - Case 2 shows the closed-window state (observe current UI; note any gap for a later UI task).
-   - Failure exemplars show Failed badge with the right reason in the dead-bill popover.
-   - Each simple column has at least one card.
-4. Run undo; confirm the org board returns to its prior 62-bill state and the edited
-   status_updates are restored verbatim.
+1. `npm run typecheck`.
+2. Run seed; run a read asserting the Jaden org now has ≥1 card in every simple-view
+   column and the three failure exemplars are `dead` with expected reasons.
+3. Launch with `NEXT_PUBLIC_DEMO_DEADLINES=1`, open the Jaden org board (simple view) as
+   `jkapali`, confirm:
+   - Case 1 → "Testimony due in ~36h" (warning), Write Testimony open.
+   - Case 2 → closed-window state (record exactly what current UI shows; note any gap for
+     a possible later UI task, per user's "might need new UI" remark).
+   - 3a/3b/3c → Failed badge + correct reason in the dead-bill popover.
+   - Every simple column has a card.
+4. Run undo; confirm the board returns to its prior 62-bill state and no dummy showcase
+   rows remain.
 
 ## Out of scope
 
 - Any UI changes (including a dedicated "testimony closed" indicator).
-- Touching the Food+ org or any other tenant.
-- Modifying global `bills.bill_status`, `bills.dead`, or scraped data other than the two
-  testimony status_update rows (which are restored on undo).
+- Touching the Food+ org, other tenants, or any real bill / existing org bill.
