@@ -5,11 +5,10 @@ import { Check } from 'lucide-react';
 
 const STEPS = [
   { number: 1, title: 'Position' },
-  { number: 2, title: 'Script' },
-  { number: 3, title: 'Contact' },
+  { number: 2, title: 'Compose' },
 ] as const;
 
-export type ContactStep = 1 | 2 | 3;
+export type ContactStep = 1 | 2;
 
 interface ContactStepperProps {
   step: ContactStep;
@@ -18,7 +17,7 @@ interface ContactStepperProps {
   maxStep?: ContactStep;
 }
 
-export function ContactStepper({ step, onStepChange, maxStep = 3 }: ContactStepperProps) {
+export function ContactStepper({ step, onStepChange, maxStep = 2 }: ContactStepperProps) {
   return (
     <nav aria-label="Contact progress" className="flex items-center gap-2">
       {STEPS.map((item, index) => {

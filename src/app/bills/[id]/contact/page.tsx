@@ -25,6 +25,7 @@ import {
   Check,
   ChevronDown,
   Copy,
+  ExternalLink,
   Gavel,
   Info,
   Loader2,
@@ -98,7 +99,7 @@ export default function ContactLegislatorPage() {
   const userName = user?.username ?? undefined;
   const groups = useMemo(() => groupByCommittee(chairs), [chairs]);
   const hasChairs = chairs.length > 0;
-  const maxStep: ContactStep = position ? 3 : 1;
+  const maxStep: ContactStep = position ? 2 : 1;
 
   // Choosing (or changing) a position seeds the shared script. We only OVERWRITE
   // an existing draft when the position actually flips, so edits aren't lost by
@@ -154,7 +155,7 @@ export default function ContactLegislatorPage() {
         )}
 
         <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-3xl space-y-4 p-4 sm:p-6">
+          <div className={['mx-auto space-y-4 p-4 sm:p-6', step === 2 ? 'max-w-5xl' : 'max-w-3xl'].join(' ')}>
             {isMobile && referencePanel && (
               <Sheet>
                 <SheetTrigger asChild>
@@ -180,20 +181,13 @@ export default function ContactLegislatorPage() {
                 onChoose={choosePosition}
                 onNext={() => goToStep(2)}
               />
-            ) : step === 2 ? (
-              <StepScript
+            ) : (
+              <StepCompose
+                groups={groups}
                 subject={scriptSubject}
                 body={scriptBody ?? ''}
                 onChange={setScriptBody}
                 onBack={() => goToStep(1)}
-                onNext={() => goToStep(3)}
-              />
-            ) : (
-              <StepContact
-                groups={groups}
-                subject={scriptSubject}
-                body={scriptBody ?? ''}
-                onBack={() => goToStep(2)}
               />
             )}
           </div>
@@ -242,7 +236,7 @@ function StepPosition({
       </div>
       <div className="flex justify-end">
         <Button onClick={onNext} disabled={!position}>
-          Next: Script
+          Next: Compose
           <ArrowRight className="ml-1.5 h-4 w-4" />
         </Button>
       </div>
@@ -299,122 +293,144 @@ function PositionButton({
   );
 }
 
-/* ------------------------------- Step 2 -------------------------------- */
+/* --------------------------- Step 2: Compose --------------------------- */
 
-function StepScript({
+/** Stable key identifying a chair within the flat list. */
+function chairKey(chair: CommitteeChair): string {
+  return `${chair.committeeCode}-${chair.role}`;
+}
+
+function StepCompose({
+  groups,
   subject,
   body,
   onChange,
   onBack,
-  onNext,
 }: {
+  groups: CommitteeGroup[];
   subject: string;
   body: string;
   onChange: (v: string) => void;
   onBack: () => void;
-  onNext: () => void;
 }) {
+  // One preview open at a time across the whole contact list; rendered
+  // full-width beneath the grid rather than inside a card.
+  const [previewKey, setPreviewKey] = useState<string | null>(null);
+
+  const previewChair = useMemo(
+    () => groups.flatMap((g) => g.chairs).find((c) => chairKey(c) === previewKey) ?? null,
+    [groups, previewKey],
+  );
+  const previewText = previewChair ? personalizeScript(body, previewChair) : '';
+
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border bg-card p-4">
-        <h2 className="text-sm font-semibold">Write your script</h2>
-        <p className="mb-3 mt-0.5 text-xs text-muted-foreground">
-          One message goes to every chair you contact. Edit it freely — the greeting is filled in for each legislator
-          when you send.
-        </p>
-        <div className="mb-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
-          <span className="text-muted-foreground">Subject: </span>
-          <span className="font-medium">{subject}</span>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Left — the one editable script */}
+        <div className="lg:sticky lg:top-0 lg:self-start">
+          <div className="rounded-lg border bg-card p-4">
+            <h2 className="text-sm font-semibold">Your message</h2>
+            <p className="mb-3 mt-0.5 text-xs text-muted-foreground">
+              One message goes to every chair. Edit it freely — the greeting is filled in for each legislator when you
+              send.
+            </p>
+            <div className="mb-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
+              <span className="text-muted-foreground">Subject: </span>
+              <span className="font-medium">{subject}</span>
+            </div>
+            <Textarea
+              value={body}
+              onChange={(e) => onChange(e.target.value)}
+              rows={16}
+              className="resize-y font-mono text-sm leading-relaxed"
+              aria-label="Message to legislators"
+            />
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Tip: replace <span className="font-medium">[Your name]</span> and add a sentence about why this bill
+              matters to you.
+            </p>
+          </div>
         </div>
-        <Textarea
-          value={body}
-          onChange={(e) => onChange(e.target.value)}
-          rows={14}
-          className="resize-y font-mono text-sm leading-relaxed"
-          aria-label="Message to legislators"
-        />
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          Tip: replace <span className="font-medium">[Your name]</span> and add a sentence about why this bill matters to
-          you.
-        </p>
+
+        {/* Right — the contact list */}
+        <div className="space-y-5">
+          {groups.map((group) => (
+            <div key={group.code}>
+              <div className="mb-2.5 flex items-center gap-2 border-b pb-1.5">
+                <span className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary">
+                  {group.code}
+                </span>
+                <h3 className="truncate text-sm font-semibold">{group.name}</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {group.chairs.map((chair) => (
+                  <ChairCard
+                    key={chairKey(chair)}
+                    chair={chair}
+                    subject={subject}
+                    body={body}
+                    isPreviewing={previewKey === chairKey(chair)}
+                    onTogglePreview={() =>
+                      setPreviewKey((k) => (k === chairKey(chair) ? null : chairKey(chair)))
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {/* Full-width preview row — spans the whole contact column */}
+          {previewChair && (
+            <div className="rounded-lg border bg-card p-3">
+              <div className="mb-1.5 flex items-center justify-between">
+                <p className="text-xs font-semibold">
+                  Preview — to {previewChair.legislatorName}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setPreviewKey(null)}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Close
+                </button>
+              </div>
+              <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap break-words rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
+                {previewText}
+              </pre>
+            </div>
+          )}
+        </div>
       </div>
-      <div className="flex items-center justify-between">
+
+      <div className="flex justify-start">
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="mr-1.5 h-4 w-4" />
-          Back
-        </Button>
-        <Button onClick={onNext}>
-          Next: Contact
-          <ArrowRight className="ml-1.5 h-4 w-4" />
+          Back: Position
         </Button>
       </div>
     </div>
   );
 }
 
-/* ------------------------------- Step 3 -------------------------------- */
-
-function StepContact({
-  groups,
-  subject,
-  body,
-  onBack,
-}: {
-  groups: CommitteeGroup[];
-  subject: string;
-  body: string;
-  onBack: () => void;
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="rounded-lg border bg-card p-4">
-        <h2 className="text-sm font-semibold">Contact the committee chairs</h2>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          Send your message to any chair below. Each email is addressed to that legislator automatically.
-        </p>
-      </div>
-
-      <div className="space-y-5">
-        {groups.map((group) => (
-          <div key={group.code}>
-            <div className="mb-2 flex items-baseline gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wide">{group.code}</span>
-              <span className="truncate text-xs text-muted-foreground">{group.name}</span>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {group.chairs.map((chair) => (
-                <ChairCard
-                  key={`${chair.committeeCode}-${chair.role}`}
-                  chair={chair}
-                  subject={subject}
-                  body={body}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex justify-start">
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-1.5 h-4 w-4" />
-          Back: Script
-        </Button>
-      </div>
-    </div>
-  );
+/** Gmail web-compose URL — opens a prefilled draft in the user's Gmail (their own account as sender). */
+function gmailComposeUrl(to: string, subject: string, body: string): string {
+  const params = new URLSearchParams({ view: 'cm', fs: '1', to, su: subject, body });
+  return `https://mail.google.com/mail/?${params.toString()}`;
 }
 
 function ChairCard({
   chair,
   subject,
   body,
+  isPreviewing,
+  onTogglePreview,
 }: {
   chair: CommitteeChair;
   subject: string;
   body: string;
+  isPreviewing: boolean;
+  onTogglePreview: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const RoleIcon = chair.role === 'chair' ? Gavel : ShieldCheck;
   const roleLabel = chair.role === 'chair' ? 'Chair' : 'Vice-Chair';
@@ -424,6 +440,7 @@ function ChairCard({
   const mailto = chair.email
     ? `mailto:${chair.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(personalized)}`
     : null;
+  const gmail = chair.email ? gmailComposeUrl(chair.email, subject, personalized) : null;
 
   const copyScript = async () => {
     try {
@@ -444,9 +461,7 @@ function ChairCard({
         </span>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{chair.legislatorName}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            {roleLabel} · {chair.committeeName}
-          </p>
+          <p className="truncate text-xs text-muted-foreground">{roleLabel}</p>
         </div>
       </div>
 
@@ -471,38 +486,44 @@ function ChairCard({
 
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
+        onClick={onTogglePreview}
+        aria-expanded={isPreviewing}
         className="mt-2 flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
       >
-        <ChevronDown className={['h-3.5 w-3.5 transition-transform', open ? 'rotate-180' : ''].join(' ')} />
-        {open ? 'Hide preview' : 'Preview email'}
+        <ChevronDown className={['h-3.5 w-3.5 transition-transform', isPreviewing ? 'rotate-180' : ''].join(' ')} />
+        {isPreviewing ? 'Hide preview' : 'Preview email'}
       </button>
-      {open && (
-        <pre className="mt-2 max-h-56 overflow-y-auto whitespace-pre-wrap break-words rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
-          {personalized}
-        </pre>
-      )}
 
-      <div className="mt-auto flex gap-2 pt-3">
-        <Button size="sm" variant="outline" className="flex-1" onClick={copyScript}>
+      <div className="mt-auto space-y-2 pt-3">
+        {chair.email && (mailto || gmail) && (
+          <div className="flex gap-2">
+            {mailto && (
+              <Button asChild size="sm" className="flex-1">
+                <a href={mailto}>
+                  <Mail className="mr-1.5 h-3.5 w-3.5" /> Email
+                </a>
+              </Button>
+            )}
+            {gmail && (
+              <Button asChild size="sm" variant="outline" className="flex-1">
+                <a href={gmail} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Gmail
+                </a>
+              </Button>
+            )}
+          </div>
+        )}
+        <Button size="sm" variant="ghost" className="w-full" onClick={copyScript}>
           {copied ? (
             <>
               <Check className="mr-1.5 h-3.5 w-3.5" /> Copied
             </>
           ) : (
             <>
-              <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy
+              <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy message
             </>
           )}
         </Button>
-        {chair.email && mailto && (
-          <Button asChild size="sm" className="flex-1">
-            <a href={mailto}>
-              <Mail className="mr-1.5 h-3.5 w-3.5" /> Email
-            </a>
-          </Button>
-        )}
       </div>
     </div>
   );
