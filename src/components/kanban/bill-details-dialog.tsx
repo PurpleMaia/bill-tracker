@@ -449,6 +449,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                     onNextStep={(action) => {
                       if (action === 'diff' || action === 'reports') setActiveTab('versions');
                       else if (action === 'testimony') { onClose(); router.push(`/bills/${bill.id}/testimony`); }
+                      else if (action === 'contact') { onClose(); router.push(`/bills/${bill.id}/contact`); }
                     }}
                   />
 

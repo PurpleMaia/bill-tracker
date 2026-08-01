@@ -10,7 +10,7 @@ import { parseCommitteeCodes } from '@/lib/testimony/committees';
 
 export interface BriefingStep {
   text: string;
-  action: 'testimony' | 'diff' | 'reports';
+  action: 'testimony' | 'diff' | 'reports' | 'contact';
 }
 
 export interface BriefingFacts {
@@ -86,6 +86,9 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   }
   if (reports.length > 0) {
     nextSteps.push({ text: `Review the ${reports.length} committee report(s).`, action: 'reports' });
+  }
+  if (committeeCodes.length > 0) {
+    nextSteps.push({ text: 'Contact the committee chairs about this bill.', action: 'contact' });
   }
 
   return {
