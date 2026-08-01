@@ -83,6 +83,18 @@ export interface BillVersions {
   updated_at: Generated<Timestamp | null>;
 }
 
+export interface CommitteeChairs {
+  committee_id: string;
+  created_at: Generated<Timestamp | null>;
+  ended_at: Timestamp | null;
+  id: Generated<string>;
+  is_active: Generated<boolean>;
+  legislator_id: string;
+  role: string;
+  started_at: Generated<Timestamp>;
+  updated_at: Generated<Timestamp | null>;
+}
+
 export interface CommitteeReports {
   ai_summary: string | null;
   bill_id: string;
@@ -95,6 +107,16 @@ export interface CommitteeReports {
   report_code: string | null;
   summary_generated_at: Timestamp | null;
   summary_prompt_version: string | null;
+  updated_at: Generated<Timestamp | null>;
+}
+
+export interface Committees {
+  acronym: string;
+  chamber: string | null;
+  created_at: Generated<Timestamp | null>;
+  id: Generated<string>;
+  is_active: Generated<boolean>;
+  name: string;
   updated_at: Generated<Timestamp | null>;
 }
 
@@ -281,7 +303,9 @@ export interface DB {
   bill_tags: BillTags;
   bill_versions: BillVersions;
   bills: Bills;
+  committee_chairs: CommitteeChairs;
   committee_reports: CommitteeReports;
+  committees: Committees;
   invite_tokens: InviteTokens;
   legislators: Legislators;
   members: Members;
