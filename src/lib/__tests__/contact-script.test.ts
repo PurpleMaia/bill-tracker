@@ -103,7 +103,7 @@ describe('buildCallScript', () => {
     const script = buildCallScript({ billNumber: 'HB9950', billTitle: null, position: 'oppose' });
     expect(script).toMatch(/oppose/i);
     expect(script).not.toContain('null');
-    expect(script).toContain('[Your name]');
+    expect(script).toContain('<your-name>');
   });
 });
 

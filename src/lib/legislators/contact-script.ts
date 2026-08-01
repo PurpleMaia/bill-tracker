@@ -5,6 +5,9 @@ export type ContactPosition = 'support' | 'oppose';
 /** The greeting line placeholder used by the shared (un-personalized) script. */
 export const NEUTRAL_GREETING = 'Dear Chair,';
 
+/** Placeholder the user fills in with their own name before sending. */
+export const NAME_PLACEHOLDER = '<your-name>';
+
 function scriptBody(input: {
   greeting: string;
   billNumber: string;
@@ -22,7 +25,7 @@ function scriptBody(input: {
   return [
     greeting,
     ``,
-    `My name is ${userName ?? '[Your name]'}, and I am writing to ask you to ${verb} ${measure}${before}.`,
+    `My name is ${userName ?? NAME_PLACEHOLDER}, and I am writing to ask you to ${verb} ${measure}${before}.`,
     ``,
     position === 'support'
       ? `This measure matters to our community, and I respectfully urge the committee to advance it.`
@@ -31,7 +34,7 @@ function scriptBody(input: {
     `Thank you for your time and your service.`,
     ``,
     `Sincerely,`,
-    `${userName ?? '[Your name]'}`,
+    `${userName ?? NAME_PLACEHOLDER}`,
   ].join('\n');
 }
 
@@ -109,7 +112,7 @@ export function buildCallScript(input: {
       : `I'm asking the committee to hold it.`;
 
   return [
-    `Hi, my name is ${userName ?? '[Your name]'} and I'm a Hawaii resident.`,
+    `Hi, my name is ${userName ?? NAME_PLACEHOLDER} and I'm a Hawaii resident.`,
     ``,
     `I'm calling to ask the chair to ${verb} ${measure}. ${ask}`,
     ``,

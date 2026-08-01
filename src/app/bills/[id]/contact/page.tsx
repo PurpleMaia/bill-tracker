@@ -12,7 +12,6 @@ import {
   personalizeScript,
   type ContactPosition,
 } from '@/lib/legislators/contact-script';
-import { useAuth } from '@/hooks/contexts/auth-context';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -63,7 +62,6 @@ export default function ContactLegislatorPage() {
   const { id: billId } = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
   const isMobile = useIsMobile();
 
   const backHref = searchParams.get('from') === 'testimonies' ? '/testimonies' : '/';
@@ -100,7 +98,6 @@ export default function ContactLegislatorPage() {
     return () => { cancelled = true; };
   }, [billId]);
 
-  const userName = user?.username ?? undefined;
   const groups = useMemo(() => groupByCommittee(chairs), [chairs]);
   const hasChairs = chairs.length > 0;
   const maxStep: ContactStep = position ? 2 : 1;
@@ -114,7 +111,6 @@ export default function ContactLegislatorPage() {
         billNumber: bill.bill_number,
         billTitle: bill.bill_title ?? null,
         position: p,
-        userName,
       });
       setScriptBody(base.body);
       setScriptSubject(base.subject);
@@ -123,7 +119,6 @@ export default function ContactLegislatorPage() {
           billNumber: bill.bill_number,
           billTitle: bill.bill_title ?? null,
           position: p,
-          userName,
         }),
       );
     }
@@ -377,10 +372,15 @@ function StepCompose({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-8">
-        {/* Left — the editable email + call scripts */}
-        <div className={['space-y-4 lg:sticky lg:top-0 lg:self-start', scriptSpan].join(' ')}>
+        {/* Left — the editable email + call scripts, equal height */}
+        <div
+          className={[
+            'grid grid-cols-1 gap-4 lg:sticky lg:top-0 lg:self-start lg:grid-rows-2',
+            scriptSpan,
+          ].join(' ')}
+        >
           {/* Email script */}
-          <div className="rounded-lg border bg-card p-4">
+          <div className="flex flex-col rounded-lg border bg-card p-4">
             <div className="mb-1 flex items-center gap-1.5">
               <Mail className="h-3.5 w-3.5 text-muted-foreground" />
               <h2 className="text-sm font-semibold">Email script</h2>
@@ -396,18 +396,18 @@ function StepCompose({
             <Textarea
               value={body}
               onChange={(e) => onChange(e.target.value)}
-              rows={14}
-              className="resize-y font-mono text-sm leading-relaxed"
+              rows={12}
+              className="min-h-[8rem] flex-1 resize-y font-mono text-sm leading-relaxed"
               aria-label="Email message to legislators"
             />
             <p className="mt-2 text-[11px] text-muted-foreground">
-              Tip: replace <span className="font-medium">[Your name]</span> and add a sentence about why this bill
+              Tip: replace <span className="font-medium">&lt;your-name&gt;</span> and add a sentence about why this bill
               matters to you.
             </p>
           </div>
 
           {/* Call script */}
-          <div className="rounded-lg border bg-card p-4">
+          <div className="flex flex-col rounded-lg border bg-card p-4">
             <div className="mb-1 flex items-center gap-1.5">
               <Phone className="h-3.5 w-3.5 text-muted-foreground" />
               <h2 className="text-sm font-semibold">Call script</h2>
@@ -419,7 +419,7 @@ function StepCompose({
               value={callScript}
               onChange={(e) => onCallChange(e.target.value)}
               rows={7}
-              className="resize-y font-mono text-sm leading-relaxed"
+              className="min-h-[8rem] flex-1 resize-y font-mono text-sm leading-relaxed"
               aria-label="Phone call script"
             />
           </div>
