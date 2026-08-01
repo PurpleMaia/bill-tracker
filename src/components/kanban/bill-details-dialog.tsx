@@ -29,9 +29,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from '@/hooks/use-toast';
-import { updateBillStatus, updateBillDeadFlag } from '@/db/queries/bills-write';
+import { updateBillStatus } from '@/db/queries/bills-write';
 import { getBillDetails } from '@/db/queries/bills-read';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
@@ -40,7 +39,7 @@ import { VersionsReportsTab } from './versions-reports-tab';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/bills/dead-bill';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
-import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/testimony/hearing-schedule';
+import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 // Real calendar for deriving why a bill already failed (historical fact);
 // switchable calendar for upcoming-deadline displays (demo-aware).
@@ -205,20 +204,30 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
   const isUrgent = deadlineDaysAway !== null && deadlineDaysAway <= 7;
   const fiscal = committeeAssign ? isFiscalBill(committeeAssign) : false;
 
+  const latestUpdateText =
+    billDetails?.updates?.[0]?.statustext ?? bill.latest_update?.statustext ?? null;
+  // Derive the hearing window first (shared with the card / testimonies view) so
+  // eligibility can close testimony once THIS hearing has passed, not only at the
+  // session's final deadline — otherwise the card's "Testimony closed" chip and
+  // the dialog's Write action disagree.
+  const testimonyDeadline = getTestimonyDeadline({
+    billStatus: currentStatus as DBBillStatus,
+    latestStatusText: latestUpdateText,
+    now: new Date(),
+  });
+
   const testimonyEligibility = getTestimonyEligibility({
     dead: bill.dead,
     billStatus: currentStatus as DBBillStatus,
     committeeAssignment: committeeAssign ?? null,
     deadlines: SESSION_DEADLINES,
     today,
+    hearingPassed: testimonyDeadline.hearingPassed,
   });
   const testimonyUrgent =
     testimonyEligibility.allowed && isTestimonyUrgent(currentStatus as DBBillStatus);
-  const latestUpdateText =
-    billDetails?.updates?.[0]?.statustext ?? bill.latest_update?.statustext ?? null;
-  const hearingAt =
-    testimonyUrgent && latestUpdateText ? parseHearingDatetime(latestUpdateText) : null;
-  const testimonyCountdown = hearingAt ? getTestimonyCountdownLabel(hearingAt, new Date()) : null;
+  const hearingAt = testimonyDeadline.hearingAt;
+  const testimonyCountdown = testimonyEligibility.allowed ? testimonyDeadline.countdown : null;
   const urgentTooltip = hearingAt
     ? `Hearing ${hearingAt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Submit testimony at least 24 hours before the hearing.`
     : 'Hearing scheduled — submit testimony at least 24 hours before the hearing.';
@@ -453,62 +462,32 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                     }}
                   />
 
-                  {/* Deadline alert (dead state is shown in the briefing's
-                      "Bill failed" cell). Admins get a compact dead/alive toggle. */}
+                  {/* Failed / deadline status. A bill's failed state is derived
+                      automatically from missed deadlines and committee action (see
+                      the dead-bill sweep) — it is not manually toggled here. The
+                      dead state is also shown in the briefing's "Bill failed" cell. */}
                   {bill.dead ? (
-                    canSeeTracking ? (
-                      <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50/60 px-4 py-2.5">
-                        <span className="text-xs font-medium text-red-700">Marked failed</span>
-                        <Switch
-                          checked={bill.dead}
-                          onCheckedChange={async (checked) => {
-                            try {
-                              await updateBillDeadFlag(bill.id, checked);
-                              updateBill(bill.id, { dead: checked });
-                              toast({ title: checked ? 'Marked Failed' : 'Marked Active', description: `${bill.bill_number} updated.` });
-                            } catch {
-                              toast({ title: 'Error', description: 'Failed to update.', variant: 'destructive' });
-                            }
-                          }}
-                        />
-                      </div>
-                    ) : null
+                    <div className="rounded-lg border border-red-200 bg-red-50/60 px-4 py-2.5">
+                      <span className="text-xs font-medium text-red-700">Marked failed</span>
+                    </div>
                   ) : nextDeadline ? (
                     <div className={cn(
                       "rounded-lg border p-4",
                       isUrgent ? "border-amber-300 bg-amber-50" : "border-blue-200 bg-blue-50/50"
                     )}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <Clock className={cn("h-3.5 w-3.5", isUrgent ? "text-amber-600" : "text-blue-600")} />
-                            <span className={cn("font-medium text-sm", isUrgent ? "text-amber-700" : "text-blue-700")}>
-                              {nextDeadline.name}
-                            </span>
-                          </div>
-                          <p className={cn("text-xs", isUrgent ? "text-amber-600" : "text-blue-600")}>
-                            {new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                            {deadlineDaysAway !== null && (
-                              deadlineDaysAway > 0 ? ` — ${deadlineDaysAway} day${deadlineDaysAway !== 1 ? 's' : ''} away`
-                                : deadlineDaysAway === 0 ? ' — today' : ''
-                            )}
-                          </p>
-                        </div>
-                        {canSeeTracking && (
-                          <Switch
-                            checked={bill.dead}
-                            onCheckedChange={async (checked) => {
-                              try {
-                                await updateBillDeadFlag(bill.id, checked);
-                                updateBill(bill.id, { dead: checked });
-                                toast({ title: checked ? 'Marked Failed' : 'Marked Active', description: `${bill.bill_number} updated.` });
-                              } catch {
-                                toast({ title: 'Error', description: 'Failed to update.', variant: 'destructive' });
-                              }
-                            }}
-                          />
-                        )}
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Clock className={cn("h-3.5 w-3.5", isUrgent ? "text-amber-600" : "text-blue-600")} />
+                        <span className={cn("font-medium text-sm", isUrgent ? "text-amber-700" : "text-blue-700")}>
+                          {nextDeadline.name}
+                        </span>
                       </div>
+                      <p className={cn("text-xs", isUrgent ? "text-amber-600" : "text-blue-600")}>
+                        {new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                        {deadlineDaysAway !== null && (
+                          deadlineDaysAway > 0 ? ` — ${deadlineDaysAway} day${deadlineDaysAway !== 1 ? 's' : ''} away`
+                            : deadlineDaysAway === 0 ? ' — today' : ''
+                        )}
+                      </p>
                     </div>
                   ) : null}
 

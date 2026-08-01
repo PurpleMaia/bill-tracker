@@ -14,6 +14,7 @@ import {
   getApplicableDeadlines,
   getRelevantDeadline,
   isBillDead,
+  isEnacted,
 } from '../bills/dead-bill';
 import type { SessionDeadlines, StatusUpdate } from '../bills/dead-bill';
 
@@ -163,6 +164,34 @@ describe('isPreCrossover', () => {
 
   it('returns true for unassigned', () => {
     expect(isPreCrossover('unassigned' as BillStatus)).toBe(true);
+  });
+});
+
+describe('isEnacted', () => {
+  it('returns true for governorSigns (signed into law)', () => {
+    expect(isEnacted('governorSigns' as BillStatus)).toBe(true);
+  });
+
+  it('returns true for lawWithoutSignature (became law without a signature)', () => {
+    expect(isEnacted('lawWithoutSignature' as BillStatus)).toBe(true);
+  });
+
+  it('returns false for transmittedGovernor (not yet enacted)', () => {
+    expect(isEnacted('transmittedGovernor' as BillStatus)).toBe(false);
+  });
+
+  it('returns false for vetoList (vetoed, not enacted)', () => {
+    expect(isEnacted('vetoList' as BillStatus)).toBe(false);
+  });
+
+  it('returns false for an in-progress status', () => {
+    expect(isEnacted('introduced' as BillStatus)).toBe(false);
+  });
+
+  it('returns false for null/undefined/empty', () => {
+    expect(isEnacted(null)).toBe(false);
+    expect(isEnacted(undefined)).toBe(false);
+    expect(isEnacted('')).toBe(false);
   });
 });
 
