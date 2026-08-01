@@ -6,10 +6,10 @@ import { deriveBriefingFacts } from '@/lib/bills/bill-briefing-facts';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { PenLine, GitCompare, ScrollText, Clock, AlertTriangle } from 'lucide-react';
+import { PenLine, GitCompare, ScrollText, Phone, Clock, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 
-const STEP_ICON = { testimony: PenLine, diff: GitCompare, reports: ScrollText } as const;
+const STEP_ICON = { testimony: PenLine, diff: GitCompare, reports: ScrollText, contact: Phone } as const;
 
 export function BillBriefing({
   bill,
@@ -28,7 +28,7 @@ export function BillBriefing({
   progressValue: number;
   progressStages: string[];
   currentStageName: string;
-  onNextStep: (a: 'testimony' | 'diff' | 'reports') => void;
+  onNextStep: (a: 'testimony' | 'diff' | 'reports' | 'contact') => void;
 }) {
   const facts = useMemo(() => deriveBriefingFacts(bill, today), [bill, today]);
 

@@ -42,6 +42,16 @@ describe('deriveBriefingFacts', () => {
     expect(f.nextSteps.some((s) => s.action === 'diff')).toBe(false);
   });
 
+  it('offers a contact step when the bill has committee assignments', () => {
+    const f = deriveBriefingFacts(baseBill(), '2026-02-01');
+    expect(f.nextSteps.some((s) => s.action === 'contact')).toBe(true);
+  });
+
+  it('offers no contact step when there are no committees', () => {
+    const f = deriveBriefingFacts(baseBill({ committee_assignment: undefined }), '2026-02-01');
+    expect(f.nextSteps.some((s) => s.action === 'contact')).toBe(false);
+  });
+
   it('closes testimony once the scheduled hearing has passed', () => {
     // Scheduled bill, well before the session deadline, but the hearing in its
     // latest update was held in the past — testimony can no longer be submitted.
