@@ -499,10 +499,14 @@ export async function getUserTrackedBillIds(userId: string): Promise<string[]> {
 export async function findExistingBillByURL(billURl: string): Promise<BillDetails | null> {
   try {
 
-    // extract the billtype and billnumber from the URL
+    // extract the billtype, billnumber, and YEAR from the URL. Bills are keyed
+    // by (bill_number, year): the same base number (e.g. SB1432) exists in both
+    // 2025 and 2026, so year is required to resolve to the right bill.
     const urlObj = new URL(billURl);
     const billType = urlObj.searchParams.get('billtype');
     const billNumber = urlObj.searchParams.get('billnumber');
+    const yearParam = urlObj.searchParams.get('year');
+    const year = yearParam ? Number(yearParam) : null;
 
     const billTitle = billType && billNumber ? `${billType}${billNumber}` : null;
 
@@ -511,40 +515,50 @@ export async function findExistingBillByURL(billURl: string): Promise<BillDetail
       throw new Error('Invalid bill URL');
     }
 
-    // First pass of exact match on bill_number
-    const exactMatch = await db.selectFrom('bills')
-      .selectAll()
-      .where('bill_number', '=', billTitle as string)
-      .executeTakeFirst();
+    // Matches the base number exactly OR a suffixed variant ("SB1432 SD2 ...").
+    // The trailing space in the LIKE pattern is a word boundary so "SB20" does
+    // NOT match "SB200"/"SB2000". Escape LIKE metacharacters in the base number.
+    const likeBase = billTitle.replace(/([%_\\])/g, '\\$1');
 
-    if (exactMatch) {
-      console.log(`Found existing bill in database based on: `, billURl)
-      const updates = await getStatusUpdatesForBill(exactMatch.id);
-      const bill = await convertDataToBillShape(
-        exactMatch,
-        { updates },
-        true
+    // Among rows for the same base, prefer the exact base, then the most-amended
+    // (latest) suffixed variant. Longer bill_number ⇒ more amendment suffixes ⇒
+    // the bill's current form.
+    const variantPreference = sql`case when bill_number = ${billTitle} then 0 else 1 end, length(bill_number) desc, bill_number desc`;
+
+    const baseQuery = db
+      .selectFrom('bills')
+      .selectAll()
+      .where((eb) =>
+        eb.or([
+          eb('bill_number', '=', billTitle),
+          eb('bill_number', 'like', `${likeBase} %`),
+        ]),
       );
 
-      return bill;
+    // Pass 1: same-year match (the correct, unambiguous result).
+    if (year !== null && Number.isFinite(year)) {
+      const sameYear = await baseQuery
+        .where('year', '=', year)
+        .orderBy(variantPreference)
+        .executeTakeFirst();
+      if (sameYear) {
+        console.log(`Found existing bill (same year ${year}) for:`, billURl);
+        const updates = await getStatusUpdatesForBill(sameYear.id);
+        return await convertDataToBillShape(sameYear, { updates }, true);
+      }
     }
 
-    // Second pass of partial match on bill_number (in case of suffixes)
-    const partialMatchResult = await db.selectFrom('bills')
-      .selectAll()
-      .where('bill_number', 'like', `${billTitle}%`)
+    // Pass 2: fall back to any year, most recent first (bill not yet scraped for
+    // the URL's year). Year desc takes precedence, then variant preference.
+    const anyYear = await baseQuery
+      .orderBy(sql`coalesce(year, 0) desc`)
+      .orderBy(variantPreference)
       .executeTakeFirst();
 
-    if (partialMatchResult) {
-      console.log(`Found existing bill in database based on partial match: `, billURl)
-      const updates = await getStatusUpdatesForBill(partialMatchResult.id);
-      const bill = await convertDataToBillShape(
-        partialMatchResult,
-        { updates },
-        true
-      );
-
-      return bill;
+    if (anyYear) {
+      console.log(`Found existing bill (any-year fallback, year ${anyYear.year}) for:`, billURl);
+      const updates = await getStatusUpdatesForBill(anyYear.id);
+      return await convertDataToBillShape(anyYear, { updates }, true);
     }
 
     console.log('No existing bill found in database for URL:', billURl);

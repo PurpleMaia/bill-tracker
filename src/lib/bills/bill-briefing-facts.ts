@@ -3,6 +3,7 @@
 import type { BillDetails } from '@/types/legislation';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
+import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import { getNextDeadline, getDeadlineTier, isFiscalBill } from '@/lib/bills/dead-bill';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { sortVersions } from '@/lib/versions/bill-versions';
@@ -27,14 +28,28 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   const status = bill.current_bill_status as DBBillStatus;
   const committeeAssignment = bill.committee_assignment || null;
 
+  // Close testimony once THIS scheduled hearing has passed — not only at the
+  // session's final deadline — so the briefing agrees with the card's
+  // "Testimony closed" chip and the dialog's Write action.
+  const testimonyDeadline = getTestimonyDeadline({
+    billStatus: status,
+    latestStatusText: bill.latest_update?.statustext ?? null,
+    now: new Date(today + 'T00:00:00'),
+  });
   const eligibility = getTestimonyEligibility({
     dead: bill.dead,
     billStatus: status,
     committeeAssignment,
     deadlines: SESSION_DEADLINES,
     today,
+    hearingPassed: testimonyDeadline.hearingPassed,
   });
   const urgent = eligibility.allowed && isTestimonyUrgent(status);
+  // Lowercase the reason's leading letter so it reads as one sentence
+  // ("Testimony is closed — the hearing has already been held.").
+  const closedReason = eligibility.reason
+    ? eligibility.reason.charAt(0).toLowerCase() + eligibility.reason.slice(1)
+    : 'testimony is not currently being accepted';
   const testimony = {
     open: eligibility.allowed,
     urgent,
@@ -42,7 +57,7 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
       ? urgent
         ? 'Testimony is open and a hearing is imminent — submit as soon as possible.'
         : 'Testimony is open — you can submit on this bill.'
-      : `Testimony is closed — ${eligibility.reason ?? 'not currently accepting testimony'}.`,
+      : `Testimony is closed — ${closedReason}.`,
   };
 
   // Where it stands: dead reason, or next deadline (with days-away + tier), or

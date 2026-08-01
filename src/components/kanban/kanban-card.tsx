@@ -26,7 +26,7 @@ import { CardTagSelector } from '../tags/card-tag-selector';
 import { getNextDeadline, getDeadlineTier } from '@/lib/bills/dead-bill';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
-import { parseHearingDatetime, getTestimonyCountdownLabel } from '@/lib/testimony/hearing-schedule';
+import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import { DeadBillInfoPopover } from './dead-bill-info-popover';
 import type { BillStatus as DBBillStatus } from '@/db/types';
@@ -45,7 +45,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { updateFoodStatusOrCreateBill } from '@/db/queries/bills-write';
+import { removeBillFromOrg } from '@/db/queries/bills-write';
 import { toast } from '@/hooks/use-toast';
 import { cardVisibility } from '@/lib/bills/board-display';
 
@@ -79,8 +79,12 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const trackedCount = bill.tracked_count ?? trackedBy.length;
 
     const canAssign = canAssignBills(user, activeTenant?.orgRole);
-    // Users who can't remove a bill from the board can still stop tracking it.
-    const canUntrack = !canAssign && showUnadoptButton && !!onUnadopt;
+    // Removing a bill takes it off the board for EVERYONE in the org, so it is
+    // restricted to org admins (not merely anyone who can assign bills).
+    const canRemoveFromBoard = activeTenant?.orgRole === 'admin';
+    // Anyone who can't remove the bill org-wide can still stop tracking it
+    // themselves (org workers, and default/no-org users removing their own list).
+    const canUntrack = !canRemoveFromBoard && showUnadoptButton && !!onUnadopt;
 
     const headline = formatBillHeadline(bill);
     const committeeReferrals = bill.committee_assignment ? parseCommittees(bill.committee_assignment) : [];
@@ -113,9 +117,16 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     };
 
     const handleRemoveBill = async () => {
+      // Org-wide removal deletes every member's tracking row for this bill in the
+      // tenant, so it requires an active org context and admin role. Without a
+      // tenant there is no org board to remove from.
+      if (!activeTenant?.tenantId) {
+        console.error('Cannot remove bill: no active organization.');
+        return;
+      }
       setIsRemoving(true);
       try {
-        await updateFoodStatusOrCreateBill(bill, false, activeTenant?.tenantId);
+        await removeBillFromOrg(bill.id, activeTenant.tenantId);
         removeBill(bill.id);
         toast({ title: 'Bill Removed', description: `${bill.bill_number} removed from the board.`, duration: 5000 });
         setShowRemoveDialog(false);
@@ -141,14 +152,23 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
       ? Math.ceil((new Date(nextDeadline.date + 'T00:00:00').getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
       : null;
 
-    // Testimony progress: submitted > draft written > due (hearing scheduled)
+    // Testimony progress: submitted > draft written > due (hearing scheduled) > closed (hearing passed)
     const testimonyState = boardMode === 'active-boards' ? orgTestimonyState : testimonyStatuses[bill.id]; // undefined | 'draft' | 'submitted'
-    const testimonyDue =
-      !testimonyState && !bill.dead && isTestimonyUrgent(bill.current_bill_status as DBBillStatus);
-    const hearingAt = testimonyDue && bill.latest_update
-      ? parseHearingDatetime(bill.latest_update.statustext)
+    // One derivation for hearing datetime → countdown / passed, shared with the
+    // dialog and testimonies view so the card can't drift from them.
+    const testimonyDeadline = !bill.dead && isTestimonyUrgent(bill.current_bill_status as DBBillStatus)
+      ? getTestimonyDeadline({
+          billStatus: bill.current_bill_status as DBBillStatus,
+          latestStatusText: bill.latest_update?.statustext ?? null,
+          now: new Date(),
+        })
       : null;
-    const countdownLabel = hearingAt ? getTestimonyCountdownLabel(hearingAt, new Date()) : null;
+    const hearingAt = testimonyDeadline?.hearingAt ?? null;
+    // Still-open hearing: show the "Testimony due" chip when no draft/submission exists yet.
+    const testimonyDue = !testimonyState && !!testimonyDeadline && !testimonyDeadline.hearingPassed && !!hearingAt;
+    // Hearing has passed: show a muted "Testimony closed" chip instead.
+    const testimonyClosed = !testimonyState && !!testimonyDeadline?.hearingPassed;
+    const countdownLabel = testimonyDeadline?.countdown ?? null;
 
     // Bottom-right fate countdown while the bill waits for a hearing: if the
     // committee chair doesn't schedule it before the next deadline, it fails.
@@ -163,6 +183,9 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const testimonyChipTitle = hearingAt
       ? `Hearing ${hearingAt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} — submit testimony at least 24 hours before the hearing`
       : 'Hearing scheduled — submit testimony at least 24 hours before the hearing';
+    const testimonyClosedTitle = hearingAt
+      ? `Hearing was held ${hearingAt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} — the testimony submission window has closed`
+      : 'The testimony submission window has closed';
 
     return (
         <div
@@ -227,7 +250,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                       {bill.year}
                     </Badge>
                   )}
-                  {(canAssign || canUntrack) && (
+                  {(canAssign || canUntrack || canRemoveFromBoard) && (
                     <div className="ml-auto flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       {canUntrack && (
                         <Button
@@ -258,7 +281,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                           }
                         />
                       )}
-                      {canAssign && (
+                      {canRemoveFromBoard && !bill.dead && (
                       <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -372,7 +395,15 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                         </span>
                       </ChipTooltip>
                     )}
-                    {!testimonyState && !testimonyDue && committeeCodes && (
+                    {testimonyClosed && (
+                      <ChipTooltip content={testimonyClosedTitle}>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 h-5 text-[10px] font-medium text-muted-foreground shrink-0">
+                          <History className="h-2.5 w-2.5" />
+                          Testimony closed
+                        </span>
+                      </ChipTooltip>
+                    )}
+                    {!testimonyState && !testimonyDue && !testimonyClosed && committeeCodes && (
                       <ChipTooltip
                         content={
                           <div className="space-y-0.5">
@@ -542,6 +573,43 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                   billUrl={bill.bill_url}
                   committeeAssignment={bill.committee_assignment}
                   latestUpdate={bill.latest_update}
+                  removeSlot={canRemoveFromBoard ? (
+                    <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full h-8 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={(e) => { e.stopPropagation(); setShowRemoveDialog(true); }}
+                          disabled={isRemoving}
+                          aria-label={`Remove ${bill.bill_number} from the board`}
+                        >
+                          <X className="h-3.5 w-3.5 mr-1.5" />
+                          Remove from board
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remove Bill from Board?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {activeTenant
+                              ? `This bill will be removed from your organization's list, including for anyone else in ${activeTenant.name} tracking it. You can track it again anytime using the Track Bill button.`
+                              : 'This bill will no longer be tracked on your list, and it will be removed for anyone else tracking it. You can track it again anytime using the Track Bill button.'}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={(e) => { e.stopPropagation(); handleRemoveBill(); }}
+                            className="bg-destructive hover:bg-destructive/90"
+                            disabled={isRemoving}
+                          >
+                            {isRemoving ? 'Removing...' : 'Remove'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  ) : undefined}
                 >
                   <button
                     className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-sm"

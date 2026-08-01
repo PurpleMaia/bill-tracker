@@ -8,9 +8,7 @@
 
 import type { BillStatus } from '@/db/types';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
-import { isFiscalBill } from '@/lib/bills/dead-bill';
-
-const ENACTED_STATUSES: BillStatus[] = ['governorSigns', 'lawWithoutSignature'];
+import { isFiscalBill, isEnacted } from '@/lib/bills/dead-bill';
 
 export const SCHEDULED_STATUSES: BillStatus[] = [
   'scheduled1',
@@ -43,13 +41,25 @@ export function getTestimonyEligibility(params: {
   deadlines: SessionDeadlines;
   /** Today's date as YYYY-MM-DD (lexicographically comparable). */
   today: string;
+  /**
+   * True when the bill's scheduled hearing has already been held (its 24-hour
+   * submission window closed). Derived from the hearing datetime in the latest
+   * status update — see getTestimonyDeadline().hearingPassed. When set, testimony
+   * is closed for that hearing even though the session deadline is still ahead,
+   * keeping the card's "Testimony closed" chip and the dialog's Write action in sync.
+   */
+  hearingPassed?: boolean;
 }): TestimonyEligibility {
-  if (ENACTED_STATUSES.includes(params.billStatus)) {
+  if (isEnacted(params.billStatus)) {
     return { allowed: false, reason: 'This bill has been enacted into law' };
   }
 
   if (params.dead) {
     return { allowed: false, reason: 'This bill is dead' };
+  }
+
+  if (params.hearingPassed) {
+    return { allowed: false, reason: 'The hearing has already been held' };
   }
 
   const fiscal = params.committeeAssignment ? isFiscalBill(params.committeeAssignment) : false;

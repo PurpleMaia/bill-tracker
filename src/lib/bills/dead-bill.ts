@@ -75,6 +75,25 @@ export function isFiscalBill(committeeAssignment: string): boolean {
     committeeAssignment.toUpperCase().includes('WAM');
 }
 
+// --- Enacted (became-law) Detection ---
+
+/**
+ * Statuses where the bill has become law. These are terminal successes — the
+ * opposite of "failed" — so a bill in one of them cannot be marked dead/failed.
+ *   - governorSigns: the Governor signed the bill into law (it is now an Act).
+ *   - lawWithoutSignature: the Governor let the deadline pass, so it became law
+ *     without a signature.
+ */
+const ENACTED_STATUSES: ReadonlySet<string> = new Set([
+  'governorSigns',
+  'lawWithoutSignature',
+]);
+
+/** True when the bill has been enacted into law (signed, or law without signature). */
+export function isEnacted(status: BillStatus | string | null | undefined): boolean {
+  return !!status && ENACTED_STATUSES.has(status as string);
+}
+
 // --- Phase Detection ---
 
 export function isPreCrossover(status: BillStatus): boolean {
