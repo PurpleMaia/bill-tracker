@@ -5,7 +5,7 @@ import type { User } from '@/types/user';
 import type { Membership, ActiveTenant } from '@/types/tenant';
 import { data as dataClient } from '@/lib/data-client';
 import type { UserPreferences } from '@/types/preferences';
-import { UNRESOLVED_AUTH, type InitialAuth } from '@/lib/auth/initial-auth';
+import { UNRESOLVED_AUTH, type InitialAuth } from '@/lib/auth/initial-auth-types';
 
 interface AuthContextType {
   user: User | null;

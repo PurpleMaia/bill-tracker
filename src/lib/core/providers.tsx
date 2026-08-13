@@ -5,7 +5,7 @@ import { AuthProvider } from '@/hooks/contexts/auth-context';
 import { KanbanBoardProvider } from '@/hooks/contexts/kanban-board-context';
 import { BillsProvider } from '@/hooks/contexts/bills-context';
 import { queryClient } from '@/lib/core/react-query';
-import { UNRESOLVED_AUTH, type InitialAuth } from '@/lib/auth/initial-auth';
+import { UNRESOLVED_AUTH, type InitialAuth } from '@/lib/auth/initial-auth-types';
 
 export function Providers({
   children,

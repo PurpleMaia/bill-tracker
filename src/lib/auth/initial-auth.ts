@@ -1,36 +1,13 @@
+// SERVER ONLY: imports next/headers. Client components must import the
+// InitialAuth type and UNRESOLVED_AUTH from './initial-auth-types' instead —
+// pulling this module into a client bundle is a build error.
+import { cookies } from 'next/headers';
 import { auth } from './session';
 import { getUserMemberships } from '@/db/queries/tenants';
 import { getUserPreferences } from '@/db/queries/user-preferences';
-import type { User } from '@/types/user';
-import type { Membership } from '@/types/tenant';
-import type { UserPreferences } from '@/types/preferences';
+import { UNRESOLVED_AUTH, type InitialAuth } from './initial-auth-types';
 
-/**
- * The auth state the server already knows at render time, handed to
- * AuthProvider so the first paint is correct.
- *
- * Without this the client had to hydrate, call /api/auth/session, and only
- * then fetch preferences — three sequential round trips before any real
- * content, which is why the header flashed a spinner and gated pages showed a
- * skeleton before resolving to a login wall.
- *
- * `resolved: false` means the server could not determine the session (the page
- * is statically rendered, so there were no cookies to read). The client then
- * falls back to its own checkSession() call.
- */
-export interface InitialAuth {
-  resolved: boolean;
-  user: User | null;
-  memberships: Membership[];
-  preferences: UserPreferences | null;
-}
-
-export const UNRESOLVED_AUTH: InitialAuth = {
-  resolved: false,
-  user: null,
-  memberships: [],
-  preferences: null,
-};
+export { UNRESOLVED_AUTH, type InitialAuth };
 
 /**
  * Resolves the current session on the server. `auth()` is React-cached, so
@@ -43,6 +20,13 @@ export const UNRESOLVED_AUTH: InitialAuth = {
  */
 export async function getInitialAuth(): Promise<InitialAuth> {
   try {
+    // Reading cookies is what makes a route dynamic. Touch them directly first
+    // so Next's static-generation probe gets its DynamicServerError from here,
+    // where we can tell it apart from a real failure — auth() swallows the
+    // throw and returns null, which we would otherwise record as a confident
+    // "signed out" and bake into a prerender.
+    await cookies();
+
     const session = await auth();
     if (!session?.user) {
       // Genuinely signed out — that IS a resolved answer, so the client should
@@ -57,7 +41,15 @@ export async function getInitialAuth(): Promise<InitialAuth> {
 
     return { resolved: true, user: session.user, memberships, preferences };
   } catch (error) {
-    // Never let an auth lookup break rendering — fall back to the client path.
+    // Next throws DynamicServerError while probing whether a route can be
+    // prerendered. That's expected control flow, not a fault: rethrow so the
+    // route is correctly marked dynamic instead of logging a scary error and
+    // prerendering a signed-out shell. Matched by digest rather than by
+    // importing from next/dist internals, whose paths move between versions.
+    if ((error as { digest?: string })?.digest === 'DYNAMIC_SERVER_USAGE') throw error;
+
+    // Anything else: never let an auth lookup break rendering — fall back to
+    // the client path.
     console.error('[getInitialAuth] Falling back to client session check:', error);
     return UNRESOLVED_AUTH;
   }
