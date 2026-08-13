@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GLOSSARY } from '@/lib/glossary/terms';
+import { GLOSSARY, type GlossaryTerm } from '@/lib/glossary/terms';
 import {
   resolveStatusTerm,
   resolveCommitteeTerm,
@@ -25,7 +25,11 @@ describe('GLOSSARY', () => {
 
   it('points every learnMoreAnchor at a real /learn stage', () => {
     const anchors = new Set(PROGRESS_STAGES.map((s) => s.id));
-    for (const [slug, entry] of Object.entries(GLOSSARY)) {
+    // Widen to GlossaryTerm: `as const satisfies` keeps each entry's literal
+    // type, so entries without an anchor lack the optional key entirely and
+    // reading it off the union does not compile. Consumers see GlossaryTerm.
+    const entries = Object.entries(GLOSSARY) as [string, GlossaryTerm][];
+    for (const [slug, entry] of entries) {
       if (!entry.learnMoreAnchor) continue;
       expect(anchors.has(entry.learnMoreAnchor), `${slug} -> ${entry.learnMoreAnchor}`).toBe(true);
     }
