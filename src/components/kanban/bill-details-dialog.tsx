@@ -36,6 +36,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
 import { BillBriefing } from './bill-briefing';
 import { VersionsReportsTab } from './versions-reports-tab';
+import { PROGRESS_STAGES, getProgressValue, getCurrentStageName } from '@/lib/bills/progress-stages';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/bills/dead-bill';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
@@ -77,28 +78,6 @@ const TABS: readonly DialogTab[] = [
   { id: 'versions', label: 'Versions & Reports', shortLabel: 'Versions', icon: Files },
   { id: 'updates', label: 'Status Updates', shortLabel: 'Updates', icon: Clock, mobileOnly: true },
 ];
-
-const PROGRESS_STAGES = [
-  { name: 'Introduced', statuses: ['introduced'] },
-  { name: 'Orig. Chamber', statuses: ['scheduled1', 'deferred1', 'waiting2', 'scheduled2', 'deferred2', 'waiting3', 'scheduled3', 'deferred3', 'crossoverWaiting1'] },
-  { name: 'Non-Orig. Chamber', statuses: ['crossoverScheduled1', 'crossoverDeferred1', 'crossoverWaiting2', 'crossoverScheduled2', 'crossoverDeferred2', 'crossoverWaiting3', 'crossoverScheduled3', 'crossoverDeferred3', 'passedCommittees'] },
-  { name: 'Conference', statuses: ['conferenceAssigned', 'conferenceScheduled', 'conferenceDeferred', 'conferencePassed'] },
-  { name: 'Governor', statuses: ['transmittedGovernor', 'vetoList'] },
-  { name: 'Law', statuses: ['governorSigns', 'lawWithoutSignature'] },
-];
-
-const getProgressValue = (status: BillStatus): number => {
-  const idx = PROGRESS_STAGES.findIndex(s => s.statuses.includes(status));
-  if (idx === -1) return status === 'introduced' ? (1 / (PROGRESS_STAGES.length + 1)) * 100 : 0;
-  return ((idx + 1) / PROGRESS_STAGES.length) * 100;
-};
-
-const getCurrentStageName = (status: BillStatus): string => {
-  const stage = PROGRESS_STAGES.find(s => s.statuses.includes(status));
-  if (stage) return stage.name;
-  if (status === 'introduced') return 'Introduced';
-  return 'Not Assigned';
-};
 
 export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }: BillDetailsDialogProps) {
   const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills();
