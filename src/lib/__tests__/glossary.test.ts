@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { GLOSSARY } from '@/lib/glossary/terms';
+import {
+  resolveStatusTerm,
+  resolveCommitteeTerm,
+  resolveVersionTerm,
+  resolveDeadlineTerm,
+} from '@/lib/glossary/resolvers';
 import { PROGRESS_STAGES } from '@/lib/bills/progress-stages';
+import { KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
 
 describe('GLOSSARY', () => {
   it('gives every term a display name and a short definition', () => {
@@ -28,5 +35,77 @@ describe('GLOSSARY', () => {
     for (const slug of ['decking', 'lateral', 'sine-die', 'triple-referral', 'single-referral-filing']) {
       expect(GLOSSARY, slug).toHaveProperty(slug);
     }
+  });
+});
+
+describe('resolveStatusTerm', () => {
+  it('resolves every kanban column to non-empty copy', () => {
+    for (const col of KANBAN_COLUMNS) {
+      if (col.id === 'unassigned') continue;
+      const term = resolveStatusTerm(col.id);
+      expect(term, col.id).not.toBeNull();
+      expect(term!.short.length, col.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('returns null for an unknown status id', () => {
+    expect(resolveStatusTerm('not-a-status')).toBeNull();
+  });
+});
+
+describe('resolveCommitteeTerm', () => {
+  it('expands a known committee code', () => {
+    const term = resolveCommitteeTerm('FIN');
+    expect(term).not.toBeNull();
+    expect(term!.short).toContain('Finance');
+  });
+
+  it('handles a joint referral', () => {
+    expect(resolveCommitteeTerm('WLA/EIG')!.short).toContain('/');
+  });
+
+  // committeeFullName passes unknown codes through unchanged, so a naive
+  // implementation would "define" XYZ as "XYZ". That must be null instead.
+  it('returns null for a code with no known name', () => {
+    expect(resolveCommitteeTerm('XYZ')).toBeNull();
+  });
+
+  it('returns null for empty input', () => {
+    expect(resolveCommitteeTerm('')).toBeNull();
+  });
+});
+
+describe('resolveVersionTerm', () => {
+  it('describes a recognized draft label', () => {
+    const term = resolveVersionTerm('HB1494_HD1');
+    expect(term).not.toBeNull();
+    expect(term!.short).toContain('House, first committee draft');
+  });
+
+  it('describes a bare bill number as introduced', () => {
+    expect(resolveVersionTerm('HB1494')!.short).toContain('As introduced');
+  });
+
+  // describeVersionLabel returns null for these on purpose — it refuses to
+  // assert a pipeline position it cannot verify. The affordance must disappear.
+  it('returns null where describeVersionLabel does', () => {
+    expect(resolveVersionTerm('HB1494_HFA4')).toBeNull();
+    expect(resolveVersionTerm('HB1494_PROPOSED')).toBeNull();
+    expect(resolveVersionTerm('')).toBeNull();
+  });
+});
+
+describe('resolveDeadlineTerm', () => {
+  it('matches deadline names to Tier 3 jargon', () => {
+    expect(resolveDeadlineTerm('First Decking')!.term).toBe('Decking');
+    expect(resolveDeadlineTerm('Final Decking (Fiscal)')!.term).toBe('Decking');
+    expect(resolveDeadlineTerm('Second Lateral')!.term).toBe('Lateral');
+    expect(resolveDeadlineTerm('Adjournment Sine Die')!.term).toBe('Sine die');
+    expect(resolveDeadlineTerm('First Triple Referral Filing')!.term).toBe('Triple referral');
+    expect(resolveDeadlineTerm('Single Referral Filing (SBs)')!.term).toBe('Single referral filing');
+  });
+
+  it('returns null for an unrecognized deadline name', () => {
+    expect(resolveDeadlineTerm('Some New Deadline')).toBeNull();
   });
 });
