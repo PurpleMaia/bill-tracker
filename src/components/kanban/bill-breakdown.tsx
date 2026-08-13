@@ -171,9 +171,11 @@ export function BillBreakdownButton({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="h-6 gap-1 px-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+          /* Outline that darkens on hover, no background fill — ghost's
+             hover:bg-accent read as a dark teal block. */
+          className="h-6 gap-1 border-border bg-transparent px-1.5 text-[11px] font-medium text-muted-foreground hover:border-foreground hover:bg-transparent hover:text-foreground"
           aria-label="How to read this bill"
         >
           <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
