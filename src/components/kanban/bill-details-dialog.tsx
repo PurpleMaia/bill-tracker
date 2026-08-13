@@ -272,7 +272,11 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                 )}
                 {/* One entry point for all conceptual explanation, so the
                     surrounding labels can stay unmarked and legible. */}
-                <BillBreakdownButton bill={billForPanels} currentStatus={currentStatus} />
+                <BillBreakdownButton
+                  bill={billForPanels}
+                  currentStatus={currentStatus}
+                  deadlineName={nextDeadline?.name ?? null}
+                />
               </div>
               <DialogDescription className="text-sm text-muted-foreground line-clamp-2 sm:line-clamp-1">
                 {bill.bill_title}

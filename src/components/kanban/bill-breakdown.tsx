@@ -15,7 +15,12 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { GLOSSARY } from '@/lib/glossary/terms';
-import { resolveStatusTerm, resolveCommitteeTerm, resolveVersionTerm } from '@/lib/glossary/resolvers';
+import {
+  resolveStatusTerm,
+  resolveCommitteeTerm,
+  resolveVersionTerm,
+  resolveDeadlineTerm,
+} from '@/lib/glossary/resolvers';
 import { PROGRESS_STAGES } from '@/lib/bills/progress-stages';
 import { parseCommitteeCodes, committeeFullName } from '@/lib/testimony/committees';
 import { COLUMN_TITLES } from '@/lib/bills/kanban-columns';
@@ -53,9 +58,14 @@ function BreakdownRow({
 export function BillBreakdown({
   bill,
   currentStatus,
+  deadlineName,
 }: {
   bill: BillDetails;
   currentStatus: string;
+  /** Name of the bill's next deadline, e.g. "First Decking". The pill on the
+   *  card shows this jargon with only a date tooltip, so the definition lives
+   *  here rather than bloating that tooltip. */
+  deadlineName?: string | null;
 }) {
   const committeeCodes = useMemo(
     () => parseCommitteeCodes(bill.committee_assignment ?? null),
@@ -75,6 +85,8 @@ export function BillBreakdown({
 
   // A failed bill's most useful fact is that nothing below it will happen.
   const isDead = Boolean(bill.dead);
+
+  const deadlineTerm = deadlineName ? resolveDeadlineTerm(deadlineName) : null;
 
   return (
     <div className="space-y-4">
@@ -140,6 +152,10 @@ export function BillBreakdown({
               ` If it passes here, it crosses over to the ${otherChamber} and starts committee review again.`}
           </BreakdownRow>
         )}
+
+        {deadlineTerm && (
+          <BreakdownRow value={deadlineName as string}>{deadlineTerm.short}</BreakdownRow>
+        )}
       </div>
 
       <div className="border-t pt-3">
@@ -161,9 +177,11 @@ export function BillBreakdown({
 export function BillBreakdownButton({
   bill,
   currentStatus,
+  deadlineName,
 }: {
   bill: BillDetails;
   currentStatus: string;
+  deadlineName?: string | null;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -193,7 +211,7 @@ export function BillBreakdownButton({
         </DialogHeader>
         <ScrollArea className="max-h-[calc(85vh-5.5rem)]">
           <div className="px-5 py-4">
-            <BillBreakdown bill={bill} currentStatus={currentStatus} />
+            <BillBreakdown bill={bill} currentStatus={currentStatus} deadlineName={deadlineName} />
           </div>
         </ScrollArea>
       </DialogContent>

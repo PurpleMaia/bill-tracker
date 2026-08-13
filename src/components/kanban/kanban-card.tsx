@@ -5,7 +5,6 @@ import { parseCommittees } from '@/lib/bills/dead-bill';
 import { isAwaitingHearing } from '@/lib/bills/kanban-columns';
 import { committeeFullName } from '@/lib/testimony/committees';
 import { Term } from '@/components/ui/term';
-import { resolveDeadlineTerm } from '@/lib/glossary/resolvers';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 /** Shadcn tooltip wrapper for the card's chips — replaces native title attrs. */
@@ -445,25 +444,16 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                         Failed
                       </Badge>
                     ) : nextDeadline && deadlineDaysAway !== null && (
-                      /* Whole pill triggers — it has no other action. The existing
-                         chair-scheduling sentence stays; the Tier 3 gloss for the
-                         deadline's jargon name ("Decking", "Lateral") is appended
-                         rather than replacing it. */
-                      <Term
-                        variant="chip"
-                        billId={bill.id}
-                        term={{
-                          term: nextDeadline.name,
-                          short: [
-                            showDeadlineCountdown
-                              ? `If the committee chair doesn't schedule this bill by ${new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}, it fails. ${deadlineDaysAway <= 0 ? 'Due today.' : `${deadlineDaysAway} day${deadlineDaysAway === 1 ? '' : 's'} left.`}`
-                              : `Deadline: ${new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}. ${deadlineDaysAway <= 0 ? 'Due today.' : `${deadlineDaysAway} day${deadlineDaysAway === 1 ? '' : 's'} left.`}`,
-                            resolveDeadlineTerm(nextDeadline.name)?.short,
-                          ]
-                            .filter(Boolean)
-                            .join(' '),
-                          learnMoreAnchor: resolveDeadlineTerm(nextDeadline.name)?.learnMoreAnchor,
-                        }}
+                      /* Original concise tooltip, deliberately NOT a glossary
+                         term: appending the deadline-jargon definition here
+                         turned a glance-able pill into a paragraph. The jargon
+                         is explained in the bill breakdown instead. */
+                      <ChipTooltip
+                        content={
+                          showDeadlineCountdown
+                            ? `If the committee chair doesn't schedule this bill by ${nextDeadline.name} (${new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}), it fails. ${deadlineDaysAway <= 0 ? 'Due today.' : `${deadlineDaysAway} day${deadlineDaysAway === 1 ? '' : 's'} left.`}`
+                            : `${nextDeadline.name} deadline: ${new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}. ${deadlineDaysAway <= 0 ? 'Due today.' : `${deadlineDaysAway} day${deadlineDaysAway === 1 ? '' : 's'} left.`}`
+                        }
                       >
                         <span
                           className={cn(
@@ -482,7 +472,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                           {' · '}
                           {deadlineDaysAway <= 0 ? 'Today' : `${deadlineDaysAway}d`}
                         </span>
-                      </Term>
+                      </ChipTooltip>
                     )}
                   </div>
                 </div>
