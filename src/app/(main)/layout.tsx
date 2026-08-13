@@ -11,7 +11,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         Skip to content
       </a>
       <Header />
-      <main id="main-content" className="min-h-0 flex-1 overflow-auto pb-14 lg:pb-0">{children}</main>
+      <main id="main-content" className="min-h-0 flex-1 overflow-auto pb-14 md:pb-0">{children}</main>
       <BottomTabBar />
     </div>
   );

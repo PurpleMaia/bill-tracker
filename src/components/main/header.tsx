@@ -29,24 +29,16 @@ export function Header() {
       </h1>
 
       {/* Contextual sub-nav — centered grid track (auto-sized, so it keeps its
-          intrinsic width while the minmax(0,1fr) side tracks absorb the rest).
-          justify-self-center keeps it centered within its own track rather than
-          hugging the nav cluster on its right. */}
-      <div className="min-w-0 justify-self-center px-2">
+          intrinsic width while the minmax(0,1fr) side tracks absorb the
+          remaining space). */}
+      <div className="min-w-0 px-2">
         <HeaderSubNav />
       </div>
 
       {/* Nav links (desktop) + avatar/login (all sizes; page nav lives in the
-          bottom tab bar on mobile).
-          min-w-0 lets this cluster be constrained by its grid track instead of
-          overflowing leftward into the centered sub-nav — being justify-self-end,
-          any excess width spills toward the middle of the header. */}
-      <div className="flex min-w-0 items-center gap-2 xl:gap-4 justify-self-end">
-        {/* lg, not md: between 768–1023px there isn't room for the brand, the
-            centered sub-nav, four nav links AND the auth control, and this
-            cluster (justify-self-end) would spill left over the sub-nav. Page
-            navigation is still reachable from the bottom tab bar below lg. */}
-        <div className="hidden lg:flex items-center gap-3 xl:gap-4">
+          bottom tab bar on mobile) */}
+      <div className="flex items-center gap-4 justify-self-end">
+        <div className="hidden md:flex items-center gap-4">
           <HeaderNav />
         </div>
         <AuthHeader />
