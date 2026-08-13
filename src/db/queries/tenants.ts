@@ -180,11 +180,20 @@ export async function getTenantMembers(tenantId: string) {
  * All orgs that opted into public board visibility, with an isFollowing flag
  * for the viewer. Used by the Browse Orgs tab.
  */
-export async function listPublicTenants(viewerUserId: string) {
+/**
+ * Every org with a public board. `viewerUserId` is optional: signed-out
+ * visitors can browse the list, they just have no follow state, so every
+ * `isFollowing` comes back false.
+ */
+export async function listPublicTenants(viewerUserId: string | null) {
   const rows = await db
     .selectFrom('tenants as t')
     .leftJoin('org_follows as f', (join) =>
-      join.onRef('f.tenant_id', '=', 't.id').on('f.user_id', '=', viewerUserId),
+      // Joining on a null viewer would match nothing anyway; the explicit
+      // `false` keeps the intent obvious and avoids binding a null parameter.
+      viewerUserId
+        ? join.onRef('f.tenant_id', '=', 't.id').on('f.user_id', '=', viewerUserId)
+        : join.on((eb) => eb.val(false)),
     )
     .select((eb) => [
       't.id as tenantId',

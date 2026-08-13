@@ -6,6 +6,7 @@ import React, {
 import type { Bill } from '@/types/legislation';
 import type { PublicOrg } from '@/types/tenant';
 import { data } from '@/lib/data-client';
+import { useAuth } from './auth-context';
 
 const LAST_ORG_KEY = 'activeBoardsLastOrgId';
 
@@ -35,9 +36,18 @@ export function ActiveBoardsProvider({ children }: { children: ReactNode }) {
   const [testimonyBillIds, setTestimonyBillIds] = useState<Set<string>>(new Set());
   const [trackedBillIds, setTrackedBillIds] = useState<Set<string>>(new Set());
 
+  // Signed-out visitors can reach /boards/browse, but every endpoint below is
+  // per-user and would 401 for them, so all of them wait on a resolved session.
+  const { user, loading: authLoading } = useAuth();
+  const isSignedIn = !authLoading && !!user;
+
   // Load the current user's own tracked bill IDs once so Active Boards cards
   // can reflect whether the viewer already tracks a bill they're looking at.
   useEffect(() => {
+    if (!isSignedIn) {
+      setTrackedBillIds(new Set());
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -48,7 +58,7 @@ export function ActiveBoardsProvider({ children }: { children: ReactNode }) {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [isSignedIn]);
 
   const markBillTracked = useCallback((billId: string) => {
     setTrackedBillIds((prev) => {
@@ -60,6 +70,11 @@ export function ActiveBoardsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshFollowed = useCallback(async () => {
+    if (!isSignedIn) {
+      setFollowedOrgs([]);
+      setSelectedOrgId(null);
+      return;
+    }
     const orgs = await data.boards.listFollowed();
     setFollowedOrgs(orgs);
     // Reconcile selection: keep current if still followed, else restore
@@ -70,7 +85,7 @@ export function ActiveBoardsProvider({ children }: { children: ReactNode }) {
       if (saved && orgs.some((o) => o.tenantId === saved)) return saved;
       return orgs[0]?.tenantId ?? null;
     });
-  }, []);
+  }, [isSignedIn]);
 
   useEffect(() => {
     refreshFollowed();

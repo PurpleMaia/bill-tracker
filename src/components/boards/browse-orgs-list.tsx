@@ -8,8 +8,9 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building2, Check, Eye, FileText, Globe, Lock, Plus, Search, Star, Users } from 'lucide-react';
+import { Building2, Check, Eye, FileText, Globe, Lock, LogIn, Plus, Search, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
+import { LoginDialog } from '@/components/auth/login-dialog';
 
 // Skeleton mirroring one OrgCard's shape while the list loads.
 function OrgCardSkeleton() {
@@ -242,10 +243,12 @@ function OrgCard({
   org,
   busy,
   onToggle,
+  isLoggedOut,
 }: {
   org: PublicOrg;
   busy: boolean;
   onToggle: () => void;
+  isLoggedOut: boolean;
 }) {
   return (
     <li className="flex flex-col rounded-lg border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:items-start sm:gap-5">
@@ -299,22 +302,35 @@ function OrgCard({
           <p className="text-xs italic text-muted-foreground/60">No bills tracked yet.</p>
         )}
 
-        <Button
-          variant={org.isFollowing ? 'outline' : 'default'}
-          size="sm"
-          className="mt-4 w-full"
-          disabled={busy}
-          onClick={onToggle}
-          aria-pressed={org.isFollowing}
-        >
-          {org.isFollowing ? (
-            <>
-              <Check className="mr-1.5 h-4 w-4" /> Following
-            </>
-          ) : (
-            'Follow'
-          )}
-        </Button>
+        {/* Following is per-user state, so logged-out visitors get a prompt to
+            sign in rather than a button whose request the API would reject. */}
+        {isLoggedOut ? (
+          <LoginDialog
+            trigger={
+              <Button variant="outline" size="sm" className="mt-4 w-full">
+                <LogIn className="mr-1.5 h-4 w-4" />
+                Login to follow
+              </Button>
+            }
+          />
+        ) : (
+          <Button
+            variant={org.isFollowing ? 'outline' : 'default'}
+            size="sm"
+            className="mt-4 w-full"
+            disabled={busy}
+            onClick={onToggle}
+            aria-pressed={org.isFollowing}
+          >
+            {org.isFollowing ? (
+              <>
+                <Check className="mr-1.5 h-4 w-4" /> Following
+              </>
+            ) : (
+              'Follow'
+            )}
+          </Button>
+        )}
       </div>
     </li>
   );
@@ -373,8 +389,13 @@ function FollowedOrgs({ orgs }: { orgs: PublicOrg[] }) {
 export function BrowseOrgsList() {
   const [orgs, setOrgs] = useState<PublicOrg[] | null>(null);
   const { follow, unfollow } = useActiveBoards();
+  const { user, loading: authLoading } = useAuth();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  // Only treat the viewer as logged out once the session has actually resolved,
+  // so the Follow button doesn't flip from prompt to action on hydration.
+  const isLoggedOut = !authLoading && !user;
 
   const load = useCallback(async () => {
     const list = await data.boards.listPublicOrgs();
@@ -463,6 +484,7 @@ export function BrowseOrgsList() {
                   org={org}
                   busy={busyId === org.tenantId}
                   onToggle={() => toggle(org)}
+                  isLoggedOut={isLoggedOut}
                 />
               ))}
             </ul>
@@ -472,7 +494,8 @@ export function BrowseOrgsList() {
         {/* Right: stat blob, then the orgs you follow */}
         <aside className="flex shrink-0 flex-col gap-4 lg:w-72">
           <StatBlob orgs={orgs} />
-          <FollowedOrgs orgs={orgs} />
+          {/* Following is per-user, so the panel is meaningless when logged out. */}
+          {!isLoggedOut && <FollowedOrgs orgs={orgs} />}
         </aside>
       </div>
     </div>
