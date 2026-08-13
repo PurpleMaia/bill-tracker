@@ -10,9 +10,9 @@ export function Header() {
     // Three-column grid with equal flexible side tracks so the sub-nav sits at
     // the true center of the viewport at every breakpoint, regardless of how
     // wide the brand or the nav/auth cluster is.
-    <header className="sticky top-0 z-10 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 hd:gap-4 px-3 hd:px-8 py-3 hd:py-4 border-b-[3px] border-olive bg-primary text-primary-foreground">
-      {/* Brand — logo only until hd (830px), logo + "Bill Tracker" above it */}
-      <h1 className="min-w-0 justify-self-start text-lg hd:text-xl font-semibold text-primary-foreground">
+    <header className="sticky top-0 z-10 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 md:gap-4 px-3 md:px-8 py-3 md:py-4 border-b-[3px] border-olive bg-primary text-primary-foreground">
+      {/* Brand — logo only on mobile, logo + "Bill Tracker" on md+ */}
+      <h1 className="min-w-0 justify-self-start text-lg md:text-xl font-semibold text-primary-foreground">
         <Link
           href="/"
           className="flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
@@ -23,8 +23,8 @@ export function Header() {
             alt=""
             className="h-7 w-7 shrink-0 rounded-md"
           />
-          <span className="hidden hd:block truncate">Bill Tracker</span>
-          <span className="sr-only hd:hidden">Bill Tracker</span>
+          <span className="hidden md:block truncate">Bill Tracker</span>
+          <span className="sr-only md:hidden">Bill Tracker</span>
         </Link>
       </h1>
 

@@ -9,14 +9,6 @@ export default {
   ],
   theme: {
   	extend: {
-  		screens: {
-  			// Header chrome (wordmark, roomier padding) switches to its desktop
-  			// form here rather than at md/768px. At 768 the header was already
-  			// desktop-styled while page navigation was still the mobile bottom
-  			// bar, which read as a stretched in-between layout. Scoped to the
-  			// header so redefining `md` can't shift the rest of the app.
-  			hd: '830px',
-  		},
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
