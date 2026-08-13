@@ -12,9 +12,14 @@ import { ViewToggle } from './view-toggle';
  * wall); compact icon-only variant on mobile. It lives in the global header
  * rather than the board header so it stays reachable from the admin view.
  * /testimonies renders its All/Drafts/Submitted tabs (both logged-in only
- * — hidden over the login wall). /boards renders its View Board/Browse tabs
+ * — hidden over the login wall). /boards renders its Browse/View Board tabs
  * for everyone, since browsing public orgs needs no account; the View Board
  * tab itself gates. /search renders nothing yet; its sub-nav lands here later.
+ *
+ * Labelled tabs only appear at xl. Below that the main nav's links reach far
+ * enough left to collide with this centered track, so the compact icon-only
+ * variant is used instead — measured, not guessed: full labels first clear the
+ * main nav at 1280px.
  */
 export function HeaderSubNav() {
   const pathname = usePathname();
@@ -23,10 +28,10 @@ export function HeaderSubNav() {
   if (pathname === '/' && user) {
     return (
       <>
-        <div className="hidden md:block">
+        <div className="hidden xl:block">
           <ViewToggle />
         </div>
-        <div className="md:hidden">
+        <div className="xl:hidden">
           <ViewToggle compact />
         </div>
       </>
@@ -36,10 +41,10 @@ export function HeaderSubNav() {
   if (pathname.startsWith('/testimonies') && user) {
     return (
       <>
-        <div className="hidden md:block">
+        <div className="hidden xl:block">
           <TestimoniesSubNav />
         </div>
-        <div className="md:hidden flex justify-center">
+        <div className="xl:hidden flex justify-center">
           <TestimoniesSubNav compact />
         </div>
       </>
@@ -51,10 +56,10 @@ export function HeaderSubNav() {
   if (pathname.startsWith('/boards')) {
     return (
       <>
-        <div className="hidden md:block">
+        <div className="hidden xl:block">
           <ActiveBoardsSubNav />
         </div>
-        <div className="md:hidden flex justify-center">
+        <div className="xl:hidden flex justify-center">
           <ActiveBoardsSubNav compact />
         </div>
       </>
