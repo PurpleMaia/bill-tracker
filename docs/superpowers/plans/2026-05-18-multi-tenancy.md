@@ -1463,7 +1463,7 @@ In `onDragEnd`, include `tenantId` when calling `updateBillStatus` or `proposeSt
 
 - [ ] **Step 3: Test drag-and-drop**
 
-Log in as an org admin, drag a bill, verify:
+Login as an org admin, drag a bill, verify:
 - Status updates in `org_bills` (check DB)
 - `bills.bill_status` gets recomputed (derived status)
 - UI reflects the change
@@ -1495,7 +1495,7 @@ Read `activeTenant` from `useAuth()`. Pass `tenantId` to all admin action calls.
 
 - [ ] **Step 3: Test admin panel**
 
-Log in as org admin, verify:
+Login as org admin, verify:
 - Only org members are shown
 - Role changes apply to org membership (not global user role)
 - Approvals tab shows only proposals from the active tenant
@@ -1528,7 +1528,7 @@ return NextResponse.json({ user, memberships }, { status: 200 });
 
 - [ ] **Step 2: Test login flow**
 
-Log in, verify the response includes `memberships` array with the Food+ tenant.
+Login, verify the response includes `memberships` array with the Food+ tenant.
 
 - [ ] **Step 3: Commit**
 
@@ -1598,8 +1598,8 @@ npm run dev
 
 Test all major flows:
 - Public user views bills (read-only kanban)
-- Log in as org worker — see org bills, propose status changes
-- Log in as org admin — drag bills, approve proposals, manage tags, admin panel
+- Login as org worker — see org bills, propose status changes
+- Login as org admin — drag bills, approve proposals, manage tags, admin panel
 - Toggle between "My Bills" and "All Bills"
 
 - [ ] **Step 4: Commit**

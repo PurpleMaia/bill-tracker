@@ -44,7 +44,7 @@ URLs are unchanged for `/`; new URLs are `/search`, `/testimonies`, `/boards`.
 
 ## Your Bills Page (`/`)
 
-- **Logged out:** a centered card — "Log in to view your bills" — with a button opening the existing login dialog. While auth is loading, render nothing (matches current behavior).
+- **Logged out:** a centered card — "Login to view your bills" — with a button opening the existing login dialog. While auth is loading, render nothing (matches current behavior).
 - **Logged in:** the existing content — the Kanban/Spreadsheet/Admin view toggle (same `kanban-board-context` view state, same role-based visibility) rendered as a toolbar row above the board, then `ProtectedKanbanBoardOrSpreadsheet` / `AdminDashboard` / `SupervisorDashboard` per the current `view` switch.
 - The mobile `BottomTabBar` (Kanban / Track / Spreadsheet) moves into this page, since its tabs only apply to the board.
 - `ProtectedKanbanBoardOrSpreadsheet`'s internal `if (!user)` public branch becomes unreachable (the page gates first); it is left in place — removal is out of scope.

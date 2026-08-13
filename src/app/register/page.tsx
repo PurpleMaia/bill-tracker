@@ -204,7 +204,7 @@ function RegisterForm() {
         <p className="mt-4 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <a href="/" className="text-primary underline-offset-4 hover:underline">
-            Log in
+            Login
           </a>
         </p>
       </div>

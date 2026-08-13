@@ -1638,7 +1638,7 @@ export default function TestimonyPage() {
       <div className="flex h-dvh items-center justify-center p-4">
         <div className="max-w-sm rounded-lg border bg-card p-6 text-center">
           <Lock className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-          <h1 className="mb-1 text-lg font-semibold">Sign in to write testimony</h1>
+          <h1 className="mb-1 text-lg font-semibold">Login to write testimony</h1>
           <p className="mb-4 text-sm text-muted-foreground">
             Testimony drafts are saved to your account so you can come back to them.
           </p>
@@ -1998,7 +1998,7 @@ interface TestimonySubmitGuideProps {
 
 const STEPS: Array<{ title: string; body: string }> = [
   {
-    title: 'Sign in to the Hawaii State Legislature website',
+    title: 'Login to the Hawaii State Legislature website',
     body: 'Go to capitol.hawaii.gov and click "Sign In" (top right). If you don\'t have an account yet, register with your email — it\'s free and takes a minute.',
   },
   {
