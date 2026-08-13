@@ -97,6 +97,62 @@ export async function sendVerificationEmail(email: string, username: string, ver
   }
 }
 
+export async function sendPasswordResetEmail(email: string, username: string, resetToken: string) {
+  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/reset-password?token=${resetToken}`;
+
+  if (!resend) {
+    console.warn('⚠️  RESEND_API_KEY not configured. Email sending disabled.');
+    console.log('📧 Password reset URL for manual testing:', resetUrl);
+    if (process.env.NODE_ENV === 'development') {
+      return { success: true, data: { message: 'Email service not configured, but reset token created in development' } };
+    }
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  console.log('📧 Password reset URL (always logged):', resetUrl);
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: email,
+      subject: 'Reset your Food+ password',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Reset your password</h2>
+          <p>Hi ${escapeHtml(username)},</p>
+          <p>We received a request to reset your Food+ password. Click the button below to choose a new one:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              Reset Password
+            </a>
+          </div>
+          <p>Or copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; color: #666;">${resetUrl}</p>
+          <p style="margin-top: 30px; color: #666; font-size: 14px;">
+            This link expires in 1 hour and can only be used once. If you didn't request a password reset,
+            you can safely ignore this email — your password will not change.
+          </p>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('❌ Resend API error (password reset):', JSON.stringify(error, null, 2));
+      console.log('📧 Password reset URL (use this manually):', resetUrl);
+      return { success: false, error };
+    }
+
+    console.log('✅ Password reset email sent successfully to:', email);
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('❌ Exception sending password reset email:', error);
+    console.log('📧 Password reset URL (use this manually):', resetUrl);
+    return { success: false, error };
+  }
+}
+
 export async function sendInviteEmail(email: string, orgName: string, inviteToken: string) {
   const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/register?invite=${inviteToken}`;
 
