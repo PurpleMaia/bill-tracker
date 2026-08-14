@@ -22,6 +22,7 @@ import {
   resolveDeadlineTerm,
 } from '@/lib/glossary/resolvers';
 import { PROGRESS_STAGES } from '@/lib/bills/progress-stages';
+import { sortVersions } from '@/lib/versions/bill-versions';
 import { parseCommitteeCodes, committeeFullName } from '@/lib/testimony/committees';
 import { COLUMN_TITLES } from '@/lib/bills/kanban-columns';
 
@@ -75,9 +76,14 @@ export function BillBreakdown({
   const statusTerm = resolveStatusTerm(currentStatus);
   const stage = PROGRESS_STAGES.find((s) => s.statuses.includes(currentStatus));
 
-  const latestVersion = bill.versions && bill.versions.length > 0
-    ? bill.versions[bill.versions.length - 1]
-    : null;
+  // sortVersions puts these in LEGISLATIVE order. The query returns them by
+  // created_at, so a backfilled or out-of-order insert would otherwise present
+  // an older draft as "latest". Matches the briefing and versions panel.
+  const latestVersion = useMemo(() => {
+    if (!bill.versions || bill.versions.length === 0) return null;
+    const ordered = sortVersions(bill.versions);
+    return ordered[ordered.length - 1] ?? null;
+  }, [bill.versions]);
   const versionTerm = latestVersion ? resolveVersionTerm(latestVersion.label) : null;
 
   const chamberWord = bill.bill_number?.toUpperCase().startsWith('S') ? 'Senate' : 'House';

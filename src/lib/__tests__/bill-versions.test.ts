@@ -74,6 +74,17 @@ describe('sortVersions', () => {
     ]);
   });
 
+  // Consumers that want "the latest version" (bill breakdown, briefing) take
+  // the LAST element after sorting. The query returns rows by created_at, so
+  // taking the last raw element can surface an older draft as "latest".
+  it('last element after sorting is the legislative latest, not the last row', () => {
+    const storedByCreatedAt = ['HB1494', 'HB1494_CD1', 'HB1494_HD1'].map(v);
+    const naive = storedByCreatedAt[storedByCreatedAt.length - 1];
+    const ordered = sortVersions(storedByCreatedAt);
+    expect(naive.label).toBe('HB1494_HD1');
+    expect(ordered[ordered.length - 1].label).toBe('HB1494_CD1');
+  });
+
   it('does not mutate the input array', () => {
     const input = ['SB894_SD1', 'SB894'].map(v);
     const before = input.map((x) => x.label);
