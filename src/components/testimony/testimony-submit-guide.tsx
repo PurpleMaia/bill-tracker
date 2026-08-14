@@ -21,7 +21,7 @@ interface TestimonySubmitGuideProps {
 
 const STEPS: Array<{ title: string; body: string }> = [
   {
-    title: 'Log in to the Hawaii State Legislature website',
+    title: 'Login to the Hawaii State Legislature website',
     body: 'Go to capitol.hawaii.gov and click "Log In" (top right). If you don\'t have an account yet, register with your email — it\'s free and takes a minute.',
   },
   {

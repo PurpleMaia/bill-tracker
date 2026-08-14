@@ -12,7 +12,7 @@ const VIDEO_TITLE = 'Participate in the Legislative Process';
 
 const GUIDE_STEPS: Array<{ title: string; body: string }> = [
   {
-    title: 'Log in at capitol.hawaii.gov',
+    title: 'Login at capitol.hawaii.gov',
     body: 'Registering is free and takes a minute — testimony is submitted through their site.',
   },
   {

@@ -5,9 +5,11 @@ import { usePathname } from 'next/navigation';
 import { KanbanSquareIcon, Building2 } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 
+// Browse leads: it's the entry point to the section (public, and where you
+// find orgs to follow), whereas View Board is only useful once you follow one.
 const TABS = [
-  { href: '/boards', label: 'View Board', icon: KanbanSquareIcon },
   { href: '/boards/browse', label: 'Browse', icon: Building2 },
+  { href: '/boards', label: 'View Board', icon: KanbanSquareIcon },
 ] as const;
 
 export function isActiveBoardsTabActive(href: string, pathname: string) {
