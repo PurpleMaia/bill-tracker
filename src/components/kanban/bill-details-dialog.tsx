@@ -258,17 +258,25 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
         <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b shrink-0 text-left">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
+              {/* leading-none on the title so its line box matches the h-5
+                  badges beside it — text-lg's default line-height made them sit
+                  visually low against it. */}
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <DialogTitle className="text-lg font-semibold tracking-tight">
+                <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
                   {bill.bill_number}
                 </DialogTitle>
                 {bill.dead && (
                   <Badge variant="destructive" className="text-[10px] h-5 text-white">Failed</Badge>
                 )}
+                {/* Badge is a DIRECT flex child, with the term trigger inside it —
+                    wrapping the badge in the trigger introduced an inline,
+                    baseline-aligned button that broke items-center. */}
                 {fiscal && (
-                  <Term slug="fiscal" variant="chip" billId={bill.id}>
-                    <Badge variant="secondary" className="text-[10px] h-5">Fiscal</Badge>
-                  </Term>
+                  <Badge variant="secondary" className="h-5 text-[10px]">
+                    <Term slug="fiscal" variant="chip" billId={bill.id} className="leading-none">
+                      Fiscal
+                    </Term>
+                  </Badge>
                 )}
                 {/* One entry point for all conceptual explanation, so the
                     surrounding labels can stay unmarked and legible. */}
