@@ -99,17 +99,26 @@ export async function sendVerificationEmail(email: string, username: string, ver
 
 export async function sendPasswordResetEmail(email: string, username: string, resetToken: string) {
   const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/reset-password?token=${resetToken}`;
+  const isDev = process.env.NODE_ENV === 'development';
+
+  // A reset URL contains the raw, still-valid token. Logging it outside local
+  // development would hand account takeover to anyone with log access and
+  // defeat the point of storing only the hash. The local dev server needs it
+  // because there is no inbox to check.
+  const logResetUrlInDevOnly = (label: string) => {
+    if (isDev) console.log(`📧 [dev only] Password reset URL (${label}):`, resetUrl);
+  };
 
   if (!resend) {
     console.warn('⚠️  RESEND_API_KEY not configured. Email sending disabled.');
-    console.log('📧 Password reset URL for manual testing:', resetUrl);
-    if (process.env.NODE_ENV === 'development') {
+    logResetUrlInDevOnly('manual testing');
+    if (isDev) {
       return { success: true, data: { message: 'Email service not configured, but reset token created in development' } };
     }
     return { success: false, error: 'Email service not configured' };
   }
 
-  console.log('📧 Password reset URL (always logged):', resetUrl);
+  logResetUrlInDevOnly('pre-send');
 
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
@@ -140,7 +149,7 @@ export async function sendPasswordResetEmail(email: string, username: string, re
 
     if (error) {
       console.error('❌ Resend API error (password reset):', JSON.stringify(error, null, 2));
-      console.log('📧 Password reset URL (use this manually):', resetUrl);
+      logResetUrlInDevOnly('send failed');
       return { success: false, error };
     }
 
@@ -148,7 +157,7 @@ export async function sendPasswordResetEmail(email: string, username: string, re
     return { success: true, data };
   } catch (error: any) {
     console.error('❌ Exception sending password reset email:', error);
-    console.log('📧 Password reset URL (use this manually):', resetUrl);
+    logResetUrlInDevOnly('exception');
     return { success: false, error };
   }
 }

@@ -402,9 +402,14 @@ export function BrowseOrgsList() {
     setOrgs(list);
   }, []);
 
+  // Keyed on the viewer's identity, not just mount: isFollowing is computed
+  // per-user server-side, so the anonymous response is wrong the moment someone
+  // logs in through the "Login to follow" dialog. Without this refetch every
+  // card would keep saying "Follow" for orgs they already follow.
   useEffect(() => {
+    if (authLoading) return;
     load();
-  }, [load]);
+  }, [load, authLoading, user?.id]);
 
   const toggle = async (org: PublicOrg) => {
     setBusyId(org.tenantId);

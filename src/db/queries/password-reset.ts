@@ -19,25 +19,43 @@ function hashToken(rawToken: string): string {
  * @returns the RAW token, to be embedded in the reset URL
  */
 export async function createPasswordResetToken(userId: string): Promise<string> {
-  await db
-    .deleteFrom('password_reset_tokens')
-    .where('user_id', '=', userId)
-    .where('used_at', 'is', null)
-    .execute();
-
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
   const rawToken = Buffer.from(bytes).toString('hex');
 
-  await db
-    .insertInto('password_reset_tokens')
-    .values({
-      id: randomUUID(),
-      user_id: userId,
-      token_hash: hashToken(rawToken),
-      expires_at: new Date(Date.now() + TOKEN_TTL_MS),
-    })
-    .execute();
+  // Delete-then-insert must be atomic, and serialised per user. Two concurrent
+  // requests could otherwise both clear the table before either inserted,
+  // leaving two live reset links for one account and breaking the "a new
+  // request invalidates the old link" guarantee.
+  //
+  // The user row is locked FOR UPDATE first so the second request waits for the
+  // first to commit rather than racing it. A partial unique index can't express
+  // this instead: the predicate would need `expires_at > NOW()`, and NOW() is
+  // not immutable, so Postgres rejects it in an index.
+  await db.transaction().execute(async (trx) => {
+    await trx
+      .selectFrom('user')
+      .select('id')
+      .where('id', '=', userId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    await trx
+      .deleteFrom('password_reset_tokens')
+      .where('user_id', '=', userId)
+      .where('used_at', 'is', null)
+      .execute();
+
+    await trx
+      .insertInto('password_reset_tokens')
+      .values({
+        id: randomUUID(),
+        user_id: userId,
+        token_hash: hashToken(rawToken),
+        expires_at: new Date(Date.now() + TOKEN_TTL_MS),
+      })
+      .execute();
+  });
 
   return rawToken;
 }

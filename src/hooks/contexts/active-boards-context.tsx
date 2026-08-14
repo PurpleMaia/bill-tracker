@@ -58,7 +58,9 @@ export function ActiveBoardsProvider({ children }: { children: ReactNode }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [isSignedIn]);
+    // user?.id, not just isSignedIn: switching accounts without an intermediate
+    // logout leaves the boolean true, and stale per-user data on screen.
+  }, [isSignedIn, user?.id]);
 
   const markBillTracked = useCallback((billId: string) => {
     setTrackedBillIds((prev) => {
@@ -85,7 +87,7 @@ export function ActiveBoardsProvider({ children }: { children: ReactNode }) {
       if (saved && orgs.some((o) => o.tenantId === saved)) return saved;
       return orgs[0]?.tenantId ?? null;
     });
-  }, [isSignedIn]);
+  }, [isSignedIn, user?.id]);
 
   useEffect(() => {
     refreshFollowed();
