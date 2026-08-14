@@ -94,11 +94,25 @@ export function Term({
   // stopPropagation: almost every term sits inside a tappable parent (kanban
   // card -> opens the bill dialog, spreadsheet row, version link). Without this
   // a tap on the term also fires the parent.
+  //
+  // onKeyDown matters as much as the pointer handlers: Enter/Space on a focused
+  // trigger bubbles as keydown to the parent's keyboard handler BEFORE the
+  // synthesized click is stopped, so the parent would open the bill dialog.
   const trigger = (
     <button
       type="button"
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          e.stopPropagation();
+        }
+      }}
+      onKeyUp={(e) => {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          e.stopPropagation();
+        }
+      }}
       aria-label={`What does "${resolved.term}" mean?`}
       className={cn(TRIGGER_BASE, VARIANT_CLASS[variant], className)}
     >
@@ -133,7 +147,13 @@ export function Term({
   // default w-72, which is wider than we want for a definition.
   const contentClass = 'w-auto max-w-[280px] p-3';
 
-  if (finePointer) {
+  // A hover tooltip cannot hold interactive content: moving focus toward the
+  // link closes and unmounts it, so keyboard users could never reach "Learn
+  // more". Any term WITH a link therefore uses popover semantics on every
+  // device; link-less terms keep the cheap hover peek on desktop.
+  const useTooltip = finePointer && !learnMoreHref;
+
+  if (useTooltip) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>{trigger}</TooltipTrigger>
@@ -145,13 +165,18 @@ export function Term({
   }
 
   return (
-    <Popover>
+    // modal: a non-modal popover's outside press dismisses WITHOUT consuming the
+    // event, so the tap that closes a definition inside a kanban card would also
+    // reach the card and open the bill dialog. Modal renders a dismiss layer that
+    // swallows that first outside interaction.
+    <Popover modal>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent
         side={side}
         collisionPadding={12}
         className={contentClass}
         onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         {body}
       </PopoverContent>
