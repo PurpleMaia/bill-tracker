@@ -3,8 +3,8 @@ import { cn, formatBillHeadline, formatBillStatusName, formatRelativeDate, today
 import { canAssignBills } from '@/lib/auth/permissions';
 import { parseCommittees } from '@/lib/bills/dead-bill';
 import { isAwaitingHearing } from '@/lib/bills/kanban-columns';
-import { committeeFullName } from '@/lib/testimony/committees';
 import { Term } from '@/components/ui/term';
+import { resolveCommitteeListTerm } from '@/lib/glossary/resolvers';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 /** Shadcn tooltip wrapper for the card's chips — replaces native title attrs. */
@@ -90,6 +90,13 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const headline = formatBillHeadline(bill);
     const committeeReferrals = bill.committee_assignment ? parseCommittees(bill.committee_assignment) : [];
     const committeeCodes = committeeReferrals.length > 0 ? committeeReferrals.join(' · ') : null;
+
+    // Unknown codes are dropped rather than echoed back at the reader; all-unknown
+    // yields null, which makes <Term> render plain children with no affordance.
+    const committeeTerm = React.useMemo(
+      () => resolveCommitteeListTerm(committeeReferrals),
+      [committeeReferrals.join('|')]
+    );
 
     const today = todayHawaii();
     const nextDeadline = !bill.dead && bill.committee_assignment && bill.current_bill_status
@@ -406,18 +413,16 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                     )}
                     {!testimonyState && !testimonyDue && !testimonyClosed && committeeCodes && (
                       /* The whole chip is the term trigger: it has no other action, and
-                         the previous hover-only tooltip was unreachable on touch. Keeps
-                         the per-code expansion and adds what a committee actually is. */
+                         the previous hover-only tooltip was unreachable on touch.
+                         Expansions come from resolveCommitteeTerm so an unknown code
+                         yields null and drops out — calling committeeFullName directly
+                         would pass the code through and render "XYZ — XYZ". If NO code
+                         resolves, committeeTerm is null and Term renders the bare chip
+                         with no affordance. */
                       <Term
                         variant="chip"
                         billId={bill.id}
-                        term={{
-                          term: 'Referred to',
-                          short: committeeReferrals
-                            .map((code) => `${code} — ${committeeFullName(code)}`)
-                            .join('. '),
-                          learnMoreAnchor: 'orig-chamber',
-                        }}
+                        term={committeeTerm}
                       >
                         <span className="inline-flex items-center rounded-full border border-border bg-secondary/60 px-2 h-5 text-[10px] font-medium text-secondary-foreground shrink-0">
                           {committeeCodes}

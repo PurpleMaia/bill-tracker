@@ -3,6 +3,7 @@ import { GLOSSARY, type GlossaryTerm } from '@/lib/glossary/terms';
 import {
   resolveStatusTerm,
   resolveCommitteeTerm,
+  resolveCommitteeListTerm,
   resolveVersionTerm,
   resolveDeadlineTerm,
 } from '@/lib/glossary/resolvers';
@@ -76,6 +77,28 @@ describe('resolveCommitteeTerm', () => {
 
   it('returns null for empty input', () => {
     expect(resolveCommitteeTerm('')).toBeNull();
+  });
+});
+
+describe('resolveCommitteeListTerm', () => {
+  it('joins the expansions for known codes', () => {
+    const term = resolveCommitteeListTerm(['AGR', 'FIN']);
+    expect(term).not.toBeNull();
+    expect(term!.short).toContain('Agriculture');
+    expect(term!.short).toContain('Finance');
+  });
+
+  // committeeFullName passes unknown codes through, so echoing them would
+  // render "XYZ — XYZ" — the bogus affordance the null path exists to prevent.
+  it('drops unknown codes but keeps known ones', () => {
+    const term = resolveCommitteeListTerm(['AGR', 'XYZ']);
+    expect(term!.short).toContain('Agriculture');
+    expect(term!.short).not.toContain('XYZ');
+  });
+
+  it('returns null when no code is known', () => {
+    expect(resolveCommitteeListTerm(['XYZ', 'QQQ'])).toBeNull();
+    expect(resolveCommitteeListTerm([])).toBeNull();
   });
 });
 

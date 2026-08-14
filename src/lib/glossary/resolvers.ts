@@ -42,6 +42,23 @@ export function resolveCommitteeTerm(code: string): GlossaryTerm | null {
   };
 }
 
+/**
+ * A combined term for a list of referral codes ("AGR · FIN" on a card).
+ *
+ * Unknown codes are DROPPED rather than echoed: committeeFullName passes them
+ * through unchanged, so including them would render "XYZ — XYZ". If no code is
+ * known the whole thing is null, so the caller shows no affordance at all.
+ */
+export function resolveCommitteeListTerm(codes: string[]): GlossaryTerm | null {
+  const known = codes.filter((code) => resolveCommitteeTerm(code) !== null);
+  if (known.length === 0) return null;
+  return {
+    term: 'Referred to',
+    short: known.map((code) => `${code} — ${committeeFullName(code)}`).join('. '),
+    learnMoreAnchor: GLOSSARY.committee.learnMoreAnchor,
+  };
+}
+
 /** Version label -> pipeline position. Null when the label is unrecognized. */
 export function resolveVersionTerm(label: string): GlossaryTerm | null {
   const described = describeVersionLabel(label);
