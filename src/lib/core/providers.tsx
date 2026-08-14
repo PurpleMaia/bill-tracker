@@ -6,8 +6,17 @@ import { KanbanBoardProvider } from '@/hooks/contexts/kanban-board-context';
 import { BillsProvider } from '@/hooks/contexts/bills-context';
 import { queryClient } from '@/lib/core/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { UNRESOLVED_AUTH, type InitialAuth } from '@/lib/auth/initial-auth-types';
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({
+  children,
+  // Server-resolved session, passed down from the root layout so AuthProvider
+  // can render the correct state immediately instead of fetching after hydration.
+  initialAuth = UNRESOLVED_AUTH,
+}: {
+  children: React.ReactNode;
+  initialAuth?: InitialAuth;
+}) {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Root tooltip provider: <Term> in hover mode needs an ancestor provider,

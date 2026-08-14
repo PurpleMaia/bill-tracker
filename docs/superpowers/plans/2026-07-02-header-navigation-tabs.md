@@ -202,7 +202,7 @@ export function LoginWall() {
       <Card className="w-full max-w-md text-center">
         <CardHeader>
           <Lock className="mx-auto h-10 w-10 text-muted-foreground" />
-          <CardTitle>Log in to view your bills</CardTitle>
+          <CardTitle>Login to view your bills</CardTitle>
           <CardDescription>
             Your tracked bills and kanban board are available once you sign in.
           </CardDescription>

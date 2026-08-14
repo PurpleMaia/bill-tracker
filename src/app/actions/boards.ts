@@ -2,7 +2,7 @@
 
 import type { Bill } from '@/types/legislation';
 import type { PublicOrg, MyOrg } from '@/types/tenant';
-import { requireSession, requireAdmin, requireMembership } from '@/lib/auth/auth-guards';
+import { optionalSession, requireSession, requireAdmin, requireMembership } from '@/lib/auth/auth-guards';
 import { ApiError } from '@/lib/core/errors';
 import {
   listPublicTenants,
@@ -28,8 +28,10 @@ import type {
 } from '@/lib/data-client/boards.params';
 
 export async function listPublicOrgsAction(): Promise<PublicOrg[]> {
-  const { user } = await requireSession.fromAction();
-  return listPublicTenants(user.id);
+  // Open to signed-out visitors, matching the fetch arm: browsing public orgs
+  // needs no account, only following does.
+  const { user } = await optionalSession.fromAction();
+  return listPublicTenants(user?.id ?? null);
 }
 
 export async function getMyOrgStatsAction(params: MyOrgStatsParams): Promise<MyOrg | null> {

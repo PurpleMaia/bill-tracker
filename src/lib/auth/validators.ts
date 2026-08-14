@@ -28,6 +28,16 @@ export const registerSchema = z.object({
   password: newPasswordSchema,
 });
 
+export const forgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+
+// Reuses newPasswordSchema so reset enforces the same rules as registration.
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, { message: "Reset token is required." }),
+  password: newPasswordSchema,
+});
+
 export const tagsSchema = z.object({
     tagIds: z.array(z.string().uuid())
 });

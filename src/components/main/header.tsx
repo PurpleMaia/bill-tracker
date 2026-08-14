@@ -52,7 +52,9 @@ export function Header() {
         </span>
       </h1>
 
-      {/* Contextual sub-nav — centered grid track */}
+      {/* Contextual sub-nav — centered grid track (auto-sized, so it keeps its
+          intrinsic width while the minmax(0,1fr) side tracks absorb the
+          remaining space). */}
       <div className="min-w-0 px-2">
         <HeaderSubNav />
       </div>

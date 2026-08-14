@@ -63,9 +63,10 @@ export async function POST(request: NextRequest) {
     const emailResult = await sendVerificationEmail(user.email, user.username, user.verification_token);
     
     if (!emailResult.success) {
+      // The URL is deliberately not logged here: it carries a live verification
+      // token, and sendVerificationEmail already logs it on this path when
+      // running in development.
       console.error('Failed to resend verification email:', emailResult.error);
-      const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/verify-email?token=${user.verification_token}`;
-      console.log('Verification URL (not sent to client):', verificationUrl);
       return NextResponse.json({
         success: false,
         error: 'Failed to send verification email. Please try again later.'

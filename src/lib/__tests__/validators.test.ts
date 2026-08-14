@@ -10,6 +10,8 @@ import {
   newTagSchema,
   usersSchema,
   userIdSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from '../auth/validators';
 
 describe('uuidSchema', () => {
@@ -238,5 +240,47 @@ describe('userIdSchema', () => {
 
   it('rejects invalid userId', () => {
     expect(userIdSchema.safeParse({ userId: 'bad' }).success).toBe(false);
+  });
+});
+
+describe('forgotPasswordSchema', () => {
+  it('accepts a valid email', () => {
+    expect(forgotPasswordSchema.safeParse({ email: 'user@example.com' }).success).toBe(true);
+  });
+
+  it('rejects an invalid email', () => {
+    const result = forgotPasswordSchema.safeParse({ email: 'not-an-email' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe('Please provide a valid email address.');
+    }
+  });
+
+  it('rejects a missing email', () => {
+    expect(forgotPasswordSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe('resetPasswordSchema', () => {
+  it('accepts a token with a password', () => {
+    expect(resetPasswordSchema.safeParse({ token: 'abc123', password: 'sup3rsecret' }).success).toBe(true);
+  });
+
+  it('rejects an empty token', () => {
+    const result = resetPasswordSchema.safeParse({ token: '', password: 'sup3rsecret' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe('Reset token is required.');
+    }
+  });
+
+  it('rejects a missing token', () => {
+    expect(resetPasswordSchema.safeParse({ password: 'sup3rsecret' }).success).toBe(false);
+  });
+
+  it('rejects an empty password', () => {
+    // newPasswordSchema only enforces an 8-char minimum in production, but an
+    // empty password is rejected in every environment.
+    expect(resetPasswordSchema.safeParse({ token: 'abc123', password: '' }).success).toBe(false);
   });
 });

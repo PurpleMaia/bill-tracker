@@ -225,7 +225,7 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
           ) : !user ? (
             <EmptyState
               icon={FileText}
-              title="Sign in to see your testimonies"
+              title="Login to see your testimonies"
               description="Your testimony drafts and submissions are tied to your account."
             />
           ) : error ? (

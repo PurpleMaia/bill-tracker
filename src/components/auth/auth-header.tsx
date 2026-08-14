@@ -2,7 +2,6 @@
 
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { LoginDialog } from './login-dialog';
-import { RegisterDialog } from './register-dialog';
 import { UserMenu } from './user-menu';
 
 export function AuthHeader() {
@@ -24,9 +23,12 @@ export function AuthHeader() {
   return (
     <div className="flex items-center space-x-4 ">
       {user ? (
-        <UserMenu />   //shows user menu if logged in 
+        <UserMenu />   //shows user menu if logged in
       ) : (
-          <LoginDialog />   
+        // A single trigger keeps the header's right track narrow enough that it
+        // never crowds the centered sub-nav on mobile. The dialog itself offers
+        // the route to registration.
+        <LoginDialog />
       )}
     </div>
   );

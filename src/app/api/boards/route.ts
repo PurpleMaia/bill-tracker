@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSession, requireMembership } from '@/lib/auth/auth-guards';
+import { optionalSession, requireSession, requireMembership } from '@/lib/auth/auth-guards';
 import { listPublicTenants, listFollowedTenants, getMyOrgStats } from '@/db/queries/tenants';
 
 export async function GET(request: NextRequest) {
@@ -19,11 +19,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ org }, { status: 200 });
     }
 
-    const { user } = await requireSession.fromRequest(request);
-    const orgs =
-      scope === 'followed'
-        ? await listFollowedTenants(user.id)
-        : await listPublicTenants(user.id);
+    // scope=followed is inherently per-user, so it stays gated. The public org
+    // list is open: signed-out visitors browse it, they just can't follow.
+    if (scope === 'followed') {
+      const { user } = await requireSession.fromRequest(request);
+      const orgs = await listFollowedTenants(user.id);
+      return NextResponse.json({ orgs }, { status: 200 });
+    }
+
+    const { user } = await optionalSession.fromRequest(request);
+    const orgs = await listPublicTenants(user?.id ?? null);
     return NextResponse.json({ orgs }, { status: 200 });
   } catch (error: any) {
     if (error?.statusCode) {

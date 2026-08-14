@@ -172,6 +172,15 @@ export interface OrgFollows {
   user_id: string;
 }
 
+export interface PasswordResetTokens {
+  created_at: Generated<Timestamp>;
+  expires_at: Timestamp;
+  id: Generated<string>;
+  token_hash: string;
+  used_at: Timestamp | null;
+  user_id: string;
+}
+
 export interface PendingProposals {
   approval_status: Generated<string | null>;
   approved_at: Timestamp | null;
@@ -311,6 +320,7 @@ export interface DB {
   members: Members;
   org_bills: OrgBills;
   org_follows: OrgFollows;
+  password_reset_tokens: PasswordResetTokens;
   pending_proposals: PendingProposals;
   schema_migrations: SchemaMigrations;
   scraping_stats: ScrapingStats;
