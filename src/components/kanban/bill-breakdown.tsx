@@ -157,16 +157,19 @@ export function BillBreakdown({
           <BreakdownRow value={deadlineName as string}>{deadlineTerm.short}</BreakdownRow>
         )}
       </div>
-
-      <div className="border-t pt-3">
-        <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
-          <Link href={`/learn?bill=${encodeURIComponent(bill.id)}`}>
-            See the full path a bill takes
-            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-          </Link>
-        </Button>
-      </div>
     </div>
+  );
+}
+
+/** Pinned footer action. Lives OUTSIDE the ScrollArea so it stays visible. */
+export function BillBreakdownFooter({ billId }: { billId: string }) {
+  return (
+    <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
+      <Link href={`/learn?bill=${encodeURIComponent(billId)}`}>
+        See the full path a bill takes
+        <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+      </Link>
+    </Button>
   );
 }
 
@@ -200,20 +203,26 @@ export function BillBreakdownButton({
           <span className="hidden sm:inline">How to read this</span>
         </Button>
       </DialogTrigger>
-      {/* Nested above the bill dialog. max-h + ScrollArea because the breakdown
-          is taller than a phone viewport. */}
-      <DialogContent className="max-h-[85vh] max-w-lg gap-0 p-0">
+      {/* Three-row grid: fixed header, scrolling middle, pinned footer.
+          overflow-hidden clips the ScrollArea's scrollbar to the rounded
+          corners — without it the bar draws over the container edge.
+          grid-rows-[auto_minmax(0,1fr)_auto] lets the middle row shrink, which
+          a plain 1fr will not do inside a max-h grid. */}
+      <DialogContent className="grid max-h-[85vh] max-w-lg grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0">
         <DialogHeader className="border-b px-5 py-4 text-left">
           <DialogTitle className="text-base">How to read this bill</DialogTitle>
           <DialogDescription className="text-xs">
             Every part of {bill.bill_number}, in plain language.
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="max-h-[calc(85vh-5.5rem)]">
+        <ScrollArea className="min-h-0">
           <div className="px-5 py-4">
             <BillBreakdown bill={bill} currentStatus={currentStatus} deadlineName={deadlineName} />
           </div>
         </ScrollArea>
+        <div className="border-t bg-muted/30 px-5 py-3">
+          <BillBreakdownFooter billId={bill.id} />
+        </div>
       </DialogContent>
     </Dialog>
   );
