@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Info } from 'lucide-react';
+import { Info, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { GLOSSARY, type GlossaryTerm, type TermSlug } from '@/lib/glossary/terms';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -32,7 +32,7 @@ export function useFinePointer(): boolean {
   return fine;
 }
 
-type TermVariant = 'prose' | 'chip' | 'icon';
+type TermVariant = 'prose' | 'chip' | 'icon' | 'help';
 
 interface TermProps {
   /** Static term. Mutually exclusive with `term`. */
@@ -40,7 +40,8 @@ interface TermProps {
   /** Resolved dynamic term (from @/lib/glossary/resolvers). null = no definition. */
   term?: GlossaryTerm | null;
   /** prose: dotted underline. chip: no marker, inherits the chip's own border.
-   *  icon: a standalone ⓘ, for use beside a link. */
+   *  icon: a standalone ⓘ, for use beside a link.
+   *  help: a standalone "?", for explaining a labelled value in place. */
   variant?: TermVariant;
   side?: 'top' | 'bottom' | 'left' | 'right';
   /** Carried into /learn as ?bill= so the walkthrough can mark "you are here". */
@@ -58,6 +59,7 @@ const VARIANT_CLASS: Record<TermVariant, string> = {
   // No marker of its own — the chip's existing border/background is the affordance.
   chip: 'cursor-help',
   icon: 'cursor-help text-muted-foreground hover:text-foreground align-middle',
+  help: 'cursor-help opacity-70 hover:opacity-100 align-middle transition-opacity',
 };
 
 /**
@@ -100,7 +102,13 @@ export function Term({
       aria-label={`What does "${resolved.term}" mean?`}
       className={cn(TRIGGER_BASE, VARIANT_CLASS[variant], className)}
     >
-      {variant === 'icon' ? <Info className="h-3.5 w-3.5" aria-hidden="true" /> : children}
+      {variant === 'icon' ? (
+        <Info className="h-3.5 w-3.5" aria-hidden="true" />
+      ) : variant === 'help' ? (
+        <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
+      ) : (
+        children
+      )}
     </button>
   );
 
