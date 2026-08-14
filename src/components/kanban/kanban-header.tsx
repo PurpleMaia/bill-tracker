@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
-import NewBillButton from './new-bill/new-bill-button';
+// LEGACY: NewBillButton ("Manage Bills") — from when AI was used to bulk-add
+// certain types of bills to an org's liking. We are not implementing this
+// feature further; left commented out rather than deleted.
+// import NewBillButton from './new-bill/new-bill-button';
 import { TrackBillDialog } from './track-bill-dialog';
 import { ExportCsvDialog } from './export-csv-dialog';
 import { ViewScopeToggle } from './view-scope-toggle';
@@ -45,7 +48,8 @@ export function KanbanHeader({ variant = 'own', rightSlot, leftSlot }: KanbanHea
   // Active Boards is a read-only view of another org's board: no public branch,
   // no Track/New/Export, no archived toggle.
   const isPublic = !isActiveBoards && !user;
-  const canAddRemoveBills = !isActiveBoards && activeTenant?.orgRole === 'admin';
+  // LEGACY: gated the "Manage Bills" button (see the commented-out render below).
+  // const canAddRemoveBills = !isActiveBoards && activeTenant?.orgRole === 'admin';
 
   // Tag state lives here so both the filter popover and the chips row share it.
   const [tags, setTags] = useState<Tag[]>([]);
@@ -250,7 +254,10 @@ export function KanbanHeader({ variant = 'own', rightSlot, leftSlot }: KanbanHea
             !isPublic && (
               <>
                 <TrackBillDialog />
-                {canAddRemoveBills && <NewBillButton />}
+                {/* LEGACY FEATURE — "Manage Bills" button. This dates from when AI
+                    was used to add certain types of bills to an org's liking. We are
+                    not implementing this feature further, so it's hidden for now. */}
+                {/* {canAddRemoveBills && <NewBillButton />} */}
                 <TooltipProvider delayDuration={300}>
                   <Tooltip>
                     <ExportCsvDialog>
