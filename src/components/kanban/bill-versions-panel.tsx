@@ -9,6 +9,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { SummarySection } from './report-summary';
 import { FileText, ExternalLink, ScrollText, GitCompare } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
+import { Term } from '@/components/ui/term';
+import { resolveVersionTerm } from '@/lib/glossary/resolvers';
 
 function LinkButtons({ link, type }: { link: string | null; type: 'version' | 'report' }) {
   if (!link) return null;
@@ -27,7 +29,9 @@ function ReportRow({ billId, report }: { billId: string; report: CommitteeReport
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <ScrollText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <span className="truncate text-xs font-medium">{report.reportCode ?? report.label}</span>
+          <Term slug="report-code" variant="chip" className="min-w-0">
+            <span className="truncate text-xs font-medium">{report.reportCode ?? report.label}</span>
+          </Term>
         </div>
         <LinkButtons link={report.pdfLink} type="report" />
       </div>
@@ -100,7 +104,11 @@ export function BillVersionsPanel({
                     <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Latest version</h4>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold">{latestVersion.label}</span>
+                    {/* The label is a span, not a link (LinkButtons carries the
+                        PDF), so the label itself can be the term trigger. */}
+                    <Term variant="chip" billId={billId} term={resolveVersionTerm(latestVersion.label)}>
+                      <span className="text-sm font-semibold">{latestVersion.label}</span>
+                    </Term>
                     <LinkButtons link={latestVersion.pdfLink} type="version" />
                   </div>
                   <SummarySection
@@ -121,7 +129,10 @@ export function BillVersionsPanel({
                     <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Latest committee report</h4>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold">{latestReport.reportCode ?? latestReport.label}</span>
+                    {/* Report codes (HSCR65, CCR50-26) are shown raw everywhere. */}
+                    <Term slug="report-code" variant="chip">
+                      <span className="text-sm font-semibold">{latestReport.reportCode ?? latestReport.label}</span>
+                    </Term>
                     <LinkButtons link={latestReport.pdfLink} type="report" />
                   </div>
                   <SummarySection
@@ -162,7 +173,9 @@ export function BillVersionsPanel({
                     <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary" aria-hidden="true" />
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">{group.version.label}</span>
+                        <Term variant="chip" billId={billId} term={resolveVersionTerm(group.version.label)}>
+                          <span className="text-sm font-semibold">{group.version.label}</span>
+                        </Term>
                         {isBase && <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">introduced</Badge>}
                         {isLatest && <Badge variant="default" className="h-4 px-1.5 text-[10px]">current</Badge>}
                       </div>

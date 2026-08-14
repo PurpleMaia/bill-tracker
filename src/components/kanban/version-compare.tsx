@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeftRight } from 'lucide-react';
 import { VersionDiffAccordion } from './version-diff-accordion';
+import { Term } from '@/components/ui/term';
 
 const ERROR_COPY: Record<NonNullable<VersionComparison['error']>, string> = {
   'no-html': 'This version has no source document to compare.',
@@ -117,7 +118,13 @@ export function VersionCompare({
           versions={ordered}
           label="Older version"
         />
-        <span className="text-xs font-medium text-muted-foreground">compared with</span>
+        {/* The pickers are <select> controls, which own their own pointer and
+            keyboard handling — a term nested inside would fight them. The
+            concept gets a sibling ⓘ here instead. */}
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+          compared with
+          <Term slug="bill-version" variant="icon" />
+        </span>
         <VersionPicker
           value={newerId}
           onChange={(id) => selectVersion('newer', id)}

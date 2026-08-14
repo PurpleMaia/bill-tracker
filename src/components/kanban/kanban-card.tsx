@@ -3,7 +3,8 @@ import { cn, formatBillHeadline, formatBillStatusName, formatRelativeDate, today
 import { canAssignBills } from '@/lib/auth/permissions';
 import { parseCommittees } from '@/lib/bills/dead-bill';
 import { isAwaitingHearing } from '@/lib/bills/kanban-columns';
-import { committeeFullName } from '@/lib/testimony/committees';
+import { Term } from '@/components/ui/term';
+import { resolveCommitteeListTerm } from '@/lib/glossary/resolvers';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 /** Shadcn tooltip wrapper for the card's chips — replaces native title attrs. */
@@ -89,6 +90,13 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const headline = formatBillHeadline(bill);
     const committeeReferrals = bill.committee_assignment ? parseCommittees(bill.committee_assignment) : [];
     const committeeCodes = committeeReferrals.length > 0 ? committeeReferrals.join(' · ') : null;
+
+    // Unknown codes are dropped rather than echoed back at the reader; all-unknown
+    // yields null, which makes <Term> render plain children with no affordance.
+    const committeeTerm = React.useMemo(
+      () => resolveCommitteeListTerm(committeeReferrals),
+      [committeeReferrals.join('|')]
+    );
 
     const today = todayHawaii();
     const nextDeadline = !bill.dead && bill.committee_assignment && bill.current_bill_status
@@ -404,22 +412,22 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                       </ChipTooltip>
                     )}
                     {!testimonyState && !testimonyDue && !testimonyClosed && committeeCodes && (
-                      <ChipTooltip
-                        content={
-                          <div className="space-y-0.5">
-                            <p className="font-medium">Referred to:</p>
-                            {committeeReferrals.map((code) => (
-                              <p key={code}>
-                                <span className="font-medium">{code}</span> &mdash; {committeeFullName(code)}
-                              </p>
-                            ))}
-                          </div>
-                        }
+                      /* The whole chip is the term trigger: it has no other action, and
+                         the previous hover-only tooltip was unreachable on touch.
+                         Expansions come from resolveCommitteeTerm so an unknown code
+                         yields null and drops out — calling committeeFullName directly
+                         would pass the code through and render "XYZ — XYZ". If NO code
+                         resolves, committeeTerm is null and Term renders the bare chip
+                         with no affordance. */
+                      <Term
+                        variant="chip"
+                        billId={bill.id}
+                        term={committeeTerm}
                       >
                         <span className="inline-flex items-center rounded-full border border-border bg-secondary/60 px-2 h-5 text-[10px] font-medium text-secondary-foreground shrink-0">
                           {committeeCodes}
                         </span>
-                      </ChipTooltip>
+                      </Term>
                     )}
                     {/* <Badge variant="outline" className="text-[10px] h-5 px-2 text-muted-foreground rounded-full">
                       {formatBillStatusName(bill.current_bill_status)}
@@ -441,6 +449,10 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                         Failed
                       </Badge>
                     ) : nextDeadline && deadlineDaysAway !== null && (
+                      /* Original concise tooltip, deliberately NOT a glossary
+                         term: appending the deadline-jargon definition here
+                         turned a glance-able pill into a paragraph. The jargon
+                         is explained in the bill breakdown instead. */
                       <ChipTooltip
                         content={
                           showDeadlineCountdown

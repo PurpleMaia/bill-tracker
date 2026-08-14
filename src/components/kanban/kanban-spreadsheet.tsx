@@ -13,6 +13,9 @@ import { useBills } from '@/hooks/contexts/bills-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { BillDetailsDialog } from './bill-details-dialog';
 import { cn, formatBillStatusName, todayHawaii } from '@/lib/core/utils';
+import { Term } from '@/components/ui/term';
+import { resolveStatusTerm, resolveCommitteeTerm } from '@/lib/glossary/resolvers';
+import { parseCommitteeCodes } from '@/lib/testimony/committees';
 import { filterBills } from '@/lib/bills/bill-filters';
 import { getNextDeadline } from '@/lib/bills/dead-bill';
 import type { SessionDeadlines, DeadlineEntry } from '@/lib/bills/dead-bill';
@@ -299,7 +302,14 @@ export function KanbanSpreadsheet() {
                       </TableCell>
 
                       <TableCell className="w-[8rem] md:w-[10rem] py-2 md:py-4">
-                        {formatBillStatusName(bill.current_bill_status)}
+                        {/* This surface had no tooltips at all before. */}
+                        <Term
+                          variant="chip"
+                          billId={bill.id}
+                          term={resolveStatusTerm(bill.current_bill_status)}
+                        >
+                          {formatBillStatusName(bill.current_bill_status)}
+                        </Term>
                       </TableCell>
 
                       <TableCell className="text-wrap min-w-[12rem] md:min-w-[20rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem] py-2 md:py-4">
@@ -311,7 +321,16 @@ export function KanbanSpreadsheet() {
                       </TableCell>
 
                       <TableCell className="text-wrap w-[8rem] md:w-[12rem] py-2 md:py-4">
-                        {bill.committee_assignment || 'N/A'}
+                        {bill.committee_assignment
+                          ? parseCommitteeCodes(bill.committee_assignment).map((code, i) => (
+                              <span key={code}>
+                                {i > 0 && ', '}
+                                <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(code)}>
+                                  {code}
+                                </Term>
+                              </span>
+                            ))
+                          : 'N/A'}
                       </TableCell>
 
                       <TableCell className="text-wrap w-[8rem] md:w-[12rem] py-2 md:py-4">

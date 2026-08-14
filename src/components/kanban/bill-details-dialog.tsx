@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, todayHawaii } from '@/lib/core/utils';
-import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files, Users } from 'lucide-react';
+import { FileText, Loader2, ExternalLink, Clock, AlarmClock, XCircle, PenLine, LayoutDashboard, Files, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
@@ -36,6 +36,10 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
 import { BillBriefing } from './bill-briefing';
 import { VersionsReportsTab } from './versions-reports-tab';
+import { PROGRESS_STAGES, getProgressValue, getCurrentStageName } from '@/lib/bills/progress-stages';
+import { Term } from '@/components/ui/term';
+import { resolveDeadlineTerm } from '@/lib/glossary/resolvers';
+import { BillBreakdownButton } from './bill-breakdown';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/bills/dead-bill';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
@@ -77,28 +81,6 @@ const TABS: readonly DialogTab[] = [
   { id: 'versions', label: 'Versions & Reports', shortLabel: 'Versions', icon: Files },
   { id: 'updates', label: 'Status Updates', shortLabel: 'Updates', icon: Clock, mobileOnly: true },
 ];
-
-const PROGRESS_STAGES = [
-  { name: 'Introduced', statuses: ['introduced'] },
-  { name: 'Orig. Chamber', statuses: ['scheduled1', 'deferred1', 'waiting2', 'scheduled2', 'deferred2', 'waiting3', 'scheduled3', 'deferred3', 'crossoverWaiting1'] },
-  { name: 'Non-Orig. Chamber', statuses: ['crossoverScheduled1', 'crossoverDeferred1', 'crossoverWaiting2', 'crossoverScheduled2', 'crossoverDeferred2', 'crossoverWaiting3', 'crossoverScheduled3', 'crossoverDeferred3', 'passedCommittees'] },
-  { name: 'Conference', statuses: ['conferenceAssigned', 'conferenceScheduled', 'conferenceDeferred', 'conferencePassed'] },
-  { name: 'Governor', statuses: ['transmittedGovernor', 'vetoList'] },
-  { name: 'Law', statuses: ['governorSigns', 'lawWithoutSignature'] },
-];
-
-const getProgressValue = (status: BillStatus): number => {
-  const idx = PROGRESS_STAGES.findIndex(s => s.statuses.includes(status));
-  if (idx === -1) return status === 'introduced' ? (1 / (PROGRESS_STAGES.length + 1)) * 100 : 0;
-  return ((idx + 1) / PROGRESS_STAGES.length) * 100;
-};
-
-const getCurrentStageName = (status: BillStatus): string => {
-  const stage = PROGRESS_STAGES.find(s => s.statuses.includes(status));
-  if (stage) return stage.name;
-  if (status === 'introduced') return 'Introduced';
-  return 'Not Assigned';
-};
 
 export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }: BillDetailsDialogProps) {
   const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills();
@@ -277,16 +259,33 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
         <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b shrink-0 text-left">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
+              {/* leading-none on the title so its line box matches the h-5
+                  badges beside it — text-lg's default line-height made them sit
+                  visually low against it. */}
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <DialogTitle className="text-lg font-semibold tracking-tight">
+                <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
                   {bill.bill_number}
                 </DialogTitle>
                 {bill.dead && (
                   <Badge variant="destructive" className="text-[10px] h-5 text-white">Failed</Badge>
                 )}
+                {/* Badge is a DIRECT flex child, with the term trigger inside it —
+                    wrapping the badge in the trigger introduced an inline,
+                    baseline-aligned button that broke items-center. */}
                 {fiscal && (
-                  <Badge variant="secondary" className="text-[10px] h-5">Fiscal</Badge>
+                  <Badge variant="secondary" className="h-5 text-[10px]">
+                    <Term slug="fiscal" variant="chip" billId={bill.id} className="leading-none">
+                      Fiscal
+                    </Term>
+                  </Badge>
                 )}
+                {/* One entry point for all conceptual explanation, so the
+                    surrounding labels can stay unmarked and legible. */}
+                <BillBreakdownButton
+                  bill={billForPanels}
+                  currentStatus={currentStatus}
+                  deadlineName={nextDeadline?.name ?? null}
+                />
               </div>
               <DialogDescription className="text-sm text-muted-foreground line-clamp-2 sm:line-clamp-1">
                 {bill.bill_title}
@@ -466,22 +465,43 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                       automatically from missed deadlines and committee action (see
                       the dead-bill sweep) — it is not manually toggled here. The
                       dead state is also shown in the briefing's "Bill failed" cell. */}
+                  {/* Uses the app's warm palette (ochre for urgency, teal
+                      primary otherwise) rather than raw blue/amber Tailwind,
+                      matching the deadline pill on the kanban card. */}
                   {bill.dead ? (
-                    <div className="rounded-lg border border-red-200 bg-red-50/60 px-4 py-2.5">
-                      <span className="text-xs font-medium text-red-700">Marked failed</span>
+                    <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2.5">
+                      <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" aria-hidden="true" />
+                      <span className="text-xs font-medium text-destructive">Marked failed</span>
                     </div>
                   ) : nextDeadline ? (
                     <div className={cn(
-                      "rounded-lg border p-4",
-                      isUrgent ? "border-amber-300 bg-amber-50" : "border-blue-200 bg-blue-50/50"
+                      "rounded-lg border px-4 py-3",
+                      isUrgent ? "border-ochre/40 bg-ochre-soft" : "border-border bg-secondary/40"
                     )}>
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <Clock className={cn("h-3.5 w-3.5", isUrgent ? "text-amber-600" : "text-blue-600")} />
-                        <span className={cn("font-medium text-sm", isUrgent ? "text-amber-700" : "text-blue-700")}>
+                      <div className="mb-1 flex items-center gap-1.5">
+                        {isUrgent
+                          ? <AlarmClock className="h-3.5 w-3.5 shrink-0 text-ochre" />
+                          : <Clock className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                        <span className={cn(
+                          "text-sm font-semibold leading-none",
+                          isUrgent ? "text-ochre" : "text-foreground"
+                        )}>
                           {nextDeadline.name}
                         </span>
+                        {/* Explains the deadline's jargon name in place. Inherits
+                            the box's color via currentColor. */}
+                        <Term
+                          variant="help"
+                          billId={bill.id}
+                          side="top"
+                          className={isUrgent ? 'text-ochre' : 'text-primary'}
+                          term={resolveDeadlineTerm(nextDeadline.name)}
+                        />
                       </div>
-                      <p className={cn("text-xs", isUrgent ? "text-amber-600" : "text-blue-600")}>
+                      <p className={cn(
+                        "text-xs",
+                        isUrgent ? "text-ochre/90" : "text-muted-foreground"
+                      )}>
                         {new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                         {deadlineDaysAway !== null && (
                           deadlineDaysAway > 0 ? ` — ${deadlineDaysAway} day${deadlineDaysAway !== 1 ? 's' : ''} away`
@@ -587,9 +607,12 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                           )}
                         >
                           <div className="flex items-center justify-between mb-1.5">
-                            <Badge variant={index === 0 ? "default" : "outline"} className="text-[10px] h-4 px-1.5">
-                              {update.chamber}
-                            </Badge>
+                            {/* A bare "H"/"S" is meaningless without context. */}
+                            <Term slug="chamber" variant="chip" billId={bill.id}>
+                              <Badge variant={index === 0 ? "default" : "outline"} className="text-[10px] h-4 px-1.5">
+                                {update.chamber}
+                              </Badge>
+                            </Term>
                             <span className="text-[10px] text-muted-foreground tabular-nums">
                               {new Date(update.date).toLocaleDateString('en-US', {
                                 month: 'short', day: 'numeric', year: 'numeric'
