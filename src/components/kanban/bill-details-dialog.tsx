@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, todayHawaii } from '@/lib/core/utils';
-import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files, Users } from 'lucide-react';
+import { FileText, Loader2, ExternalLink, Clock, AlarmClock, XCircle, PenLine, LayoutDashboard, Files, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
@@ -38,6 +38,7 @@ import { BillBriefing } from './bill-briefing';
 import { VersionsReportsTab } from './versions-reports-tab';
 import { PROGRESS_STAGES, getProgressValue, getCurrentStageName } from '@/lib/bills/progress-stages';
 import { Term } from '@/components/ui/term';
+import { resolveDeadlineTerm } from '@/lib/glossary/resolvers';
 import { BillBreakdownButton } from './bill-breakdown';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/bills/dead-bill';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
@@ -464,22 +465,43 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                       automatically from missed deadlines and committee action (see
                       the dead-bill sweep) — it is not manually toggled here. The
                       dead state is also shown in the briefing's "Bill failed" cell. */}
+                  {/* Uses the app's warm palette (ochre for urgency, teal
+                      primary otherwise) rather than raw blue/amber Tailwind,
+                      matching the deadline pill on the kanban card. */}
                   {bill.dead ? (
-                    <div className="rounded-lg border border-red-200 bg-red-50/60 px-4 py-2.5">
-                      <span className="text-xs font-medium text-red-700">Marked failed</span>
+                    <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2.5">
+                      <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" aria-hidden="true" />
+                      <span className="text-xs font-medium text-destructive">Marked failed</span>
                     </div>
                   ) : nextDeadline ? (
                     <div className={cn(
-                      "rounded-lg border p-4",
-                      isUrgent ? "border-amber-300 bg-amber-50" : "border-blue-200 bg-blue-50/50"
+                      "rounded-lg border px-4 py-3",
+                      isUrgent ? "border-ochre/40 bg-ochre-soft" : "border-border bg-secondary/40"
                     )}>
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <Clock className={cn("h-3.5 w-3.5", isUrgent ? "text-amber-600" : "text-blue-600")} />
-                        <span className={cn("font-medium text-sm", isUrgent ? "text-amber-700" : "text-blue-700")}>
+                      <div className="mb-1 flex items-center gap-1.5">
+                        {isUrgent
+                          ? <AlarmClock className="h-3.5 w-3.5 shrink-0 text-ochre" />
+                          : <Clock className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                        <span className={cn(
+                          "text-sm font-semibold leading-none",
+                          isUrgent ? "text-ochre" : "text-foreground"
+                        )}>
                           {nextDeadline.name}
                         </span>
+                        {/* Explains the deadline's jargon name in place. Inherits
+                            the box's color via currentColor. */}
+                        <Term
+                          variant="help"
+                          billId={bill.id}
+                          side="top"
+                          className={isUrgent ? 'text-ochre' : 'text-primary'}
+                          term={resolveDeadlineTerm(nextDeadline.name)}
+                        />
                       </div>
-                      <p className={cn("text-xs", isUrgent ? "text-amber-600" : "text-blue-600")}>
+                      <p className={cn(
+                        "text-xs",
+                        isUrgent ? "text-ochre/90" : "text-muted-foreground"
+                      )}>
                         {new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                         {deadlineDaysAway !== null && (
                           deadlineDaysAway > 0 ? ` — ${deadlineDaysAway} day${deadlineDaysAway !== 1 ? 's' : ''} away`
