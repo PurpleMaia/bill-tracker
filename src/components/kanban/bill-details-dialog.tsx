@@ -37,6 +37,8 @@ import { TagSelector } from '../tags/tag-selector';
 import { BillBriefing } from './bill-briefing';
 import { VersionsReportsTab } from './versions-reports-tab';
 import { PROGRESS_STAGES, getProgressValue, getCurrentStageName } from '@/lib/bills/progress-stages';
+import { Term } from '@/components/ui/term';
+import { BillBreakdownButton } from './bill-breakdown';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/bills/dead-bill';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
@@ -264,8 +266,13 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                   <Badge variant="destructive" className="text-[10px] h-5 text-white">Failed</Badge>
                 )}
                 {fiscal && (
-                  <Badge variant="secondary" className="text-[10px] h-5">Fiscal</Badge>
+                  <Term slug="fiscal" variant="chip" billId={bill.id}>
+                    <Badge variant="secondary" className="text-[10px] h-5">Fiscal</Badge>
+                  </Term>
                 )}
+                {/* One entry point for all conceptual explanation, so the
+                    surrounding labels can stay unmarked and legible. */}
+                <BillBreakdownButton bill={billForPanels} currentStatus={currentStatus} />
               </div>
               <DialogDescription className="text-sm text-muted-foreground line-clamp-2 sm:line-clamp-1">
                 {bill.bill_title}
@@ -566,9 +573,12 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                           )}
                         >
                           <div className="flex items-center justify-between mb-1.5">
-                            <Badge variant={index === 0 ? "default" : "outline"} className="text-[10px] h-4 px-1.5">
-                              {update.chamber}
-                            </Badge>
+                            {/* A bare "H"/"S" is meaningless without context. */}
+                            <Term slug="chamber" variant="chip" billId={bill.id}>
+                              <Badge variant={index === 0 ? "default" : "outline"} className="text-[10px] h-4 px-1.5">
+                                {update.chamber}
+                              </Badge>
+                            </Term>
                             <span className="text-[10px] text-muted-foreground tabular-nums">
                               {new Date(update.date).toLocaleDateString('en-US', {
                                 month: 'short', day: 'numeric', year: 'numeric'

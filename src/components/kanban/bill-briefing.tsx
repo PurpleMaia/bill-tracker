@@ -8,6 +8,8 @@ import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { PenLine, GitCompare, ScrollText, Phone, Clock, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
+import { Term } from '@/components/ui/term';
+import { resolveVersionTerm, resolveCommitteeTerm } from '@/lib/glossary/resolvers';
 
 const STEP_ICON = { testimony: PenLine, diff: GitCompare, reports: ScrollText, contact: Phone } as const;
 
@@ -80,18 +82,40 @@ export function BillBriefing({
         </div>
         <div className="rounded-md border p-2.5">
           <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Latest version</h4>
-          <p className="text-[12px] text-foreground/80">
+          <p className="inline-flex items-center gap-1 text-[12px] text-foreground/80">
             {facts.latestVersionLabel ? (
-              facts.latestVersionHtml ? (
-                <a href={facts.latestVersionHtml} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{facts.latestVersionLabel}</a>
-              ) : facts.latestVersionLabel
+              <>
+                {facts.latestVersionHtml ? (
+                  /* The label is a link here, so the link keeps the tap and a
+                     sibling ⓘ carries the definition — never a button in an <a>. */
+                  <a href={facts.latestVersionHtml} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{facts.latestVersionLabel}</a>
+                ) : (
+                  facts.latestVersionLabel
+                )}
+                <Term
+                  variant="icon"
+                  billId={bill.id}
+                  term={resolveVersionTerm(facts.latestVersionLabel)}
+                />
+              </>
             ) : 'No versions on file.'}
           </p>
         </div>
         <div className="rounded-md border p-2.5">
           <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Committee activity</h4>
           <p className="text-[12px] text-foreground/80">
-            {facts.committeeCodes.length > 0 ? facts.committeeCodes.join(', ') : 'No committees'} · {facts.reportCount} report(s)
+            {/* Codes stay tappable — an acronym is opaque. The heading does not. */}
+            {facts.committeeCodes.length > 0
+              ? facts.committeeCodes.map((code, i) => (
+                  <span key={code}>
+                    {i > 0 && ', '}
+                    <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(code)}>
+                      {code}
+                    </Term>
+                  </span>
+                ))
+              : 'No committees'}
+            {` · ${facts.reportCount} report(s)`}
           </p>
         </div>
       </div>

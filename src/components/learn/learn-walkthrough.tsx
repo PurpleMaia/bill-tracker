@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check, XCircle } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { PROGRESS_STAGES } from '@/lib/bills/progress-stages';
 // data.bills exposes only getBills — there is no getBillDetails on the
@@ -16,6 +16,7 @@ export function LearnWalkthrough() {
   const billId = searchParams.get('bill');
   const [currentStageId, setCurrentStageId] = useState<string | null>(null);
   const [billNumber, setBillNumber] = useState<string | null>(null);
+  const [billDead, setBillDead] = useState(false);
 
   // "You are here" enrichment. Failure is silent on purpose: the walkthrough is
   // the point, position is a bonus, and an error banner on an explainer page
@@ -27,6 +28,7 @@ export function LearnWalkthrough() {
       .then((bill) => {
         if (cancelled || !bill) return;
         setBillNumber(bill.bill_number || null);
+        setBillDead(Boolean(bill.dead));
         const status = bill.current_bill_status || '';
         const stage = PROGRESS_STAGES.find((s) => s.statuses.includes(status));
         setCurrentStageId(stage?.id ?? null);
@@ -60,37 +62,80 @@ export function LearnWalkthrough() {
       </p>
 
       {billNumber && (
-        <div className="mt-6 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
-          You came from <span className="font-semibold">{billNumber}</span>
-          {currentStageId
-            ? '. Its current stage is highlighted below.'
-            : '. Its current stage could not be placed on this path.'}
+        <div
+          className={cn(
+            'mt-6 flex items-start gap-2 rounded-lg border px-4 py-3 text-sm',
+            billDead ? 'border-destructive/30 bg-destructive/5' : 'bg-muted/40'
+          )}
+        >
+          {billDead && <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />}
+          <div className={billDead ? 'text-destructive' : undefined}>
+            {billDead ? (
+              <>
+                <span className="font-semibold">{billNumber}</span> failed
+                {currentStageId ? ' at the stage marked below' : ''}. Most bills do — usually
+                because a deadline passed or a chair never scheduled a hearing. It never reached the
+                stages after that point.
+              </>
+            ) : (
+              <>
+                You came from <span className="font-semibold">{billNumber}</span>
+                {currentStageId
+                  ? '. Its current stage is highlighted below.'
+                  : '. Its current stage could not be placed on this path.'}
+              </>
+            )}
+          </div>
         </div>
       )}
 
       <ol className="mt-8 space-y-4">
         {PROGRESS_STAGES.map((stage, i) => {
           const isCurrent = stage.id === currentStageId;
+          const markedIndex = currentStageId
+            ? PROGRESS_STAGES.findIndex((s) => s.id === currentStageId)
+            : -1;
+          // For a failed bill, stages past the failure point never happened —
+          // dimming them says that without needing a sentence.
+          const isUnreached = billDead && markedIndex !== -1 && i > markedIndex;
+          const isFailPoint = isCurrent && billDead;
+
           return (
             <li
               key={stage.id}
               id={stage.id}
               className={cn(
                 'scroll-mt-20 rounded-lg border p-4 transition-colors',
-                isCurrent ? 'border-primary bg-primary/5' : 'bg-card'
+                isFailPoint && 'border-destructive/40 bg-destructive/5',
+                isCurrent && !billDead && 'border-primary bg-primary/5',
+                !isCurrent && 'bg-card',
+                isUnreached && 'opacity-50'
               )}
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span
                   className={cn(
                     'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
-                    isCurrent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                    isFailPoint && 'bg-destructive text-destructive-foreground',
+                    isCurrent && !billDead && 'bg-primary text-primary-foreground',
+                    !isCurrent && 'bg-muted text-muted-foreground'
                   )}
                 >
-                  {isCurrent ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                  {isFailPoint ? (
+                    <XCircle className="h-3.5 w-3.5" />
+                  ) : isCurrent ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    i + 1
+                  )}
                 </span>
                 <h2 className="font-semibold">{stage.name}</h2>
-                {isCurrent && (
+                {isFailPoint && (
+                  <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                    The bill failed here
+                  </span>
+                )}
+                {isCurrent && !billDead && (
                   <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                     Your bill is here
                   </span>

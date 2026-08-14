@@ -4,6 +4,8 @@ import { canAssignBills } from '@/lib/auth/permissions';
 import { parseCommittees } from '@/lib/bills/dead-bill';
 import { isAwaitingHearing } from '@/lib/bills/kanban-columns';
 import { committeeFullName } from '@/lib/testimony/committees';
+import { Term } from '@/components/ui/term';
+import { resolveDeadlineTerm } from '@/lib/glossary/resolvers';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 /** Shadcn tooltip wrapper for the card's chips — replaces native title attrs. */
@@ -404,22 +406,24 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                       </ChipTooltip>
                     )}
                     {!testimonyState && !testimonyDue && !testimonyClosed && committeeCodes && (
-                      <ChipTooltip
-                        content={
-                          <div className="space-y-0.5">
-                            <p className="font-medium">Referred to:</p>
-                            {committeeReferrals.map((code) => (
-                              <p key={code}>
-                                <span className="font-medium">{code}</span> &mdash; {committeeFullName(code)}
-                              </p>
-                            ))}
-                          </div>
-                        }
+                      /* The whole chip is the term trigger: it has no other action, and
+                         the previous hover-only tooltip was unreachable on touch. Keeps
+                         the per-code expansion and adds what a committee actually is. */
+                      <Term
+                        variant="chip"
+                        billId={bill.id}
+                        term={{
+                          term: 'Referred to',
+                          short: committeeReferrals
+                            .map((code) => `${code} — ${committeeFullName(code)}`)
+                            .join('. '),
+                          learnMoreAnchor: 'orig-chamber',
+                        }}
                       >
                         <span className="inline-flex items-center rounded-full border border-border bg-secondary/60 px-2 h-5 text-[10px] font-medium text-secondary-foreground shrink-0">
                           {committeeCodes}
                         </span>
-                      </ChipTooltip>
+                      </Term>
                     )}
                     {/* <Badge variant="outline" className="text-[10px] h-5 px-2 text-muted-foreground rounded-full">
                       {formatBillStatusName(bill.current_bill_status)}
@@ -441,12 +445,25 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                         Failed
                       </Badge>
                     ) : nextDeadline && deadlineDaysAway !== null && (
-                      <ChipTooltip
-                        content={
-                          showDeadlineCountdown
-                            ? `If the committee chair doesn't schedule this bill by ${nextDeadline.name} (${new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}), it fails. ${deadlineDaysAway <= 0 ? 'Due today.' : `${deadlineDaysAway} day${deadlineDaysAway === 1 ? '' : 's'} left.`}`
-                            : `${nextDeadline.name} deadline: ${new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}. ${deadlineDaysAway <= 0 ? 'Due today.' : `${deadlineDaysAway} day${deadlineDaysAway === 1 ? '' : 's'} left.`}`
-                        }
+                      /* Whole pill triggers — it has no other action. The existing
+                         chair-scheduling sentence stays; the Tier 3 gloss for the
+                         deadline's jargon name ("Decking", "Lateral") is appended
+                         rather than replacing it. */
+                      <Term
+                        variant="chip"
+                        billId={bill.id}
+                        term={{
+                          term: nextDeadline.name,
+                          short: [
+                            showDeadlineCountdown
+                              ? `If the committee chair doesn't schedule this bill by ${new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}, it fails. ${deadlineDaysAway <= 0 ? 'Due today.' : `${deadlineDaysAway} day${deadlineDaysAway === 1 ? '' : 's'} left.`}`
+                              : `Deadline: ${new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}. ${deadlineDaysAway <= 0 ? 'Due today.' : `${deadlineDaysAway} day${deadlineDaysAway === 1 ? '' : 's'} left.`}`,
+                            resolveDeadlineTerm(nextDeadline.name)?.short,
+                          ]
+                            .filter(Boolean)
+                            .join(' '),
+                          learnMoreAnchor: resolveDeadlineTerm(nextDeadline.name)?.learnMoreAnchor,
+                        }}
                       >
                         <span
                           className={cn(
@@ -465,7 +482,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                           {' · '}
                           {deadlineDaysAway <= 0 ? 'Today' : `${deadlineDaysAway}d`}
                         </span>
-                      </ChipTooltip>
+                      </Term>
                     )}
                   </div>
                 </div>

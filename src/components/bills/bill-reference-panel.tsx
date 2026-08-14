@@ -5,6 +5,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, FileText } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
+import { Term } from '@/components/ui/term';
+import { resolveCommitteeTerm } from '@/lib/glossary/resolvers';
+import { parseCommitteeCodes } from '@/lib/testimony/committees';
 
 interface BillReferencePanelProps {
   bill: BillDetails;
@@ -37,7 +40,19 @@ export function BillReferencePanel({ bill }: BillReferencePanelProps) {
 
         <div>
           <h3 className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Committees</h3>
-          <p className="text-sm">{bill.committee_assignment || 'Not Assigned'}</p>
+          <p className="text-sm">
+            {/* Previously the raw committee_assignment string, unexpanded. */}
+            {bill.committee_assignment
+              ? parseCommitteeCodes(bill.committee_assignment).map((code, i) => (
+                  <span key={code}>
+                    {i > 0 && ', '}
+                    <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(code)}>
+                      {code}
+                    </Term>
+                  </span>
+                ))
+              : 'Not Assigned'}
+          </p>
         </div>
 
         {bill.bill_url && (
@@ -68,9 +83,11 @@ export function BillReferencePanel({ bill }: BillReferencePanelProps) {
                   )}
                 >
                   <div className="mb-1 flex items-center justify-between">
-                    <Badge variant={index === 0 ? 'default' : 'outline'} className="h-4 px-1.5 text-[10px]">
-                      {update.chamber}
-                    </Badge>
+                    <Term slug="chamber" variant="chip" billId={bill.id}>
+                      <Badge variant={index === 0 ? 'default' : 'outline'} className="h-4 px-1.5 text-[10px]">
+                        {update.chamber}
+                      </Badge>
+                    </Term>
                     <span className="text-[10px] tabular-nums text-muted-foreground">
                       {new Date(update.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
