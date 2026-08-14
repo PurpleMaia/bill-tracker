@@ -11,12 +11,27 @@ export function escapeHtml(str: string): string {
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+/**
+ * Logs a URL containing a live token, but only in local development.
+ *
+ * Every link this module sends carries a credential in its query string — a
+ * reset token grants account takeover, an invite token grants org membership,
+ * a verification token flips email_verified. Writing those to application logs
+ * hands them to anyone with log access, so this is strictly a local-development
+ * convenience: there is no inbox to check when running the dev server.
+ */
+function logTokenUrlInDevOnly(label: string, url: string) {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`📧 [dev only] ${label}:`, url);
+  }
+}
+
 export async function sendVerificationEmail(email: string, username: string, verificationToken: string) {
   // Check if Resend is configured
   if (!resend) {
     const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/verify-email?token=${verificationToken}`;
     console.warn('⚠️  RESEND_API_KEY not configured. Email sending disabled.');
-    console.log('📧 Verification URL for manual testing:', verificationUrl);
+    logTokenUrlInDevOnly('Verification URL (manual testing)', verificationUrl);
     // In development, allow registration without email
     if (process.env.NODE_ENV === 'development') {
       return { success: true, data: { message: 'Email service not configured, but registration allowed in development' } };
@@ -26,8 +41,7 @@ export async function sendVerificationEmail(email: string, username: string, ver
 
   const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/verify-email?token=${verificationToken}`;
 
-  // Always log the verification URL for debugging (especially in dev)
-  console.log('📧 Verification URL (always logged):', verificationUrl);
+  logTokenUrlInDevOnly('Verification URL (pre-send)', verificationUrl);
   
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
   console.log('📧 Attempting to send email:');
@@ -67,7 +81,7 @@ export async function sendVerificationEmail(email: string, username: string, ver
       if (error.name) {
         console.error('❌ Error name:', error.name);
       }
-      console.log('📧 Verification URL (use this to verify manually):', verificationUrl);
+      logTokenUrlInDevOnly('Verification URL (send failed)', verificationUrl);
       
       // Check common error reasons
       if (error.message?.includes('domain') || error.message?.includes('not verified')) {
@@ -84,7 +98,7 @@ export async function sendVerificationEmail(email: string, username: string, ver
     console.log('✅ Verification email sent successfully!');
     console.log('   Email ID:', data?.id);
     console.log('   Sent to:', email);
-    console.log('📧 Verification URL (if email not received, use this):', verificationUrl);
+    logTokenUrlInDevOnly('Verification URL (sent)', verificationUrl);
     return { success: true, data };
   } catch (error: any) {
     console.error('❌ Exception sending verification email:', error);
@@ -92,33 +106,24 @@ export async function sendVerificationEmail(email: string, username: string, ver
     if (error?.message) {
       console.error('❌ Exception message:', error.message);
     }
-    console.log('📧 Verification URL (use this to verify manually):', verificationUrl);
+    logTokenUrlInDevOnly('Verification URL (send failed)', verificationUrl);
     return { success: false, error };
   }
 }
 
 export async function sendPasswordResetEmail(email: string, username: string, resetToken: string) {
   const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/reset-password?token=${resetToken}`;
-  const isDev = process.env.NODE_ENV === 'development';
-
-  // A reset URL contains the raw, still-valid token. Logging it outside local
-  // development would hand account takeover to anyone with log access and
-  // defeat the point of storing only the hash. The local dev server needs it
-  // because there is no inbox to check.
-  const logResetUrlInDevOnly = (label: string) => {
-    if (isDev) console.log(`📧 [dev only] Password reset URL (${label}):`, resetUrl);
-  };
 
   if (!resend) {
     console.warn('⚠️  RESEND_API_KEY not configured. Email sending disabled.');
-    logResetUrlInDevOnly('manual testing');
-    if (isDev) {
+    logTokenUrlInDevOnly('Password reset URL (manual testing)', resetUrl);
+    if (process.env.NODE_ENV === 'development') {
       return { success: true, data: { message: 'Email service not configured, but reset token created in development' } };
     }
     return { success: false, error: 'Email service not configured' };
   }
 
-  logResetUrlInDevOnly('pre-send');
+  logTokenUrlInDevOnly('Password reset URL (pre-send)', resetUrl);
 
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
@@ -149,7 +154,7 @@ export async function sendPasswordResetEmail(email: string, username: string, re
 
     if (error) {
       console.error('❌ Resend API error (password reset):', JSON.stringify(error, null, 2));
-      logResetUrlInDevOnly('send failed');
+      logTokenUrlInDevOnly('Password reset URL (send failed)', resetUrl);
       return { success: false, error };
     }
 
@@ -157,7 +162,7 @@ export async function sendPasswordResetEmail(email: string, username: string, re
     return { success: true, data };
   } catch (error: any) {
     console.error('❌ Exception sending password reset email:', error);
-    logResetUrlInDevOnly('exception');
+    logTokenUrlInDevOnly('Password reset URL (exception)', resetUrl);
     return { success: false, error };
   }
 }
@@ -167,14 +172,14 @@ export async function sendInviteEmail(email: string, orgName: string, inviteToke
 
   if (!resend) {
     console.warn('⚠️  RESEND_API_KEY not configured. Email sending disabled.');
-    console.log('📧 Invite URL for manual testing:', inviteUrl);
+    logTokenUrlInDevOnly('Invite URL (manual testing)', inviteUrl);
     if (process.env.NODE_ENV === 'development') {
       return { success: true, data: { message: 'Email service not configured, but invite created in development' } };
     }
     return { success: false, error: 'Email service not configured' };
   }
 
-  console.log('📧 Invite URL (always logged):', inviteUrl);
+  logTokenUrlInDevOnly('Invite URL (pre-send)', inviteUrl);
 
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
@@ -204,7 +209,7 @@ export async function sendInviteEmail(email: string, orgName: string, inviteToke
 
     if (error) {
       console.error('❌ Resend API error (invite):', JSON.stringify(error, null, 2));
-      console.log('📧 Invite URL (use this manually):', inviteUrl);
+      logTokenUrlInDevOnly('Invite URL (send failed)', inviteUrl);
       return { success: false, error };
     }
 
@@ -212,7 +217,7 @@ export async function sendInviteEmail(email: string, orgName: string, inviteToke
     return { success: true, url: inviteUrl, data };
   } catch (error: any) {
     console.error('❌ Exception sending invite email:', error);
-    console.log('📧 Invite URL (use this manually):', inviteUrl);
+    logTokenUrlInDevOnly('Invite URL (send failed)', inviteUrl);
     return { success: false, error };
   }
 }
