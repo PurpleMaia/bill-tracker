@@ -14,6 +14,18 @@ import {
 
 const YEARS = [2026, 2025];
 
+// SIMPLIFIED_COLUMNS (from @/lib/bills/kanban-columns) is shared with the kanban
+// board, where two entries ('simpleScheduled' and 'conferenceScheduled') share the
+// identical title 'SCHEDULED'. On the board that's unambiguous because position
+// (pre-crossover vs. conference group) supplies the context. Here the Stage filter
+// renders them as a flat checkbox list with no such context, so without an override
+// they'd show as two identical "scheduled" checkboxes. Do not delete this as
+// redundant with column.title — it exists to disambiguate ids that share a title.
+const STAGE_LABEL_OVERRIDES: Record<string, string> = {
+  simpleScheduled: 'scheduled',
+  conferenceScheduled: 'conference scheduled',
+};
+
 interface SearchFilterRailProps {
   filters: SearchFilters;
   onChange: (next: SearchFilters) => void;
@@ -127,7 +139,7 @@ export function SearchFilterRail({ filters, onChange, onClear }: SearchFilterRai
                   htmlFor={`stage-${column.id}`}
                   className="cursor-pointer text-xs font-normal capitalize"
                 >
-                  {column.title.toLowerCase()}
+                  {STAGE_LABEL_OVERRIDES[column.id] ?? column.title.toLowerCase()}
                 </Label>
               </div>
             ))}
