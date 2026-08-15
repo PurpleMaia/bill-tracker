@@ -77,7 +77,7 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
         'outline-none ring-ring ring-offset-2 focus-visible:ring-2 has-[:focus-visible]:ring-2',
       )}
     >
-      <div className={cn('flex flex-col', bill.dead && 'opacity-60 grayscale-[35%]')}>
+      <div className="flex flex-col">
         <div
           className="flex w-full cursor-pointer flex-col p-3"
           onClick={handleClick}
@@ -105,26 +105,32 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
               </Badge>
             )}
             {bill.dead ? (
-              /* Same "Why did this bill fail?" popover the board uses — it runs
-                 the dead-bill algorithm to name the missed deadline. Reused
-                 rather than reimplemented; it needs no board context. */
-              <DeadBillInfoPopover
-                billNumber={bill.bill_number}
-                billStatus={bill.bill_status ?? ''}
-                committeeAssignment={bill.committee_assignment}
-                latestUpdate={bill.latest_update}
-                billUrl={bill.bill_url}
-              >
-                <button
-                  type="button"
-                  onClick={(e) => e.stopPropagation()}
-                  aria-label={`Why did ${bill.bill_number} fail?`}
-                  className="inline-flex h-5 shrink-0 cursor-pointer items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 text-[10px] font-medium text-destructive transition-colors hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
+              <>
+                <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-2 text-[10px] font-medium text-destructive">
                   Failed
-                  <Info className="h-2.5 w-2.5" aria-hidden="true" />
-                </button>
-              </DeadBillInfoPopover>
+                </span>
+                {/* The board's own "Why did this bill fail?" popover — reused,
+                    not reimplemented; it runs the dead-bill algorithm from its
+                    props and needs no board context. Its trigger is a distinct
+                    button beside the badge so the affordance is unmistakable. */}
+                <DeadBillInfoPopover
+                  billNumber={bill.bill_number}
+                  billStatus={bill.bill_status ?? ''}
+                  committeeAssignment={bill.committee_assignment}
+                  latestUpdate={bill.latest_update}
+                  billUrl={bill.bill_url}
+                >
+                  <button
+                    type="button"
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`Why did ${bill.bill_number} fail?`}
+                    title="Why did this bill fail?"
+                    className="inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-1"
+                  >
+                    <Info className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </DeadBillInfoPopover>
+              </>
             ) : (
               bill.bill_status && (
                 /* Phase colors match the kanban columns — enacted reads green,
@@ -149,6 +155,13 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
             </div>
           </div>
 
+          {/*
+            The dead-bill dimming wraps only the text content, NOT the badge row
+            above. opacity/filter on a parent creates a composited group that a
+            child cannot opt out of, so a red info button inside this div would
+            render washed out no matter what classes it carried.
+          */}
+          <div className={cn(bill.dead && 'opacity-60 grayscale-[35%]')}>
           {/* Headline — the card's primary text, matching the board. */}
           <h3 className="mt-1.5 text-sm font-semibold leading-snug">
             {headline ? highlight(headline, query) : highlight(bill.bill_title, query)}
@@ -183,6 +196,7 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
               </span>
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>
