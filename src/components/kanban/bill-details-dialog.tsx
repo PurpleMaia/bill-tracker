@@ -698,54 +698,57 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   {/* Sticky action bar — the testimony CTA in thumb reach; the
                       disabled reason is visible text (tooltips don't work on touch) */}
                   <div className="shrink-0 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-1.5">
-                    {/* The desktop CTA row is hidden below sm:, so the track
-                        control has to be repeated here to stay reachable. */}
-                    {trackSlot && <div className="[&_button]:h-11 [&_button]:w-full">{trackSlot}</div>}
+                    {/* Two CTAs share a half-width row; Track Bill sits full
+                        width beneath them. The labels are shortened here because
+                        at half of a 375px screen the full verbiage wraps. */}
                     {!user ? (
                       /* Logged-out: both flows require an account, so the CTAs
                          become login prompts instead of buttons that dead-end. */
-                      <>
+                      <div className="grid grid-cols-2 gap-1.5">
                         <LoginDialog
                           trigger={
-                            <Button className="h-11 w-full">
-                              <PenLine className="mr-2 h-4 w-4" />
-                              Login to write a testimony
+                            <Button variant="outline" className="h-11 w-full px-2">
+                              <PenLine className="mr-1.5 h-4 w-4 shrink-0" />
+                              <span className="truncate">Login to testify</span>
                             </Button>
                           }
                         />
                         <LoginDialog
                           trigger={
-                            <Button variant="outline" className="h-11 w-full">
-                              <Users className="mr-2 h-4 w-4" />
-                              Login to contact a legislator
+                            <Button variant="outline" className="h-11 w-full px-2">
+                              <Users className="mr-1.5 h-4 w-4 shrink-0" />
+                              <span className="truncate">Login to contact</span>
                             </Button>
                           }
                         />
-                      </>
+                      </div>
                     ) : (
                       <>
-                        <Button
-                          className="w-full h-11"
-                          disabled={!testimonyEligibility.allowed}
-                          onClick={() => {
-                            onClose();
-                            router.push(`/bills/${bill.id}/testimony`);
-                          }}
-                        >
-                          <PenLine className="mr-2 h-4 w-4" />
-                          Write Testimony
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="w-full h-11"
-                          onClick={() => {
-                            onClose();
-                            router.push(`/bills/${bill.id}/contact`);
-                          }}
-                        >
-                          <Users className="mr-2 h-4 w-4" />
-                          Contact Legislator
-                        </Button>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <Button
+                            variant="outline"
+                            className="h-11 w-full px-2"
+                            disabled={!testimonyEligibility.allowed}
+                            onClick={() => {
+                              onClose();
+                              router.push(`/bills/${bill.id}/testimony`);
+                            }}
+                          >
+                            <PenLine className="mr-1.5 h-4 w-4 shrink-0" />
+                            <span className="truncate">Testimony</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="h-11 w-full px-2"
+                            onClick={() => {
+                              onClose();
+                              router.push(`/bills/${bill.id}/contact`);
+                            }}
+                          >
+                            <Users className="mr-1.5 h-4 w-4 shrink-0" />
+                            <span className="truncate">Contact</span>
+                          </Button>
+                        </div>
                         {testimonyEligibility.allowed && testimonyUrgent && testimonyCountdown && (
                           <p className="text-center text-xs font-medium text-red-600">
                             Testimony {testimonyCountdown}
@@ -757,6 +760,16 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                           </p>
                         )}
                       </>
+                    )}
+
+                    {/* The desktop CTA row is hidden below sm:, so the track
+                        control is repeated here to stay reachable. Full width,
+                        below the pair — its label is forced back on because the
+                        search page's button is icon-only at this breakpoint. */}
+                    {trackSlot && (
+                      <div className="[&_button]:h-11 [&_button]:w-full [&_button>span]:inline">
+                        {trackSlot}
+                      </div>
                     )}
                   </div>
                 </>

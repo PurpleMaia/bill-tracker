@@ -8,6 +8,16 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { data } from '@/lib/data-client';
 
+/**
+ * Icon-only below `sm`, full "Track Bill" label above it.
+ *
+ * At 375px the labelled button was 111px wide — roughly a third of the card's
+ * header row — which crowded the bill number and status badges. Square and
+ * 36px keeps it a comfortable tap target while giving the badges their space
+ * back; the aria-label carries the meaning the hidden text would have.
+ */
+const COMPACT_ON_MOBILE = 'h-9 w-9 p-0 sm:h-9 sm:w-auto sm:px-3';
+
 interface TrackButtonProps {
   billId: string;
   billNumber: string;
@@ -28,9 +38,9 @@ export function TrackButton({ billId, billNumber }: TrackButtonProps) {
     return (
       <LoginDialog
         trigger={
-          <Button size="sm" className="min-h-[44px] md:min-h-0">
-            <UserPlus className="mr-1.5 h-4 w-4" aria-hidden="true" />
-            Track Bill
+          <Button size="sm" className={COMPACT_ON_MOBILE} aria-label={`Track ${billNumber}`}>
+            <UserPlus className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
+            <span className="hidden sm:inline">Track Bill</span>
           </Button>
         }
       />
@@ -75,16 +85,16 @@ export function TrackButton({ billId, billNumber }: TrackButtonProps) {
       onClick={handleTrack}
       disabled={isTracking || isTracked}
       aria-label={isTracked ? `${billNumber} is tracked` : `Track ${billNumber}`}
-      className="min-h-[44px] md:min-h-0"
+      className={COMPACT_ON_MOBILE}
     >
       {isTracking ? (
-        <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+        <Loader2 className="h-4 w-4 animate-spin sm:mr-1.5" aria-hidden="true" />
       ) : isTracked ? (
-        <Check className="mr-1.5 h-4 w-4" aria-hidden="true" />
+        <Check className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
       ) : (
-        <UserPlus className="mr-1.5 h-4 w-4" aria-hidden="true" />
+        <UserPlus className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
       )}
-      {isTracked ? 'Tracked' : 'Track Bill'}
+      <span className="hidden sm:inline">{isTracked ? 'Tracked' : 'Track Bill'}</span>
     </Button>
   );
 }
