@@ -16,6 +16,7 @@ export function BillSearchView() {
   const {
     bills,
     totalCount,
+    debouncedQuery,
     isLoading,
     isFetchingNextPage,
     hasNextPage,
@@ -111,7 +112,7 @@ export function BillSearchView() {
           <ul className="space-y-3">
             {bills.map((bill) => (
               <li key={bill.id}>
-                <BillSearchCard bill={bill} query={filters.q} />
+                <BillSearchCard bill={bill} query={debouncedQuery} />
               </li>
             ))}
           </ul>

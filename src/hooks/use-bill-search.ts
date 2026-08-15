@@ -53,6 +53,10 @@ export function useBillSearch(filters: SearchFilters) {
   return {
     bills,
     totalCount,
+    // The query actually backing `bills` — debounced, unlike `filters.q`. Pass
+    // this (not the raw filter) to anything highlighting matches, so the
+    // highlighted terms never race ahead of the results they're drawn on.
+    debouncedQuery,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     isFetchingNextPage: query.isFetchingNextPage,
