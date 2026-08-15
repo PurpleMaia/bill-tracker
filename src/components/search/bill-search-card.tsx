@@ -79,11 +79,7 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
     >
       <div className="flex flex-col">
         <div
-          className={cn(
-            'flex w-full cursor-pointer flex-col p-3',
-            // Floor clearance for the corner info button on failed bills.
-            bill.dead && 'pb-12',
-          )}
+          className="flex w-full cursor-pointer flex-col p-3"
           onClick={handleClick}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -173,43 +169,51 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
             </div>
           )}
 
-          {committeeCodes && (
-            /* Right padding on dead cards keeps the committee chip clear of the
-               absolutely-positioned info button in the corner. */
-            <div className={cn('mt-2 flex flex-wrap items-center gap-1.5', bill.dead && 'pr-14')}>
-              <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-border bg-secondary/60 px-2 text-[10px] font-medium text-secondary-foreground">
-                {committeeCodes}
-              </span>
+          </div>
+
+          {/* Footer row: committee chips on the left, the failure-reason button
+              on the right. Sits OUTSIDE the dimming wrapper above, because
+              opacity/filter on a parent creates a composited group a child
+              cannot escape — nested, the red button would render washed out. */}
+          {(committeeCodes || bill.dead) && (
+            <div className="mt-2 flex items-center gap-1.5">
+              {committeeCodes && (
+                <span
+                  className={cn(
+                    'inline-flex h-5 shrink-0 items-center rounded-full border border-border bg-secondary/60 px-2 text-[10px] font-medium text-secondary-foreground',
+                    bill.dead && 'opacity-60 grayscale-[35%]',
+                  )}
+                >
+                  {committeeCodes}
+                </span>
+              )}
+
+              {bill.dead && (
+                /* Same 28px trigger the kanban card uses (w-7 h-7 / icon h-5 w-5),
+                   so the affordance is identical on both surfaces. */
+                <DeadBillInfoPopover
+                  billNumber={bill.bill_number}
+                  billStatus={bill.bill_status ?? ''}
+                  committeeAssignment={bill.committee_assignment}
+                  latestUpdate={bill.latest_update}
+                  billUrl={bill.bill_url}
+                >
+                  <button
+                    type="button"
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`Why did ${bill.bill_number} fail?`}
+                    title="Why did this bill fail?"
+                    className="ml-auto inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2"
+                  >
+                    <Info className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                </DeadBillInfoPopover>
+              )}
             </div>
           )}
-          </div>
         </div>
       </div>
 
-      {bill.dead && (
-        /* Anchored to the card root (which is `relative`) rather than placed in
-           the flow, so it sits in the bottom-right corner regardless of how tall
-           the card's text runs. Deliberately a sibling of the dimming wrapper —
-           opacity/filter on a parent creates a composited group a child cannot
-           escape, so nesting it inside would wash the red out. */
-        <DeadBillInfoPopover
-          billNumber={bill.bill_number}
-          billStatus={bill.bill_status ?? ''}
-          committeeAssignment={bill.committee_assignment}
-          latestUpdate={bill.latest_update}
-          billUrl={bill.bill_url}
-        >
-          <button
-            type="button"
-            onClick={(e) => e.stopPropagation()}
-            aria-label={`Why did ${bill.bill_number} fail?`}
-            title="Why did this bill fail?"
-            className="absolute bottom-3 right-3 inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-md transition-colors hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2"
-          >
-            <Info className="h-6 w-6" aria-hidden="true" />
-          </button>
-        </DeadBillInfoPopover>
-      )}
     </div>
   );
 }
