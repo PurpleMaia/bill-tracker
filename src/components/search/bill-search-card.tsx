@@ -79,7 +79,11 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
     >
       <div className="flex flex-col">
         <div
-          className="flex w-full cursor-pointer flex-col p-3"
+          className={cn(
+            'flex w-full cursor-pointer flex-col p-3',
+            // Floor clearance for the corner info button on failed bills.
+            bill.dead && 'pb-12',
+          )}
           onClick={handleClick}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -105,32 +109,9 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
               </Badge>
             )}
             {bill.dead ? (
-              <>
-                <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-2 text-[10px] font-medium text-destructive">
-                  Failed
-                </span>
-                {/* The board's own "Why did this bill fail?" popover — reused,
-                    not reimplemented; it runs the dead-bill algorithm from its
-                    props and needs no board context. Its trigger is a distinct
-                    button beside the badge so the affordance is unmistakable. */}
-                <DeadBillInfoPopover
-                  billNumber={bill.bill_number}
-                  billStatus={bill.bill_status ?? ''}
-                  committeeAssignment={bill.committee_assignment}
-                  latestUpdate={bill.latest_update}
-                  billUrl={bill.bill_url}
-                >
-                  <button
-                    type="button"
-                    onClick={(e) => e.stopPropagation()}
-                    aria-label={`Why did ${bill.bill_number} fail?`}
-                    title="Why did this bill fail?"
-                    className="inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-1"
-                  >
-                    <Info className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </DeadBillInfoPopover>
-              </>
+              <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-2 text-[10px] font-medium text-destructive">
+                Failed
+              </span>
             ) : (
               bill.bill_status && (
                 /* Phase colors match the kanban columns — enacted reads green,
@@ -145,7 +126,10 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
                 </span>
               )
             )}
-            {/* stopPropagation so tracking never opens the dialog. */}
+            {/* Right-hand action column. stopPropagation so neither control
+                opens the card dialog. Kept OUTSIDE the dimming wrapper below —
+                opacity/filter on a parent makes a composited group a child
+                cannot escape, which would wash out the red button. */}
             <div
               className="ml-auto shrink-0"
               onClick={(e) => e.stopPropagation()}
@@ -190,7 +174,9 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
           )}
 
           {committeeCodes && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            /* Right padding on dead cards keeps the committee chip clear of the
+               absolutely-positioned info button in the corner. */
+            <div className={cn('mt-2 flex flex-wrap items-center gap-1.5', bill.dead && 'pr-14')}>
               <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-border bg-secondary/60 px-2 text-[10px] font-medium text-secondary-foreground">
                 {committeeCodes}
               </span>
@@ -199,6 +185,31 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
           </div>
         </div>
       </div>
+
+      {bill.dead && (
+        /* Anchored to the card root (which is `relative`) rather than placed in
+           the flow, so it sits in the bottom-right corner regardless of how tall
+           the card's text runs. Deliberately a sibling of the dimming wrapper —
+           opacity/filter on a parent creates a composited group a child cannot
+           escape, so nesting it inside would wash the red out. */
+        <DeadBillInfoPopover
+          billNumber={bill.bill_number}
+          billStatus={bill.bill_status ?? ''}
+          committeeAssignment={bill.committee_assignment}
+          latestUpdate={bill.latest_update}
+          billUrl={bill.bill_url}
+        >
+          <button
+            type="button"
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Why did ${bill.bill_number} fail?`}
+            title="Why did this bill fail?"
+            className="absolute bottom-3 right-3 inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-md transition-colors hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2"
+          >
+            <Info className="h-6 w-6" aria-hidden="true" />
+          </button>
+        </DeadBillInfoPopover>
+      )}
     </div>
   );
 }
