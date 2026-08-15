@@ -220,20 +220,22 @@ export function BillSearchView() {
           )}
         </div>
 
-        {/* Back to the search bar once the hero has scrolled out of reach. */}
-        {showScrollTop && (
-          <Button
-            size="icon"
-            onClick={() =>
-              resultsRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-            }
-            aria-label="Scroll back to search"
-            className="absolute bottom-4 right-4 h-11 w-11 rounded-full shadow-lg"
-          >
-            <ArrowUp className="h-5 w-5" aria-hidden="true" />
-          </Button>
-        )}
       </div>
+
+      {/* Back to the search bar once the hero has scrolled out of reach.
+          `fixed`, so it pins to the viewport's bottom-right corner rather than
+          the results column. On mobile it lifts above the bottom tab bar (which
+          is fixed at bottom-0, z-30) and stays under it in stacking order. */}
+      {showScrollTop && (
+        <Button
+          size="icon"
+          onClick={() => resultsRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="Scroll back to search"
+          className="fixed bottom-20 right-4 z-20 h-11 w-11 rounded-full shadow-lg md:bottom-6 md:right-6"
+        >
+          <ArrowUp className="h-5 w-5" aria-hidden="true" />
+        </Button>
+      )}
 
       {/* The board's own dialog, reused rather than reimplemented — BillsProvider
           wraps the whole app, so it works here. It degrades for logged-out
