@@ -11,6 +11,7 @@ import { BillSearchCard } from './bill-search-card';
 import { SearchFilterRail } from './search-filter-rail';
 import { SearchFiltersSheet } from './search-filters-sheet';
 import { SearchIntro } from './search-intro';
+import { TrackButton } from './track-button';
 import { useBillSearch } from '@/hooks/use-bill-search';
 import {
   DEFAULT_FILTERS,
@@ -81,6 +82,9 @@ export function BillSearchView() {
 
   const hasQuery = filters.q.trim().length > 0;
   const isPristine = !hasQuery && activeFilterCount(filters) === 0;
+  // The dialog takes only a bill id; the Track control needs the bill number for
+  // its label and toasts, so resolve the open row from the loaded results.
+  const openBill = openBillId ? bills.find((b) => b.id === openBillId) : undefined;
 
   const searchInput = (
     <>
@@ -239,11 +243,18 @@ export function BillSearchView() {
 
       {/* The board's own dialog, reused rather than reimplemented — BillsProvider
           wraps the whole app, so it works here. It degrades for logged-out
-          visitors: the testimony and contact CTAs become login prompts. */}
+          visitors: the testimony and contact CTAs become login prompts.
+          trackSlot adds the Track control the board's own copy doesn't need:
+          a bill opened from search may not be tracked yet. */}
       <BillDetailsDialog
         billID={openBillId}
         isOpen={openBillId !== null}
         onClose={() => setOpenBillId(null)}
+        trackSlot={
+          openBill ? (
+            <TrackButton billId={openBill.id} billNumber={openBill.bill_number} />
+          ) : undefined
+        }
       />
     </div>
   );

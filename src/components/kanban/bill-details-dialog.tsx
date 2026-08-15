@@ -57,6 +57,13 @@ interface BillDetailsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   boardMode?: BoardMode;
+  /**
+   * Optional control rendered beside the header CTAs. The search page passes a
+   * Track button here — a bill opened from search may not be tracked yet, while
+   * one opened from a board always is. Kept as a slot so the dialog stays
+   * agnostic about where it was opened from.
+   */
+  trackSlot?: React.ReactNode;
 }
 
 interface DialogTab {
@@ -83,7 +90,7 @@ const TABS: readonly DialogTab[] = [
   { id: 'updates', label: 'Status Updates', shortLabel: 'Updates', icon: Clock, mobileOnly: true },
 ];
 
-export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }: BillDetailsDialogProps) {
+export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', trackSlot }: BillDetailsDialogProps) {
   const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills();
   const { user, activeTenant } = useAuth();
   const isMobile = useIsMobile();
@@ -350,6 +357,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                 Contact Legislator is always enabled, so it sits in this shared
                 wrapper alongside whichever Write Testimony variant renders. */}
             <div className="hidden sm:flex shrink-0 items-center gap-2">
+              {trackSlot}
               {!user ? (
                 /* Logged-out (the dialog is reachable from public search): both
                    CTAs lead to authenticated flows, so they become login prompts
@@ -690,6 +698,9 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                   {/* Sticky action bar — the testimony CTA in thumb reach; the
                       disabled reason is visible text (tooltips don't work on touch) */}
                   <div className="shrink-0 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-1.5">
+                    {/* The desktop CTA row is hidden below sm:, so the track
+                        control has to be repeated here to stay reachable. */}
+                    {trackSlot && <div className="[&_button]:h-11 [&_button]:w-full">{trackSlot}</div>}
                     {!user ? (
                       /* Logged-out: both flows require an account, so the CTAs
                          become login prompts instead of buttons that dead-end. */
