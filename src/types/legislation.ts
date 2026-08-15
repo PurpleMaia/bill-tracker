@@ -1,4 +1,5 @@
 import type { KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
+import type { SearchFilters } from '@/lib/bills/search-params';
 import { Timestamp } from '../db/types';
 
 // Extract column IDs as possible statuses
@@ -161,4 +162,36 @@ export interface CompareVersionsParams {
 export interface SummaryResult {
   summary: string;
   model: string;
+}
+
+/**
+ * Lean projection for the /search page. Deliberately excludes tags, status
+ * updates, and versions: getAdditionalBillData() issues extra queries per bill
+ * set and search cards display none of it.
+ */
+export interface BillSearchResult {
+  id: string;
+  bill_number: string;
+  bill_title: string;
+  description: string;
+  year: number | null;
+  bill_status: string | null;
+  dead: boolean;
+  bill_url: string;
+  updated_at: string | null;
+}
+
+export interface BillSearchResponse {
+  items: BillSearchResult[];
+  nextCursor: string | null;
+  totalCount: number;
+}
+
+/**
+ * Params for searchBills(). Declared here rather than in db/queries/bills-read.ts
+ * because that file is 'use server' and may only export async functions.
+ */
+export interface SearchBillsParams extends SearchFilters {
+  cursor?: string | null;
+  limit?: number;
 }

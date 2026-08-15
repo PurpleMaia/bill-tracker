@@ -1,6 +1,14 @@
 'use server';
 
-import type { Bill, BillTracker, BillDetails, StatusUpdate, BillVersion, CommitteeReport } from '@/types/legislation';
+import type { Bill, BillTracker, BillDetails, StatusUpdate, BillVersion, CommitteeReport, BillSearchResult, BillSearchResponse, SearchBillsParams } from '@/types/legislation';
+import {
+  isBillNumberQuery,
+  chamberPrefixes,
+  encodeCursor,
+  decodeCursor,
+  SEARCH_PAGE_SIZE,
+} from '@/lib/bills/search-params';
+import { STATUS_TO_SIMPLIFIED } from '@/lib/bills/kanban-columns';
 import { db } from '@/db/kysely/client';
 import { StatusUpdates } from '@/db/types';
 import { Selectable, sql } from 'kysely';
@@ -567,4 +575,144 @@ export async function findExistingBillByURL(billURl: string): Promise<BillDetail
     console.error('Database search failed', error)
     return null
   }
+}
+
+/**
+ * Searches the FULL bills table — the only bill query with no user_bills join,
+ * so it can surface bills nobody tracks yet.
+ *
+ * Two branches: a bill-number lookup (exact, then trigram prefix) and an FTS
+ * branch ranked by ts_rank over the weighted search_vector. Pagination is
+ * keyset, not OFFSET, so deep pages stay flat.
+ */
+export async function searchBills(params: SearchBillsParams): Promise<BillSearchResponse> {
+  const { q, years, chambers, stages, deadFilter, cursor, limit = SEARCH_PAGE_SIZE } = params;
+  const trimmed = (q ?? '').trim();
+
+  // Expand simplified stage ids back to the concrete BillStatus values stored
+  // on the row. STATUS_TO_SIMPLIFIED is the same mapping the kanban board uses.
+  const statusValues = stages?.length
+    ? Object.entries(STATUS_TO_SIMPLIFIED)
+        .filter(([, simplified]) => stages.includes(simplified))
+        .map(([status]) => status)
+    : [];
+
+  const applyFilters = <T extends { where: any }>(qb: T): T => {
+    let out: any = qb;
+    if (years?.length) out = out.where('year', 'in', years);
+    if (chambers?.length) {
+      const prefixes = chamberPrefixes(chambers);
+      out = out.where((eb: any) =>
+        eb.or(prefixes.map((p) => eb('bill_number', 'like', `${p}%`))),
+      );
+    }
+    if (statusValues.length) out = out.where('bill_status', 'in', statusValues);
+    if (deadFilter === 'alive') out = out.where('dead', '=', false);
+    if (deadFilter === 'dead') out = out.where('dead', '=', true);
+    return out as T;
+  };
+
+  // The bill-number branch compares against a punctuation-stripped bill_number
+  // ("SB 1251" and "SB-1251" both normalize to SB1251).
+  const normalizedNumber = trimmed.replace(/[\s-]/g, '');
+  const isNumberQuery = trimmed ? isBillNumberQuery(trimmed) : false;
+
+  // Every branch must produce `real`, the type ts_rank returns. The keyset
+  // cursor compares this expression against a `::real` parameter, and an
+  // untyped `1.0` would be `numeric` — under which `numeric 0.8 < real 0.8` is
+  // TRUE, so the cursor would never advance past a rank tier and pagination
+  // would loop on the same rows forever.
+  const rankExpr = trimmed
+    ? isNumberQuery
+      // Bill-number branch: exact match outranks prefix, prefix outranks
+      // substring. Values are parameterized by the sql template.
+      ? sql<number>`CASE
+          WHEN upper(replace(replace(bill_number, ' ', ''), '-', '')) = upper(${normalizedNumber}) THEN 1.0::real
+          WHEN upper(replace(replace(bill_number, ' ', ''), '-', '')) LIKE upper(${normalizedNumber + '%'}) THEN 0.8::real
+          ELSE 0.6::real END`
+      : sql<number>`ts_rank(search_vector, websearch_to_tsquery('english', ${trimmed}))`
+    : sql<number>`0::real`;
+
+  // updated_at is nullable in the schema. A NULL in the keyset row-comparison
+  // makes the whole predicate NULL (dropping rows silently), so sort on a
+  // coalesced stamp instead and use the identical expression in the cursor.
+  const sortStamp = sql<Date>`coalesce(updated_at, 'epoch'::timestamptz)`;
+
+  let base = db.selectFrom('bills');
+
+  if (trimmed) {
+    base = isNumberQuery
+      ? base.where(
+          sql<boolean>`replace(replace(bill_number, ' ', ''), '-', '') ILIKE ${'%' + normalizedNumber + '%'}`,
+        )
+      : base.where(
+          sql<boolean>`search_vector @@ websearch_to_tsquery('english', ${trimmed})`,
+        );
+  }
+
+  base = applyFilters(base);
+
+  // Count before pagination so the header can show the full result size.
+  const countRow = await base
+    .select(({ fn }) => fn.countAll<string>().as('count'))
+    .executeTakeFirst();
+  const totalCount = Number(countRow?.count ?? 0);
+
+  let rowsQuery = base
+    .select([
+      'id',
+      'bill_number',
+      'bill_title',
+      'description',
+      'year',
+      'bill_status',
+      'dead',
+      'bill_url',
+      'updated_at',
+    ])
+    .select(rankExpr.as('rank'))
+    .select(sortStamp.as('sort_stamp'))
+    .orderBy(sql`rank`, 'desc')
+    .orderBy(sql`sort_stamp`, 'desc')
+    .orderBy('id', 'desc')
+    .limit(limit + 1); // one extra row tells us whether another page exists
+
+  const decoded = cursor ? decodeCursor(cursor) : null;
+  if (decoded) {
+    // Keyset: continue strictly after the last row's (rank, sort_stamp, id).
+    // Row-comparison mirrors the ORDER BY exactly, so it can't skip or repeat.
+    rowsQuery = rowsQuery.where(
+      sql<boolean>`(${rankExpr}, ${sortStamp}, id) < (${decoded.rank}::real, ${decoded.updatedAt}::timestamptz, ${decoded.id}::uuid)`,
+    );
+  }
+
+  const rows = await rowsQuery.execute();
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+
+  const items: BillSearchResult[] = page.map((r: any) => ({
+    id: r.id,
+    bill_number: r.bill_number ?? '',
+    bill_title: r.bill_title ?? '',
+    description: r.description ?? '',
+    year: r.year,
+    bill_status: r.bill_status,
+    dead: r.dead,
+    bill_url: r.bill_url,
+    updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : null,
+  }));
+
+  const last: any = page[page.length - 1];
+  const nextCursor =
+    hasMore && last
+      ? encodeCursor({
+          rank: Number(last.rank),
+          // sort_stamp, not updated_at — the cursor must carry the same value
+          // the ORDER BY used, or the next page starts from the wrong place.
+          updatedAt: new Date(last.sort_stamp).toISOString(),
+          id: last.id,
+        })
+      : null;
+
+  return { items, nextCursor, totalCount };
 }
