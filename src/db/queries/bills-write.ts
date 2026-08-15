@@ -310,6 +310,74 @@ export async function trackBill(userId: string, billUrl: string, tenantId?: stri
 }
 
 /**
+ * Tracks an EXISTING bill by id. The URL-based trackBill() looks a bill up by
+ * URL and scrapes capitol.hawaii.gov when it is missing; from search results the
+ * bill provably exists and we hold its id, so both of those steps are dead
+ * weight. Keeps the parts that matter: the duplicate guard, the user_bills
+ * insert, and org_bills seeding on the org's first adoption.
+ *
+ * Idempotent: tracking an already-tracked bill resolves { tracked: false }
+ * rather than throwing, because a double-click should not surface an error.
+ */
+export async function trackBillById(
+  userId: string,
+  billId: string,
+  tenantId?: string,
+): Promise<{ tracked: boolean }> {
+  const bill = await db
+    .selectFrom('bills')
+    .select(['id', 'bill_status', 'ai_status'])
+    .where('id', '=', billId)
+    .executeTakeFirst();
+
+  if (!bill) throw new Error('Bill not found');
+
+  const alreadyTracked = await db
+    .selectFrom('user_bills')
+    .select('bill_id')
+    .where('user_id', '=', userId)
+    .where('bill_id', '=', billId)
+    .executeTakeFirst();
+
+  if (alreadyTracked) return { tracked: false };
+
+  await db
+    .insertInto('user_bills')
+    .values({
+      user_id: userId,
+      bill_id: billId,
+      adopted_at: new Date(),
+      tenant_id: tenantId ?? null,
+    })
+    .execute();
+
+  if (tenantId) {
+    const existingOrgBill = await db
+      .selectFrom('org_bills')
+      .select('bill_id')
+      .where('tenant_id', '=', tenantId)
+      .where('bill_id', '=', billId)
+      .executeTakeFirst();
+
+    // Seed from bill_status, NOT ai_status — ai_status is NULL for ~2/3 of
+    // rows, which would force newly tracked bills into the first column.
+    if (!existingOrgBill) {
+      await db
+        .insertInto('org_bills')
+        .values({
+          tenant_id: tenantId,
+          bill_id: billId,
+          bill_status:
+            (bill.bill_status as BillStatus) ?? (bill.ai_status as BillStatus) ?? 'unassigned',
+        })
+        .execute();
+    }
+  }
+
+  return { tracked: true };
+}
+
+/**
  * Untracks a bill for a user.
  *
  * @param userId The ID of the user untracking the bill
