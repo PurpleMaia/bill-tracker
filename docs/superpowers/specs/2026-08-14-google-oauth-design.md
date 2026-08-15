@@ -29,6 +29,32 @@ Two facts about the existing auth shape drive the design:
   session-minting entry point, and `setSessionCookie` the single cookie
   writer. Both are provider-agnostic already.
 
+## OAuth mechanics: no provider library
+
+The flow was originally to be built on `arctic`. Installing it turned
+out to be blocked by a **pre-existing** peer-dependency conflict in this
+repo (`knip@^5.33.3` vs `@eslint-community/eslint-utils`), unrelated to
+this feature. Rather than force a lockfile resolution that five sibling
+worktrees share, the flow talks to Google's endpoints directly.
+
+What that does and does not mean:
+
+- **PKCE and `state`** are generated with `crypto.randomBytes` and a
+  SHA-256 hash — ~15 lines, covered by unit tests.
+- **Token exchange** is a single `fetch` POST.
+- **The ID token's signature is deliberately not verified, and no JWKS
+  handling is written.** This follows Google's own documented guidance:
+  the token arrives directly from Google's token endpoint over TLS in a
+  server-to-server exchange, so the channel already authenticates it.
+  Signature verification is required only for tokens received from an
+  untrusted party, such as one passed up from a browser.
+- `aud`, `iss`, and `exp` **are** checked, so a token minted for a
+  different OAuth client cannot be replayed against this one.
+
+So this is hand-rolled OAuth *plumbing*, not hand-rolled *crypto*. If
+the `knip` conflict is ever fixed, swapping in a provider library would
+touch only `services/google-oauth.ts`.
+
 ## Architecture
 
 Two new API routes, following the shape of the existing `api/auth/*`
@@ -37,8 +63,8 @@ routes.
 ### `GET /api/auth/google` — start
 
 1. Generate a PKCE `code_verifier` and a random `state` nonce.
-2. Build Google's authorization URL via `arctic` (scopes: `openid`,
-   `email`, `profile`).
+2. Build Google's authorization URL (scopes: `openid`, `email`,
+   `profile`).
 3. Store `code_verifier`, `state`, and the signup payload (see below) in
    short-lived (10 minute) `HttpOnly` cookies.
 4. 302 to Google.
@@ -175,6 +201,31 @@ unverified-email refusal.
 Gates before completion: `npm test`, `npm run typecheck`, `npm run build`
 (the build catches `'use server'` export violations that typecheck does
 not).
+
+### Verified at implementation time
+
+Against a running dev server, with placeholder Google credentials:
+
+- start route redirects to Google with `code_challenge_method=S256`, the
+  correct `redirect_uri`, and `HttpOnly; SameSite=Lax` cookies at a
+  600s TTL
+- the signup payload round-trips in the cookie and **does not** appear
+  in the URL sent to Google
+- callback rejects: absent state, forged state with no cookie, and
+  state mismatched against the cookie — all before the code is spent
+- `error=access_denied` (user cancelled at Google) is handled distinctly
+- a failed token exchange sets **no session cookie** and clears the
+  OAuth cookies
+- missing credentials redirect with `not_configured` rather than 500
+- no secrets or PKCE verifiers appear in server logs
+- password login and registration still behave as before the extraction
+  (bad credentials → 401; bad invite → the same message as before)
+
+Still requires manual verification against a **real** Google OAuth
+client, which needs credentials this environment does not have: the
+happy paths (new signup, returning login, linking to an existing
+password account, invite acceptance, org creation) and the
+unverified-email refusal.
 
 ## Out of scope
 
