@@ -1,6 +1,6 @@
 'use server';
 
-import type { Bill, CompareVersionsParams } from '@/types/legislation';
+import type { Bill, CompareVersionsParams, SearchBillsParams, BillSearchResponse } from '@/types/legislation';
 import type { VersionComparison } from '@/lib/versions/version-diff';
 import { optionalSession, requireMembership, requireSession } from '@/lib/auth/auth-guards';
 import {
@@ -8,8 +8,9 @@ import {
   getAllFoodRelatedBills,
   getUserTrackedBills,
   getVersionHtmlLinks,
+  searchBills,
 } from '@/db/queries/bills-read';
-import { updateBillStatus } from '@/db/queries/bills-write';
+import { updateBillStatus, trackBillById } from '@/db/queries/bills-write';
 import { compareVersionHtml } from '@/services/bill-diff';
 
 // ==============================================
@@ -88,4 +89,24 @@ export async function compareVersionsAction(
     olderUrl: older?.htmlLink ?? null,
     newerUrl: newer?.htmlLink ?? null,
   });
+}
+
+/**
+ * Mirrors GET /api/bills/search. Public: no session required, because browsing
+ * and searching the corpus is open — only tracking is gated.
+ */
+export async function searchBillsAction(params: SearchBillsParams): Promise<BillSearchResponse> {
+  return searchBills(params);
+}
+
+/** Mirrors POST /api/bills/track. Requires a session; validates org membership. */
+export async function trackBillByIdAction(params: {
+  billId: string;
+  tenantId?: string;
+}): Promise<{ tracked: boolean }> {
+  const { user } = await requireSession.fromAction();
+  if (params.tenantId) {
+    await requireMembership.fromAction(params.tenantId);
+  }
+  return trackBillById(user.id, params.billId, params.tenantId);
 }
