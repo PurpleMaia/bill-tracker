@@ -110,8 +110,8 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
               </span>
             ) : (
               bill.bill_status && (
-                /* Phase colors match the kanban columns — enacted reads green,
-                   crossover teal — so a bill looks the same on both surfaces. */
+                /* Phase colors mirror getColumnPhaseBg on the board, so a bill's
+                   status reads the same color here as the column it would sit in. */
                 <span
                   className={cn(
                     'inline-flex h-5 shrink-0 items-center rounded-full border px-2 text-[10px] font-medium',
