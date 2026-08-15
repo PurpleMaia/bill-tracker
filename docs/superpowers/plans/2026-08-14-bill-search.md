@@ -64,7 +64,7 @@ Pure logic first — it has no dependencies, and every later task consumes its t
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces: `SearchFilters`, `DeadFilter`, `Chamber`, `normalizeFilters()`, `isBillNumberQuery()`, `chamberPrefixes()`, `encodeCursor()`, `decodeCursor()`, `SearchCursor`, `DEFAULT_FILTERS`, `filtersToQueryString()`, `activeFilterCount()`.
+- Produces: `SearchFilters`, `DeadFilter`, `Chamber`, `normalizeFilters()`, `isBillNumberQuery()`, `chamberPrefixes()`, `encodeCursor()`, `decodeCursor()`, `SearchCursor`, `DEFAULT_FILTERS`, `filtersToQueryString()`, `activeFilterCount()`, `SEARCH_PAGE_SIZE`, `parseSearchParams()`.
 
 - [ ] **Step 1: Write the failing test**
 
