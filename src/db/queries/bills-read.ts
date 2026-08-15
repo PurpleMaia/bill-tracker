@@ -669,6 +669,8 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
       'dead',
       'bill_url',
       'updated_at',
+      'nickname',
+      'committee_assignment',
     ])
     .select(rankExpr.as('rank'))
     .select(sortStamp.as('sort_stamp'))
@@ -690,17 +692,47 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
 
-  const items: BillSearchResult[] = page.map((r: any) => ({
-    id: r.id,
-    bill_number: r.bill_number ?? '',
-    bill_title: r.bill_title ?? '',
-    description: r.description ?? '',
-    year: r.year,
-    bill_status: r.bill_status,
-    dead: r.dead,
-    bill_url: r.bill_url,
-    updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : null,
-  }));
+  // Latest status update per bill, for the card's activity line. ONE batched
+  // query with DISTINCT ON for the whole page — never one query per bill, which
+  // would make a 40-card page cost 41 round trips.
+  const pageIds = page.map((r: any) => r.id);
+  const latestUpdates = pageIds.length
+    ? await db
+        .selectFrom('status_updates')
+        .select(['bill_id', 'id', 'chamber', 'date', 'statustext'])
+        .where('bill_id', 'in', pageIds)
+        .distinctOn('bill_id')
+        .orderBy('bill_id')
+        .orderBy('date', 'desc')
+        .execute()
+    : [];
+
+  const updateByBillId = new Map(latestUpdates.map((u) => [u.bill_id, u]));
+
+  const items: BillSearchResult[] = page.map((r: any) => {
+    const update = updateByBillId.get(r.id);
+    return {
+      id: r.id,
+      bill_number: r.bill_number ?? '',
+      bill_title: r.bill_title ?? '',
+      description: r.description ?? '',
+      year: r.year,
+      bill_status: r.bill_status,
+      dead: r.dead,
+      bill_url: r.bill_url,
+      updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : null,
+      nickname: r.nickname ?? null,
+      committee_assignment: r.committee_assignment ?? null,
+      latest_update: update
+        ? {
+            id: update.id,
+            chamber: update.chamber,
+            date: update.date,
+            statustext: update.statustext,
+          }
+        : null,
+    };
+  });
 
   const last: any = page[page.length - 1];
   const nextCursor =

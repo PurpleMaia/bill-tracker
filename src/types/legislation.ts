@@ -179,6 +179,12 @@ export interface BillSearchResult {
   dead: boolean;
   bill_url: string;
   updated_at: string | null;
+  /** Board-style headline source — formatBillHeadline prefers this over the title. */
+  nickname: string | null;
+  /** Committee referral codes, for the card's committee chip. */
+  committee_assignment: string | null;
+  /** Most recent status update, fetched batched (one DISTINCT ON query per page). */
+  latest_update: StatusUpdate | null;
 }
 
 export interface BillSearchResponse {

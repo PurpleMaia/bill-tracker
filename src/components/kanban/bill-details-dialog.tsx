@@ -20,6 +20,7 @@ import { useMemo, useState } from 'react';
 import RefreshStatusesButton from '../scraper/scrape-updates-button';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { LoginDialog } from '@/components/auth/login-dialog';
 import { COLUMN_TITLES, KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
 import {
   Select,
@@ -349,7 +350,30 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                 Contact Legislator is always enabled, so it sits in this shared
                 wrapper alongside whichever Write Testimony variant renders. */}
             <div className="hidden sm:flex shrink-0 items-center gap-2">
-              {testimonyEligibility.allowed ? (
+              {!user ? (
+                /* Logged-out (the dialog is reachable from public search): both
+                   CTAs lead to authenticated flows, so they become login prompts
+                   rather than dead buttons. The dialog stays open behind the
+                   login dialog, so the reader keeps their place. */
+                <>
+                  <LoginDialog
+                    trigger={
+                      <Button size="sm" variant="outline">
+                        <PenLine className="mr-1.5 h-3.5 w-3.5" />
+                        Login to write a testimony
+                      </Button>
+                    }
+                  />
+                  <LoginDialog
+                    trigger={
+                      <Button size="sm" variant="outline">
+                        <Users className="mr-1.5 h-3.5 w-3.5" />
+                        Login to contact a legislator
+                      </Button>
+                    }
+                  />
+                </>
+              ) : testimonyEligibility.allowed ? (
                 <>
                   {testimonyUrgent && testimonyCountdown && (
                     <span className="text-xs font-medium text-red-600 whitespace-nowrap">
@@ -403,17 +427,19 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                   </Tooltip>
                 </TooltipProvider>
               )}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  onClose();
-                  router.push(`/bills/${bill.id}/contact`);
-                }}
-              >
-                <Users className="mr-1.5 h-3.5 w-3.5" />
-                Contact Legislator
-              </Button>
+              {user && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    onClose();
+                    router.push(`/bills/${bill.id}/contact`);
+                  }}
+                >
+                  <Users className="mr-1.5 h-3.5 w-3.5" />
+                  Contact Legislator
+                </Button>
+              )}
             </div>
           </div>
         </DialogHeader>
@@ -664,37 +690,62 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                   {/* Sticky action bar — the testimony CTA in thumb reach; the
                       disabled reason is visible text (tooltips don't work on touch) */}
                   <div className="shrink-0 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-1.5">
-                    <Button
-                      className="w-full h-11"
-                      disabled={!testimonyEligibility.allowed}
-                      onClick={() => {
-                        onClose();
-                        router.push(`/bills/${bill.id}/testimony`);
-                      }}
-                    >
-                      <PenLine className="mr-2 h-4 w-4" />
-                      Write Testimony
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full h-11"
-                      onClick={() => {
-                        onClose();
-                        router.push(`/bills/${bill.id}/contact`);
-                      }}
-                    >
-                      <Users className="mr-2 h-4 w-4" />
-                      Contact Legislator
-                    </Button>
-                    {testimonyEligibility.allowed && testimonyUrgent && testimonyCountdown && (
-                      <p className="text-center text-xs font-medium text-red-600">
-                        Testimony {testimonyCountdown}
-                      </p>
-                    )}
-                    {!testimonyEligibility.allowed && (
-                      <p className="text-center text-xs text-muted-foreground">
-                        {testimonyEligibility.reason} — testimony is closed.
-                      </p>
+                    {!user ? (
+                      /* Logged-out: both flows require an account, so the CTAs
+                         become login prompts instead of buttons that dead-end. */
+                      <>
+                        <LoginDialog
+                          trigger={
+                            <Button className="h-11 w-full">
+                              <PenLine className="mr-2 h-4 w-4" />
+                              Login to write a testimony
+                            </Button>
+                          }
+                        />
+                        <LoginDialog
+                          trigger={
+                            <Button variant="outline" className="h-11 w-full">
+                              <Users className="mr-2 h-4 w-4" />
+                              Login to contact a legislator
+                            </Button>
+                          }
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          className="w-full h-11"
+                          disabled={!testimonyEligibility.allowed}
+                          onClick={() => {
+                            onClose();
+                            router.push(`/bills/${bill.id}/testimony`);
+                          }}
+                        >
+                          <PenLine className="mr-2 h-4 w-4" />
+                          Write Testimony
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full h-11"
+                          onClick={() => {
+                            onClose();
+                            router.push(`/bills/${bill.id}/contact`);
+                          }}
+                        >
+                          <Users className="mr-2 h-4 w-4" />
+                          Contact Legislator
+                        </Button>
+                        {testimonyEligibility.allowed && testimonyUrgent && testimonyCountdown && (
+                          <p className="text-center text-xs font-medium text-red-600">
+                            Testimony {testimonyCountdown}
+                          </p>
+                        )}
+                        {!testimonyEligibility.allowed && (
+                          <p className="text-center text-xs text-muted-foreground">
+                            {testimonyEligibility.reason} — testimony is closed.
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 </>

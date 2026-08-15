@@ -1,12 +1,18 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import { CircleDot, XCircle } from 'lucide-react';
+import { History, Info } from 'lucide-react';
+import { DeadBillInfoPopover } from '@/components/kanban/dead-bill-info-popover';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { TrackButton } from './track-button';
-import { formatBillStatusName } from '@/lib/core/utils';
+import {
+  cn,
+  formatBillHeadline,
+  formatBillStatusName,
+  formatRelativeDate,
+} from '@/lib/core/utils';
+import { parseCommittees } from '@/lib/bills/dead-bill';
+import { getStatusChipClasses } from './status-chip-classes';
 import type { BillSearchResult } from '@/types/legislation';
 
 /**
@@ -21,8 +27,9 @@ function highlight(text: string, query: string): React.ReactNode {
   const pattern = new RegExp(`(${escaped.join('|')})`, 'gi');
   const parts = text.split(pattern);
 
+  // `i % 2 === 1` alone identifies the captured groups from String.split.
   return parts.map((part, i) =>
-    pattern.test(part) && i % 2 === 1 ? (
+    i % 2 === 1 ? (
       <mark key={i} className="rounded bg-yellow-200 px-0.5 dark:bg-yellow-900/60">
         {part}
       </mark>
@@ -35,61 +42,150 @@ function highlight(text: string, query: string): React.ReactNode {
 interface BillSearchCardProps {
   bill: BillSearchResult;
   query: string;
+  onCardClick: (billId: string) => void;
 }
 
 /**
- * One search result. Purpose-built rather than reusing KanbanCard, which is
- * coupled to drag state, assignment dialogs, and tag editing.
+ * One search result, styled to match the kanban board's card so a bill looks the
+ * same wherever a user meets it: headline first, bill number as a quiet
+ * reference label, description, then the latest status update.
+ *
+ * The dead-bill treatment is copied deliberately from KanbanCard — a red wash
+ * applied as a gradient layer over the opaque card background (a translucent
+ * bg-destructive/5 would replace bg-card and blend with whatever sits behind),
+ * plus a desaturated content layer.
  *
  * The year chip is load-bearing, not decorative: Hawaii reuses bill numbers
  * across sessions (SB1251 exists in both 2025 and 2026 as different measures),
  * so without the year two results are indistinguishable.
  */
-function BillSearchCardComponent({ bill, query }: BillSearchCardProps) {
+function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardProps) {
+  const headline = formatBillHeadline(bill);
+  const committeeReferrals = bill.committee_assignment
+    ? parseCommittees(bill.committee_assignment)
+    : [];
+  const committeeCodes = committeeReferrals.length > 0 ? committeeReferrals.join(' · ') : null;
+
+  const handleClick = () => onCardClick(bill.id);
+
   return (
-    <Card className="p-4 transition-shadow hover:shadow-md">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={`/bills/${bill.id}`}
-              className="font-mono text-sm font-semibold text-primary hover:underline focus-visible:underline focus-visible:outline-none"
-            >
+    <div
+      className={cn(
+        'group relative w-full rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md',
+        bill.dead &&
+          '[background-image:linear-gradient(hsl(var(--destructive)/0.05),hsl(var(--destructive)/0.05))] border-destructive/20',
+        'outline-none ring-ring ring-offset-2 focus-visible:ring-2 has-[:focus-visible]:ring-2',
+      )}
+    >
+      <div className={cn('flex flex-col', bill.dead && 'opacity-60 grayscale-[35%]')}>
+        <div
+          className="flex w-full cursor-pointer flex-col p-3"
+          onClick={handleClick}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleClick();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
+        >
+          {/* Reference row: bill number + year + status, with Track pinned right. */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-medium tracking-wide text-muted-foreground">
               {highlight(bill.bill_number, query)}
-            </Link>
+            </span>
             {bill.year !== null && (
-              <Badge variant="outline" className="text-xs">
+              <Badge
+                variant="secondary"
+                className="h-4 rounded-md px-1 text-[10px] text-muted-foreground"
+              >
                 {bill.year}
               </Badge>
             )}
-            {/* Card state reads through an icon chip, never a left-edge strip. */}
             {bill.dead ? (
-              <Badge variant="secondary" className="gap-1 text-xs text-muted-foreground">
-                <XCircle className="h-3 w-3" aria-hidden="true" />
-                Dead
-              </Badge>
+              /* Same "Why did this bill fail?" popover the board uses — it runs
+                 the dead-bill algorithm to name the missed deadline. Reused
+                 rather than reimplemented; it needs no board context. */
+              <DeadBillInfoPopover
+                billNumber={bill.bill_number}
+                billStatus={bill.bill_status ?? ''}
+                committeeAssignment={bill.committee_assignment}
+                latestUpdate={bill.latest_update}
+                billUrl={bill.bill_url}
+              >
+                <button
+                  type="button"
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={`Why did ${bill.bill_number} fail?`}
+                  className="inline-flex h-5 shrink-0 cursor-pointer items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 text-[10px] font-medium text-destructive transition-colors hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  Failed
+                  <Info className="h-2.5 w-2.5" aria-hidden="true" />
+                </button>
+              </DeadBillInfoPopover>
             ) : (
-              <Badge variant="secondary" className="gap-1 text-xs">
-                <CircleDot className="h-3 w-3" aria-hidden="true" />
-                {bill.bill_status ? formatBillStatusName(bill.bill_status) : 'Active'}
-              </Badge>
+              bill.bill_status && (
+                /* Phase colors match the kanban columns — enacted reads green,
+                   crossover teal — so a bill looks the same on both surfaces. */
+                <span
+                  className={cn(
+                    'inline-flex h-5 shrink-0 items-center rounded-full border px-2 text-[10px] font-medium',
+                    getStatusChipClasses(bill.bill_status),
+                  )}
+                >
+                  {formatBillStatusName(bill.bill_status)}
+                </span>
+              )
             )}
+            {/* stopPropagation so tracking never opens the dialog. */}
+            <div
+              className="ml-auto shrink-0"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              <TrackButton billId={bill.id} billNumber={bill.bill_number} />
+            </div>
           </div>
 
-          <h3 className="mt-2 text-sm font-medium leading-snug">
-            {highlight(bill.bill_title, query)}
+          {/* Headline — the card's primary text, matching the board. */}
+          <h3 className="mt-1.5 text-sm font-semibold leading-snug">
+            {headline ? highlight(headline, query) : highlight(bill.bill_title, query)}
           </h3>
 
-          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+          {/* The full RELATING TO line, kept because it's a searchable field and
+              users scanning results expect to see the term they matched on. */}
+          <p className="mt-0.5 text-[11px] uppercase tracking-wide text-muted-foreground/80">
+            {highlight(bill.bill_title, query)}
+          </p>
+
+          <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">
             {highlight(bill.description, query)}
           </p>
-        </div>
 
-        <div className="shrink-0">
-          <TrackButton billId={bill.id} billNumber={bill.bill_number} />
+          {bill.latest_update && (
+            <div className="mt-2 flex items-center gap-1 rounded-md bg-border/30 px-2 py-1.5">
+              <History className="h-3 w-3 shrink-0 text-foreground/70" aria-hidden="true" />
+              <span className="shrink-0 text-xs font-medium text-foreground/70">
+                {formatRelativeDate(bill.latest_update.date)}
+              </span>
+              <p className="min-w-0 truncate text-xs text-muted-foreground">
+                &mdash; {bill.latest_update.statustext}
+              </p>
+            </div>
+          )}
+
+          {committeeCodes && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-border bg-secondary/60 px-2 text-[10px] font-medium text-secondary-foreground">
+                {committeeCodes}
+              </span>
+            </div>
+          )}
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 

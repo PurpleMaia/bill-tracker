@@ -1,10 +1,13 @@
 'use client';
 
+import { ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { SIMPLIFIED_COLUMNS } from '@/lib/bills/kanban-columns';
+import { stageLabel } from '@/lib/bills/stage-labels';
 import {
   activeFilterCount,
   type Chamber,
@@ -13,18 +16,6 @@ import {
 } from '@/lib/bills/search-params';
 
 const YEARS = [2026, 2025];
-
-// SIMPLIFIED_COLUMNS (from @/lib/bills/kanban-columns) is shared with the kanban
-// board, where two entries ('simpleScheduled' and 'conferenceScheduled') share the
-// identical title 'SCHEDULED'. On the board that's unambiguous because position
-// (pre-crossover vs. conference group) supplies the context. Here the Stage filter
-// renders them as a flat checkbox list with no such context, so without an override
-// they'd show as two identical "scheduled" checkboxes. Do not delete this as
-// redundant with column.title — it exists to disambiguate ids that share a title.
-const STAGE_LABEL_OVERRIDES: Record<string, string> = {
-  simpleScheduled: 'scheduled',
-  conferenceScheduled: 'conference scheduled',
-};
 
 interface SearchFilterRailProps {
   filters: SearchFilters;
@@ -122,29 +113,63 @@ export function SearchFilterRail({ filters, onChange, onClear }: SearchFilterRai
       </fieldset>
 
       <fieldset className="space-y-2">
-        <legend className="mb-2 text-sm font-medium">Stage</legend>
-        <details>
-          <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
-            {filters.stages.length > 0 ? `${filters.stages.length} selected` : 'Any stage'}
-          </summary>
-          <div className="mt-2 space-y-2">
-            {SIMPLIFIED_COLUMNS.map((column) => (
-              <div key={column.id} className="flex items-center gap-2">
-                <Checkbox
-                  id={`stage-${column.id}`}
-                  checked={filters.stages.includes(column.id)}
-                  onCheckedChange={() => toggleStage(column.id)}
-                />
-                <Label
+        <div className="mb-2 flex items-center justify-between">
+          <legend className="text-sm font-medium">Stage</legend>
+          {filters.stages.length > 0 && (
+            <button
+              type="button"
+              onClick={() => onChange({ ...filters, stages: [] })}
+              className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+        {/*
+          A dropdown rather than an inline list. 13 stages inline made the rail
+          taller than its pane, and a nested scroll region inside an already
+          scrolling rail was confusing to operate. The popover keeps the rail
+          short and puts the long list in a surface of its own.
+        */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              className="h-9 w-full justify-between px-3 text-xs font-normal"
+            >
+              <span className="truncate">
+                {filters.stages.length === 0
+                  ? 'Any stage'
+                  : filters.stages.length === 1
+                    ? stageLabel(filters.stages[0])
+                    : `${filters.stages.length} stages`}
+              </span>
+              <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-[15rem] p-1.5">
+            <div className="max-h-72 space-y-0.5 overflow-y-auto">
+              {SIMPLIFIED_COLUMNS.map((column) => (
+                <label
+                  key={column.id}
                   htmlFor={`stage-${column.id}`}
-                  className="cursor-pointer text-xs font-normal capitalize"
+                  className="flex cursor-pointer items-start gap-2 rounded-sm px-2 py-1.5 hover:bg-accent"
                 >
-                  {STAGE_LABEL_OVERRIDES[column.id] ?? column.title.toLowerCase()}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </details>
+                  <Checkbox
+                    id={`stage-${column.id}`}
+                    className="mt-0.5 shrink-0"
+                    checked={filters.stages.includes(column.id)}
+                    onCheckedChange={() => toggleStage(column.id)}
+                  />
+                  <span className="text-xs capitalize leading-tight">
+                    {stageLabel(column.id)}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
       </fieldset>
     </div>
   );
