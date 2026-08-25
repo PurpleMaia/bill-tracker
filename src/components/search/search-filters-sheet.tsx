@@ -11,10 +11,11 @@ interface SearchFiltersSheetProps {
   filters: SearchFilters;
   onChange: (next: SearchFilters) => void;
   onClear: () => void;
+  loggedIn: boolean;
 }
 
 /** Mobile-only wrapper: the same rail, slid in from the left on demand. */
-export function SearchFiltersSheet({ filters, onChange, onClear }: SearchFiltersSheetProps) {
+export function SearchFiltersSheet({ filters, onChange, onClear, loggedIn }: SearchFiltersSheetProps) {
   const count = activeFilterCount(filters);
 
   return (
@@ -35,7 +36,12 @@ export function SearchFiltersSheet({ filters, onChange, onClear }: SearchFilters
           <SheetTitle>Filter bills</SheetTitle>
         </SheetHeader>
         <div className="mt-6">
-          <SearchFilterRail filters={filters} onChange={onChange} onClear={onClear} />
+          <SearchFilterRail
+            filters={filters}
+            onChange={onChange}
+            onClear={onClear}
+            loggedIn={loggedIn}
+          />
         </div>
       </SheetContent>
     </Sheet>

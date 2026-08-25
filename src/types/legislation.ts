@@ -185,6 +185,11 @@ export interface BillSearchResult {
   committee_assignment: string | null;
   /** Most recent status update, fetched batched (one DISTINCT ON query per page). */
   latest_update: StatusUpdate | null;
+  /**
+   * Whether the requesting user already tracks this bill. Always false when no
+   * user is resolved (logged-out search), since tracking is user-scoped.
+   */
+  is_tracked: boolean;
 }
 
 export interface BillSearchResponse {
@@ -200,4 +205,11 @@ export interface BillSearchResponse {
 export interface SearchBillsParams extends SearchFilters {
   cursor?: string | null;
   limit?: number;
+  /**
+   * The requesting user, resolved server-side (never sent from the client).
+   * Drives the per-row is_tracked flag and the tracked/untracked filter. When
+   * absent, is_tracked is always false and the tracked filter is a no-op.
+   */
+  userId?: string | null;
+  tenantId?: string | null;
 }

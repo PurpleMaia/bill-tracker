@@ -586,8 +586,30 @@ export async function findExistingBillByURL(billURl: string): Promise<BillDetail
  * keyset, not OFFSET, so deep pages stay flat.
  */
 export async function searchBills(params: SearchBillsParams): Promise<BillSearchResponse> {
-  const { q, years, chambers, stages, deadFilter, cursor, limit = SEARCH_PAGE_SIZE } = params;
+  const {
+    q,
+    years,
+    chambers,
+    stages,
+    deadFilter,
+    trackedFilter,
+    cursor,
+    limit = SEARCH_PAGE_SIZE,
+    userId,
+    tenantId,
+  } = params;
   const trimmed = (q ?? '').trim();
+
+  // Per-user "does this user track this bill" flag. EXISTS keeps searchBills's
+  // no-join contract intact (no rows are added or duplicated) while letting the
+  // card seed its Tracked state and the tracked/untracked filter apply. Scoped
+  // by tenant when in a tenant context, mirroring the board's user_bills reads.
+  // Resolves to FALSE when no user is present (logged-out search).
+  const isTrackedExpr = userId
+    ? tenantId
+      ? sql<boolean>`exists (select 1 from user_bills ub where ub.bill_id = bills.id and ub.user_id = ${userId} and ub.tenant_id = ${tenantId})`
+      : sql<boolean>`exists (select 1 from user_bills ub where ub.bill_id = bills.id and ub.user_id = ${userId})`
+    : sql<boolean>`false`;
 
   // Expand simplified stage ids back to the concrete BillStatus values stored
   // on the row. STATUS_TO_SIMPLIFIED is the same mapping the kanban board uses.
@@ -609,6 +631,10 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
     if (statusValues.length) out = out.where('bill_status', 'in', statusValues);
     if (deadFilter === 'alive') out = out.where('dead', '=', false);
     if (deadFilter === 'dead') out = out.where('dead', '=', true);
+    // Tracked filter is user-scoped — a no-op without a resolved user, so a
+    // logged-out request can never accidentally hide every bill.
+    if (userId && trackedFilter === 'tracked') out = out.where(isTrackedExpr);
+    if (userId && trackedFilter === 'untracked') out = out.where(sql<boolean>`not ${isTrackedExpr}`);
     return out as T;
   };
 
@@ -674,6 +700,7 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
     ])
     .select(rankExpr.as('rank'))
     .select(sortStamp.as('sort_stamp'))
+    .select(isTrackedExpr.as('is_tracked'))
     .orderBy(sql`rank`, 'desc')
     .orderBy(sql`sort_stamp`, 'desc')
     .orderBy('id', 'desc')
@@ -731,6 +758,7 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
             statustext: update.statustext,
           }
         : null,
+      is_tracked: Boolean(r.is_tracked),
     };
   });
 

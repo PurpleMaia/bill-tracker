@@ -96,7 +96,10 @@ export async function compareVersionsAction(
  * and searching the corpus is open — only tracking is gated.
  */
 export async function searchBillsAction(params: SearchBillsParams): Promise<BillSearchResponse> {
-  return searchBills(params);
+  // Resolve the user from the session, never from params — mirrors the route so
+  // the client can't spoof another user's tracked state through the action arm.
+  const { user } = await optionalSession.fromAction();
+  return searchBills({ ...params, userId: user?.id ?? null });
 }
 
 /** Mirrors POST /api/bills/track. Requires a session; validates org membership. */

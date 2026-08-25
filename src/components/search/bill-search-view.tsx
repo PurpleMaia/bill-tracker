@@ -13,6 +13,7 @@ import { SearchFiltersSheet } from './search-filters-sheet';
 import { SearchIntro } from './search-intro';
 import { TrackButton } from './track-button';
 import { useBillSearch } from '@/hooks/use-bill-search';
+import { useAuth } from '@/hooks/contexts/auth-context';
 import {
   DEFAULT_FILTERS,
   activeFilterCount,
@@ -23,6 +24,8 @@ import {
 const SESSION_YEARS = [2026, 2025];
 
 export function BillSearchView() {
+  const { user, activeTenant } = useAuth();
+  const isLoggedIn = Boolean(user);
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
   const [openBillId, setOpenBillId] = useState<string | null>(null);
   const {
@@ -34,7 +37,7 @@ export function BillSearchView() {
     hasNextPage,
     fetchNextPage,
     error,
-  } = useBillSearch(filters);
+  } = useBillSearch(filters, activeTenant?.tenantId);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
@@ -67,7 +70,14 @@ export function BillSearchView() {
   // isn't left mid-way down a list they didn't scroll.
   useEffect(() => {
     resultsRef.current?.scrollTo({ top: 0 });
-  }, [debouncedQuery, filters.years, filters.chambers, filters.stages, filters.deadFilter]);
+  }, [
+    debouncedQuery,
+    filters.years,
+    filters.chambers,
+    filters.stages,
+    filters.deadFilter,
+    filters.trackedFilter,
+  ]);
 
   // Reveal the scroll-to-top button once the hero (and its search bar) has
   // scrolled out of view, since it's the only way back to them now.
@@ -132,7 +142,12 @@ export function BillSearchView() {
     <div className="mx-auto flex h-full w-full min-h-0 max-w-6xl gap-6 p-4 md:p-6">
       <aside className="hidden w-60 shrink-0 lg:block">
         <div className="h-full min-h-0 overflow-y-auto pr-2">
-          <SearchFilterRail filters={filters} onChange={setFilters} onClear={handleClear} />
+          <SearchFilterRail
+            filters={filters}
+            onChange={setFilters}
+            onClear={handleClear}
+            loggedIn={isLoggedIn}
+          />
         </div>
       </aside>
 
@@ -164,7 +179,12 @@ export function BillSearchView() {
                   </>
                 )}
               </p>
-              <SearchFiltersSheet filters={filters} onChange={setFilters} onClear={handleClear} />
+              <SearchFiltersSheet
+                filters={filters}
+                onChange={setFilters}
+                onClear={handleClear}
+                loggedIn={isLoggedIn}
+              />
             </div>
 
             <div className="empty:hidden [&:not(:empty)]:mt-2.5">
@@ -252,7 +272,11 @@ export function BillSearchView() {
         onClose={() => setOpenBillId(null)}
         trackSlot={
           openBill ? (
-            <TrackButton billId={openBill.id} billNumber={openBill.bill_number} />
+            <TrackButton
+              billId={openBill.id}
+              billNumber={openBill.bill_number}
+              initialTracked={openBill.is_tracked}
+            />
           ) : undefined
         }
       />

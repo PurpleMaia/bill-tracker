@@ -25,18 +25,21 @@ function useDebounced<T>(value: T, ms: number): T {
  * queries, and back-navigation all hit the cache instead of the network; only a
  * genuinely new filter set costs a request.
  */
-export function useBillSearch(filters: SearchFilters) {
+export function useBillSearch(filters: SearchFilters, tenantId?: string | null) {
   // Only the text query is debounced — filter clicks should feel immediate.
   const debouncedQuery = useDebounced(filters.q, 250);
   const effective = normalizeFilters({ ...filters, q: debouncedQuery });
 
   const query = useInfiniteQuery({
-    queryKey: ['bills', 'search', effective],
+    // tenantId is part of the key so switching orgs re-scopes the is_tracked
+    // flag instead of serving another org's cached tracked state.
+    queryKey: ['bills', 'search', effective, tenantId ?? null],
     queryFn: ({ pageParam }) =>
       data.bills.searchBills({
         ...effective,
         cursor: pageParam as string | null,
         limit: SEARCH_PAGE_SIZE,
+        tenantId: tenantId ?? null,
       }),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Loader2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LoginDialog } from '@/components/auth/login-dialog';
@@ -21,6 +21,12 @@ const COMPACT_ON_MOBILE = 'h-9 w-9 p-0 sm:h-9 sm:w-auto sm:px-3';
 interface TrackButtonProps {
   billId: string;
   billNumber: string;
+  /**
+   * Seeds the tracked state so a bill the user already tracks shows "Tracked"
+   * on mount, rather than only after a click. Comes from BillSearchResult.
+   * is_tracked (resolved server-side); defaults to false for logged-out search.
+   */
+  initialTracked?: boolean;
 }
 
 /**
@@ -28,11 +34,17 @@ interface TrackButtonProps {
  * same button opens the login dialog in place, so a visitor never loses their
  * search results to a redirect.
  */
-export function TrackButton({ billId, billNumber }: TrackButtonProps) {
+export function TrackButton({ billId, billNumber, initialTracked = false }: TrackButtonProps) {
   const { user, activeTenant } = useAuth();
   const { toast } = useToast();
   const [isTracking, setIsTracking] = useState(false);
-  const [isTracked, setIsTracked] = useState(false);
+  const [isTracked, setIsTracked] = useState(initialTracked);
+
+  // A card can outlive a refetch (login, org switch) that resolves is_tracked to
+  // true after mount. Adopt that, but never walk back a local optimistic track.
+  useEffect(() => {
+    if (initialTracked) setIsTracked(true);
+  }, [initialTracked]);
 
   if (!user) {
     return (

@@ -63,7 +63,14 @@ async function compareVersionsFetch(params: CompareVersionsParams): Promise<Vers
 
 async function searchBillsFetch(params: SearchBillsParams): Promise<BillSearchResponse> {
   const qs = filtersToQueryString(params, params.cursor);
-  const res = await fetch(`/api/bills/search?${qs}`);
+  // tenantId scopes the per-user is_tracked flag / tracked filter to the active
+  // org — appended here rather than via filtersToQueryString because it is
+  // context, not a filter. userId is never sent: the route resolves it from the
+  // session so the client can't spoof another user's tracked state.
+  const url = params.tenantId
+    ? `/api/bills/search?${qs}&tenantId=${encodeURIComponent(params.tenantId)}`
+    : `/api/bills/search?${qs}`;
+  const res = await fetch(url);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || 'Failed to search bills');

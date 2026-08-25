@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { SIMPLIFIED_COLUMNS } from '@/lib/bills/kanban-columns';
 import { stageLabel } from '@/lib/bills/stage-labels';
 import {
@@ -13,14 +14,23 @@ import {
   type Chamber,
   type DeadFilter,
   type SearchFilters,
+  type TrackedFilter,
 } from '@/lib/bills/search-params';
 
 const YEARS = [2026, 2025];
+
+const TRACKED_OPTIONS: { value: TrackedFilter; label: string }[] = [
+  { value: 'all', label: 'All bills' },
+  { value: 'tracked', label: 'Tracked' },
+  { value: 'untracked', label: 'Not tracked' },
+];
 
 interface SearchFilterRailProps {
   filters: SearchFilters;
   onChange: (next: SearchFilters) => void;
   onClear: () => void;
+  /** Tracked/not-tracked is user-scoped — disabled with a hint when logged out. */
+  loggedIn: boolean;
 }
 
 /**
@@ -28,7 +38,7 @@ interface SearchFilterRailProps {
  * the two can never drift. Uses real fieldset/legend + checkbox/radio elements,
  * which are keyboard-navigable and screen-reader-labeled by default.
  */
-export function SearchFilterRail({ filters, onChange, onClear }: SearchFilterRailProps) {
+export function SearchFilterRail({ filters, onChange, onClear, loggedIn }: SearchFilterRailProps) {
   const toggleYear = (year: number) => {
     const years = filters.years.includes(year)
       ? filters.years.filter((y) => y !== year)
@@ -113,6 +123,25 @@ export function SearchFilterRail({ filters, onChange, onClear }: SearchFilterRai
       </fieldset>
 
       <fieldset className="space-y-2">
+        <legend className="mb-2 text-sm font-medium">Tracking</legend>
+        {/* User-scoped: a logged-out visitor has no tracked set, so the control
+            is disabled and a hover tooltip says why rather than silently doing
+            nothing. Kept visible (not hidden) so the capability is discoverable. */}
+        {loggedIn ? (
+          <TrackingRadioGroup filters={filters} onChange={onChange} disabled={false} />
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="cursor-not-allowed">
+                <TrackingRadioGroup filters={filters} onChange={onChange} disabled />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>Sign in to filter by tracked bills</TooltipContent>
+          </Tooltip>
+        )}
+      </fieldset>
+
+      <fieldset className="space-y-2">
         <div className="mb-2 flex items-center justify-between">
           <legend className="text-sm font-medium">Stage</legend>
           {filters.stages.length > 0 && (
@@ -172,5 +201,35 @@ export function SearchFilterRail({ filters, onChange, onClear }: SearchFilterRai
         </Popover>
       </fieldset>
     </div>
+  );
+}
+
+/** The tracked/not-tracked radio group, shared by the enabled and disabled
+    (tooltip-wrapped) branches so the markup can't drift between them. */
+function TrackingRadioGroup({
+  filters,
+  onChange,
+  disabled,
+}: {
+  filters: SearchFilters;
+  onChange: (next: SearchFilters) => void;
+  disabled: boolean;
+}) {
+  return (
+    <RadioGroup
+      value={disabled ? 'all' : filters.trackedFilter}
+      onValueChange={(value) => onChange({ ...filters, trackedFilter: value as TrackedFilter })}
+      disabled={disabled}
+      className={disabled ? 'pointer-events-none opacity-50' : undefined}
+    >
+      {TRACKED_OPTIONS.map(({ value, label }) => (
+        <div key={value} className="flex items-center gap-2">
+          <RadioGroupItem value={value} id={`tracked-${value}`} disabled={disabled} />
+          <Label htmlFor={`tracked-${value}`} className="cursor-pointer text-sm font-normal">
+            {label}
+          </Label>
+        </div>
+      ))}
+    </RadioGroup>
   );
 }

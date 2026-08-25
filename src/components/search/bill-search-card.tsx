@@ -131,7 +131,11 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
             >
-              <TrackButton billId={bill.id} billNumber={bill.bill_number} />
+              <TrackButton
+                billId={bill.id}
+                billNumber={bill.bill_number}
+                initialTracked={bill.is_tracked}
+              />
             </div>
           </div>
 

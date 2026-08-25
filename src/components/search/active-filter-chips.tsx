@@ -68,6 +68,14 @@ export function ActiveFilterChips({ filters, onChange, onClear }: ActiveFilterCh
     });
   }
 
+  if (filters.trackedFilter !== DEFAULT_FILTERS.trackedFilter) {
+    chips.push({
+      key: 'tracked',
+      label: filters.trackedFilter === 'tracked' ? 'tracked' : 'not tracked',
+      onRemove: () => onChange({ ...filters, trackedFilter: DEFAULT_FILTERS.trackedFilter }),
+    });
+  }
+
   for (const stage of filters.stages) {
     chips.push({
       key: `stage-${stage}`,

@@ -5,17 +5,22 @@ import { parseSearchParams, SEARCH_PAGE_SIZE } from '@/lib/bills/search-params';
 
 export async function GET(request: NextRequest) {
   try {
-    // Public endpoint: resolve the user if present, but never require one.
-    await optionalSession.fromRequest(request);
+    // Public endpoint: resolve the user if present, but never require one. The
+    // resolved id (never a client-supplied one) drives the per-row is_tracked
+    // flag and the tracked/untracked filter.
+    const { user } = await optionalSession.fromRequest(request);
 
     const { searchParams } = new URL(request.url);
     const filters = parseSearchParams(searchParams);
     const cursor = searchParams.get('cursor');
+    const tenantId = searchParams.get('tenantId');
 
     const result = await searchBills({
       ...filters,
       cursor,
       limit: SEARCH_PAGE_SIZE,
+      userId: user?.id ?? null,
+      tenantId,
     });
 
     return NextResponse.json(result, {

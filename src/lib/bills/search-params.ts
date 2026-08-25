@@ -7,6 +7,8 @@
 
 export type DeadFilter = 'all' | 'alive' | 'dead';
 export type Chamber = 'house' | 'senate';
+/** 'tracked'/'untracked' are user-scoped and only meaningful when logged in. */
+export type TrackedFilter = 'all' | 'tracked' | 'untracked';
 
 export interface SearchFilters {
   q: string;
@@ -14,6 +16,7 @@ export interface SearchFilters {
   chambers: Chamber[];
   stages: string[];
   deadFilter: DeadFilter;
+  trackedFilter: TrackedFilter;
 }
 
 /**
@@ -27,6 +30,7 @@ export const DEFAULT_FILTERS: SearchFilters = {
   chambers: [],
   stages: [],
   deadFilter: 'all',
+  trackedFilter: 'all',
 };
 
 export const SEARCH_PAGE_SIZE = 40;
@@ -56,6 +60,7 @@ export function normalizeFilters(filters: SearchFilters): SearchFilters {
     chambers: [...filters.chambers].sort(),
     stages: [...filters.stages].sort(),
     deadFilter: filters.deadFilter,
+    trackedFilter: filters.trackedFilter,
   };
 }
 
@@ -68,6 +73,7 @@ export function activeFilterCount(filters: SearchFilters): number {
   if (filters.chambers.length > 0) count++;
   if (filters.stages.length > 0) count++;
   if (filters.deadFilter !== DEFAULT_FILTERS.deadFilter) count++;
+  if (filters.trackedFilter !== DEFAULT_FILTERS.trackedFilter) count++;
   return count;
 }
 
@@ -110,6 +116,7 @@ export function filtersToQueryString(
   if (n.chambers.length) qs.set('chambers', n.chambers.join(','));
   if (n.stages.length) qs.set('stages', n.stages.join(','));
   if (n.deadFilter !== 'all') qs.set('dead', n.deadFilter);
+  if (n.trackedFilter !== 'all') qs.set('tracked', n.trackedFilter);
   if (cursor) qs.set('cursor', cursor);
   return qs.toString();
 }
@@ -125,6 +132,7 @@ export function parseSearchParams(params: URLSearchParams): SearchFilters {
     .filter((c): c is Chamber => c === 'house' || c === 'senate');
   const stages = (params.get('stages') ?? '').split(',').filter(Boolean);
   const dead = params.get('dead');
+  const tracked = params.get('tracked');
 
   return {
     q: params.get('q') ?? '',
@@ -132,5 +140,6 @@ export function parseSearchParams(params: URLSearchParams): SearchFilters {
     chambers,
     stages,
     deadFilter: dead === 'alive' || dead === 'dead' ? dead : 'all',
+    trackedFilter: tracked === 'tracked' || tracked === 'untracked' ? tracked : 'all',
   };
 }

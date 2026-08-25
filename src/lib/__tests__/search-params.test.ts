@@ -6,6 +6,8 @@ import {
   encodeCursor,
   decodeCursor,
   activeFilterCount,
+  filtersToQueryString,
+  parseSearchParams,
   DEFAULT_FILTERS,
   type SearchFilters,
 } from '@/lib/bills/search-params';
@@ -63,6 +65,16 @@ describe('normalizeFilters', () => {
     expect(DEFAULT_FILTERS.years).toEqual([2026]);
     expect(DEFAULT_FILTERS.deadFilter).toBe('all');
   });
+
+  it('defaults trackedFilter to all and preserves it', () => {
+    expect(DEFAULT_FILTERS.trackedFilter).toBe('all');
+    expect(normalizeFilters({ ...DEFAULT_FILTERS, trackedFilter: 'tracked' }).trackedFilter).toBe(
+      'tracked',
+    );
+    expect(
+      normalizeFilters({ ...DEFAULT_FILTERS, trackedFilter: 'untracked' }).trackedFilter,
+    ).toBe('untracked');
+  });
 });
 
 describe('cursor codec', () => {
@@ -90,5 +102,31 @@ describe('activeFilterCount', () => {
       deadFilter: 'alive',
     };
     expect(activeFilterCount(filters)).toBe(3);
+  });
+
+  it('counts a non-default trackedFilter', () => {
+    expect(activeFilterCount({ ...DEFAULT_FILTERS, trackedFilter: 'tracked' })).toBe(1);
+    expect(activeFilterCount({ ...DEFAULT_FILTERS, trackedFilter: 'untracked' })).toBe(1);
+    expect(activeFilterCount({ ...DEFAULT_FILTERS, trackedFilter: 'all' })).toBe(0);
+  });
+});
+
+describe('trackedFilter query-string round-trip', () => {
+  it('omits the default and serializes non-defaults', () => {
+    expect(filtersToQueryString(DEFAULT_FILTERS)).not.toContain('tracked=');
+    expect(filtersToQueryString({ ...DEFAULT_FILTERS, trackedFilter: 'tracked' })).toContain(
+      'tracked=tracked',
+    );
+    expect(filtersToQueryString({ ...DEFAULT_FILTERS, trackedFilter: 'untracked' })).toContain(
+      'tracked=untracked',
+    );
+  });
+
+  it('parses back to the same value, falling back to all', () => {
+    const parse = (qs: string) => parseSearchParams(new URLSearchParams(qs)).trackedFilter;
+    expect(parse('tracked=tracked')).toBe('tracked');
+    expect(parse('tracked=untracked')).toBe('untracked');
+    expect(parse('')).toBe('all');
+    expect(parse('tracked=bogus')).toBe('all');
   });
 });
