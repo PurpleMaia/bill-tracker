@@ -105,7 +105,12 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   // the panels stack and it was stranded below a long Overview scroll.
   const [activeTab, setActiveTab] = useState<'overview' | 'versions' | 'updates'>('overview');
 
-  const bill = useMemo(() => bills.find(b => b.id === billID), [bills, billID]);
+  // The board keeps only tracked/food-related bills in context, but this dialog
+  // is also opened from /search over the FULL corpus, where the clicked bill is
+  // usually absent from context. Fall back to the fetched billDetails (which
+  // extends Bill) so a search result still renders instead of returning null.
+  const contextBill = useMemo(() => bills.find(b => b.id === billID), [bills, billID]);
+  const bill = contextBill ?? billDetails;
 
   useEffect(() => {
     if (isOpen && billID) {
@@ -138,7 +143,27 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
     if (!isMobile && activeTab === 'updates') setActiveTab('overview');
   }, [isMobile, activeTab]);
 
-  if (!bill) return null;
+  // Nothing to render yet: no context bill and details haven't arrived. While
+  // the fetch is in flight show a minimal loading shell (a search result not in
+  // context would otherwise flash nothing); once it resolves `bill` is set from
+  // billDetails and the full dialog renders below.
+  if (!bill) {
+    if (!isOpen) return null;
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-[100vw] sm:max-w-2xl h-[100dvh] sm:h-auto flex flex-col items-center justify-center gap-3 p-8">
+          {detailsError ? (
+            <p className="text-sm text-destructive">Failed to load bill details.</p>
+          ) : (
+            <>
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+              <p className="text-sm text-muted-foreground">Loading bill details…</p>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   // Panels expect a fully-loaded BillDetails. Once getBillDetails resolves it's
   // authoritative (its mapper always sets versions/reports to arrays), so use it
