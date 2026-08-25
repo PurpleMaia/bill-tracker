@@ -332,16 +332,27 @@ export async function trackBillById(
 
   if (!bill) throw new Error('Bill not found');
 
-  const alreadyTracked = await db
+  // Tenant-scoped, matching searchBills' is_tracked EXISTS: tracking is
+  // per-org, so a bill tracked in tenant A must still be trackable in tenant B.
+  // A global guard here would report {tracked:false} and skip the tenant-B
+  // insert, leaving the org's board without a bill the UI shows as tracked.
+  let trackedInScope = db
     .selectFrom('user_bills')
     .select('bill_id')
     .where('user_id', '=', userId)
-    .where('bill_id', '=', billId)
-    .executeTakeFirst();
+    .where('bill_id', '=', billId);
+  trackedInScope = tenantId
+    ? trackedInScope.where('tenant_id', '=', tenantId)
+    : trackedInScope.where('tenant_id', 'is', null);
+  const alreadyTracked = await trackedInScope.executeTakeFirst();
 
   if (alreadyTracked) return { tracked: false };
 
-  await db
+  // onConflict do-nothing over the 000032 unique indexes closes the race the
+  // check above cannot: two concurrent requests can both pass the SELECT, but
+  // only one INSERT survives. `numInsertedOrUpdatedRows === 0` means the other
+  // request won, so this call tracked nothing new.
+  const inserted = await db
     .insertInto('user_bills')
     .values({
       user_id: userId,
@@ -349,7 +360,10 @@ export async function trackBillById(
       adopted_at: new Date(),
       tenant_id: tenantId ?? null,
     })
-    .execute();
+    .onConflict((oc) => oc.doNothing())
+    .executeTakeFirst();
+
+  if (!inserted.numInsertedOrUpdatedRows) return { tracked: false };
 
   if (tenantId) {
     const existingOrgBill = await db

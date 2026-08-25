@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Check, Loader2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LoginDialog } from '@/components/auth/login-dialog';
@@ -37,6 +38,7 @@ interface TrackButtonProps {
 export function TrackButton({ billId, billNumber, initialTracked = false }: TrackButtonProps) {
   const { user, activeTenant } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isTracking, setIsTracking] = useState(false);
   const [isTracked, setIsTracked] = useState(initialTracked);
 
@@ -67,6 +69,12 @@ export function TrackButton({ billId, billNumber, initialTracked = false }: Trac
         tenantId: activeTenant?.tenantId,
       });
       setIsTracked(true);
+      // The cached search pages still hold is_tracked:false for this bill, so a
+      // "Not tracked" list would keep showing it and a second button (e.g. the
+      // dialog's) would still read Track. Invalidate the search cache so every
+      // instance re-derives from a fresh is_tracked. Board views live in their
+      // own context and update through useTrackedBills, not this key.
+      queryClient.invalidateQueries({ queryKey: ['bills', 'search'] });
       toast({
         title: result.tracked ? `${billNumber} tracked` : `${billNumber} was already tracked`,
         description: result.tracked
