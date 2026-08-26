@@ -1,4 +1,5 @@
 import type { KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
+import type { SearchFilters } from '@/lib/bills/search-params';
 import { Timestamp } from '../db/types';
 
 // Extract column IDs as possible statuses
@@ -161,4 +162,54 @@ export interface CompareVersionsParams {
 export interface SummaryResult {
   summary: string;
   model: string;
+}
+
+/**
+ * Lean projection for the /search page. Deliberately excludes tags, status
+ * updates, and versions: getAdditionalBillData() issues extra queries per bill
+ * set and search cards display none of it.
+ */
+export interface BillSearchResult {
+  id: string;
+  bill_number: string;
+  bill_title: string;
+  description: string;
+  year: number | null;
+  bill_status: string | null;
+  dead: boolean;
+  bill_url: string;
+  updated_at: string | null;
+  /** Board-style headline source — formatBillHeadline prefers this over the title. */
+  nickname: string | null;
+  /** Committee referral codes, for the card's committee chip. */
+  committee_assignment: string | null;
+  /** Most recent status update, fetched batched (one DISTINCT ON query per page). */
+  latest_update: StatusUpdate | null;
+  /**
+   * Whether the requesting user already tracks this bill. Always false when no
+   * user is resolved (logged-out search), since tracking is user-scoped.
+   */
+  is_tracked: boolean;
+}
+
+export interface BillSearchResponse {
+  items: BillSearchResult[];
+  nextCursor: string | null;
+  totalCount: number;
+}
+
+/**
+ * Params for searchBills(). Declared here rather than in db/queries/bills-read.ts
+ * because that file is 'use server' and may only export async functions.
+ */
+export interface SearchBillsParams extends SearchFilters {
+  cursor?: string | null;
+  limit?: number;
+  /**
+   * The requesting user, resolved server-side (never sent from the client).
+   * Drives the per-row is_tracked flag and the tracked/untracked filter. When
+   * absent, is_tracked is always false and the tracked filter is a no-op.
+   */
+  userId?: string | null;
+  tenantId?: string | null;
 }
