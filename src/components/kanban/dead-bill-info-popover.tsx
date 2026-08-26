@@ -60,9 +60,8 @@ export function DeadBillInfoPopover({
 
   // Use the failedDeadline from the algorithm result — this is the FIRST
   // deadline the bill failed to meet, not the most recent one relative to today.
-  const isDeferral = result.reason.toLowerCase().includes('deferred');
   const missedDeadline = result.failedDeadline ?? null;
-  const deadlineName = missedDeadline?.name ?? 'Unknown';
+  const deadlineName = missedDeadline?.name ?? null;
   const deadlineDate = missedDeadline?.date
     ? new Date(missedDeadline.date + 'T00:00:00').toLocaleDateString('en-US', {
         month: 'long',
@@ -71,17 +70,55 @@ export function DeadBillInfoPopover({
       })
     : null;
 
-  // Build the summary sentence
-  const summary = isDeferral
-    ? `This bill failed because it was permanently deferred by a committee.`
-    : `This bill failed because it was not scheduled for a committee hearing before its ${deadlineName} deadline.`;
+  // isBillDead returns five reason shapes. Branch on which one we actually got
+  // rather than string-matching a single word: an earlier version only looked
+  // for "deferred", so "Recommendation not adopted by WAM" (a committee action,
+  // with no failedDeadline) fell through to the deadline copy and rendered
+  // "its Unknown deadline".
+  const lowerReason = result.reason.toLowerCase();
+  const isNotAdopted = lowerReason.includes('recommendation was not adopted')
+    || lowerReason.includes('recommendation not adopted');
+  const isDeferral = lowerReason.includes('deferred');
+  const isCommitteeAction = isNotAdopted || isDeferral;
 
-  // Build the committee explanation
-  const committeeExplanation = isDeferral
-    ? `The committee permanently deferred this bill, ending its progress this session.`
-    : committees.length > 1
-      ? `Bills referred to multiple committees must be scheduled by the ${deadlineName} deadline to remain active in this session. This bill was referred to ${committeeList} but neither chair scheduled it for a hearing in time.`
-      : `This bill was referred to ${committeeList || 'committee'} but was not scheduled for a hearing before the deadline.`;
+  // Some rows are flagged dead while carrying an end-of-process status (a bill
+  // signed into law, transmitted to the Governor, or vetoed). Claiming those
+  // "failed in committee" would be wrong, so describe where they actually
+  // ended instead.
+  const CLOSED_STATUS_SUMMARY: Record<string, string> = {
+    governorSigns: 'This bill completed the legislative process and was signed into law.',
+    lawWithoutSignature: 'This bill became law without the Governor’s signature.',
+    vetoList: 'This bill passed the legislature but was vetoed by the Governor.',
+    transmittedGovernor: 'This bill passed the legislature and was transmitted to the Governor.',
+    conferencePassed: 'This bill passed conference committee.',
+  };
+  const closedSummary = CLOSED_STATUS_SUMMARY[billStatus];
+
+  const summary = closedSummary
+    ? closedSummary
+    : isNotAdopted
+      ? 'This bill failed because a committee did not adopt the recommendation to advance it.'
+      : isDeferral
+        ? 'This bill failed because it was permanently deferred by a committee.'
+        : deadlineName
+          ? `This bill failed because it was not scheduled for a committee hearing before its ${deadlineName} deadline.`
+          : 'This bill is no longer advancing this session.';
+
+  const committeeLabel = committeeList || 'committee';
+
+  const committeeExplanation = closedSummary
+    ? `It is no longer moving through committee because the process for it has concluded. Its referrals were ${committeeLabel}.`
+    : isNotAdopted
+      ? `${committeeLabel} heard this bill but did not adopt the recommendation needed to move it forward, ending its progress this session.`
+      : isDeferral
+        ? 'The committee permanently deferred this bill, ending its progress this session.'
+        : deadlineName
+          ? committees.length > 1
+            ? `Bills referred to multiple committees must be scheduled by the ${deadlineName} deadline to remain active in this session. This bill was referred to ${committeeList} but neither chair scheduled it for a hearing in time.`
+            : `This bill was referred to ${committeeLabel} but was not scheduled for a hearing before the ${deadlineName} deadline.`
+          : committeeAssignment
+            ? `This bill was referred to ${committeeLabel} but did not complete the steps needed to stay active this session.`
+            : 'This bill has no committee referral on record, so it cannot advance this session.';
 
   return (
     <Popover>
@@ -100,7 +137,9 @@ export function DeadBillInfoPopover({
           <div className="flex items-center justify-center w-7 h-7 rounded-full bg-red-100">
             <Info className="h-4 w-4 text-red-700" />
           </div>
-          <h3 className="font-semibold text-[15px] text-red-800">Why did this bill fail?</h3>
+          <h3 className="font-semibold text-[15px] text-red-800">
+            {closedSummary ? 'Where did this bill end up?' : 'Why did this bill fail?'}
+          </h3>
         </div>
 
         {/* Body */}
@@ -108,8 +147,9 @@ export function DeadBillInfoPopover({
           {/* Summary */}
           <p className="text-sm text-foreground leading-relaxed">{summary}</p>
 
-          {/* Missed deadline card */}
-          {!isDeferral && missedDeadline && (
+          {/* Missed deadline card — only when the death was actually a missed
+              deadline, not a committee action. */}
+          {!isCommitteeAction && missedDeadline && (
             <div className="rounded-md border bg-muted/40 px-3.5 py-3">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">
                 Missed Deadline
@@ -124,10 +164,12 @@ export function DeadBillInfoPopover({
           {/* Committee explanation */}
           <p className="text-sm text-foreground leading-relaxed">{committeeExplanation}</p>
 
-          {/* Revival note */}
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Bills that fail in committee can sometimes be revived in subsequent sessions or attached to other bills as amendments. This is procedural and not always a final stop.
-          </p>
+          {/* Revival note — only meaningful for a bill that actually stalled. */}
+          {!closedSummary && (
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Bills that fail in committee can sometimes be revived in subsequent sessions or attached to other bills as amendments. This is procedural and not always a final stop.
+            </p>
+          )}
 
           {/* Remove from board action */}
           {removeSlot && <div className="pt-1">{removeSlot}</div>}

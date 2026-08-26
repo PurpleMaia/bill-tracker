@@ -1,6 +1,14 @@
 'use server';
 
-import type { Bill, BillTracker, BillDetails, StatusUpdate, BillVersion, CommitteeReport } from '@/types/legislation';
+import type { Bill, BillTracker, BillDetails, StatusUpdate, BillVersion, CommitteeReport, BillSearchResult, BillSearchResponse, SearchBillsParams } from '@/types/legislation';
+import {
+  isBillNumberQuery,
+  chamberPrefixes,
+  encodeCursor,
+  decodeCursor,
+  SEARCH_PAGE_SIZE,
+} from '@/lib/bills/search-params';
+import { STATUS_TO_SIMPLIFIED } from '@/lib/bills/kanban-columns';
 import { db } from '@/db/kysely/client';
 import { StatusUpdates } from '@/db/types';
 import { Selectable, sql } from 'kysely';
@@ -567,4 +575,204 @@ export async function findExistingBillByURL(billURl: string): Promise<BillDetail
     console.error('Database search failed', error)
     return null
   }
+}
+
+/**
+ * Searches the FULL bills table — the only bill query with no user_bills join,
+ * so it can surface bills nobody tracks yet.
+ *
+ * Two branches: a bill-number lookup (exact, then trigram prefix) and an FTS
+ * branch ranked by ts_rank over the weighted search_vector. Pagination is
+ * keyset, not OFFSET, so deep pages stay flat.
+ */
+export async function searchBills(params: SearchBillsParams): Promise<BillSearchResponse> {
+  const {
+    q,
+    years,
+    chambers,
+    stages,
+    deadFilter,
+    trackedFilter,
+    cursor,
+    limit = SEARCH_PAGE_SIZE,
+    userId,
+    tenantId,
+  } = params;
+  const trimmed = (q ?? '').trim();
+
+  // Per-user "does this user track this bill" flag. EXISTS keeps searchBills's
+  // no-join contract intact (no rows are added or duplicated) while letting the
+  // card seed its Tracked state and the tracked/untracked filter apply. Scoped
+  // by tenant when in a tenant context, mirroring the board's user_bills reads.
+  // Resolves to FALSE when no user is present (logged-out search).
+  const isTrackedExpr = userId
+    ? tenantId
+      ? sql<boolean>`exists (select 1 from user_bills ub where ub.bill_id = bills.id and ub.user_id = ${userId} and ub.tenant_id = ${tenantId})`
+      : sql<boolean>`exists (select 1 from user_bills ub where ub.bill_id = bills.id and ub.user_id = ${userId})`
+    : sql<boolean>`false`;
+
+  // Expand simplified stage ids back to the concrete BillStatus values stored
+  // on the row. STATUS_TO_SIMPLIFIED is the same mapping the kanban board uses.
+  const statusValues = stages?.length
+    ? Object.entries(STATUS_TO_SIMPLIFIED)
+        .filter(([, simplified]) => stages.includes(simplified))
+        .map(([status]) => status)
+    : [];
+
+  const applyFilters = <T extends { where: any }>(qb: T): T => {
+    let out: any = qb;
+    if (years?.length) out = out.where('year', 'in', years);
+    if (chambers?.length) {
+      const prefixes = chamberPrefixes(chambers);
+      out = out.where((eb: any) =>
+        eb.or(prefixes.map((p) => eb('bill_number', 'like', `${p}%`))),
+      );
+    }
+    if (statusValues.length) out = out.where('bill_status', 'in', statusValues);
+    if (deadFilter === 'alive') out = out.where('dead', '=', false);
+    if (deadFilter === 'dead') out = out.where('dead', '=', true);
+    // Tracked filter is user-scoped — a no-op without a resolved user, so a
+    // logged-out request can never accidentally hide every bill.
+    if (userId && trackedFilter === 'tracked') out = out.where(isTrackedExpr);
+    if (userId && trackedFilter === 'untracked') out = out.where(sql<boolean>`not ${isTrackedExpr}`);
+    return out as T;
+  };
+
+  // The bill-number branch compares against a punctuation-stripped bill_number
+  // ("SB 1251" and "SB-1251" both normalize to SB1251).
+  const normalizedNumber = trimmed.replace(/[\s-]/g, '');
+  const isNumberQuery = trimmed ? isBillNumberQuery(trimmed) : false;
+
+  // Every branch must produce `real`, the type ts_rank returns. The keyset
+  // cursor compares this expression against a `::real` parameter, and an
+  // untyped `1.0` would be `numeric` — under which `numeric 0.8 < real 0.8` is
+  // TRUE, so the cursor would never advance past a rank tier and pagination
+  // would loop on the same rows forever.
+  const rankExpr = trimmed
+    ? isNumberQuery
+      // Bill-number branch: exact match outranks prefix, prefix outranks
+      // substring. Values are parameterized by the sql template.
+      ? sql<number>`CASE
+          WHEN upper(replace(replace(bill_number, ' ', ''), '-', '')) = upper(${normalizedNumber}) THEN 1.0::real
+          WHEN upper(replace(replace(bill_number, ' ', ''), '-', '')) LIKE upper(${normalizedNumber + '%'}) THEN 0.8::real
+          ELSE 0.6::real END`
+      : sql<number>`ts_rank(search_vector, websearch_to_tsquery('english', ${trimmed}))`
+    : sql<number>`0::real`;
+
+  // updated_at is nullable in the schema. A NULL in the keyset row-comparison
+  // makes the whole predicate NULL (dropping rows silently), so sort on a
+  // coalesced stamp instead and use the identical expression in the cursor.
+  const sortStamp = sql<Date>`coalesce(updated_at, 'epoch'::timestamptz)`;
+
+  let base = db.selectFrom('bills');
+
+  if (trimmed) {
+    base = isNumberQuery
+      ? base.where(
+          sql<boolean>`replace(replace(bill_number, ' ', ''), '-', '') ILIKE ${'%' + normalizedNumber + '%'}`,
+        )
+      : base.where(
+          sql<boolean>`search_vector @@ websearch_to_tsquery('english', ${trimmed})`,
+        );
+  }
+
+  base = applyFilters(base);
+
+  // Count before pagination so the header can show the full result size.
+  const countRow = await base
+    .select(({ fn }) => fn.countAll<string>().as('count'))
+    .executeTakeFirst();
+  const totalCount = Number(countRow?.count ?? 0);
+
+  let rowsQuery = base
+    .select([
+      'id',
+      'bill_number',
+      'bill_title',
+      'description',
+      'year',
+      'bill_status',
+      'dead',
+      'bill_url',
+      'updated_at',
+      'nickname',
+      'committee_assignment',
+    ])
+    .select(rankExpr.as('rank'))
+    .select(sortStamp.as('sort_stamp'))
+    .select(isTrackedExpr.as('is_tracked'))
+    .orderBy(sql`rank`, 'desc')
+    .orderBy(sql`sort_stamp`, 'desc')
+    .orderBy('id', 'desc')
+    .limit(limit + 1); // one extra row tells us whether another page exists
+
+  const decoded = cursor ? decodeCursor(cursor) : null;
+  if (decoded) {
+    // Keyset: continue strictly after the last row's (rank, sort_stamp, id).
+    // Row-comparison mirrors the ORDER BY exactly, so it can't skip or repeat.
+    rowsQuery = rowsQuery.where(
+      sql<boolean>`(${rankExpr}, ${sortStamp}, id) < (${decoded.rank}::real, ${decoded.updatedAt}::timestamptz, ${decoded.id}::uuid)`,
+    );
+  }
+
+  const rows = await rowsQuery.execute();
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+
+  // Latest status update per bill, for the card's activity line. ONE batched
+  // query with DISTINCT ON for the whole page — never one query per bill, which
+  // would make a 40-card page cost 41 round trips.
+  const pageIds = page.map((r: any) => r.id);
+  const latestUpdates = pageIds.length
+    ? await db
+        .selectFrom('status_updates')
+        .select(['bill_id', 'id', 'chamber', 'date', 'statustext'])
+        .where('bill_id', 'in', pageIds)
+        .distinctOn('bill_id')
+        .orderBy('bill_id')
+        .orderBy('date', 'desc')
+        .execute()
+    : [];
+
+  const updateByBillId = new Map(latestUpdates.map((u) => [u.bill_id, u]));
+
+  const items: BillSearchResult[] = page.map((r: any) => {
+    const update = updateByBillId.get(r.id);
+    return {
+      id: r.id,
+      bill_number: r.bill_number ?? '',
+      bill_title: r.bill_title ?? '',
+      description: r.description ?? '',
+      year: r.year,
+      bill_status: r.bill_status,
+      dead: r.dead,
+      bill_url: r.bill_url,
+      updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : null,
+      nickname: r.nickname ?? null,
+      committee_assignment: r.committee_assignment ?? null,
+      latest_update: update
+        ? {
+            id: update.id,
+            chamber: update.chamber,
+            date: update.date,
+            statustext: update.statustext,
+          }
+        : null,
+      is_tracked: Boolean(r.is_tracked),
+    };
+  });
+
+  const last: any = page[page.length - 1];
+  const nextCursor =
+    hasMore && last
+      ? encodeCursor({
+          rank: Number(last.rank),
+          // sort_stamp, not updated_at — the cursor must carry the same value
+          // the ORDER BY used, or the next page starts from the wrong place.
+          updatedAt: new Date(last.sort_stamp).toISOString(),
+          id: last.id,
+        })
+      : null;
+
+  return { items, nextCursor, totalCount };
 }

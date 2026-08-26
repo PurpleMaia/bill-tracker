@@ -20,6 +20,7 @@ import { useMemo, useState } from 'react';
 import RefreshStatusesButton from '../scraper/scrape-updates-button';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { LoginDialog } from '@/components/auth/login-dialog';
 import { COLUMN_TITLES, KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
 import {
   Select,
@@ -56,6 +57,13 @@ interface BillDetailsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   boardMode?: BoardMode;
+  /**
+   * Optional control rendered beside the header CTAs. The search page passes a
+   * Track button here — a bill opened from search may not be tracked yet, while
+   * one opened from a board always is. Kept as a slot so the dialog stays
+   * agnostic about where it was opened from.
+   */
+  trackSlot?: React.ReactNode;
 }
 
 interface DialogTab {
@@ -82,7 +90,7 @@ const TABS: readonly DialogTab[] = [
   { id: 'updates', label: 'Status Updates', shortLabel: 'Updates', icon: Clock, mobileOnly: true },
 ];
 
-export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }: BillDetailsDialogProps) {
+export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', trackSlot }: BillDetailsDialogProps) {
   const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills();
   const { user, activeTenant } = useAuth();
   const isMobile = useIsMobile();
@@ -97,7 +105,12 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
   // the panels stack and it was stranded below a long Overview scroll.
   const [activeTab, setActiveTab] = useState<'overview' | 'versions' | 'updates'>('overview');
 
-  const bill = useMemo(() => bills.find(b => b.id === billID), [bills, billID]);
+  // The board keeps only tracked/food-related bills in context, but this dialog
+  // is also opened from /search over the FULL corpus, where the clicked bill is
+  // usually absent from context. Fall back to the fetched billDetails (which
+  // extends Bill) so a search result still renders instead of returning null.
+  const contextBill = useMemo(() => bills.find(b => b.id === billID), [bills, billID]);
+  const bill = contextBill ?? billDetails;
 
   useEffect(() => {
     if (isOpen && billID) {
@@ -130,7 +143,27 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
     if (!isMobile && activeTab === 'updates') setActiveTab('overview');
   }, [isMobile, activeTab]);
 
-  if (!bill) return null;
+  // Nothing to render yet: no context bill and details haven't arrived. While
+  // the fetch is in flight show a minimal loading shell (a search result not in
+  // context would otherwise flash nothing); once it resolves `bill` is set from
+  // billDetails and the full dialog renders below.
+  if (!bill) {
+    if (!isOpen) return null;
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-[100vw] sm:max-w-2xl h-[100dvh] sm:h-auto flex flex-col items-center justify-center gap-3 p-8">
+          {detailsError ? (
+            <p className="text-sm text-destructive">Failed to load bill details.</p>
+          ) : (
+            <>
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+              <p className="text-sm text-muted-foreground">Loading bill details…</p>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   // Panels expect a fully-loaded BillDetails. Once getBillDetails resolves it's
   // authoritative (its mapper always sets versions/reports to arrays), so use it
@@ -349,7 +382,31 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                 Contact Legislator is always enabled, so it sits in this shared
                 wrapper alongside whichever Write Testimony variant renders. */}
             <div className="hidden sm:flex shrink-0 items-center gap-2">
-              {testimonyEligibility.allowed ? (
+              {trackSlot}
+              {!user ? (
+                /* Logged-out (the dialog is reachable from public search): both
+                   CTAs lead to authenticated flows, so they become login prompts
+                   rather than dead buttons. The dialog stays open behind the
+                   login dialog, so the reader keeps their place. */
+                <>
+                  <LoginDialog
+                    trigger={
+                      <Button size="sm" variant="outline">
+                        <PenLine className="mr-1.5 h-3.5 w-3.5" />
+                        Login to write a testimony
+                      </Button>
+                    }
+                  />
+                  <LoginDialog
+                    trigger={
+                      <Button size="sm" variant="outline">
+                        <Users className="mr-1.5 h-3.5 w-3.5" />
+                        Login to contact a legislator
+                      </Button>
+                    }
+                  />
+                </>
+              ) : testimonyEligibility.allowed ? (
                 <>
                   {testimonyUrgent && testimonyCountdown && (
                     <span className="text-xs font-medium text-red-600 whitespace-nowrap">
@@ -403,17 +460,19 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                   </Tooltip>
                 </TooltipProvider>
               )}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  onClose();
-                  router.push(`/bills/${bill.id}/contact`);
-                }}
-              >
-                <Users className="mr-1.5 h-3.5 w-3.5" />
-                Contact Legislator
-              </Button>
+              {user && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    onClose();
+                    router.push(`/bills/${bill.id}/contact`);
+                  }}
+                >
+                  <Users className="mr-1.5 h-3.5 w-3.5" />
+                  Contact Legislator
+                </Button>
+              )}
             </div>
           </div>
         </DialogHeader>
@@ -664,37 +723,78 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own' }
                   {/* Sticky action bar — the testimony CTA in thumb reach; the
                       disabled reason is visible text (tooltips don't work on touch) */}
                   <div className="shrink-0 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-1.5">
-                    <Button
-                      className="w-full h-11"
-                      disabled={!testimonyEligibility.allowed}
-                      onClick={() => {
-                        onClose();
-                        router.push(`/bills/${bill.id}/testimony`);
-                      }}
-                    >
-                      <PenLine className="mr-2 h-4 w-4" />
-                      Write Testimony
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full h-11"
-                      onClick={() => {
-                        onClose();
-                        router.push(`/bills/${bill.id}/contact`);
-                      }}
-                    >
-                      <Users className="mr-2 h-4 w-4" />
-                      Contact Legislator
-                    </Button>
-                    {testimonyEligibility.allowed && testimonyUrgent && testimonyCountdown && (
-                      <p className="text-center text-xs font-medium text-red-600">
-                        Testimony {testimonyCountdown}
-                      </p>
+                    {/* Two CTAs share a half-width row; Track Bill sits full
+                        width beneath them. The labels are shortened here because
+                        at half of a 375px screen the full verbiage wraps. */}
+                    {!user ? (
+                      /* Logged-out: both flows require an account, so the CTAs
+                         become login prompts instead of buttons that dead-end. */
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <LoginDialog
+                          trigger={
+                            <Button variant="outline" className="h-11 w-full px-2">
+                              <PenLine className="mr-1.5 h-4 w-4 shrink-0" />
+                              <span className="truncate">Login to testify</span>
+                            </Button>
+                          }
+                        />
+                        <LoginDialog
+                          trigger={
+                            <Button variant="outline" className="h-11 w-full px-2">
+                              <Users className="mr-1.5 h-4 w-4 shrink-0" />
+                              <span className="truncate">Login to contact</span>
+                            </Button>
+                          }
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <Button
+                            variant="outline"
+                            className="h-11 w-full px-2"
+                            disabled={!testimonyEligibility.allowed}
+                            onClick={() => {
+                              onClose();
+                              router.push(`/bills/${bill.id}/testimony`);
+                            }}
+                          >
+                            <PenLine className="mr-1.5 h-4 w-4 shrink-0" />
+                            <span className="truncate">Testimony</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="h-11 w-full px-2"
+                            onClick={() => {
+                              onClose();
+                              router.push(`/bills/${bill.id}/contact`);
+                            }}
+                          >
+                            <Users className="mr-1.5 h-4 w-4 shrink-0" />
+                            <span className="truncate">Contact</span>
+                          </Button>
+                        </div>
+                        {testimonyEligibility.allowed && testimonyUrgent && testimonyCountdown && (
+                          <p className="text-center text-xs font-medium text-red-600">
+                            Testimony {testimonyCountdown}
+                          </p>
+                        )}
+                        {!testimonyEligibility.allowed && (
+                          <p className="text-center text-xs text-muted-foreground">
+                            {testimonyEligibility.reason} — testimony is closed.
+                          </p>
+                        )}
+                      </>
                     )}
-                    {!testimonyEligibility.allowed && (
-                      <p className="text-center text-xs text-muted-foreground">
-                        {testimonyEligibility.reason} — testimony is closed.
-                      </p>
+
+                    {/* The desktop CTA row is hidden below sm:, so the track
+                        control is repeated here to stay reachable. Full width,
+                        below the pair — its label is forced back on because the
+                        search page's button is icon-only at this breakpoint. */}
+                    {trackSlot && (
+                      <div className="[&_button]:h-11 [&_button]:w-full [&_button>span]:inline">
+                        {trackSlot}
+                      </div>
                     )}
                   </div>
                 </>
