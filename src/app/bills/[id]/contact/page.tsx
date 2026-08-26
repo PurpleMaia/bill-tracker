@@ -10,19 +10,19 @@ import {
   buildBaseScript,
   buildCallScript,
   personalizeScript,
-  type ContactPosition,
 } from '@/lib/legislators/contact-script';
+import { committeeFullName, inferCurrentCommittee } from '@/lib/testimony/committees';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { BillReferencePanel } from '@/components/bills/bill-reference-panel';
-import { ContactStepper, type ContactStep } from '@/components/kanban/contact-stepper';
 import {
   ArrowLeft,
-  ArrowRight,
   Check,
+  ChevronDown,
+  ChevronRight,
   Copy,
   ExternalLink,
   Gavel,
@@ -33,8 +33,6 @@ import {
   PanelLeftOpen,
   Phone,
   ShieldCheck,
-  ThumbsDown,
-  ThumbsUp,
 } from 'lucide-react';
 
 interface CommitteeGroup {
@@ -69,15 +67,12 @@ export default function ContactLegislatorPage() {
   const [bill, setBill] = useState<BillDetails | null>(null);
   const [chairs, setChairs] = useState<CommitteeChair[]>([]);
   const [loading, setLoading] = useState(true);
-  const [step, setStep] = useState<ContactStep>(1);
-  const [position, setPosition] = useState<ContactPosition | null>(null);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
 
-  // The shared, user-editable scripts. Seeded when a position is chosen; null
-  // until then. Edits are preserved as the user moves between steps.
-  const [scriptBody, setScriptBody] = useState<string | null>(null);
+  // The shared, user-editable scripts, seeded once the bill loads.
+  const [scriptBody, setScriptBody] = useState<string>('');
   const [scriptSubject, setScriptSubject] = useState<string>('');
-  const [callScript, setCallScript] = useState<string | null>(null);
+  const [callScript, setCallScript] = useState<string>('');
 
   useEffect(() => {
     if (!billId) return;
@@ -88,7 +83,27 @@ export default function ContactLegislatorPage() {
         if (cancelled) return;
         setBill(details);
         const list = await data.legislators.getChairs(billId, details?.committee_assignment ?? null);
-        if (!cancelled) setChairs(list);
+        if (cancelled) return;
+        setChairs(list);
+
+        // The committee the bill is currently awaiting a hearing before drives
+        // both the script wording and which contacts we surface first.
+        const currentCode = inferCurrentCommittee(details?.committee_assignment ?? null, details?.updates);
+        const currentName = currentCode ? committeeFullName(currentCode) : undefined;
+        const base = buildBaseScript({
+          billNumber: details.bill_number,
+          billTitle: details.bill_title ?? null,
+          committeeName: currentName,
+        });
+        setScriptBody(base.body);
+        setScriptSubject(base.subject);
+        setCallScript(
+          buildCallScript({
+            billNumber: details.bill_number,
+            billTitle: details.bill_title ?? null,
+            committeeName: currentName,
+          }),
+        );
       } catch {
         if (!cancelled) toast({ title: 'Error', description: 'Could not load contacts.', variant: 'destructive' });
       } finally {
@@ -100,35 +115,20 @@ export default function ContactLegislatorPage() {
 
   const groups = useMemo(() => groupByCommittee(chairs), [chairs]);
   const hasChairs = chairs.length > 0;
-  const maxStep: ContactStep = position ? 2 : 1;
 
-  // Choosing (or changing) a position seeds the shared script. We only OVERWRITE
-  // an existing draft when the position actually flips, so edits aren't lost by
-  // re-clicking the same choice.
-  const choosePosition = (p: ContactPosition) => {
-    if (p !== position && bill) {
-      const base = buildBaseScript({
-        billNumber: bill.bill_number,
-        billTitle: bill.bill_title ?? null,
-        position: p,
-      });
-      setScriptBody(base.body);
-      setScriptSubject(base.subject);
-      setCallScript(
-        buildCallScript({
-          billNumber: bill.bill_number,
-          billTitle: bill.bill_title ?? null,
-          position: p,
-        }),
-      );
-    }
-    setPosition(p);
-  };
-
-  const goToStep = (s: ContactStep) => {
-    if (s > maxStep) return;
-    setStep(s);
-  };
+  // Split the committee groups into the one the bill is waiting on and the rest.
+  const currentCode = useMemo(
+    () => inferCurrentCommittee(bill?.committee_assignment ?? null, bill?.updates),
+    [bill],
+  );
+  const currentGroup = useMemo(
+    () => groups.find((g) => g.code === currentCode) ?? groups[0] ?? null,
+    [groups, currentCode],
+  );
+  const otherGroups = useMemo(
+    () => groups.filter((g) => g !== currentGroup),
+    [groups, currentGroup],
+  );
 
   const referencePanel = bill ? <BillReferencePanel bill={bill} /> : null;
 
@@ -147,12 +147,11 @@ export default function ContactLegislatorPage() {
           </Button>
           <div className="min-w-0">
             <h1 className="truncate text-sm font-semibold">
-              Contact Legislator{bill ? ` — ${bill.bill_number}` : ''}
+              Request a Hearing{bill ? ` — ${bill.bill_number}` : ''}
             </h1>
             {bill?.bill_title && <p className="truncate text-xs text-muted-foreground">{bill.bill_title}</p>}
           </div>
         </div>
-        {hasChairs && <ContactStepper step={step} onStepChange={goToStep} maxStep={maxStep} />}
       </header>
 
       <div className="flex min-h-0 flex-1">
@@ -195,7 +194,7 @@ export default function ContactLegislatorPage() {
           <div
             className={[
               'mx-auto space-y-4 p-4 sm:p-6',
-              step !== 2 ? 'max-w-3xl' : panelCollapsed ? 'max-w-6xl' : 'max-w-5xl',
+              panelCollapsed ? 'max-w-6xl' : 'max-w-5xl',
             ].join(' ')}
           >
             {isMobile && referencePanel && (
@@ -217,21 +216,15 @@ export default function ContactLegislatorPage() {
 
             {!hasChairs ? (
               <EmptyState />
-            ) : step === 1 ? (
-              <StepPosition
-                position={position}
-                onChoose={choosePosition}
-                onNext={() => goToStep(2)}
-              />
             ) : (
-              <StepCompose
-                groups={groups}
+              <Compose
+                currentGroup={currentGroup}
+                otherGroups={otherGroups}
                 subject={scriptSubject}
-                body={scriptBody ?? ''}
+                body={scriptBody}
                 onChange={setScriptBody}
-                callScript={callScript ?? ''}
+                callScript={callScript}
                 onCallChange={setCallScript}
-                onBack={() => goToStep(1)}
                 panelCollapsed={panelCollapsed}
               />
             )}
@@ -242,128 +235,34 @@ export default function ContactLegislatorPage() {
   );
 }
 
-/* ------------------------------- Step 1 -------------------------------- */
-
-function StepPosition({
-  position,
-  onChoose,
-  onNext,
-}: {
-  position: ContactPosition | null;
-  onChoose: (p: ContactPosition) => void;
-  onNext: () => void;
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="rounded-lg border bg-card p-4">
-        <h2 className="text-sm font-semibold">Choose your position</h2>
-        <p className="mb-3 mt-0.5 text-xs text-muted-foreground">
-          Tell the committee whether you want this measure to move forward. This sets the tone of your script.
-        </p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Position">
-          <PositionButton
-            active={position === 'support'}
-            onClick={() => onChoose('support')}
-            icon={ThumbsUp}
-            label="Support"
-            help="Advance this bill"
-            tone="support"
-          />
-          <PositionButton
-            active={position === 'oppose'}
-            onClick={() => onChoose('oppose')}
-            icon={ThumbsDown}
-            label="Oppose"
-            help="Hold this bill"
-            tone="oppose"
-          />
-        </div>
-      </div>
-      <div className="flex justify-end">
-        <Button onClick={onNext} disabled={!position}>
-          Next: Compose
-          <ArrowRight className="ml-1.5 h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function PositionButton({
-  active,
-  onClick,
-  icon: Icon,
-  label,
-  help,
-  tone,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: typeof ThumbsUp;
-  label: string;
-  help: string;
-  tone: 'support' | 'oppose';
-}) {
-  const activeClasses =
-    tone === 'support'
-      ? 'border-green-200 bg-green-100 text-green-800'
-      : 'border-red-200 bg-red-100 text-red-800';
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={active}
-      onClick={onClick}
-      className={[
-        'flex items-center gap-3 rounded-md border p-3 text-left transition-colors',
-        active ? activeClasses : 'bg-background hover:bg-muted',
-      ].join(' ')}
-    >
-      <span
-        className={[
-          'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
-          active ? 'bg-white' : 'bg-muted',
-        ].join(' ')}
-      >
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="min-w-0">
-        <span className="flex items-center gap-1.5 text-sm font-semibold">
-          {label}
-          {active && <Check className="h-3.5 w-3.5" />}
-        </span>
-        <span className="block text-xs opacity-80">{help}</span>
-      </span>
-    </button>
-  );
-}
-
-/* --------------------------- Step 2: Compose --------------------------- */
+/* ------------------------------- Compose ------------------------------- */
 
 /** Stable key identifying a chair within the flat list. */
 function chairKey(chair: CommitteeChair): string {
   return `${chair.committeeCode}-${chair.role}`;
 }
 
-function StepCompose({
-  groups,
+function Compose({
+  currentGroup,
+  otherGroups,
   subject,
   body,
   onChange,
   callScript,
   onCallChange,
-  onBack,
   panelCollapsed,
 }: {
-  groups: CommitteeGroup[];
+  currentGroup: CommitteeGroup | null;
+  otherGroups: CommitteeGroup[];
   subject: string;
   body: string;
   onChange: (v: string) => void;
   callScript: string;
   onCallChange: (v: string) => void;
-  onBack: () => void;
   panelCollapsed: boolean;
 }) {
+  const [showOthers, setShowOthers] = useState(false);
+
   // Scripts get the larger share. When the bill panel is collapsed there's more
   // width overall, so push the scripts even wider (5/8 → 2/3 of the row).
   const scriptSpan = panelCollapsed ? 'lg:col-span-5' : 'lg:col-span-4';
@@ -371,6 +270,17 @@ function StepCompose({
 
   return (
     <div className="space-y-4">
+      <div className="rounded-lg border bg-card p-4">
+        <div className="mb-1 flex items-center gap-1.5">
+          <Gavel className="h-3.5 w-3.5 text-muted-foreground" />
+          <h2 className="text-sm font-semibold">Ask for a hearing</h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          This bill is waiting on a committee to schedule a hearing. Send the message below to that committee&apos;s
+          chair and vice-chair — the more requests they get, the more likely they are to put it on the agenda.
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-8">
         {/* Left — the editable email + call scripts, equal height */}
         <div
@@ -413,7 +323,7 @@ function StepCompose({
               <h2 className="text-sm font-semibold">Call script</h2>
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
-              What to say when you call an office. Keep it short — staff just note your position.
+              What to say when you call an office. Keep it short — staff just note your request.
             </p>
             <Textarea
               value={callScript}
@@ -425,31 +335,64 @@ function StepCompose({
           </div>
         </div>
 
-        {/* Right — the contact list */}
+        {/* Right — the contact list, current committee foregrounded */}
         <div className={['space-y-4', contactSpan].join(' ')}>
-          {groups.map((group) => (
-            <div key={group.code}>
+          {currentGroup && (
+            <div>
               <div className="mb-2 flex items-center gap-2 border-b pb-1.5">
                 <span className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary">
-                  {group.code}
+                  {currentGroup.code}
                 </span>
-                <h3 className="truncate text-sm font-semibold">{group.name}</h3>
+                <h3 className="truncate text-sm font-semibold">{currentGroup.name}</h3>
+                <span className="ml-auto inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                  Awaiting hearing
+                </span>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {group.chairs.map((chair) => (
+                {currentGroup.chairs.map((chair) => (
                   <ChairCard key={chairKey(chair)} chair={chair} subject={subject} body={body} />
                 ))}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+          )}
 
-      <div className="flex justify-start">
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-1.5 h-4 w-4" />
-          Back: Position
-        </Button>
+          {otherGroups.length > 0 && (
+            <div className="rounded-lg border bg-muted/20">
+              <button
+                type="button"
+                onClick={() => setShowOthers((v) => !v)}
+                className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-xs font-medium text-muted-foreground hover:text-foreground"
+                aria-expanded={showOthers}
+              >
+                {showOthers ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                {showOthers ? 'Hide' : 'Show'} other committees ({otherGroups.length})
+              </button>
+              {showOthers && (
+                <div className="space-y-4 px-3 pb-3 opacity-80">
+                  <p className="text-[11px] text-muted-foreground">
+                    These committees are also on this bill&apos;s referral path but aren&apos;t the one currently
+                    holding it. Contact them only if the bill has already moved on.
+                  </p>
+                  {otherGroups.map((group) => (
+                    <div key={group.code}>
+                      <div className="mb-2 flex items-center gap-2 border-b pb-1.5">
+                        <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-xs font-bold text-muted-foreground">
+                          {group.code}
+                        </span>
+                        <h3 className="truncate text-sm font-semibold">{group.name}</h3>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        {group.chairs.map((chair) => (
+                          <ChairCard key={chairKey(chair)} chair={chair} subject={subject} body={body} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -562,7 +505,7 @@ function EmptyState() {
       <p className="text-sm font-medium">No committees assigned yet</p>
       <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
         Committee chairs appear once this bill is referred to a committee. Check back after the referral, then return
-        here to send your message.
+        here to request a hearing.
       </p>
     </div>
   );
@@ -576,7 +519,7 @@ function ContactSkeleton({ onBack }: { onBack: () => void }) {
           <ArrowLeft className="h-4 w-4" />
           <span className="ml-1 hidden sm:inline">Back</span>
         </Button>
-        <h1 className="truncate text-sm font-semibold">Contact Legislator</h1>
+        <h1 className="truncate text-sm font-semibold">Request a Hearing</h1>
       </header>
       <div className="flex flex-1 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
