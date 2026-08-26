@@ -78,14 +78,38 @@ describe('inferCurrentCommittee', () => {
     const updates = [
       { statustext: 'Referred to the committee(s) on WLA/EIG.' },
     ];
-    expect(inferCurrentCommittee('WLA/EIG', updates)).toBe('WLA');
+    // A joint referral is heard together; we return the furthest-along part
+    // deterministically (EIG follows WLA in the parsed referral order).
+    expect(inferCurrentCommittee('WLA/EIG', updates)).toBe('EIG');
   });
 
-  it('resolves to the leading referral committee when one line names several', () => {
+  it('resolves to the furthest-along committee across referral phrases', () => {
     const updates = [
-      { statustext: 'Referred to AEN and WAM.' },
+      { statustext: 'The committee(s) on WAM has scheduled a public hearing on 02-13-26 1:30PM.' },
+      { statustext: 'Passed and referred to the committee(s) on AEN.' },
     ];
-    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('AEN');
+    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('WAM');
+  });
+
+  it('does not let an incidental earlier-committee mention override an explicit later one', () => {
+    // The freshest update explicitly schedules WAM but also references the prior
+    // AEN referral as a bare word. Phrase precision + furthest-along must win WAM.
+    const updates = [
+      { statustext: 'The committee(s) on WAM has scheduled a public hearing (prior referral: AEN).' },
+    ];
+    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('WAM');
+  });
+
+  it('is independent of same-day update ordering', () => {
+    // Same date, order not guaranteed by the DB. Furthest-along wins regardless.
+    const referredFirst = [
+      { statustext: 'The committee(s) on WAM has scheduled a hearing on 02-13-26 1:30PM.' },
+      { statustext: 'Passed Second Reading and referred to the committee(s) on WAM.' },
+      { statustext: 'The committee(s) on AEN passed the measure.' },
+    ];
+    const reversed = [...referredFirst].reverse();
+    expect(inferCurrentCommittee('AEN, WAM', referredFirst)).toBe('WAM');
+    expect(inferCurrentCommittee('AEN, WAM', reversed)).toBe('WAM');
   });
 
   it('falls back to the last referral code when no update names a committee', () => {

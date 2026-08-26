@@ -83,27 +83,7 @@ export default function ContactLegislatorPage() {
         if (cancelled) return;
         setBill(details);
         const list = await data.legislators.getChairs(billId, details?.committee_assignment ?? null);
-        if (cancelled) return;
-        setChairs(list);
-
-        // The committee the bill is currently awaiting a hearing before drives
-        // both the script wording and which contacts we surface first.
-        const currentCode = inferCurrentCommittee(details?.committee_assignment ?? null, details?.updates);
-        const currentName = currentCode ? committeeFullName(currentCode) : undefined;
-        const base = buildBaseScript({
-          billNumber: details.bill_number,
-          billTitle: details.bill_title ?? null,
-          committeeName: currentName,
-        });
-        setScriptBody(base.body);
-        setScriptSubject(base.subject);
-        setCallScript(
-          buildCallScript({
-            billNumber: details.bill_number,
-            billTitle: details.bill_title ?? null,
-            committeeName: currentName,
-          }),
-        );
+        if (!cancelled) setChairs(list);
       } catch {
         if (!cancelled) toast({ title: 'Error', description: 'Could not load contacts.', variant: 'destructive' });
       } finally {
@@ -116,7 +96,8 @@ export default function ContactLegislatorPage() {
   const groups = useMemo(() => groupByCommittee(chairs), [chairs]);
   const hasChairs = chairs.length > 0;
 
-  // Split the committee groups into the one the bill is waiting on and the rest.
+  // The committee the bill is currently awaiting a hearing before — inferred
+  // once, then reused to both foreground its chairs and word the script.
   const currentCode = useMemo(
     () => inferCurrentCommittee(bill?.committee_assignment ?? null, bill?.updates),
     [bill],
@@ -129,6 +110,30 @@ export default function ContactLegislatorPage() {
     () => groups.filter((g) => g !== currentGroup),
     [groups, currentGroup],
   );
+
+  // The committee's display name: prefer the current group's DB name (the same
+  // string the contact cards show) so the script and the cards never disagree;
+  // fall back to the code's mapped full name if no chair group matched.
+  const currentCommitteeName = currentGroup?.name ?? (currentCode ? committeeFullName(currentCode) : undefined);
+
+  // Seed the shared scripts once the bill and its current committee are known.
+  useEffect(() => {
+    if (!bill) return;
+    const base = buildBaseScript({
+      billNumber: bill.bill_number,
+      billTitle: bill.bill_title ?? null,
+      committeeName: currentCommitteeName,
+    });
+    setScriptBody(base.body);
+    setScriptSubject(base.subject);
+    setCallScript(
+      buildCallScript({
+        billNumber: bill.bill_number,
+        billTitle: bill.bill_title ?? null,
+        committeeName: currentCommitteeName,
+      }),
+    );
+  }, [bill, currentCommitteeName]);
 
   const referencePanel = bill ? <BillReferencePanel bill={bill} /> : null;
 
