@@ -22,11 +22,12 @@ export interface SearchFilters {
 /**
  * 2026 is the live session. Defaulting here (rather than to all 6,126 bills)
  * keeps the first screen relevant; 93% of the corpus is dead and all of 2025
- * is archived.
+ * is archived. 2027 is the user-testing simulation session (see
+ * docs/superpowers/specs/2026-08-26-sim-2027-user-testing-design.md).
  */
 export const DEFAULT_FILTERS: SearchFilters = {
   q: '',
-  years: [2026],
+  years: [2027, 2026],
   chambers: [],
   stages: [],
   deadFilter: 'all',

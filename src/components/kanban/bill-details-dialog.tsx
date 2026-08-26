@@ -42,13 +42,9 @@ import { Term } from '@/components/ui/term';
 import { resolveDeadlineTerm } from '@/lib/glossary/resolvers';
 import { BillBreakdownButton } from './bill-breakdown';
 import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/bills/dead-bill';
-import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import type { BillStatus as DBBillStatus } from '@/db/types';
-// Real calendar for deriving why a bill already failed (historical fact);
-// switchable calendar for upcoming-deadline displays (demo-aware).
-import deadlinesJson from '@/data/session-deadlines-2026.json';
 import type { BoardMode } from '@/lib/bills/board-display';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 
@@ -198,7 +194,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
           committee_assignment: committeeAssign,
         },
         (billDetails.updates || []).map(u => ({ statustext: u.statustext, date: u.date, chamber: u.chamber })),
-        deadlinesJson as SessionDeadlines,
+        SESSION_DEADLINES,
         today,
       ).reason
     : null;

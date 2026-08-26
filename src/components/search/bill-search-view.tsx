@@ -21,7 +21,7 @@ import {
 } from '@/lib/bills/search-params';
 
 /** Sessions the corpus covers, newest first. Mirrors the rail's YEARS list. */
-const SESSION_YEARS = [2026, 2025];
+const SESSION_YEARS = [2027, 2026, 2025];
 
 export function BillSearchView() {
   const { user, activeTenant } = useAuth();

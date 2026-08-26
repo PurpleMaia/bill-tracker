@@ -61,8 +61,8 @@ describe('normalizeFilters', () => {
     expect(n.stages).toEqual(['simpleScheduled', 'simpleWaiting']);
   });
 
-  it('defaults to the 2026 session', () => {
-    expect(DEFAULT_FILTERS.years).toEqual([2026]);
+  it('defaults to the 2027 sim + 2026 live sessions', () => {
+    expect(DEFAULT_FILTERS.years).toEqual([2027, 2026]);
     expect(DEFAULT_FILTERS.deadFilter).toBe('all');
   });
 

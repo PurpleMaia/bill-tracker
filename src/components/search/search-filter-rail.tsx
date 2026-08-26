@@ -17,7 +17,7 @@ import {
   type TrackedFilter,
 } from '@/lib/bills/search-params';
 
-const YEARS = [2026, 2025];
+const YEARS = [2027, 2026, 2025];
 
 const TRACKED_OPTIONS: { value: TrackedFilter; label: string }[] = [
   { value: 'all', label: 'All bills' },

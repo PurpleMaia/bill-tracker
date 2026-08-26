@@ -9,10 +9,10 @@ import {
   isBillDead,
   parseCommittees,
 } from '@/lib/bills/dead-bill';
-import type { SessionDeadlines, StatusUpdate, DeadBillResult } from '@/lib/bills/dead-bill';
+import type { StatusUpdate, DeadBillResult } from '@/lib/bills/dead-bill';
 import { todayHawaii } from '@/lib/core/utils';
 import type { BillStatus as DBBillStatus } from '@/db/types';
-import deadlinesJson from '@/data/session-deadlines-2026.json';
+import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 
 interface DeadBillInfoPopoverProps {
   billNumber: string;
@@ -53,7 +53,7 @@ export function DeadBillInfoPopover({
           committee_assignment: committeeAssignment,
         },
         updates,
-        deadlinesJson as SessionDeadlines,
+        SESSION_DEADLINES,
         today,
       )
     : { dead: true, reason: 'No committee assignment' };
