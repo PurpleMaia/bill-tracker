@@ -79,49 +79,45 @@ export interface StatusLine {
 }
 
 /**
- * Referral committee codes a status line names via an explicit connective
- * phrase — "referred to the committee(s) on WAM", "The committee(s) on AEN
- * has scheduled…", "scheduled to be heard by HSG". Only codes in `referralCodes`
- * are returned, upper-cased. This is the PRECISE pass; joint tokens ("WLA/EIG")
- * are split into their parts.
+ * Whether a status line reports that the named committee has FINISHED with the
+ * bill — passed it, reported it out, or recommended it be passed — i.e. cleared
+ * it onward. A deferral is NOT clearing: the bill is stuck at that committee, so
+ * it remains the current one. Matches the common capitol phrasings:
+ *   "The committee(s) on AEN recommend(s) that the measure be PASSED …"
+ *   "Reported from AEN …" / "The committee on AEN passed the measure."
+ *   "Passed Second Reading and referred to the committee(s) on WAM."  (AEN cleared)
  */
-function phraseCodes(text: string, referralCodes: Set<string>): string[] {
-  const found = new Set<string>();
-  const phraseRe = /(?:committee(?:\(s\))?\s+on|heard\s+by|referred\s+to(?:\s+the)?)\s+([A-Z]{2,4}(?:\/[A-Z]{2,4})*)/gi;
-  let m: RegExpExecArray | null;
-  while ((m = phraseRe.exec(text)) !== null) {
-    for (const part of m[1].split('/')) {
-      const code = part.trim().toUpperCase();
-      if (referralCodes.has(code)) found.add(code);
-    }
-  }
-  return Array.from(found);
-}
-
-/**
- * Referral codes that appear anywhere in the line as a whole word. Looser than
- * {@link phraseCodes} — used only as a fallback when no phrase matched, so an
- * incidental mention never overrides an explicit "committee on X" phrasing.
- */
-function bareCodes(text: string, referralCodes: Set<string>): string[] {
+function committeeCleared(text: string, code: string): boolean {
   const upper = text.toUpperCase();
-  return Array.from(referralCodes).filter((code) => new RegExp(`\\b${code}\\b`).test(upper));
+  const c = code.toUpperCase();
+
+  // "referred to (the committee(s) on) X" means every EARLIER committee cleared
+  // it — the bill now sits at X. Callers handle that via referral position; here
+  // we answer specifically whether THIS committee has let the bill move on.
+
+  // Explicit report/pass by this committee.
+  const reportedFrom = new RegExp(`\\bREPORTED\\b[^.]*\\bFROM\\b[^.]*\\b${c}\\b`).test(upper);
+  const committeeActed = new RegExp(`\\b${c}\\b[^.]*\\b(?:PASSED|REPORTED|RECOMMEND(?:S|ED)?\\s+THAT\\s+THE\\s+MEASURE\\s+BE\\s+PASSED)\\b`).test(upper);
+
+  return reportedFrom || committeeActed;
 }
 
 /**
  * Infers which committee a bill is *currently* awaiting a hearing before.
  *
- * A bill only moves FORWARD through its referral list (AEN → WAM, never back),
- * so the current committee is the one *furthest along* that the status history
- * mentions. We collect every referral committee named by an explicit phrase
- * ("committee(s) on X", "referred to X", "heard by X") across all updates and
- * return the one latest in referral order. This is deliberately independent of
- * update ordering, so same-day updates (whose relative order the DB does not
- * guarantee) can't flip the result.
+ * Committees in the referral list are met IN ORDER — the FIRST code is the
+ * committee the bill must clear first, the last is the final gate. So the
+ * committee it's currently waiting on is the EARLIEST one in the list that has
+ * not yet cleared the bill (passed / reported / recommended passage). A later
+ * committee can't be current while an earlier one still holds the bill.
  *
- * When no update names a referral committee via a phrase, we fall back to codes
- * mentioned as bare words, and finally to the LAST code in the referral list
- * (referrals are appended as a bill advances). Pure — no DB, no network.
+ * We also treat an explicit "referred to X" as proof that everything BEFORE X
+ * cleared, which advances the frontier even when the clearing line itself is
+ * terse. Deferrals do not clear a committee (the bill is stuck there). This is
+ * independent of update ordering, so same-day updates can't flip the result.
+ *
+ * Fallback when the status history gives no signal: the FIRST code in the list,
+ * the committee a freshly-referred bill must meet first. Pure — no DB, no network.
  */
 export function inferCurrentCommittee(
   committeeAssignment: string | null,
@@ -129,25 +125,40 @@ export function inferCurrentCommittee(
 ): string | null {
   const referral = parseCommitteeCodes(committeeAssignment);
   if (referral.length === 0) return null;
-  const referralSet = new Set(referral);
   const list = updates ?? [];
 
-  // Prefer explicit phrase mentions; only if none exist anywhere do we consider
-  // looser bare-word mentions. Either way, the current committee is the one
-  // furthest along the (forward-only) referral path.
-  const collect = (extract: (t: string) => string[]): string | null => {
-    let best: string | null = null;
-    for (const update of list) {
-      for (const code of extract(update.statustext ?? '')) {
-        if (best === null || referral.indexOf(code) > referral.indexOf(best)) best = code;
-      }
+  // The furthest-along committee the bill has been explicitly REFERRED to: every
+  // committee before it has necessarily cleared. Index into `referral`, or -1.
+  // A joint token ("WLA/EIG") is ONE concurrent referral step, so it advances the
+  // frontier only to the earliest of its parts — the joint committees are heard
+  // together, not in sequence.
+  let referredFrontier = -1;
+  for (const update of list) {
+    const text = update.statustext ?? '';
+    // Only count referral phrasing, not a bare hearing mention.
+    const referredRe = /referred\s+to(?:\s+the)?(?:\s+committee(?:\(s\))?\s+on)?\s+([A-Z]{2,4}(?:\/[A-Z]{2,4})*)/gi;
+    let m: RegExpExecArray | null;
+    while ((m = referredRe.exec(text)) !== null) {
+      const idxs = m[1]
+        .split('/')
+        .map((p) => referral.indexOf(p.trim().toUpperCase()))
+        .filter((idx) => idx >= 0);
+      if (idxs.length === 0) continue;
+      const stepIdx = Math.min(...idxs); // earliest part of a concurrent referral
+      if (stepIdx > referredFrontier) referredFrontier = stepIdx;
     }
-    return best;
-  };
+  }
 
-  return (
-    collect((t) => phraseCodes(t, referralSet)) ??
-    collect((t) => bareCodes(t, referralSet)) ??
-    referral[referral.length - 1]
-  );
+  // Walk the list in order; the current committee is the first one that is
+  // neither before the referred frontier nor independently reported cleared.
+  for (let i = 0; i < referral.length; i++) {
+    const code = referral[i];
+    if (i < referredFrontier) continue; // an earlier gate the bill already passed
+    const clearedHere = list.some((u) => committeeCleared(u.statustext ?? '', code));
+    if (!clearedHere) return code;
+  }
+
+  // Every committee has cleared — the bill is past its referral gates. Surface
+  // the final committee as the last one that acted.
+  return referral[referral.length - 1];
 }

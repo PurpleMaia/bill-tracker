@@ -50,76 +50,75 @@ describe('parseCommitteeCodes', () => {
 });
 
 describe('inferCurrentCommittee', () => {
-  it('returns the committee named in the most recent status update', () => {
-    const updates = [
-      { statustext: 'The committee(s) on WAM will hold a public decision making on 02-13-2026 at 1:30 PM.' },
-      { statustext: 'Passed Second Reading and referred to the committee(s) on WAM.' },
-      { statustext: 'The committee(s) on AEN has scheduled a public hearing on 01-15-26 9:00AM.' },
-    ];
-    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('WAM');
-  });
+  // Committees are met in list order: the FIRST code is the committee the bill
+  // must clear first. The current committee is the earliest one not yet cleared.
 
-  it('picks the newest referral committee even when an older update names an earlier one', () => {
-    const updates = [
-      { statustext: 'Referred to WAM.' },
-      { statustext: 'The committee on AEN passed the measure.' },
-    ];
-    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('WAM');
-  });
-
-  it('still infers when the bill is only in its first committee', () => {
+  it('is the first committee while the bill still sits there', () => {
+    // AEN only has a hearing scheduled — it hasn't cleared the bill yet.
     const updates = [
       { statustext: 'The committee(s) on AEN has scheduled a public hearing on 01-15-26 9:00AM.' },
     ];
     expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('AEN');
   });
 
-  it('handles joint-referral tokens in status text', () => {
+  it('advances to the next committee once the first clears the bill', () => {
+    const updates = [
+      { statustext: 'The committee(s) on WAM has scheduled a public hearing on 02-13-26 1:30PM.' },
+      { statustext: 'Passed Second Reading and referred to the committee(s) on WAM.' },
+      { statustext: 'The committee(s) on AEN recommend(s) that the measure be PASSED.' },
+    ];
+    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('WAM');
+  });
+
+  it('treats an explicit referral to a later committee as proof the earlier ones cleared', () => {
+    // Only the referral line is present; AEN never gets its own "passed" line,
+    // but being referred to WAM implies AEN let it move on.
+    const updates = [
+      { statustext: 'Passed Second Reading and referred to the committee(s) on WAM.' },
+    ];
+    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('WAM');
+  });
+
+  it('stays on a committee that deferred the bill (a deferral is not clearing)', () => {
+    const updates = [
+      { statustext: 'The committee on AEN deferred the measure.' },
+    ];
+    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('AEN');
+  });
+
+  it('keeps the leading committee of a joint referral (heard together)', () => {
     const updates = [
       { statustext: 'Referred to the committee(s) on WLA/EIG.' },
     ];
-    // A joint referral is heard together; we return the furthest-along part
-    // deterministically (EIG follows WLA in the parsed referral order).
-    expect(inferCurrentCommittee('WLA/EIG', updates)).toBe('EIG');
+    expect(inferCurrentCommittee('WLA/EIG', updates)).toBe('WLA');
   });
 
-  it('resolves to the furthest-along committee across referral phrases', () => {
-    const updates = [
-      { statustext: 'The committee(s) on WAM has scheduled a public hearing on 02-13-26 1:30PM.' },
-      { statustext: 'Passed and referred to the committee(s) on AEN.' },
-    ];
-    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('WAM');
-  });
-
-  it('does not let an incidental earlier-committee mention override an explicit later one', () => {
-    // The freshest update explicitly schedules WAM but also references the prior
-    // AEN referral as a bare word. Phrase precision + furthest-along must win WAM.
-    const updates = [
-      { statustext: 'The committee(s) on WAM has scheduled a public hearing (prior referral: AEN).' },
-    ];
-    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('WAM');
-  });
-
-  it('is independent of same-day update ordering', () => {
-    // Same date, order not guaranteed by the DB. Furthest-along wins regardless.
-    const referredFirst = [
-      { statustext: 'The committee(s) on WAM has scheduled a hearing on 02-13-26 1:30PM.' },
+  it('is independent of update ordering', () => {
+    const forward = [
+      { statustext: 'The committee(s) on AEN recommend(s) that the measure be PASSED.' },
       { statustext: 'Passed Second Reading and referred to the committee(s) on WAM.' },
-      { statustext: 'The committee(s) on AEN passed the measure.' },
     ];
-    const reversed = [...referredFirst].reverse();
-    expect(inferCurrentCommittee('AEN, WAM', referredFirst)).toBe('WAM');
+    const reversed = [...forward].reverse();
+    expect(inferCurrentCommittee('AEN, WAM', forward)).toBe('WAM');
     expect(inferCurrentCommittee('AEN, WAM', reversed)).toBe('WAM');
   });
 
-  it('falls back to the last referral code when no update names a committee', () => {
+  it('falls back to the FIRST referral code when no update signals progress', () => {
     const updates = [{ statustext: 'Introduced and passed First Reading.' }];
-    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('WAM');
+    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('AEN');
   });
 
-  it('falls back to the last referral code with no updates at all', () => {
-    expect(inferCurrentCommittee('AEN, WAM', [])).toBe('WAM');
-    expect(inferCurrentCommittee('AEN, WAM', null)).toBe('WAM');
+  it('falls back to the first referral code with no updates at all', () => {
+    expect(inferCurrentCommittee('AEN, WAM', [])).toBe('AEN');
+    expect(inferCurrentCommittee('AEN, WAM', null)).toBe('AEN');
+  });
+
+  it('surfaces the final committee once every committee has cleared', () => {
+    const updates = [
+      { statustext: 'The committee(s) on AEN recommend(s) that the measure be PASSED.' },
+      { statustext: 'The committee(s) on WAM recommend(s) that the measure be PASSED.' },
+    ];
+    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('WAM');
   });
 
   it('returns null when there is no committee assignment', () => {
@@ -127,9 +126,9 @@ describe('inferCurrentCommittee', () => {
     expect(inferCurrentCommittee('', [])).toBeNull();
   });
 
-  it('ignores codes in status text that are not part of the referral', () => {
-    const updates = [{ statustext: 'The committee(s) on FIN scheduled a hearing.' }];
-    // FIN is not in this bill's referral list, so it's ignored; fall back to last.
-    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('WAM');
+  it('ignores committee codes that are not part of the referral', () => {
+    const updates = [{ statustext: 'The committee(s) on FIN recommend(s) that the measure be PASSED.' }];
+    // FIN is not in this bill's referral list, so it does not clear AEN.
+    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('AEN');
   });
 });
