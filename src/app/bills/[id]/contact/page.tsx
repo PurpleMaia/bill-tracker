@@ -6,23 +6,27 @@ import type { BillDetails } from '@/types/legislation';
 import { getBillDetails } from '@/db/queries/bills-read';
 import { data } from '@/lib/data-client';
 import type { CommitteeChair } from '@/db/queries/committee-chairs';
+import type { Conferee } from '@/db/queries/conferees';
 import {
   buildBaseScript,
   buildCallScript,
+  buildConferenceBaseScript,
+  buildConferenceCallScript,
   personalizeScript,
-  type ContactPosition,
 } from '@/lib/legislators/contact-script';
+import { committeeFullName, inferCurrentCommittee } from '@/lib/testimony/committees';
+import { parseConferees, isConferenceStatus } from '@/lib/testimony/conferees';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { BillReferencePanel } from '@/components/bills/bill-reference-panel';
-import { ContactStepper, type ContactStep } from '@/components/kanban/contact-stepper';
 import {
   ArrowLeft,
-  ArrowRight,
   Check,
+  ChevronDown,
+  ChevronRight,
   Copy,
   ExternalLink,
   Gavel,
@@ -33,8 +37,6 @@ import {
   PanelLeftOpen,
   Phone,
   ShieldCheck,
-  ThumbsDown,
-  ThumbsUp,
 } from 'lucide-react';
 
 interface CommitteeGroup {
@@ -68,16 +70,14 @@ export default function ContactLegislatorPage() {
 
   const [bill, setBill] = useState<BillDetails | null>(null);
   const [chairs, setChairs] = useState<CommitteeChair[]>([]);
+  const [conferees, setConferees] = useState<Conferee[]>([]);
   const [loading, setLoading] = useState(true);
-  const [step, setStep] = useState<ContactStep>(1);
-  const [position, setPosition] = useState<ContactPosition | null>(null);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
 
-  // The shared, user-editable scripts. Seeded when a position is chosen; null
-  // until then. Edits are preserved as the user moves between steps.
-  const [scriptBody, setScriptBody] = useState<string | null>(null);
+  // The shared, user-editable scripts, seeded once the bill loads.
+  const [scriptBody, setScriptBody] = useState<string>('');
   const [scriptSubject, setScriptSubject] = useState<string>('');
-  const [callScript, setCallScript] = useState<string | null>(null);
+  const [callScript, setCallScript] = useState<string>('');
 
   useEffect(() => {
     if (!billId) return;
@@ -87,8 +87,16 @@ export default function ContactLegislatorPage() {
         const details = await getBillDetails(billId);
         if (cancelled) return;
         setBill(details);
-        const list = await data.legislators.getChairs(billId, details?.committee_assignment ?? null);
-        if (!cancelled) setChairs(list);
+        // At conference the actionable contacts are the appointed conferees
+        // (parsed from status text), not the committee chairs.
+        if (isConferenceStatus(details?.current_bill_status)) {
+          const parsed = parseConferees(details?.updates ?? []);
+          const list = parsed.length > 0 ? await data.legislators.getConferees(billId, parsed) : [];
+          if (!cancelled) setConferees(list);
+        } else {
+          const list = await data.legislators.getChairs(billId, details?.committee_assignment ?? null);
+          if (!cancelled) setChairs(list);
+        }
       } catch {
         if (!cancelled) toast({ title: 'Error', description: 'Could not load contacts.', variant: 'destructive' });
       } finally {
@@ -98,37 +106,66 @@ export default function ContactLegislatorPage() {
     return () => { cancelled = true; };
   }, [billId]);
 
+  const atConference = isConferenceStatus(bill?.current_bill_status);
   const groups = useMemo(() => groupByCommittee(chairs), [chairs]);
   const hasChairs = chairs.length > 0;
-  const maxStep: ContactStep = position ? 2 : 1;
 
-  // Choosing (or changing) a position seeds the shared script. We only OVERWRITE
-  // an existing draft when the position actually flips, so edits aren't lost by
-  // re-clicking the same choice.
-  const choosePosition = (p: ContactPosition) => {
-    if (p !== position && bill) {
-      const base = buildBaseScript({
-        billNumber: bill.bill_number,
-        billTitle: bill.bill_title ?? null,
-        position: p,
-      });
-      setScriptBody(base.body);
-      setScriptSubject(base.subject);
-      setCallScript(
-        buildCallScript({
+  // The committee(s) the bill is currently awaiting a hearing before — inferred
+  // once, then reused to both foreground their chairs and word the script. A
+  // joint hearing ("JDC/HWN") yields more than one code, all of them current.
+  const currentCodes = useMemo(
+    () => inferCurrentCommittee(bill?.committee_assignment ?? null, bill?.updates),
+    [bill],
+  );
+  const currentCodeSet = useMemo(() => new Set(currentCodes), [currentCodes]);
+  const currentGroups = useMemo(() => {
+    const matched = groups.filter((g) => currentCodeSet.has(g.code));
+    // If none of the current codes have a chair group yet, fall back to the first
+    // group so the page still foregrounds someone to contact.
+    return matched.length > 0 ? matched : groups.slice(0, 1);
+  }, [groups, currentCodeSet]);
+  const otherGroups = useMemo(
+    () => groups.filter((g) => !currentGroups.includes(g)),
+    [groups, currentGroups],
+  );
+
+  // The committee(s) display name: prefer the current groups' DB names (the same
+  // strings the contact cards show) so the script and the cards never disagree;
+  // fall back to the codes' mapped full names if no chair group matched. Joint
+  // hearings read as "A and B".
+  const currentCommitteeName = useMemo(() => {
+    const names = currentGroups.length > 0
+      ? currentGroups.map((g) => g.name)
+      : currentCodes.map((c) => committeeFullName(c));
+    if (names.length === 0) return undefined;
+    if (names.length === 1) return names[0];
+    return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  }, [currentGroups, currentCodes]);
+
+  // Seed the shared scripts once the bill loads. At conference the ask is to
+  // reach agreement (addressed to conferees); otherwise it's a hearing request
+  // addressed to the current committee.
+  useEffect(() => {
+    if (!bill) return;
+    const base = atConference
+      ? buildConferenceBaseScript({ billNumber: bill.bill_number, billTitle: bill.bill_title ?? null })
+      : buildBaseScript({
           billNumber: bill.bill_number,
           billTitle: bill.bill_title ?? null,
-          position: p,
-        }),
-      );
-    }
-    setPosition(p);
-  };
-
-  const goToStep = (s: ContactStep) => {
-    if (s > maxStep) return;
-    setStep(s);
-  };
+          committeeName: currentCommitteeName,
+        });
+    setScriptBody(base.body);
+    setScriptSubject(base.subject);
+    setCallScript(
+      atConference
+        ? buildConferenceCallScript({ billNumber: bill.bill_number, billTitle: bill.bill_title ?? null })
+        : buildCallScript({
+            billNumber: bill.bill_number,
+            billTitle: bill.bill_title ?? null,
+            committeeName: currentCommitteeName,
+          }),
+    );
+  }, [bill, atConference, currentCommitteeName]);
 
   const referencePanel = bill ? <BillReferencePanel bill={bill} /> : null;
 
@@ -147,12 +184,11 @@ export default function ContactLegislatorPage() {
           </Button>
           <div className="min-w-0">
             <h1 className="truncate text-sm font-semibold">
-              Contact Legislator{bill ? ` — ${bill.bill_number}` : ''}
+              {atConference ? 'Contact Conferees' : 'Request a Hearing'}{bill ? ` — ${bill.bill_number}` : ''}
             </h1>
             {bill?.bill_title && <p className="truncate text-xs text-muted-foreground">{bill.bill_title}</p>}
           </div>
         </div>
-        {hasChairs && <ContactStepper step={step} onStepChange={goToStep} maxStep={maxStep} />}
       </header>
 
       <div className="flex min-h-0 flex-1">
@@ -195,7 +231,7 @@ export default function ContactLegislatorPage() {
           <div
             className={[
               'mx-auto space-y-4 p-4 sm:p-6',
-              step !== 2 ? 'max-w-3xl' : panelCollapsed ? 'max-w-6xl' : 'max-w-5xl',
+              panelCollapsed ? 'max-w-6xl' : 'max-w-5xl',
             ].join(' ')}
           >
             {isMobile && referencePanel && (
@@ -215,23 +251,31 @@ export default function ContactLegislatorPage() {
               </Sheet>
             )}
 
-            {!hasChairs ? (
+            {atConference ? (
+              conferees.length === 0 ? (
+                <ConfereesAwaitingState />
+              ) : (
+                <ComposeConference
+                  conferees={conferees}
+                  subject={scriptSubject}
+                  body={scriptBody}
+                  onChange={setScriptBody}
+                  callScript={callScript}
+                  onCallChange={setCallScript}
+                  panelCollapsed={panelCollapsed}
+                />
+              )
+            ) : !hasChairs ? (
               <EmptyState />
-            ) : step === 1 ? (
-              <StepPosition
-                position={position}
-                onChoose={choosePosition}
-                onNext={() => goToStep(2)}
-              />
             ) : (
-              <StepCompose
-                groups={groups}
+              <Compose
+                currentGroups={currentGroups}
+                otherGroups={otherGroups}
                 subject={scriptSubject}
-                body={scriptBody ?? ''}
+                body={scriptBody}
                 onChange={setScriptBody}
-                callScript={callScript ?? ''}
+                callScript={callScript}
                 onCallChange={setCallScript}
-                onBack={() => goToStep(1)}
                 panelCollapsed={panelCollapsed}
               />
             )}
@@ -242,128 +286,36 @@ export default function ContactLegislatorPage() {
   );
 }
 
-/* ------------------------------- Step 1 -------------------------------- */
-
-function StepPosition({
-  position,
-  onChoose,
-  onNext,
-}: {
-  position: ContactPosition | null;
-  onChoose: (p: ContactPosition) => void;
-  onNext: () => void;
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="rounded-lg border bg-card p-4">
-        <h2 className="text-sm font-semibold">Choose your position</h2>
-        <p className="mb-3 mt-0.5 text-xs text-muted-foreground">
-          Tell the committee whether you want this measure to move forward. This sets the tone of your script.
-        </p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Position">
-          <PositionButton
-            active={position === 'support'}
-            onClick={() => onChoose('support')}
-            icon={ThumbsUp}
-            label="Support"
-            help="Advance this bill"
-            tone="support"
-          />
-          <PositionButton
-            active={position === 'oppose'}
-            onClick={() => onChoose('oppose')}
-            icon={ThumbsDown}
-            label="Oppose"
-            help="Hold this bill"
-            tone="oppose"
-          />
-        </div>
-      </div>
-      <div className="flex justify-end">
-        <Button onClick={onNext} disabled={!position}>
-          Next: Compose
-          <ArrowRight className="ml-1.5 h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function PositionButton({
-  active,
-  onClick,
-  icon: Icon,
-  label,
-  help,
-  tone,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: typeof ThumbsUp;
-  label: string;
-  help: string;
-  tone: 'support' | 'oppose';
-}) {
-  const activeClasses =
-    tone === 'support'
-      ? 'border-green-200 bg-green-100 text-green-800'
-      : 'border-red-200 bg-red-100 text-red-800';
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={active}
-      onClick={onClick}
-      className={[
-        'flex items-center gap-3 rounded-md border p-3 text-left transition-colors',
-        active ? activeClasses : 'bg-background hover:bg-muted',
-      ].join(' ')}
-    >
-      <span
-        className={[
-          'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
-          active ? 'bg-white' : 'bg-muted',
-        ].join(' ')}
-      >
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="min-w-0">
-        <span className="flex items-center gap-1.5 text-sm font-semibold">
-          {label}
-          {active && <Check className="h-3.5 w-3.5" />}
-        </span>
-        <span className="block text-xs opacity-80">{help}</span>
-      </span>
-    </button>
-  );
-}
-
-/* --------------------------- Step 2: Compose --------------------------- */
+/* ------------------------------- Compose ------------------------------- */
 
 /** Stable key identifying a chair within the flat list. */
 function chairKey(chair: CommitteeChair): string {
   return `${chair.committeeCode}-${chair.role}`;
 }
 
-function StepCompose({
-  groups,
+function Compose({
+  currentGroups,
+  otherGroups,
   subject,
   body,
   onChange,
   callScript,
   onCallChange,
-  onBack,
   panelCollapsed,
 }: {
-  groups: CommitteeGroup[];
+  currentGroups: CommitteeGroup[];
+  otherGroups: CommitteeGroup[];
   subject: string;
   body: string;
   onChange: (v: string) => void;
   callScript: string;
   onCallChange: (v: string) => void;
-  onBack: () => void;
   panelCollapsed: boolean;
 }) {
+  // A joint hearing surfaces more than one current committee — all foregrounded.
+  const isJoint = currentGroups.length > 1;
+  const [showOthers, setShowOthers] = useState(false);
+
   // Scripts get the larger share. When the bill panel is collapsed there's more
   // width overall, so push the scripts even wider (5/8 → 2/3 of the row).
   const scriptSpan = panelCollapsed ? 'lg:col-span-5' : 'lg:col-span-4';
@@ -371,6 +323,18 @@ function StepCompose({
 
   return (
     <div className="space-y-4">
+      <div className="rounded-lg border bg-card p-4">
+        <div className="mb-1 flex items-center gap-1.5">
+          <Gavel className="h-3.5 w-3.5 text-muted-foreground" />
+          <h2 className="text-sm font-semibold">Ask for a hearing</h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          This bill is waiting on {isJoint ? 'a joint committee hearing' : 'a committee'} to be scheduled. Send the
+          message below to {isJoint ? 'each committee’s' : 'that committee’s'} chair and vice-chair — the more
+          requests they get, the more likely they are to put it on the agenda.
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-8">
         {/* Left — the editable email + call scripts, equal height */}
         <div
@@ -413,7 +377,7 @@ function StepCompose({
               <h2 className="text-sm font-semibold">Call script</h2>
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
-              What to say when you call an office. Keep it short — staff just note your position.
+              What to say when you call an office. Keep it short — staff just note your request.
             </p>
             <Textarea
               value={callScript}
@@ -425,15 +389,24 @@ function StepCompose({
           </div>
         </div>
 
-        {/* Right — the contact list */}
+        {/* Right — the contact list, current committee(s) foregrounded */}
         <div className={['space-y-4', contactSpan].join(' ')}>
-          {groups.map((group) => (
+          {isJoint && (
+            <p className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
+              <Gavel className="h-3.5 w-3.5" />
+              Joint hearing — contact both committees below.
+            </p>
+          )}
+          {currentGroups.map((group) => (
             <div key={group.code}>
               <div className="mb-2 flex items-center gap-2 border-b pb-1.5">
                 <span className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary">
                   {group.code}
                 </span>
                 <h3 className="truncate text-sm font-semibold">{group.name}</h3>
+                <span className="ml-auto inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                  Awaiting hearing
+                </span>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {group.chairs.map((chair) => (
@@ -442,14 +415,44 @@ function StepCompose({
               </div>
             </div>
           ))}
-        </div>
-      </div>
 
-      <div className="flex justify-start">
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-1.5 h-4 w-4" />
-          Back: Position
-        </Button>
+          {otherGroups.length > 0 && (
+            <div className="rounded-lg border bg-muted/20">
+              <button
+                type="button"
+                onClick={() => setShowOthers((v) => !v)}
+                className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-xs font-medium text-muted-foreground hover:text-foreground"
+                aria-expanded={showOthers}
+              >
+                {showOthers ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                {showOthers ? 'Hide' : 'Show'} other committees ({otherGroups.length})
+              </button>
+              {showOthers && (
+                <div className="space-y-4 px-3 pb-3 opacity-80">
+                  <p className="text-[11px] text-muted-foreground">
+                    These committees are also on this bill&apos;s referral path but aren&apos;t the one currently
+                    holding it. Contact them only if the bill has already moved on.
+                  </p>
+                  {otherGroups.map((group) => (
+                    <div key={group.code}>
+                      <div className="mb-2 flex items-center gap-2 border-b pb-1.5">
+                        <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-xs font-bold text-muted-foreground">
+                          {group.code}
+                        </span>
+                        <h3 className="truncate text-sm font-semibold">{group.name}</h3>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        {group.chairs.map((chair) => (
+                          <ChairCard key={chairKey(chair)} chair={chair} subject={subject} body={body} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -553,6 +556,265 @@ function ChairCard({
   );
 }
 
+/* ----------------------------- Conference ------------------------------ */
+
+interface ConfereeChamberGroup {
+  chamber: 'House' | 'Senate';
+  members: Conferee[];
+}
+
+/** Split conferees into House / Senate groups, preserving order, dropping empties. */
+function groupByChamber(conferees: Conferee[]): ConfereeChamberGroup[] {
+  const groups: ConfereeChamberGroup[] = [];
+  for (const chamber of ['House', 'Senate'] as const) {
+    const members = conferees.filter((c) => c.chamber === chamber);
+    if (members.length > 0) groups.push({ chamber, members });
+  }
+  return groups;
+}
+
+function ComposeConference({
+  conferees,
+  subject,
+  body,
+  onChange,
+  callScript,
+  onCallChange,
+  panelCollapsed,
+}: {
+  conferees: Conferee[];
+  subject: string;
+  body: string;
+  onChange: (v: string) => void;
+  callScript: string;
+  onCallChange: (v: string) => void;
+  panelCollapsed: boolean;
+}) {
+  const chamberGroups = useMemo(() => groupByChamber(conferees), [conferees]);
+  const unresolved = conferees.filter((c) => !c.matched).length;
+
+  const scriptSpan = panelCollapsed ? 'lg:col-span-5' : 'lg:col-span-4';
+  const contactSpan = panelCollapsed ? 'lg:col-span-3' : 'lg:col-span-4';
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border bg-card p-4">
+        <div className="mb-1 flex items-center gap-1.5">
+          <Gavel className="h-3.5 w-3.5 text-muted-foreground" />
+          <h2 className="text-sm font-semibold">Urge the conferees to agree</h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          This bill passed both chambers but in different forms, so a conference committee of appointed conferees must
+          agree on one final version. Contact them — the more they hear that people are watching, the more likely the
+          bill survives conference.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-8">
+        {/* Left — the editable email + call scripts */}
+        <div
+          className={[
+            'grid grid-cols-1 gap-4 lg:sticky lg:top-0 lg:self-start lg:grid-rows-2',
+            scriptSpan,
+          ].join(' ')}
+        >
+          <div className="flex flex-col rounded-lg border bg-card p-4">
+            <div className="mb-1 flex items-center gap-1.5">
+              <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+              <h2 className="text-sm font-semibold">Email script</h2>
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              One message goes to every conferee. Edit it freely — the greeting is filled in for each legislator when you
+              send.
+            </p>
+            <div className="mb-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
+              <span className="text-muted-foreground">Subject: </span>
+              <span className="font-medium">{subject}</span>
+            </div>
+            <Textarea
+              value={body}
+              onChange={(e) => onChange(e.target.value)}
+              rows={12}
+              className="min-h-[8rem] flex-1 resize-y font-mono text-sm leading-relaxed"
+              aria-label="Email message to conferees"
+            />
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Tip: replace <span className="font-medium">&lt;your-name&gt;</span> and add a sentence about why this bill
+              matters to you.
+            </p>
+          </div>
+
+          <div className="flex flex-col rounded-lg border bg-card p-4">
+            <div className="mb-1 flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+              <h2 className="text-sm font-semibold">Call script</h2>
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              What to say when you call an office. Keep it short — staff just note your request.
+            </p>
+            <Textarea
+              value={callScript}
+              onChange={(e) => onCallChange(e.target.value)}
+              rows={7}
+              className="min-h-[8rem] flex-1 resize-y font-mono text-sm leading-relaxed"
+              aria-label="Phone call script"
+            />
+          </div>
+        </div>
+
+        {/* Right — the conferee list, grouped by chamber */}
+        <div className={['space-y-4', contactSpan].join(' ')}>
+          {chamberGroups.map((group) => (
+            <div key={group.chamber}>
+              <div className="mb-2 flex items-center gap-2 border-b pb-1.5">
+                <h3 className="truncate text-sm font-semibold">{group.chamber} conferees</h3>
+                <span className="ml-auto inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                  {group.members.length}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {group.members.map((c) => (
+                  <ConfereeCard key={`${c.chamber}-${c.surname}`} conferee={c} subject={subject} body={body} />
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {unresolved > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              {unresolved} conferee{unresolved !== 1 ? 's' : ''} couldn&apos;t be matched to a legislator record, so no
+              email or phone is shown. Look them up on the{' '}
+              <a
+                href="https://www.capitol.hawaii.gov/members/legislators.aspx"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-foreground"
+              >
+                Capitol member directory
+              </a>
+              .
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfereeCard({
+  conferee,
+  subject,
+  body,
+}: {
+  conferee: Conferee;
+  subject: string;
+  body: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const roleLabel = conferee.isChair ? 'Conference Co-Chair' : 'Conferee';
+
+  const personalized = useMemo(
+    () => personalizeScript(body, { legislatorName: conferee.legislatorName }),
+    [body, conferee.legislatorName],
+  );
+  const mailto = conferee.email
+    ? `mailto:${conferee.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(personalized)}`
+    : null;
+  const gmail = conferee.email ? gmailComposeUrl(conferee.email, subject, personalized) : null;
+
+  const copyScript = async () => {
+    try {
+      await navigator.clipboard.writeText(personalized);
+      setCopied(true);
+      toast({ title: 'Copied', description: `Message for ${conferee.legislatorName} copied.` });
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ title: 'Copy failed', description: 'Open the preview and copy manually.', variant: 'destructive' });
+    }
+  };
+
+  return (
+    <div className="flex flex-col rounded-md border bg-card p-2.5">
+      <div className="flex items-center gap-1.5">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted">
+          <Gavel className="h-3 w-3" />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold">{conferee.legislatorName}</p>
+          <p className="truncate text-[11px] text-muted-foreground">{roleLabel}</p>
+        </div>
+      </div>
+
+      {conferee.matched ? (
+        <>
+          <div className="mt-1.5 space-y-0.5 text-[11px]">
+            {conferee.email && (
+              <a
+                href={`mailto:${conferee.email}`}
+                className="flex items-center gap-1 break-all text-muted-foreground hover:text-foreground hover:underline"
+              >
+                <Mail className="h-3 w-3 shrink-0" /> {conferee.email}
+              </a>
+            )}
+            {conferee.phone && (
+              <a
+                href={`tel:${conferee.phone.replace(/[^\d+]/g, '')}`}
+                className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+              >
+                <Phone className="h-3 w-3 shrink-0" /> {conferee.phone}
+              </a>
+            )}
+          </div>
+
+          <div className="mt-auto flex items-center gap-1 pt-2">
+            {mailto && (
+              <Button asChild size="sm" className="h-7 flex-1 px-2 text-[11px]">
+                <a href={mailto}>
+                  <Mail className="mr-1 h-3 w-3" /> Email
+                </a>
+              </Button>
+            )}
+            {gmail && (
+              <Button asChild size="sm" variant="outline" className="h-7 flex-1 px-2 text-[11px]">
+                <a href={gmail} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="mr-1 h-3 w-3" /> Gmail
+                </a>
+              </Button>
+            )}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 shrink-0"
+              onClick={copyScript}
+              aria-label="Copy message"
+              title="Copy message"
+            >
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <p className="mt-1.5 text-[11px] text-muted-foreground">
+          No contact record on file — look up this legislator in the Capitol directory.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ConfereesAwaitingState() {
+  return (
+    <div className="rounded-lg border border-dashed bg-card p-8 text-center">
+      <Gavel className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+      <p className="text-sm font-medium">Conferees not yet appointed</p>
+      <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
+        This bill is in conference, but neither chamber has appointed its conferees yet. Once they&apos;re named in the
+        status history, return here to contact them directly.
+      </p>
+    </div>
+  );
+}
+
 /* ------------------------------- Shared -------------------------------- */
 
 function EmptyState() {
@@ -562,7 +824,7 @@ function EmptyState() {
       <p className="text-sm font-medium">No committees assigned yet</p>
       <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
         Committee chairs appear once this bill is referred to a committee. Check back after the referral, then return
-        here to send your message.
+        here to request a hearing.
       </p>
     </div>
   );
@@ -576,7 +838,7 @@ function ContactSkeleton({ onBack }: { onBack: () => void }) {
           <ArrowLeft className="h-4 w-4" />
           <span className="ml-1 hidden sm:inline">Back</span>
         </Button>
-        <h1 className="truncate text-sm font-semibold">Contact Legislator</h1>
+        <h1 className="truncate text-sm font-semibold">Request a Hearing</h1>
       </header>
       <div className="flex flex-1 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

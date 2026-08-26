@@ -8,6 +8,7 @@ import { getNextDeadline, getDeadlineTier, isFiscalBill } from '@/lib/bills/dead
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { sortVersions } from '@/lib/versions/bill-versions';
 import { parseCommitteeCodes } from '@/lib/testimony/committees';
+import { parseConferees, isConferenceStatus, type ParsedConferee } from '@/lib/testimony/conferees';
 
 export interface BriefingStep {
   text: string;
@@ -20,6 +21,10 @@ export interface BriefingFacts {
   latestVersionLabel: string | null;
   latestVersionHtml: string | null;
   committeeCodes: string[];
+  /** True at the conference contact stages — swaps committee display for conferees. */
+  atConference: boolean;
+  /** Conferees parsed from status updates; only populated at conference stage. */
+  conferees: ParsedConferee[];
   reportCount: number;
   nextSteps: BriefingStep[];
 }
@@ -91,8 +96,19 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   const sorted = sortVersions(versions);
   const latest = sorted.length > 0 ? sorted[sorted.length - 1] : null;
   const committeeCodes = parseCommitteeCodes(committeeAssignment);
+  const atConference = isConferenceStatus(status);
+  const conferees = atConference ? parseConferees(bill.updates) : [];
 
+  // At conference the actionable step is contacting the appointed conferees —
+  // foreground it. Elsewhere it's the committee chairs, shown after the reading
+  // steps. Other steps (diff/reports) still appear when relevant.
   const nextSteps: BriefingStep[] = [];
+  if (atConference) {
+    nextSteps.push({
+      text: 'Urge the conferees to reach agreement on this bill.',
+      action: 'contact',
+    });
+  }
   if (testimony.open) {
     nextSteps.push({ text: 'Write and submit testimony on this bill.', action: 'testimony' });
   }
@@ -102,7 +118,7 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   if (reports.length > 0) {
     nextSteps.push({ text: `Review the ${reports.length} committee report(s).`, action: 'reports' });
   }
-  if (committeeCodes.length > 0) {
+  if (!atConference && committeeCodes.length > 0) {
     nextSteps.push({ text: 'Contact the committee chairs about this bill.', action: 'contact' });
   }
 
@@ -112,6 +128,8 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
     latestVersionLabel: latest?.label ?? null,
     latestVersionHtml: latest?.htmlLink ?? null,
     committeeCodes,
+    atConference,
+    conferees,
     reportCount: reports.length,
     nextSteps,
   };
