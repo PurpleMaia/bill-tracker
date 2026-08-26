@@ -102,21 +102,42 @@ export function BillBriefing({
           </p>
         </div>
         <div className="rounded-md border p-2.5">
-          <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Committee activity</h4>
-          <p className="text-[12px] text-foreground/80">
-            {/* Codes stay tappable — an acronym is opaque. The heading does not. */}
-            {facts.committeeCodes.length > 0
-              ? facts.committeeCodes.map((code, i) => (
-                  <span key={code}>
-                    {i > 0 && ', '}
-                    <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(code)}>
-                      {code}
-                    </Term>
-                  </span>
-                ))
-              : 'No committees'}
-            {` · ${facts.reportCount} report(s)`}
-          </p>
+          {facts.atConference ? (
+            <>
+              <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Conference committee</h4>
+              <p className="text-[12px] text-foreground/80">
+                {/* At conference the negotiators are the conferees, not the committee
+                    chairs — parsed from status updates. */}
+                {facts.conferees.length > 0
+                  ? facts.conferees.map((c, i) => (
+                      <span key={`${c.chamber}-${c.surname}`}>
+                        {i > 0 && ', '}
+                        {c.surname}
+                        {c.isChair && <span className="text-muted-foreground"> (Chair)</span>}
+                      </span>
+                    ))
+                  : 'Conferees not yet appointed'}
+              </p>
+            </>
+          ) : (
+            <>
+              <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Committee activity</h4>
+              <p className="text-[12px] text-foreground/80">
+                {/* Codes stay tappable — an acronym is opaque. The heading does not. */}
+                {facts.committeeCodes.length > 0
+                  ? facts.committeeCodes.map((code, i) => (
+                      <span key={code}>
+                        {i > 0 && ', '}
+                        <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(code)}>
+                          {code}
+                        </Term>
+                      </span>
+                    ))
+                  : 'No committees'}
+                {` · ${facts.reportCount} report(s)`}
+              </p>
+            </>
+          )}
         </div>
       </div>
 

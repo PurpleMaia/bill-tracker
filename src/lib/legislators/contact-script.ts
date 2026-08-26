@@ -125,13 +125,64 @@ export function buildCallScript(input: {
 }
 
 /**
- * Swaps the leading greeting line of a shared script for one addressed to a
- * specific chair (`Dear Rep. …,`). Only the first line is replaced, so the
- * user's edits to the rest of the body are preserved. If the body doesn't
- * start with a `Dear …` line, the personalized greeting is prepended.
+ * The ONE shared, editable script for a bill in CONFERENCE. Conferees are the
+ * appointed negotiators, so the ask is to reach agreement and keep the measure
+ * intact — not to schedule a hearing. Neutral greeting; personalize per-recipient
+ * at send time with {@link personalizeScript}.
  */
-export function personalizeScript(body: string, chair: CommitteeChair): string {
-  const greeting = `Dear ${chair.legislatorName},`;
+export function buildConferenceBaseScript(input: {
+  billNumber: string;
+  billTitle: string | null;
+  userName?: string;
+}): { subject: string; body: string } {
+  const { billNumber, billTitle, userName } = input;
+  const measure = measurePhrase(billNumber, billTitle);
+  return {
+    subject: `Please support ${billNumber} in conference`,
+    body: [
+      NEUTRAL_GREETING,
+      ``,
+      `I am writing as a Hawaii resident to respectfully urge the conference committee to reach agreement on ${measure} and advance a strong final version.`,
+      ``,
+      `This measure has passed both chambers, and it would be a real loss for it to die in conference over unresolved differences. I hope you will work with your fellow conferees to find a compromise that keeps it moving.`,
+      ``,
+      `Thank you for your time and consideration.`,
+      ``,
+      `Mahalo nui loa,`,
+      `${userName ?? NAME_PLACEHOLDER}`,
+    ].join('\n'),
+  };
+}
+
+/**
+ * Spoken phone script for a bill in conference — asks a conferee's office to
+ * support reaching agreement. First-person, no greeting/signature. Pure.
+ */
+export function buildConferenceCallScript(input: {
+  billNumber: string;
+  billTitle: string | null;
+  userName?: string;
+}): string {
+  const { billNumber, billTitle, userName } = input;
+  const measure = billTitle ? `${billNumber}, ${billTitle}` : billNumber;
+  return [
+    `Hi, my name is ${userName ?? NAME_PLACEHOLDER} and I'm a Hawaii resident.`,
+    ``,
+    `I'm calling to respectfully ask the conferee to help reach agreement on ${measure} in conference.`,
+    ``,
+    `This measure has passed both chambers, and I'd hate to see it die over unresolved differences. Thank you for your time.`,
+  ].join('\n');
+}
+
+/**
+ * Swaps the leading greeting line of a shared script for one addressed to a
+ * specific recipient (`Dear <name>,`). Only the first line is replaced, so the
+ * user's edits to the rest of the body are preserved. If the body doesn't
+ * start with a `Dear …` line, the personalized greeting is prepended. Accepts
+ * any recipient exposing a display name (committee chair or conferee).
+ */
+export function personalizeScript(body: string, recipient: { legislatorName: string }): string {
+  const greeting = `Dear ${recipient.legislatorName},`;
   const lines = body.split('\n');
   if (lines.length > 0 && /^\s*Dear\b.*$/.test(lines[0])) {
     lines[0] = greeting;
