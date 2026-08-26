@@ -96,25 +96,37 @@ export default function ContactLegislatorPage() {
   const groups = useMemo(() => groupByCommittee(chairs), [chairs]);
   const hasChairs = chairs.length > 0;
 
-  // The committee the bill is currently awaiting a hearing before — inferred
-  // once, then reused to both foreground its chairs and word the script.
-  const currentCode = useMemo(
+  // The committee(s) the bill is currently awaiting a hearing before — inferred
+  // once, then reused to both foreground their chairs and word the script. A
+  // joint hearing ("JDC/HWN") yields more than one code, all of them current.
+  const currentCodes = useMemo(
     () => inferCurrentCommittee(bill?.committee_assignment ?? null, bill?.updates),
     [bill],
   );
-  const currentGroup = useMemo(
-    () => groups.find((g) => g.code === currentCode) ?? groups[0] ?? null,
-    [groups, currentCode],
-  );
+  const currentCodeSet = useMemo(() => new Set(currentCodes), [currentCodes]);
+  const currentGroups = useMemo(() => {
+    const matched = groups.filter((g) => currentCodeSet.has(g.code));
+    // If none of the current codes have a chair group yet, fall back to the first
+    // group so the page still foregrounds someone to contact.
+    return matched.length > 0 ? matched : groups.slice(0, 1);
+  }, [groups, currentCodeSet]);
   const otherGroups = useMemo(
-    () => groups.filter((g) => g !== currentGroup),
-    [groups, currentGroup],
+    () => groups.filter((g) => !currentGroups.includes(g)),
+    [groups, currentGroups],
   );
 
-  // The committee's display name: prefer the current group's DB name (the same
-  // string the contact cards show) so the script and the cards never disagree;
-  // fall back to the code's mapped full name if no chair group matched.
-  const currentCommitteeName = currentGroup?.name ?? (currentCode ? committeeFullName(currentCode) : undefined);
+  // The committee(s) display name: prefer the current groups' DB names (the same
+  // strings the contact cards show) so the script and the cards never disagree;
+  // fall back to the codes' mapped full names if no chair group matched. Joint
+  // hearings read as "A and B".
+  const currentCommitteeName = useMemo(() => {
+    const names = currentGroups.length > 0
+      ? currentGroups.map((g) => g.name)
+      : currentCodes.map((c) => committeeFullName(c));
+    if (names.length === 0) return undefined;
+    if (names.length === 1) return names[0];
+    return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  }, [currentGroups, currentCodes]);
 
   // Seed the shared scripts once the bill and its current committee are known.
   useEffect(() => {
@@ -223,7 +235,7 @@ export default function ContactLegislatorPage() {
               <EmptyState />
             ) : (
               <Compose
-                currentGroup={currentGroup}
+                currentGroups={currentGroups}
                 otherGroups={otherGroups}
                 subject={scriptSubject}
                 body={scriptBody}
@@ -248,7 +260,7 @@ function chairKey(chair: CommitteeChair): string {
 }
 
 function Compose({
-  currentGroup,
+  currentGroups,
   otherGroups,
   subject,
   body,
@@ -257,7 +269,7 @@ function Compose({
   onCallChange,
   panelCollapsed,
 }: {
-  currentGroup: CommitteeGroup | null;
+  currentGroups: CommitteeGroup[];
   otherGroups: CommitteeGroup[];
   subject: string;
   body: string;
@@ -266,6 +278,8 @@ function Compose({
   onCallChange: (v: string) => void;
   panelCollapsed: boolean;
 }) {
+  // A joint hearing surfaces more than one current committee — all foregrounded.
+  const isJoint = currentGroups.length > 1;
   const [showOthers, setShowOthers] = useState(false);
 
   // Scripts get the larger share. When the bill panel is collapsed there's more
@@ -281,8 +295,9 @@ function Compose({
           <h2 className="text-sm font-semibold">Ask for a hearing</h2>
         </div>
         <p className="text-xs text-muted-foreground">
-          This bill is waiting on a committee to schedule a hearing. Send the message below to that committee&apos;s
-          chair and vice-chair — the more requests they get, the more likely they are to put it on the agenda.
+          This bill is waiting on {isJoint ? 'a joint committee hearing' : 'a committee'} to be scheduled. Send the
+          message below to {isJoint ? 'each committee’s' : 'that committee’s'} chair and vice-chair — the more
+          requests they get, the more likely they are to put it on the agenda.
         </p>
       </div>
 
@@ -340,26 +355,32 @@ function Compose({
           </div>
         </div>
 
-        {/* Right — the contact list, current committee foregrounded */}
+        {/* Right — the contact list, current committee(s) foregrounded */}
         <div className={['space-y-4', contactSpan].join(' ')}>
-          {currentGroup && (
-            <div>
+          {isJoint && (
+            <p className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
+              <Gavel className="h-3.5 w-3.5" />
+              Joint hearing — contact both committees below.
+            </p>
+          )}
+          {currentGroups.map((group) => (
+            <div key={group.code}>
               <div className="mb-2 flex items-center gap-2 border-b pb-1.5">
                 <span className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary">
-                  {currentGroup.code}
+                  {group.code}
                 </span>
-                <h3 className="truncate text-sm font-semibold">{currentGroup.name}</h3>
+                <h3 className="truncate text-sm font-semibold">{group.name}</h3>
                 <span className="ml-auto inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                   Awaiting hearing
                 </span>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {currentGroup.chairs.map((chair) => (
+                {group.chairs.map((chair) => (
                   <ChairCard key={chairKey(chair)} chair={chair} subject={subject} body={body} />
                 ))}
               </div>
             </div>
-          )}
+          ))}
 
           {otherGroups.length > 0 && (
             <div className="rounded-lg border bg-muted/20">

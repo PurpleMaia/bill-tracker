@@ -73,6 +73,30 @@ export function parseCommitteeCodes(assignment: string | null): string[] {
   return Array.from(new Set(codes));
 }
 
+/**
+ * Split a committee_assignment string into ordered referral STEPS, preserving
+ * joint hearings. Commas separate sequential steps; a slash marks committees
+ * heard together in one step. "AGR, JDC/HWN, FIN" → [["AGR"], ["JDC","HWN"],
+ * ["FIN"]]. Codes are upper-cased and trimmed; a code already seen in an earlier
+ * step is dropped (so steps stay disjoint), and empty steps are removed.
+ */
+export function parseCommitteeSteps(assignment: string | null): string[][] {
+  if (!assignment) return [];
+  const seen = new Set<string>();
+  const steps: string[][] = [];
+  for (const token of assignment.split(',')) {
+    const step: string[] = [];
+    for (const part of token.split('/')) {
+      const code = part.trim().toUpperCase();
+      if (!code || seen.has(code)) continue;
+      seen.add(code);
+      step.push(code);
+    }
+    if (step.length > 0) steps.push(step);
+  }
+  return steps;
+}
+
 /** One scraped status line: the text plus the codes it references. */
 export interface StatusLine {
   statustext: string;
@@ -103,35 +127,42 @@ function committeeCleared(text: string, code: string): boolean {
 }
 
 /**
- * Infers which committee a bill is *currently* awaiting a hearing before.
+ * Infers the committee(s) a bill is *currently* awaiting a hearing before.
  *
- * Committees in the referral list are met IN ORDER — the FIRST code is the
- * committee the bill must clear first, the last is the final gate. So the
- * committee it's currently waiting on is the EARLIEST one in the list that has
- * not yet cleared the bill (passed / reported / recommended passage). A later
- * committee can't be current while an earlier one still holds the bill.
+ * Referral STEPS are met IN ORDER — the FIRST step is the gate the bill must
+ * clear first, the last is the final gate. So the current step is the EARLIEST
+ * one not yet cleared (passed / reported / recommended passage). A later step
+ * can't be current while an earlier one still holds the bill.
  *
- * We also treat an explicit "referred to X" as proof that everything BEFORE X
- * cleared, which advances the frontier even when the clearing line itself is
- * terse. Deferrals do not clear a committee (the bill is stuck there). This is
+ * A joint hearing ("JDC/HWN") is ONE step whose committees are heard together,
+ * so it is returned WHOLE (all its codes) and is only considered cleared once
+ * EVERY committee in it has cleared. Callers should foreground all returned
+ * codes, not just the first.
+ *
+ * We treat an explicit "referred to X" as proof that everything in steps BEFORE
+ * X's step cleared, advancing the frontier even when the clearing line is terse.
+ * Deferrals do not clear a committee (the bill is stuck there). This is
  * independent of update ordering, so same-day updates can't flip the result.
  *
- * Fallback when the status history gives no signal: the FIRST code in the list,
- * the committee a freshly-referred bill must meet first. Pure — no DB, no network.
+ * Fallback when the status history gives no signal: the FIRST step, the gate a
+ * freshly-referred bill must meet first. Returns [] only when there is no
+ * committee assignment at all. Pure — no DB, no network.
  */
 export function inferCurrentCommittee(
   committeeAssignment: string | null,
   updates: StatusLine[] | null | undefined,
-): string | null {
-  const referral = parseCommitteeCodes(committeeAssignment);
-  if (referral.length === 0) return null;
+): string[] {
+  const steps = parseCommitteeSteps(committeeAssignment);
+  if (steps.length === 0) return [];
   const list = updates ?? [];
 
-  // The furthest-along committee the bill has been explicitly REFERRED to: every
-  // committee before it has necessarily cleared. Index into `referral`, or -1.
-  // A joint token ("WLA/EIG") is ONE concurrent referral step, so it advances the
-  // frontier only to the earliest of its parts — the joint committees are heard
-  // together, not in sequence.
+  // Step index of a code, or -1 if it isn't in the referral.
+  const stepIndexOf = (code: string): number =>
+    steps.findIndex((step) => step.includes(code));
+
+  // The furthest-along STEP the bill has been explicitly REFERRED to: every step
+  // before it has necessarily cleared. A joint token advances the frontier to the
+  // step its (concurrent) members belong to.
   let referredFrontier = -1;
   for (const update of list) {
     const text = update.statustext ?? '';
@@ -139,26 +170,24 @@ export function inferCurrentCommittee(
     const referredRe = /referred\s+to(?:\s+the)?(?:\s+committee(?:\(s\))?\s+on)?\s+([A-Z]{2,4}(?:\/[A-Z]{2,4})*)/gi;
     let m: RegExpExecArray | null;
     while ((m = referredRe.exec(text)) !== null) {
-      const idxs = m[1]
-        .split('/')
-        .map((p) => referral.indexOf(p.trim().toUpperCase()))
-        .filter((idx) => idx >= 0);
-      if (idxs.length === 0) continue;
-      const stepIdx = Math.min(...idxs); // earliest part of a concurrent referral
-      if (stepIdx > referredFrontier) referredFrontier = stepIdx;
+      for (const part of m[1].split('/')) {
+        const idx = stepIndexOf(part.trim().toUpperCase());
+        if (idx > referredFrontier) referredFrontier = idx;
+      }
     }
   }
 
-  // Walk the list in order; the current committee is the first one that is
-  // neither before the referred frontier nor independently reported cleared.
-  for (let i = 0; i < referral.length; i++) {
-    const code = referral[i];
+  // Walk the steps in order; the current step is the first that is neither before
+  // the referred frontier nor fully cleared. A joint step clears only when ALL of
+  // its committees have cleared.
+  for (let i = 0; i < steps.length; i++) {
     if (i < referredFrontier) continue; // an earlier gate the bill already passed
-    const clearedHere = list.some((u) => committeeCleared(u.statustext ?? '', code));
-    if (!clearedHere) return code;
+    const step = steps[i];
+    const allCleared = step.every((code) => list.some((u) => committeeCleared(u.statustext ?? '', code)));
+    if (!allCleared) return step;
   }
 
-  // Every committee has cleared — the bill is past its referral gates. Surface
-  // the final committee as the last one that acted.
-  return referral[referral.length - 1];
+  // Every step has cleared — the bill is past its referral gates. Surface the
+  // final step as the last one that acted.
+  return steps[steps.length - 1];
 }
