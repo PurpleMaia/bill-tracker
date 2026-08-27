@@ -11,25 +11,12 @@ import { cn } from '@/lib/core/utils';
 import { TempBillCard } from './temp-card';
 import { HelpCircle, Loader2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { COLUMN_DESCRIPTIONS } from '@/lib/bills/kanban-columns';
+import { COLUMN_DESCRIPTIONS, getColumnPhaseBg } from '@/lib/bills/kanban-columns';
 import ColumnOptionsMenu from './column-options-menu';
 import { useAuth } from '@/hooks/contexts/auth-context';
 
 // Adds readOnly prop to control card rendering
 // When readOnly=true, cards aren't wrapped in Draggable components
-
-/** Map a column ID to its legislative-phase background class. */
-function getColumnPhaseBg(columnId: string): string {
-  if (columnId === 'vetoList') return 'bg-[#f8d7d2]';
-  if (columnId === 'governorSigns' || columnId === 'lawWithoutSignature') return 'bg-[#d6e8d4]';
-  // Waiting columns (introduced, waiting, crossover waiting) get olive
-  if (columnId === 'introduced' || columnId === 'simpleWaiting' || columnId.startsWith('crossoverWaiting') || columnId === 'simpleCrossoverWaiting')
-    return 'bg-olive-soft';
-  // Passed committees and transmitted to governor get olive
-  if (columnId === 'passedCommittees' || columnId === 'transmittedGovernor')
-    return 'bg-olive-soft';
-  return 'bg-secondary/50';
-}
 
 export interface KanbanColumnProps extends React.HTMLAttributes<HTMLDivElement> {
   columnId: any; // keep as-is since your board passes a string id

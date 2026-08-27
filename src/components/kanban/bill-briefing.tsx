@@ -10,6 +10,8 @@ import { PenLine, GitCompare, ScrollText, Phone, Clock, AlertTriangle } from 'lu
 import { cn } from '@/lib/core/utils';
 import { Term } from '@/components/ui/term';
 import { resolveVersionTerm, resolveCommitteeTerm } from '@/lib/glossary/resolvers';
+import { isEnacted } from '@/lib/bills/dead-bill';
+import { getColumnPhaseBg } from '@/lib/bills/kanban-columns';
 
 const STEP_ICON = { testimony: PenLine, diff: GitCompare, reports: ScrollText, contact: Phone } as const;
 
@@ -33,6 +35,9 @@ export function BillBriefing({
   onNextStep: (a: 'testimony' | 'diff' | 'reports' | 'contact') => void;
 }) {
   const facts = useMemo(() => deriveBriefingFacts(bill, today), [bill, today]);
+  // A bill signed into law reads as a positive terminal state — highlight
+  // "Where it stands" with the same green the GOVERNOR SIGNED kanban column uses.
+  const enacted = !dead && isEnacted(bill.current_bill_status);
 
   return (
     <div className="rounded-lg border bg-card p-4 space-y-3">
@@ -72,11 +77,22 @@ export function BillBriefing({
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <div className={cn('rounded-md border p-2.5', dead && 'border-red-300 bg-red-50')}>
-          <h4 className={cn('mb-1 text-[10px] font-semibold uppercase tracking-wide', dead ? 'text-red-700' : 'text-primary')}>
-            {dead ? 'Bill failed' : 'Where it stands'}
+        <div
+          className={cn(
+            'rounded-md border p-2.5',
+            dead && 'border-red-300 bg-red-50',
+            enacted && cn('border-green-700/30', getColumnPhaseBg(bill.current_bill_status)),
+          )}
+        >
+          <h4
+            className={cn(
+              'mb-1 text-[10px] font-semibold uppercase tracking-wide',
+              dead ? 'text-red-700' : enacted ? 'text-green-800' : 'text-primary',
+            )}
+          >
+            {dead ? 'Bill failed' : enacted ? 'Signed into law' : 'Where it stands'}
           </h4>
-          <p className={cn('text-[12px]', dead ? 'text-red-600' : 'text-foreground/80')}>
+          <p className={cn('text-[12px]', dead ? 'text-red-600' : enacted ? 'text-green-900' : 'text-foreground/80')}>
             {dead ? (deadReason ?? 'This bill is no longer moving.') : facts.standing}
           </p>
         </div>

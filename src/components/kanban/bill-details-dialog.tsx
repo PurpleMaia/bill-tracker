@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, todayHawaii } from '@/lib/core/utils';
-import { FileText, Loader2, ExternalLink, Clock, AlarmClock, XCircle, PenLine, LayoutDashboard, Files, Users } from 'lucide-react';
+import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
@@ -41,7 +41,7 @@ import { PROGRESS_STAGES, getProgressValue, getCurrentStageName } from '@/lib/bi
 import { Term } from '@/components/ui/term';
 import { resolveDeadlineTerm } from '@/lib/glossary/resolvers';
 import { BillBreakdownButton } from './bill-breakdown';
-import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/bills/dead-bill';
+import { isBillDead, getNextDeadline, isFiscalBill, isEnacted } from '@/lib/bills/dead-bill';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import type { BillStatus as DBBillStatus } from '@/db/types';
@@ -209,10 +209,6 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
       )
     : null;
 
-  const deadlineDaysAway = nextDeadline
-    ? Math.ceil((new Date(nextDeadline.date + 'T00:00:00').getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-    : null;
-  const isUrgent = deadlineDaysAway !== null && deadlineDaysAway <= 7;
   const fiscal = committeeAssign ? isFiscalBill(committeeAssign) : false;
 
   const latestUpdateText =
@@ -242,6 +238,11 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   const urgentTooltip = hearingAt
     ? `Hearing ${hearingAt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Submit testimony at least 24 hours before the hearing.`
     : 'Hearing scheduled — submit testimony at least 24 hours before the hearing.';
+
+  // Once a bill is signed into law, legislators can no longer act on it — the
+  // same enacted check that closes testimony also closes Contact Legislator.
+  const contactDisabled = isEnacted(currentStatus as DBBillStatus);
+  const contactDisabledReason = 'This bill has become law — legislators can no longer act on it.';
 
   const handleSave = async () => {
     try {
@@ -456,7 +457,23 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   </Tooltip>
                 </TooltipProvider>
               )}
-              {user && (
+              {user && (contactDisabled ? (
+                <TooltipProvider delayDuration={100}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-block shrink-0 cursor-not-allowed">
+                        <Button size="sm" variant="outline" disabled className="pointer-events-none">
+                          <Users className="mr-1.5 h-3.5 w-3.5" />
+                          Contact Legislator
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{contactDisabledReason}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
                 <Button
                   size="sm"
                   variant="outline"
@@ -468,7 +485,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   <Users className="mr-1.5 h-3.5 w-3.5" />
                   Contact Legislator
                 </Button>
-              )}
+              ))}
             </div>
           </div>
         </DialogHeader>
@@ -515,15 +532,6 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                       else if (action === 'contact') { onClose(); router.push(`/bills/${bill.id}/contact`); }
                     }}
                   />
-
-                  {/* Failed / deadline status. A bill's failed state is derived
-                      automatically from missed deadlines and committee action (see
-                      the dead-bill sweep) — it is not manually toggled here. The
-                      dead state is also shown in the briefing's "Bill failed" cell. */}
-                  {/* Uses the app's warm palette (ochre for urgency, teal
-                      primary otherwise) rather than raw blue/amber Tailwind,
-                      matching the deadline pill on the kanban card. */}
-                  
 
                   {/* Bill details */}
                   <div className="space-y-4">
@@ -720,6 +728,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                           <Button
                             variant="outline"
                             className="h-11 w-full px-2"
+                            disabled={contactDisabled}
                             onClick={() => {
                               onClose();
                               router.push(`/bills/${bill.id}/contact`);
@@ -737,6 +746,11 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                         {!testimonyEligibility.allowed && (
                           <p className="text-center text-xs text-muted-foreground">
                             {testimonyEligibility.reason} — testimony is closed.
+                          </p>
+                        )}
+                        {contactDisabled && (
+                          <p className="text-center text-xs text-muted-foreground">
+                            {contactDisabledReason}
                           </p>
                         )}
                       </>

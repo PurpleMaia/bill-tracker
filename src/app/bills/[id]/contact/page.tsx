@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { BillReferencePanel } from '@/components/bills/bill-reference-panel';
 import { ContactStepper, type ContactStep } from '@/components/kanban/contact-stepper';
+import { isEnacted } from '@/lib/bills/dead-bill';
 import {
   ArrowLeft,
   ArrowRight,
@@ -134,6 +135,27 @@ export default function ContactLegislatorPage() {
 
   if (loading) {
     return <ContactSkeleton onBack={() => router.push(backHref)} />;
+  }
+
+  // A bill signed into law is done — legislators can no longer act on it. Guard
+  // the route so a directly-pasted URL can't bypass the disabled Contact button.
+  if (bill && isEnacted(bill.current_bill_status)) {
+    return (
+      <div className="flex h-dvh flex-col items-center justify-center gap-4 p-8 text-center">
+        <ShieldCheck className="h-10 w-10 text-green-700" aria-hidden="true" />
+        <div className="space-y-1">
+          <h1 className="text-lg font-semibold">This bill has become law</h1>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            {bill.bill_number} has been signed into law — legislators can no longer act on it, so
+            there is no one to contact about it.
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => router.push(backHref)}>
+          <ArrowLeft className="mr-1.5 h-4 w-4" />
+          Back
+        </Button>
+      </div>
+    );
   }
 
   return (

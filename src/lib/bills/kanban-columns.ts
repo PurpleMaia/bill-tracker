@@ -48,6 +48,24 @@ export const KANBAN_COLUMNS: KanbanColumnData[] = [
   { id: 'lawWithoutSignature', title: 'LAW WITHOUT SIGNATURE' },
 ];
 
+/**
+ * Map a column ID (or bill status) to its legislative-phase background class.
+ * Single source of truth for the board's phase colors — the kanban column and
+ * the bill briefing's "Where it stands" card both read from here so the enacted
+ * green (and veto red) stay in sync.
+ */
+export function getColumnPhaseBg(columnId: string): string {
+  if (columnId === 'vetoList') return 'bg-[#f8d7d2]';
+  if (columnId === 'governorSigns' || columnId === 'lawWithoutSignature') return 'bg-[#d6e8d4]';
+  // Waiting columns (introduced, waiting, crossover waiting) get olive
+  if (columnId === 'introduced' || columnId === 'simpleWaiting' || columnId.startsWith('crossoverWaiting') || columnId === 'simpleCrossoverWaiting')
+    return 'bg-olive-soft';
+  // Passed committees and transmitted to governor get olive
+  if (columnId === 'passedCommittees' || columnId === 'transmittedGovernor')
+    return 'bg-olive-soft';
+  return 'bg-secondary/50';
+}
+
 // Map column IDs (statuses) to titles for easier lookup
 export const COLUMN_TITLES: Record<string, string> = KANBAN_COLUMNS.reduce((acc, col) => {
   acc[col.id] = col.title;

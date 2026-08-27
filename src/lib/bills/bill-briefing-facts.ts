@@ -4,7 +4,9 @@ import type { BillDetails } from '@/types/legislation';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
-import { getNextDeadline, getDeadlineTier, isFiscalBill } from '@/lib/bills/dead-bill';
+import { getNextDeadline, getDeadlineTier, isFiscalBill, isEnacted } from '@/lib/bills/dead-bill';
+import { COLUMN_TITLES } from '@/lib/bills/kanban-columns';
+import { formatBillStatusName } from '@/lib/core/utils';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { sortVersions } from '@/lib/versions/bill-versions';
 import { parseCommitteeCodes } from '@/lib/testimony/committees';
@@ -81,7 +83,10 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
         (daysAway > 0 ? ` (${daysAway} day${daysAway !== 1 ? 's' : ''} away, ${tier})` : daysAway === 0 ? ' (today)' : '') +
         (fiscal ? ' · fiscal bill' : '');
     } else {
-      standing = `Currently ${status}${fiscal ? ' · fiscal bill' : ''}.`;
+      // Terminal statuses (enacted, vetoed, etc.) have no upcoming deadline.
+      // Show the friendly board title, never the raw enum value.
+      const label = COLUMN_TITLES[status] ?? formatBillStatusName(status);
+      standing = `Currently ${label}${fiscal ? ' · fiscal bill' : ''}.`;
     }
   }
 
@@ -102,7 +107,8 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   if (reports.length > 0) {
     nextSteps.push({ text: `Review the ${reports.length} committee report(s).`, action: 'reports' });
   }
-  if (committeeCodes.length > 0) {
+  // No point contacting legislators once the bill is law — the process is over.
+  if (committeeCodes.length > 0 && !isEnacted(status)) {
     nextSteps.push({ text: 'Contact the committee chairs about this bill.', action: 'contact' });
   }
 
