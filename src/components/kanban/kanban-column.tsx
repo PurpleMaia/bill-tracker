@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import Link from 'next/link';
 import type { Bill, TempBill } from '@/types/legislation';
 import { KanbanCard } from './kanban-card';
@@ -10,12 +10,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Draggable } from '@hello-pangea/dnd';
 import { cn } from '@/lib/core/utils';
 import { TempBillCard } from './temp-card';
-import { HelpCircle, Loader2, Plus } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { HelpCircle, Plus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { COLUMN_DESCRIPTIONS } from '@/lib/bills/kanban-columns';
 import { columnTrackSearchHref } from '@/lib/bills/track-bill-links';
-import ColumnOptionsMenu from './column-options-menu';
 import { useAuth } from '@/hooks/contexts/auth-context';
 
 // Adds readOnly prop to control card rendering
@@ -106,7 +104,6 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
     ref
   ) => {
     const { activeTenant } = useAuth();
-    const [refreshing, setRefreshing] = useState(false);
 
     // Use shared refs from parent, or create local ones if not provided
     const localBillCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -150,9 +147,6 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
             </span>
 
             <span className="flex shrink-0 items-center gap-1">
-              {refreshing && (
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Updating column" />
-              )}
               {/* Add a bill to this stage: jumps to the search page pre-filtered
                   to untracked bills at this column's stage, where they can be
                   tracked in one click. Own board only — meaningless on a public
@@ -173,31 +167,26 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
                   </Tooltip>
                 </TooltipProvider>
               )}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    className="shrink-0 rounded-full text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label={`What does "${title}" mean?`}
-                  >
-                    <HelpCircle className="h-4 w-4" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-72" align="end">
-                  <h3 className="text-sm font-semibold mb-1">{title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {COLUMN_DESCRIPTIONS[columnId] ?? 'No description available for this stage.'}
-                  </p>
-                </PopoverContent>
-              </Popover>
-              {/* Scraper/LLM column actions are org workflows — org members only,
-                  and meaningless on another org's read-only Active Board. */}
-              {activeTenant && boardMode !== 'active-boards' && (
-                <ColumnOptionsMenu
-                  bills={bills}
-                  onRefreshStart={() => setRefreshing(true)}
-                  onRefreshEnd={() => setRefreshing(false)}
-                />
-              )}
+              {/* Hover to reveal what this stage means — a Tooltip (not a click
+                  Popover) so the explanation appears on hover/focus. */}
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      className="shrink-0 rounded-full text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={`What does "${title}" mean?`}
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-72" align="end">
+                    <p className="mb-1 text-sm font-semibold">{title}</p>
+                    <p className="text-sm leading-relaxed">
+                      {COLUMN_DESCRIPTIONS[columnId] ?? 'No description available for this stage.'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </span>
           </h2>
         </div>
@@ -283,9 +272,26 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
             )}
           </div>
 
-          {/* Empty state */}
+          {/* Empty state. On your own board it invites you to the search page
+              (pre-filtered to this stage) to track a bill; on public/read-only
+              boards there's nothing to track, so it stays a neutral line. */}
           {!bills.length && pendingCount === 0 && !children && (
-            <p className="p-4 text-center text-sm text-muted-foreground">No bills in this stage.</p>
+            activeTenant && boardMode === 'own' ? (
+              <div className="flex flex-col items-center gap-2 p-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  None of your tracked bills are in this stage.
+                </p>
+                <Link
+                  href={columnTrackSearchHref(columnId)}
+                  className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Find bills to track
+                </Link>
+              </div>
+            ) : (
+              <p className="p-4 text-center text-sm text-muted-foreground">No bills in this stage.</p>
+            )
           )}
         </ScrollArea>
       </div>
