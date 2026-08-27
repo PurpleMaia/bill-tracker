@@ -247,6 +247,20 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
                 ))}
               </div>
             )}
+
+            {/* Track-more button at the bottom of a non-empty list. Own board
+                only — it links to the search page pre-filtered to this stage.
+                The empty column shows its own centered version instead, so this
+                is gated to when there are actually cards above it. */}
+            {bills.length > 0 && activeTenant && boardMode === 'own' && (
+              <Link
+                href={columnTrackSearchHref(columnId)}
+                className="mt-1 inline-flex items-center justify-center gap-1.5 self-center rounded-md border border-dashed px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Track bills at this stage
+              </Link>
+            )}
           </div>
 
           {/* Empty state. On your own board it invites you to the search page
