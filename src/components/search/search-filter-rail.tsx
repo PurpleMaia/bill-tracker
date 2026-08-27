@@ -115,7 +115,7 @@ export function SearchFilterRail({ filters, onChange, onClear, loggedIn }: Searc
             <div key={value} className="flex items-center gap-2">
               <RadioGroupItem value={value} id={`dead-${value}`} />
               <Label htmlFor={`dead-${value}`} className="cursor-pointer text-sm font-normal capitalize">
-                {value === 'all' ? 'All bills' : value}
+                {value === 'all' ? 'All bills' : value === 'dead' ? 'Failed' : value}
               </Label>
             </div>
           ))}

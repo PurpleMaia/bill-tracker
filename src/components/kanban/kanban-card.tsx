@@ -24,7 +24,7 @@ import { Sparkles, X, Check, Users, Info, PenLine, UserPlus, Hourglass, AlarmClo
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTagSelector } from '../tags/card-tag-selector';
-import { getNextDeadline, getDeadlineTier } from '@/lib/bills/dead-bill';
+import { getNextDeadline, getDeadlineTier, formatDeadlineStanding } from '@/lib/bills/dead-bill';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
@@ -454,11 +454,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                          turned a glance-able pill into a paragraph. The jargon
                          is explained in the bill breakdown instead. */
                       <ChipTooltip
-                        content={
-                          showDeadlineCountdown
-                            ? `If the committee chair doesn't schedule this bill by ${nextDeadline.name} (${new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}), it fails. ${deadlineDaysAway <= 0 ? 'Due today.' : `${deadlineDaysAway} day${deadlineDaysAway === 1 ? '' : 's'} left.`}`
-                            : `${nextDeadline.name} deadline: ${new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}. ${deadlineDaysAway <= 0 ? 'Due today.' : `${deadlineDaysAway} day${deadlineDaysAway === 1 ? '' : 's'} left.`}`
-                        }
+                        content={formatDeadlineStanding(nextDeadline, deadlineDaysAway, showDeadlineCountdown)}
                       >
                         <span
                           className={cn(

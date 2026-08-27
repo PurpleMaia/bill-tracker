@@ -4,8 +4,8 @@ import type { BillDetails } from '@/types/legislation';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
-import { getNextDeadline, getDeadlineTier, isFiscalBill, isEnacted } from '@/lib/bills/dead-bill';
-import { COLUMN_TITLES } from '@/lib/bills/kanban-columns';
+import { getNextDeadline, isFiscalBill, isEnacted, formatDeadlineStanding } from '@/lib/bills/dead-bill';
+import { COLUMN_TITLES, isAwaitingHearing } from '@/lib/bills/kanban-columns';
 import { formatBillStatusName } from '@/lib/core/utils';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { sortVersions } from '@/lib/versions/bill-versions';
@@ -62,8 +62,9 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
       : `Testimony is closed — ${closedReason}.`,
   };
 
-  // Where it stands: dead reason, or next deadline (with days-away + tier), or
-  // a plain status line.
+  // Where it stands: dead reason, the upcoming-deadline sentence (identical to
+  // the card's countdown-chip tooltip), or a plain status line for terminal
+  // statuses that have no upcoming deadline.
   const fiscal = committeeAssignment ? isFiscalBill(committeeAssignment) : false;
   let standing: string;
   if (bill.dead) {
@@ -77,16 +78,15 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
         (new Date(next.date + 'T00:00:00').getTime() - new Date(today + 'T00:00:00').getTime()) /
           86_400_000,
       );
-      const tier = getDeadlineTier(daysAway);
-      standing =
-        `Next deadline: ${next.name} on ${next.date}` +
-        (daysAway > 0 ? ` (${daysAway} day${daysAway !== 1 ? 's' : ''} away, ${tier})` : daysAway === 0 ? ' (today)' : '') +
-        (fiscal ? ' · fiscal bill' : '');
+      // Same verbiage as the kanban card's deadline chip tooltip (shared helper).
+      standing = formatDeadlineStanding(next, daysAway, isAwaitingHearing(status));
+    } else if (isEnacted(status)) {
+      standing = 'This bill has passed and is now law.';
     } else {
-      // Terminal statuses (enacted, vetoed, etc.) have no upcoming deadline.
-      // Show the friendly board title, never the raw enum value.
+      // Terminal statuses without an upcoming deadline: show the friendly board
+      // title, never the raw enum value.
       const label = COLUMN_TITLES[status] ?? formatBillStatusName(status);
-      standing = `Currently ${label}${fiscal ? ' · fiscal bill' : ''}.`;
+      standing = `Currently ${label.toLowerCase()}${fiscal ? ' · fiscal bill' : ''}.`;
     }
   }
 
