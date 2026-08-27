@@ -8,9 +8,13 @@ import type { BillStatus } from '@/types/legislation';
 
 export interface ProgressStage {
   id: string;
+  /** Full, spelled-out label for headings (the /learn walkthrough). */
   name: string;
+  /** Compact label for the tight 6-across progress-bar row where the full
+   *  name would crowd. Falls back to name when the same. */
+  shortName: string;
   /** Status ids that place a bill in this stage. Includes deferred statuses
-   *  that are not KANBAN_COLUMNS entries — see EXTENDED_INDEX in derived-status. */
+   *  that are not KANBAN_COLUMNS entries. See EXTENDED_INDEX in derived-status. */
   statuses: string[];
   /** Novice-facing: what happens here and why the stage exists. */
   description: string;
@@ -20,13 +24,15 @@ export const PROGRESS_STAGES: readonly ProgressStage[] = [
   {
     id: 'introduced',
     name: 'Introduced',
+    shortName: 'Introduced',
     statuses: ['introduced'],
     description:
-      'A legislator files the bill and it passes First Reading — a formal step that puts it on the record. It is then referred to committees, which decide whether it goes any further.',
+      'A legislator files the bill and it passes First Reading, a formal step that puts it on the record. It is then referred to committees, which decide whether it goes any further.',
   },
   {
     id: 'orig-chamber',
-    name: 'Orig. Chamber',
+    name: 'Originating Chamber',
+    shortName: 'Originating',
     statuses: [
       'scheduled1',
       'deferred1',
@@ -43,7 +49,8 @@ export const PROGRESS_STAGES: readonly ProgressStage[] = [
   },
   {
     id: 'non-orig-chamber',
-    name: 'Non-Orig. Chamber',
+    name: 'Non-Originating Chamber',
+    shortName: 'Non-Originating',
     statuses: [
       'crossoverScheduled1',
       'crossoverDeferred1',
@@ -56,18 +63,20 @@ export const PROGRESS_STAGES: readonly ProgressStage[] = [
       'passedCommittees',
     ],
     description:
-      'After passing its first chamber, the bill crosses over to the other one and starts committee review again from the beginning. Both chambers must agree on identical text before anything can become law — that is why this second pass exists.',
+      'After passing its first chamber, the bill crosses over to the other one and starts committee review again from the beginning. Both chambers must agree on identical text before anything can become law, which is why this second pass exists.',
   },
   {
     id: 'conference',
     name: 'Conference',
+    shortName: 'Conference',
     statuses: ['conferenceAssigned', 'conferenceScheduled', 'conferenceDeferred', 'conferencePassed'],
     description:
-      'When the two chambers pass different versions, a small group of negotiators from each — conferees — meets to produce one compromise draft. If they cannot agree, the bill dies even though both chambers approved a version of it.',
+      'When the two chambers pass different versions, a small group of negotiators from each, called conferees, meets to produce one compromise draft. If they cannot agree, the bill dies even though both chambers approved a version of it.',
   },
   {
     id: 'governor',
     name: 'Governor',
+    shortName: 'Governor',
     statuses: ['transmittedGovernor', 'vetoList'],
     description:
       'The final text goes to the Governor, who can sign it, veto it, or let it become law without a signature. The legislature can override a veto with a two-thirds vote in each chamber.',
@@ -75,9 +84,10 @@ export const PROGRESS_STAGES: readonly ProgressStage[] = [
   {
     id: 'law',
     name: 'Law',
+    shortName: 'Law',
     statuses: ['governorSigns', 'lawWithoutSignature'],
     description:
-      'The bill is now an Act — part of Hawaii law. It usually takes effect on a date written into the text itself.',
+      'The bill is now an Act, part of Hawaii law. It usually takes effect on a date written into the text itself.',
   },
 ];
 

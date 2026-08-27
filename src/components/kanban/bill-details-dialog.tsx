@@ -507,7 +507,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                     dead={bill.dead}
                     deadReason={deadReason}
                     progressValue={progressValue}
-                    progressStages={PROGRESS_STAGES.map(s => s.name)}
+                    progressStages={PROGRESS_STAGES.map(s => s.shortName)}
                     currentStageName={currentStageName}
                     onNextStep={(action) => {
                       if (action === 'diff' || action === 'reports') setActiveTab('versions');
