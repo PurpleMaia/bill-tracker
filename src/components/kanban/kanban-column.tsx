@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
 import type { Bill, TempBill } from '@/types/legislation';
 import { KanbanCard } from './kanban-card';
@@ -11,6 +11,7 @@ import { Draggable } from '@hello-pangea/dnd';
 import { cn } from '@/lib/core/utils';
 import { TempBillCard } from './temp-card';
 import { HelpCircle, Plus } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { COLUMN_DESCRIPTIONS } from '@/lib/bills/kanban-columns';
 import { columnTrackSearchHref } from '@/lib/bills/track-bill-links';
@@ -104,6 +105,9 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
     ref
   ) => {
     const { activeTenant } = useAuth();
+    // The stage-help panel opens on hover/focus AND on click/tap, so it works
+    // for mouse, keyboard, and touch users. Controlled so hover can drive it.
+    const [helpOpen, setHelpOpen] = useState(false);
 
     // Use shared refs from parent, or create local ones if not provided
     const localBillCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -167,26 +171,37 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
                   </Tooltip>
                 </TooltipProvider>
               )}
-              {/* Hover to reveal what this stage means — a Tooltip (not a click
-                  Popover) so the explanation appears on hover/focus. */}
-              <TooltipProvider delayDuration={300}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
+              {/* Stage-help panel: opens on hover/focus (mouse + keyboard) and on
+                  click/tap (touch), all driving the same controlled Popover. The
+                  hover/focus handlers wrap trigger + content so moving into the
+                  panel keeps it open. */}
+              <Popover open={helpOpen} onOpenChange={setHelpOpen}>
+                <span
+                  onMouseEnter={() => setHelpOpen(true)}
+                  onMouseLeave={() => setHelpOpen(false)}
+                  onFocus={() => setHelpOpen(true)}
+                  onBlur={() => setHelpOpen(false)}
+                >
+                  <PopoverTrigger asChild>
                     <button
                       className="shrink-0 rounded-full text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label={`What does "${title}" mean?`}
                     >
                       <HelpCircle className="h-4 w-4" />
                     </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-72" align="end">
-                    <p className="mb-1 text-sm font-semibold">{title}</p>
-                    <p className="text-sm leading-relaxed">
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-72"
+                    align="end"
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                  >
+                    <h3 className="mb-1 text-sm font-semibold">{title}</h3>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
                       {COLUMN_DESCRIPTIONS[columnId] ?? 'No description available for this stage.'}
                     </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+                  </PopoverContent>
+                </span>
+              </Popover>
             </span>
           </h2>
         </div>
