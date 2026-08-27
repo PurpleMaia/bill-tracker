@@ -523,48 +523,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   {/* Uses the app's warm palette (ochre for urgency, teal
                       primary otherwise) rather than raw blue/amber Tailwind,
                       matching the deadline pill on the kanban card. */}
-                  {bill.dead ? (
-                    <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2.5">
-                      <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" aria-hidden="true" />
-                      <span className="text-xs font-medium text-destructive">Marked failed</span>
-                    </div>
-                  ) : nextDeadline ? (
-                    <div className={cn(
-                      "rounded-lg border px-4 py-3",
-                      isUrgent ? "border-ochre/40 bg-ochre-soft" : "border-border bg-secondary/40"
-                    )}>
-                      <div className="mb-1 flex items-center gap-1.5">
-                        {isUrgent
-                          ? <AlarmClock className="h-3.5 w-3.5 shrink-0 text-ochre" />
-                          : <Clock className="h-3.5 w-3.5 shrink-0 text-primary" />}
-                        <span className={cn(
-                          "text-sm font-semibold leading-none",
-                          isUrgent ? "text-ochre" : "text-foreground"
-                        )}>
-                          {nextDeadline.name}
-                        </span>
-                        {/* Explains the deadline's jargon name in place. Inherits
-                            the box's color via currentColor. */}
-                        <Term
-                          variant="help"
-                          billId={bill.id}
-                          side="top"
-                          className={isUrgent ? 'text-ochre' : 'text-primary'}
-                          term={resolveDeadlineTerm(nextDeadline.name)}
-                        />
-                      </div>
-                      <p className={cn(
-                        "text-xs",
-                        isUrgent ? "text-ochre/90" : "text-muted-foreground"
-                      )}>
-                        {new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                        {deadlineDaysAway !== null && (
-                          deadlineDaysAway > 0 ? ` — ${deadlineDaysAway} day${deadlineDaysAway !== 1 ? 's' : ''} away`
-                            : deadlineDaysAway === 0 ? ' — today' : ''
-                        )}
-                      </p>
-                    </div>
-                  ) : null}
+                  
 
                   {/* Bill details */}
                   <div className="space-y-4">

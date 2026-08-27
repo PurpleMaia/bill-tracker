@@ -139,7 +139,7 @@ export function OrgSettingsDialog({ open, onOpenChange }: OrgSettingsDialogProps
               rows={3}
               maxLength={DESCRIPTION_MAX}
               disabled={!loaded || savingDescription}
-              placeholder="A short line about what your org does — shown when people browse organizations."
+              placeholder="A short line about what your org does. This is shown when people browse through active boards & organizations."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               onBlur={handleDescriptionBlur}

@@ -386,7 +386,7 @@ function StepCompose({
               <h2 className="text-sm font-semibold">Email script</h2>
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
-              One message goes to every chair. Edit it freely — the greeting is filled in for each legislator when you
+              One message goes to every chair. You may edit it freely. The greeting ("Dear Chair") is filled in for each legislator when you
               send.
             </p>
             <div className="mb-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
@@ -413,7 +413,7 @@ function StepCompose({
               <h2 className="text-sm font-semibold">Call script</h2>
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
-              What to say when you call an office. Keep it short — staff just note your position.
+              What to say when you call an office.
             </p>
             <Textarea
               value={callScript}

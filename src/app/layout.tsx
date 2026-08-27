@@ -28,7 +28,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Hawaiʻi Bill Tracker',
-  description: 'Track bills through the legislative process',
+  description: 'Track Hawaiʻi\'s bills. Stay informed, stay engaged, and make your voice heard.',
 };
 
 export default async function RootLayout({
