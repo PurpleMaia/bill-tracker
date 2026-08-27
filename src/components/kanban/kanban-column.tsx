@@ -254,16 +254,13 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
               boards there's nothing to track, so it stays a neutral line. */}
           {!bills.length && pendingCount === 0 && !children && (
             activeTenant && boardMode === 'own' ? (
-              <div className="flex flex-col items-center gap-2 p-4 text-center">
-                <p className="text-sm text-muted-foreground">
-                  None of your tracked bills are in this stage.
-                </p>
+              <div className="flex flex-col items-center gap-2 p-4 text-center">                
                 <Link
                   href={columnTrackSearchHref(columnId)}
                   className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  Find bills to track
+                  Track bills at this stage
                 </Link>
               </div>
             ) : (
