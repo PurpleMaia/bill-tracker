@@ -12,7 +12,6 @@ import { cn } from '@/lib/core/utils';
 import { TempBillCard } from './temp-card';
 import { HelpCircle, Plus } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { COLUMN_DESCRIPTIONS } from '@/lib/bills/kanban-columns';
 import { columnTrackSearchHref } from '@/lib/bills/track-bill-links';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -148,26 +147,6 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
             </span>
 
             <span className="flex shrink-0 items-center gap-1">
-              {/* Add a bill to this stage: jumps to the search page pre-filtered
-                  to untracked bills at this column's stage, where they can be
-                  tracked in one click. Own board only — meaningless on a public
-                  or another org's read-only view, and needs a logged-in user. */}
-              {activeTenant && boardMode === 'own' && (
-                <TooltipProvider delayDuration={300}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        href={columnTrackSearchHref(columnId)}
-                        aria-label={`Find bills to track in "${title}"`}
-                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent>Find bills to track at this stage</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
               {/* Tap/click to reveal what this stage means. */}
               <Popover>
                 <PopoverTrigger asChild>
