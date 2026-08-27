@@ -9,6 +9,7 @@
 import type { BillStatus } from '@/db/types';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import { isFiscalBill, isEnacted } from '@/lib/bills/dead-bill';
+import { isConferenceOrLater } from '@/lib/bills/progress-stages';
 
 export const SCHEDULED_STATUSES: BillStatus[] = [
   'scheduled1',
@@ -56,6 +57,12 @@ export function getTestimonyEligibility(params: {
 
   if (params.dead) {
     return { allowed: false, reason: 'This bill is dead' };
+  }
+
+  // Once a bill reaches conference (or Governor/Law after it), public testimony
+  // is no longer taken — the process has moved to conferee negotiation.
+  if (isConferenceOrLater(params.billStatus)) {
+    return { allowed: false, reason: 'This bill has moved past public testimony (in conference or later)' };
   }
 
   if (params.hearingPassed) {

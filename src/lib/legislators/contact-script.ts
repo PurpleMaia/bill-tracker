@@ -1,67 +1,74 @@
 import type { CommitteeChair } from '@/db/queries/committee-chairs';
 
-export type ContactPosition = 'support' | 'oppose';
-
 /** The greeting line placeholder used by the shared (un-personalized) script. */
 export const NEUTRAL_GREETING = 'Dear Chair,';
 
 /** Placeholder the user fills in with their own name before sending. */
 export const NAME_PLACEHOLDER = '<your-name>';
 
+/**
+ * The measure phrase for a bill: "HB1572, Relating to Aquaculture," when a title
+ * is present, otherwise just the number. Null-safe (never prints "null").
+ */
+function measurePhrase(billNumber: string, billTitle: string | null): string {
+  return billTitle ? `${billNumber}, ${billTitle},` : billNumber;
+}
+
+/**
+ * The clause naming the committee the request is directed at. Uses the inferred
+ * current committee name when we have one, else a neutral fallback.
+ */
+function committeeClause(committeeName?: string): string {
+  return committeeName ? `the ${committeeName}` : 'the committee';
+}
+
 function scriptBody(input: {
   greeting: string;
   billNumber: string;
   billTitle: string | null;
-  position: ContactPosition;
   userName?: string;
-  /** Optional committee name for the per-recipient variant. */
+  /** The committee the bill is currently awaiting a hearing before. */
   committeeName?: string;
 }): string {
-  const { greeting, billNumber, billTitle, position, userName, committeeName } = input;
-  const verb = position === 'support' ? 'support' : 'oppose';
-  const measure = billTitle ? `${billNumber}, ${billTitle},` : `${billNumber}`;
-  const before = committeeName ? ` currently before the ${committeeName} committee` : ' currently before your committee';
+  const { greeting, billNumber, billTitle, userName, committeeName } = input;
+  const measure = measurePhrase(billNumber, billTitle);
+  const before = committeeClause(committeeName);
 
   return [
     greeting,
     ``,
-    `My name is ${userName ?? NAME_PLACEHOLDER}, and I am writing to ask you to ${verb} ${measure}${before}.`,
+    `I am writing to respectfully request a hearing for ${measure} before ${before}.`,
     ``,
-    position === 'support'
-      ? `This measure matters to our community, and I respectfully urge the committee to advance it.`
-      : `I have serious concerns about this measure, and I respectfully urge the committee to hold it.`,
+    `This measure is currently awaiting a hearing, and scheduling one would give the public an opportunity to weigh in and let the process move forward.`,
     ``,
-    `Thank you for your time and your service.`,
+    `Thank you for your time and consideration.`,
     ``,
-    `Sincerely,`,
+    `Mahalo nui loa,`,
     `${userName ?? NAME_PLACEHOLDER}`,
   ].join('\n');
 }
 
-function subjectLine(position: ContactPosition, billNumber: string): string {
-  const stance = position === 'support' ? 'Support' : 'Oppose';
-  return `${stance} for ${billNumber}`;
+function subjectLine(billNumber: string): string {
+  return `Hearing request for ${billNumber}`;
 }
 
 /**
- * Builds a short, polite advocacy message to a committee chair/vice-chair.
+ * Builds a short, polite hearing-request message to a committee chair/vice-chair.
  * Pure — no DB, no LLM, no network. `subject` feeds a mailto link.
  */
 export function buildContactScript(input: {
   billNumber: string;
   billTitle: string | null;
   chair: CommitteeChair;
-  position: ContactPosition;
   userName?: string;
 }): { subject: string; body: string } {
-  const { billNumber, billTitle, chair, position, userName } = input;
+  const { billNumber, billTitle, chair, userName } = input;
   return {
-    subject: subjectLine(position, billNumber),
+    subject: subjectLine(billNumber),
     body: scriptBody({
       greeting: `Dear ${chair.legislatorName},`,
       billNumber,
       billTitle,
-      position,
       userName,
       committeeName: chair.committeeName,
     }),
@@ -69,54 +76,51 @@ export function buildContactScript(input: {
 }
 
 /**
- * The ONE shared, editable script for a bill+position — greeting is neutral
- * (`Dear Chair,`) so the user edits a single message and sends it to any
- * committee chair. Personalize per-recipient at send time with
- * {@link personalizeScript}.
+ * The ONE shared, editable script for a bill — greeting is neutral (`Dear Chair,`)
+ * so the user edits a single message and sends it to any committee chair.
+ * Personalize per-recipient at send time with {@link personalizeScript}.
  */
 export function buildBaseScript(input: {
   billNumber: string;
   billTitle: string | null;
-  position: ContactPosition;
   userName?: string;
+  /** The committee the bill is currently awaiting a hearing before. */
+  committeeName?: string;
 }): { subject: string; body: string } {
-  const { billNumber, billTitle, position, userName } = input;
+  const { billNumber, billTitle, userName, committeeName } = input;
   return {
-    subject: subjectLine(position, billNumber),
+    subject: subjectLine(billNumber),
     body: scriptBody({
       greeting: NEUTRAL_GREETING,
       billNumber,
       billTitle,
-      position,
       userName,
+      committeeName,
     }),
   };
 }
 
 /**
- * A short spoken phone script — what to say when calling a committee office.
- * Position-aware, first-person, no greeting/signature. Pure.
+ * A short spoken phone script — what to say when calling a committee office to
+ * ask for a hearing. First-person, no greeting/signature. Pure.
  */
 export function buildCallScript(input: {
   billNumber: string;
   billTitle: string | null;
-  position: ContactPosition;
   userName?: string;
+  /** The committee the bill is currently awaiting a hearing before. */
+  committeeName?: string;
 }): string {
-  const { billNumber, billTitle, position, userName } = input;
-  const verb = position === 'support' ? 'support' : 'oppose';
+  const { billNumber, billTitle, userName, committeeName } = input;
   const measure = billTitle ? `${billNumber}, ${billTitle}` : billNumber;
-  const ask =
-    position === 'support'
-      ? `I'm asking the committee to advance it.`
-      : `I'm asking the committee to hold it.`;
+  const before = committeeName ? `the ${committeeName}` : 'this committee';
 
   return [
     `Hi, my name is ${userName ?? NAME_PLACEHOLDER} and I'm a Hawaii resident.`,
     ``,
-    `I'm calling to ask the chair to ${verb} ${measure}. ${ask}`,
+    `I'm calling to respectfully ask ${before} to schedule a hearing for ${measure}.`,
     ``,
-    `This measure matters to our community. Thank you for your time.`,
+    `This measure is awaiting a hearing, and scheduling one would let the public weigh in. Thank you for your time.`,
   ].join('\n');
 }
 

@@ -442,3 +442,79 @@ export async function listFollowedTenants(userId: string) {
     sampleBills: [],
   }));
 }
+
+/**
+ * Claims an invite token atomically and returns the org it grants access to.
+ *
+ * The UPDATE ... WHERE status='pending' is what makes this safe: two
+ * simultaneous redemptions of the same token race on the same row, and only
+ * the one that flips the status sees a row returned.
+ *
+ * Returns a `reason` instead of throwing because every caller renders the
+ * failure to the user rather than treating it as an error.
+ *
+ * Extracted from the register route so the Google OAuth callback claims
+ * invites through exactly the same path — CLAUDE.md keeps queries here, not
+ * inline in a transport.
+ */
+export async function claimInviteToken(
+  token: string,
+  email: string
+): Promise<{ ok: true; tenantId: string } | { ok: false; reason: string }> {
+  const invite = await db
+    .updateTable('invite_tokens')
+    .set({ status: 'accepted', accepted_at: new Date() })
+    .where('token', '=', token)
+    .where('status', '=', 'pending')
+    .where('expires_at', '>', new Date())
+    .returning(['id', 'tenant_id', 'email'])
+    .executeTakeFirst();
+
+  if (!invite) {
+    return { ok: false, reason: 'Invite is invalid, expired, or already used.' };
+  }
+
+  // An invite is issued to one address. Release the claim so a mis-matched
+  // attempt doesn't burn a token the rightful recipient still needs.
+  if (invite.email !== email) {
+    await db
+      .updateTable('invite_tokens')
+      .set({ status: 'pending', accepted_at: null })
+      .where('id', '=', invite.id)
+      .execute();
+    return { ok: false, reason: 'This invite was issued to a different email address.' };
+  }
+
+  return { ok: true, tenantId: invite.tenant_id };
+}
+
+/**
+ * Creates an organization for a newly registered user and makes them its admin.
+ *
+ * Slug derivation matches what the register route has always done. Failure is
+ * swallowed to a null return: a signup that succeeded should not be undone
+ * because the optional org name collided.
+ */
+export async function createOrgForNewUser(
+  orgName: string,
+  userId: string
+): Promise<{ id: string; name: string; slug: string } | null> {
+  const trimmedName = orgName.trim();
+  if (!trimmedName || trimmedName.length > 100) return null;
+
+  const slug = trimmedName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 50);
+
+  try {
+    const tenant = await createTenant(trimmedName, slug, undefined, { skipAuth: true });
+    await addMember(tenant.id, userId, 'admin', { skipAuth: true });
+    return tenant;
+  } catch (orgError) {
+    console.error('[createOrgForNewUser] Failed to create organization:', orgError);
+    return null;
+  }
+}

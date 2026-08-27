@@ -53,6 +53,26 @@ describe('getTestimonyEligibility', () => {
     });
   });
 
+  it('closes testimony once the bill reaches conference or later', () => {
+    const past = 'This bill has moved past public testimony (in conference or later)';
+    for (const billStatus of [
+      'conferenceAssigned',
+      'conferenceScheduled',
+      'conferenceDeferred',
+      'conferencePassed',
+      'transmittedGovernor',
+    ] as const) {
+      expect(getTestimonyEligibility({ ...base, billStatus })).toEqual({ allowed: false, reason: past });
+    }
+  });
+
+  it('still allows testimony at passedCommittees (before conference)', () => {
+    expect(getTestimonyEligibility({ ...base, billStatus: 'passedCommittees' })).toEqual({
+      allowed: true,
+      reason: null,
+    });
+  });
+
   it('closes testimony after the final hearing deadline for non-fiscal bills', () => {
     expect(getTestimonyEligibility({ ...base, today: '2026-04-30' })).toEqual({
       allowed: false,

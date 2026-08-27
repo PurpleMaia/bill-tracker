@@ -103,3 +103,19 @@ export const getCurrentStageName = (status: BillStatus): string => {
   if (status === 'introduced') return 'Introduced';
   return 'Not Assigned';
 };
+
+/** Index of the Conference stage in the arc — the boundary "conference or later". */
+const CONFERENCE_STAGE_INDEX = PROGRESS_STAGES.findIndex((s) => s.id === 'conference');
+
+/**
+ * True once a bill has reached the Conference stage or anything after it
+ * (Governor, Law). Public testimony is no longer taken at these stages — the
+ * work has moved from committee hearings to conferee negotiation and beyond.
+ * A status not found in any stage (e.g. a bare 'introduced') is treated as
+ * before conference. Pure — driven by PROGRESS_STAGES ordering, not a hardcoded
+ * status list, so it stays correct as statuses shift between stages.
+ */
+export function isConferenceOrLater(status: BillStatus): boolean {
+  const idx = PROGRESS_STAGES.findIndex((s) => s.statuses.includes(status));
+  return idx >= 0 && idx >= CONFERENCE_STAGE_INDEX;
+}
