@@ -177,6 +177,7 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
                   panel keeps it open. */}
               <Popover open={helpOpen} onOpenChange={setHelpOpen}>
                 <span
+                  className="inline-flex shrink-0"
                   onMouseEnter={() => setHelpOpen(true)}
                   onMouseLeave={() => setHelpOpen(false)}
                   onFocus={() => setHelpOpen(true)}
@@ -184,7 +185,7 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
                 >
                   <PopoverTrigger asChild>
                     <button
-                      className="shrink-0 rounded-full text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label={`What does "${title}" mean?`}
                     >
                       <HelpCircle className="h-4 w-4" />
