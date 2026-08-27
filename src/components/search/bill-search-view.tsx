@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ArrowUp, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,7 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 import {
   DEFAULT_FILTERS,
   activeFilterCount,
+  parseSearchParams,
   type SearchFilters,
 } from '@/lib/bills/search-params';
 
@@ -26,7 +28,16 @@ const SESSION_YEARS = [2026, 2025];
 export function BillSearchView() {
   const { user, activeTenant } = useAuth();
   const isLoggedIn = Boolean(user);
-  const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
+  // Seed filters from the URL once, so a link into the page (e.g. a board
+  // column's "+" -> /search?stages=…&tracked=untracked) lands pre-filtered.
+  // Lazy init reads the params a single time; the filter controls own state
+  // thereafter (they don't push back to the URL). A missing `years` param keeps
+  // the default live-session scope rather than widening to all sessions.
+  const searchParams = useSearchParams();
+  const [filters, setFilters] = useState<SearchFilters>(() => {
+    const parsed = parseSearchParams(new URLSearchParams(searchParams.toString()));
+    return { ...parsed, years: parsed.years.length ? parsed.years : DEFAULT_FILTERS.years };
+  });
   const [openBillId, setOpenBillId] = useState<string | null>(null);
   const {
     bills,

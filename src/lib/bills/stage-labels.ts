@@ -1,4 +1,14 @@
 import { SIMPLIFIED_COLUMNS } from '@/lib/bills/kanban-columns';
+import { DETAILED_STAGE_GROUPS } from '@/lib/bills/detailed-stages';
+
+/** Concrete-status label lookup, built from the detailed-stage children. */
+const DETAILED_CHILD_LABELS: Record<string, string> = Object.values(DETAILED_STAGE_GROUPS)
+  .flat()
+  .flatMap((g) => g.children)
+  .reduce<Record<string, string>>((acc, child) => {
+    acc[child.id] = child.label;
+    return acc;
+  }, {});
 
 /**
  * Display labels for the search page's Stage filter.
@@ -18,8 +28,13 @@ const STAGE_LABEL_OVERRIDES: Record<string, string> = {
   conferenceScheduled: 'conference scheduled',
 };
 
-/** Human label for a simplified stage id. Falls back to the id if unknown. */
+/**
+ * Human label for a stage filter id — either a simplified stage or one of the
+ * detailed concrete statuses the filter can expand to. Falls back to the id if
+ * unknown.
+ */
 export function stageLabel(stageId: string): string {
+  if (stageId in DETAILED_CHILD_LABELS) return DETAILED_CHILD_LABELS[stageId];
   const column = SIMPLIFIED_COLUMNS.find((c) => c.id === stageId);
   return STAGE_LABEL_OVERRIDES[stageId] ?? column?.title.toLowerCase() ?? stageId;
 }

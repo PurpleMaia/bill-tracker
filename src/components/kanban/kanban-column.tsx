@@ -3,15 +3,18 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import Link from 'next/link';
 import type { Bill, TempBill } from '@/types/legislation';
 import { KanbanCard } from './kanban-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Draggable } from '@hello-pangea/dnd';
 import { cn } from '@/lib/core/utils';
 import { TempBillCard } from './temp-card';
-import { HelpCircle, Loader2 } from 'lucide-react';
+import { HelpCircle, Loader2, Plus } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { COLUMN_DESCRIPTIONS } from '@/lib/bills/kanban-columns';
+import { columnTrackSearchHref } from '@/lib/bills/track-bill-links';
 import ColumnOptionsMenu from './column-options-menu';
 import { useAuth } from '@/hooks/contexts/auth-context';
 
@@ -22,8 +25,12 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 function getColumnPhaseBg(columnId: string): string {
   if (columnId === 'vetoList') return 'bg-[#f8d7d2]';
   if (columnId === 'governorSigns' || columnId === 'lawWithoutSignature') return 'bg-[#d6e8d4]';
-  // Waiting columns (introduced, waiting, crossover waiting) get olive
-  if (columnId === 'introduced' || columnId === 'simpleWaiting' || columnId.startsWith('crossoverWaiting') || columnId === 'simpleCrossoverWaiting')
+  // Entry "waiting" columns get olive: a bill just arrived at a chamber and is
+  // waiting for its FIRST hearing there. That's introduced (originating) and
+  // crossoverWaiting1 (just crossed over). The later waiting columns
+  // (waiting2/3 and crossoverWaiting2/3) fall through to gray — they're
+  // between-committee holds, not chamber entry points.
+  if (columnId === 'introduced' || columnId === 'simpleWaiting' || columnId === 'crossoverWaiting1' || columnId === 'simpleCrossoverWaiting')
     return 'bg-olive-soft';
   // Passed committees and transmitted to governor get olive
   if (columnId === 'passedCommittees' || columnId === 'transmittedGovernor')
@@ -145,6 +152,26 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
             <span className="flex shrink-0 items-center gap-1">
               {refreshing && (
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Updating column" />
+              )}
+              {/* Add a bill to this stage: jumps to the search page pre-filtered
+                  to untracked bills at this column's stage, where they can be
+                  tracked in one click. Own board only — meaningless on a public
+                  or another org's read-only view, and needs a logged-in user. */}
+              {activeTenant && boardMode === 'own' && (
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={columnTrackSearchHref(columnId)}
+                        aria-label={`Find bills to track in "${title}"`}
+                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>Find bills to track at this stage</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
               <Popover>
                 <PopoverTrigger asChild>
