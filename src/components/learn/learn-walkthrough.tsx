@@ -83,7 +83,7 @@ export function LearnWalkthrough() {
                 <span className="font-semibold">{billNumber}</span> failed
                 {currentStageId ? ' at the stage marked below' : ''}. Most bills fail
                 because a deadline passed or a chair never scheduled a hearing. It never reached the
-                stages after that point.
+                stages after that point. Also, the committee could have ultimately voted it defer the measure.
               </p>
             ) : (
               <>
