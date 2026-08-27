@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import Link from 'next/link';
 import type { Bill, TempBill } from '@/types/legislation';
 import { KanbanCard } from './kanban-card';
@@ -105,9 +105,6 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
     ref
   ) => {
     const { activeTenant } = useAuth();
-    // The stage-help panel opens on hover/focus AND on click/tap, so it works
-    // for mouse, keyboard, and touch users. Controlled so hover can drive it.
-    const [helpOpen, setHelpOpen] = useState(false);
 
     // Use shared refs from parent, or create local ones if not provided
     const localBillCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -171,37 +168,22 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
                   </Tooltip>
                 </TooltipProvider>
               )}
-              {/* Stage-help panel: opens on hover/focus (mouse + keyboard) and on
-                  click/tap (touch), all driving the same controlled Popover. The
-                  hover/focus handlers wrap trigger + content so moving into the
-                  panel keeps it open. */}
-              <Popover open={helpOpen} onOpenChange={setHelpOpen}>
-                <span
-                  className="inline-flex shrink-0"
-                  onMouseEnter={() => setHelpOpen(true)}
-                  onMouseLeave={() => setHelpOpen(false)}
-                  onFocus={() => setHelpOpen(true)}
-                  onBlur={() => setHelpOpen(false)}
-                >
-                  <PopoverTrigger asChild>
-                    <button
-                      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      aria-label={`What does "${title}" mean?`}
-                    >
-                      <HelpCircle className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-72"
-                    align="end"
-                    onOpenAutoFocus={(e) => e.preventDefault()}
+              {/* Tap/click to reveal what this stage means. */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label={`What does "${title}" mean?`}
                   >
-                    <h3 className="mb-1 text-sm font-semibold">{title}</h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                      {COLUMN_DESCRIPTIONS[columnId] ?? 'No description available for this stage.'}
-                    </p>
-                  </PopoverContent>
-                </span>
+                    <HelpCircle className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72" align="end">
+                  <h3 className="mb-1 text-sm font-semibold">{title}</h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {COLUMN_DESCRIPTIONS[columnId] ?? 'No description available for this stage.'}
+                  </p>
+                </PopoverContent>
               </Popover>
             </span>
           </h2>
