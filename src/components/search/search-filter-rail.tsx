@@ -1,13 +1,20 @@
 'use client';
 
-import { ChevronsUpDown } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronRight, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/core/utils';
 import { SIMPLIFIED_COLUMNS } from '@/lib/bills/kanban-columns';
+import {
+  DETAILED_STAGE_GROUPS,
+  detailedChildIds,
+  hasDetailedChildren,
+} from '@/lib/bills/detailed-stages';
 import { stageLabel } from '@/lib/bills/stage-labels';
 import {
   activeFilterCount,
@@ -58,6 +65,33 @@ export function SearchFilterRail({ filters, onChange, onClear, loggedIn }: Searc
       ? filters.stages.filter((s) => s !== stageId)
       : [...filters.stages, stageId];
     onChange({ ...filters, stages });
+  };
+
+  // Which expandable stages are open. Seeded so a stage arrives open when it or
+  // any of its detailed children is already selected — the case when the user
+  // lands here from a board column's "+" link. Lazy initial state: computed once
+  // from the incoming filters, then owned by the user's clicks.
+  const [expandedStages, setExpandedStages] = useState<Set<string>>(() => {
+    const open = new Set<string>();
+    for (const stageId of Object.keys(DETAILED_STAGE_GROUPS)) {
+      const children = detailedChildIds(stageId);
+      if (
+        filters.stages.includes(stageId) ||
+        children.some((c) => filters.stages.includes(c))
+      ) {
+        open.add(stageId);
+      }
+    }
+    return open;
+  });
+
+  const toggleExpand = (stageId: string) => {
+    setExpandedStages((prev) => {
+      const next = new Set(prev);
+      if (next.has(stageId)) next.delete(stageId);
+      else next.add(stageId);
+      return next;
+    });
   };
 
   return (
@@ -177,29 +211,111 @@ export function SearchFilterRail({ filters, onChange, onClear, loggedIn }: Searc
               <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="start" className="w-[15rem] p-1.5">
+          <PopoverContent align="start" className="w-[17rem] p-1.5">
             <div className="max-h-72 space-y-0.5 overflow-y-auto">
               {SIMPLIFIED_COLUMNS.map((column) => (
-                <label
+                <StageRow
                   key={column.id}
-                  htmlFor={`stage-${column.id}`}
-                  className="flex cursor-pointer items-start gap-2 rounded-sm px-2 py-1.5 hover:bg-accent"
-                >
-                  <Checkbox
-                    id={`stage-${column.id}`}
-                    className="mt-0.5 shrink-0"
-                    checked={filters.stages.includes(column.id)}
-                    onCheckedChange={() => toggleStage(column.id)}
-                  />
-                  <span className="text-xs capitalize leading-tight">
-                    {stageLabel(column.id)}
-                  </span>
-                </label>
+                  stageId={column.id}
+                  selectedStages={filters.stages}
+                  expanded={expandedStages.has(column.id)}
+                  onToggleStage={toggleStage}
+                  onToggleExpand={toggleExpand}
+                />
               ))}
             </div>
           </PopoverContent>
         </Popover>
       </fieldset>
+    </div>
+  );
+}
+
+/**
+ * One row of the Stage filter: a simplified stage with a checkbox that filters
+ * to the whole group, plus — when the stage has concrete children — a chevron
+ * that reveals them. Checking the parent still means "any bill at this stage";
+ * checking a child narrows to that exact status. Both flow through the same
+ * `stages` filter, so a parent and a child can coexist (the DB query dedupes).
+ */
+function StageRow({
+  stageId,
+  selectedStages,
+  expanded,
+  onToggleStage,
+  onToggleExpand,
+}: {
+  stageId: string;
+  selectedStages: string[];
+  expanded: boolean;
+  onToggleStage: (id: string) => void;
+  onToggleExpand: (id: string) => void;
+}) {
+  const expandable = hasDetailedChildren(stageId);
+  const groups = DETAILED_STAGE_GROUPS[stageId] ?? [];
+
+  return (
+    <div>
+      <div className="flex items-center gap-1 rounded-sm hover:bg-muted">
+        <label
+          htmlFor={`stage-${stageId}`}
+          className="flex flex-1 cursor-pointer items-center gap-2 px-2 py-1.5"
+        >
+          <Checkbox
+            id={`stage-${stageId}`}
+            className="shrink-0"
+            checked={selectedStages.includes(stageId)}
+            onCheckedChange={() => onToggleStage(stageId)}
+          />
+          <span className="text-xs capitalize leading-tight">{stageLabel(stageId)}</span>
+        </label>
+        {expandable && (
+          <button
+            type="button"
+            onClick={() => onToggleExpand(stageId)}
+            aria-expanded={expanded}
+            aria-label={expanded ? `Collapse ${stageLabel(stageId)}` : `Expand ${stageLabel(stageId)}`}
+            className="mr-1 shrink-0 rounded-sm p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ChevronRight
+              className={cn('h-3.5 w-3.5 transition-transform', expanded && 'rotate-90')}
+              aria-hidden="true"
+            />
+          </button>
+        )}
+      </div>
+
+      {expandable && expanded && (
+        <div className="ml-4 border-l pl-2">
+          {groups.map((group) => (
+            <div key={group.heading} className="py-0.5">
+              {/* Heading disambiguates the repeated titles (a "Scheduled 1st"
+                  exists both pre- and post-crossover). Only shown when a stage
+                  has more than one phase group to separate. */}
+              {groups.length > 1 && (
+                <p className="px-2 pt-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {group.heading}
+                </p>
+              )}
+              {group.children.map((child) => (
+                <label
+                  key={child.id}
+                  htmlFor={`stage-${child.id}`}
+                  className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 hover:bg-muted"
+                >
+                  <Checkbox
+                    id={`stage-${child.id}`}
+                    className="shrink-0"
+                    checked={selectedStages.includes(child.id)}
+                    onCheckedChange={() => onToggleStage(child.id)}
+                  />
+                  <span className="text-xs leading-tight">{child.label}</span>
+                </label>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

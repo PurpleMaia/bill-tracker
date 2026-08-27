@@ -19,45 +19,42 @@ const CHAIR: CommitteeChair = {
 };
 
 describe('buildContactScript', () => {
-  it('addresses the chair by name and states support', () => {
+  it('addresses the chair by name and requests a hearing', () => {
     const { subject, body } = buildContactScript({
       billNumber: 'HB9950',
       billTitle: 'Relating to Local Agriculture',
       chair: CHAIR,
-      position: 'support',
       userName: 'Jaden Kapali',
     });
     expect(subject).toContain('HB9950');
-    expect(subject).toContain('Support');
+    expect(subject).toMatch(/hearing/i);
     expect(body).toContain('Rep. Kirstin Kahaloa');
     expect(body).toContain('HB9950');
     expect(body).toContain('Relating to Local Agriculture');
-    expect(body).toMatch(/support/i);
+    expect(body).toMatch(/request a hearing/i);
     expect(body).toContain('Jaden Kapali');
   });
 
-  it('states opposition when position is oppose', () => {
-    const { subject, body } = buildContactScript({
-      billNumber: 'HB9950', billTitle: 'Relating to Local Agriculture',
-      chair: CHAIR, position: 'oppose',
+  it('names the chair\'s committee in the request', () => {
+    const { body } = buildContactScript({
+      billNumber: 'HB9950', billTitle: 'Relating to Local Agriculture', chair: CHAIR,
     });
-    expect(subject).toContain('Oppose');
-    expect(body).toMatch(/oppose/i);
+    expect(body).toContain('Agriculture & Food Systems');
   });
 
   it('handles a missing bill title without printing null', () => {
     const { body } = buildContactScript({
-      billNumber: 'HB9950', billTitle: null, chair: CHAIR, position: 'support',
+      billNumber: 'HB9950', billTitle: null, chair: CHAIR,
     });
     expect(body).not.toContain('null');
     expect(body).toContain('HB9950');
   });
 
-  it('uses a generic sign-off when no userName is given', () => {
+  it('uses a mahalo sign-off', () => {
     const { body } = buildContactScript({
-      billNumber: 'HB9950', billTitle: 'X', chair: CHAIR, position: 'support',
+      billNumber: 'HB9950', billTitle: 'X', chair: CHAIR,
     });
-    expect(body).toMatch(/Sincerely,/);
+    expect(body).toMatch(/Mahalo nui loa,/);
   });
 });
 
@@ -66,42 +63,49 @@ describe('buildBaseScript', () => {
     const { subject, body } = buildBaseScript({
       billNumber: 'HB9950',
       billTitle: 'Relating to Local Agriculture',
-      position: 'support',
       userName: 'Jaden Kapali',
+      committeeName: 'Senate Committee on Ways and Means',
     });
-    expect(subject).toBe('Support for HB9950');
+    expect(subject).toBe('Hearing request for HB9950');
     expect(body.startsWith(NEUTRAL_GREETING)).toBe(true);
     expect(body).not.toContain('Rep.');
     expect(body).toContain('HB9950');
     expect(body).toContain('Relating to Local Agriculture');
+    expect(body).toContain('Senate Committee on Ways and Means');
     expect(body).toContain('Jaden Kapali');
   });
 
+  it('falls back to a generic committee reference when none is given', () => {
+    const { body } = buildBaseScript({ billNumber: 'HB9950', billTitle: 'X' });
+    expect(body).toMatch(/before the committee/i);
+  });
+
   it('handles a missing title without printing null', () => {
-    const { body } = buildBaseScript({ billNumber: 'HB9950', billTitle: null, position: 'oppose' });
+    const { body } = buildBaseScript({ billNumber: 'HB9950', billTitle: null });
     expect(body).not.toContain('null');
-    expect(body).toMatch(/oppose/i);
+    expect(body).toMatch(/request a hearing/i);
   });
 });
 
 describe('buildCallScript', () => {
-  it('is a short spoken script with no greeting or signature', () => {
+  it('is a short spoken hearing ask with no greeting or signature', () => {
     const script = buildCallScript({
       billNumber: 'HB9950',
       billTitle: 'Relating to Local Agriculture',
-      position: 'support',
       userName: 'Jaden Kapali',
+      committeeName: 'Senate Committee on Ways and Means',
     });
     expect(script).toContain('Jaden Kapali');
     expect(script).toContain('HB9950');
-    expect(script).toMatch(/support/i);
+    expect(script).toMatch(/schedule a hearing/i);
+    expect(script).toContain('Senate Committee on Ways and Means');
     expect(script).not.toContain('Dear');
     expect(script).not.toContain('Sincerely');
   });
 
-  it('reflects the oppose position and handles a missing title', () => {
-    const script = buildCallScript({ billNumber: 'HB9950', billTitle: null, position: 'oppose' });
-    expect(script).toMatch(/oppose/i);
+  it('handles a missing title and no committee name', () => {
+    const script = buildCallScript({ billNumber: 'HB9950', billTitle: null });
+    expect(script).toMatch(/schedule a hearing/i);
     expect(script).not.toContain('null');
     expect(script).toContain('<your-name>');
   });
@@ -109,13 +113,13 @@ describe('buildCallScript', () => {
 
 describe('personalizeScript', () => {
   it('replaces the neutral greeting with the chair name, preserving edits', () => {
-    const base = buildBaseScript({ billNumber: 'HB9950', billTitle: 'X', position: 'support', userName: 'Jaden' }).body;
-    const edited = base.replace('our community', 'Hawaii families');
+    const base = buildBaseScript({ billNumber: 'HB9950', billTitle: 'X', userName: 'Jaden' }).body;
+    const edited = base.replace('weigh in', 'share their voice');
     const personalized = personalizeScript(edited, CHAIR);
     expect(personalized.startsWith('Dear Rep. Kirstin Kahaloa,')).toBe(true);
     expect(personalized).not.toContain(NEUTRAL_GREETING);
     // the user's edit to the body survives
-    expect(personalized).toContain('Hawaii families');
+    expect(personalized).toContain('share their voice');
   });
 
   it('prepends a greeting when the body has none', () => {

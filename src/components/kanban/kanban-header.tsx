@@ -253,6 +253,8 @@ export function KanbanHeader({ variant = 'own', rightSlot, leftSlot }: KanbanHea
           ) : (
             !isPublic && (
               <>
+                {/* Track a bill: opens a dialog that sends the user to the search
+                    page, where bills are found and tracked in one click. */}
                 <TrackBillDialog />
                 {/* LEGACY FEATURE — "Manage Bills" button. This dates from when AI
                     was used to add certain types of bills to an org's liking. We are

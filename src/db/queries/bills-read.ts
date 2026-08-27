@@ -8,7 +8,7 @@ import {
   decodeCursor,
   SEARCH_PAGE_SIZE,
 } from '@/lib/bills/search-params';
-import { STATUS_TO_SIMPLIFIED } from '@/lib/bills/kanban-columns';
+import { expandStagesToStatuses } from '@/lib/bills/detailed-stages';
 import { db } from '@/db/kysely/client';
 import { StatusUpdates } from '@/db/types';
 import { Selectable, sql } from 'kysely';
@@ -611,13 +611,12 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
       : sql<boolean>`exists (select 1 from user_bills ub where ub.bill_id = bills.id and ub.user_id = ${userId})`
     : sql<boolean>`false`;
 
-  // Expand simplified stage ids back to the concrete BillStatus values stored
-  // on the row. STATUS_TO_SIMPLIFIED is the same mapping the kanban board uses.
-  const statusValues = stages?.length
-    ? Object.entries(STATUS_TO_SIMPLIFIED)
-        .filter(([, simplified]) => stages.includes(simplified))
-        .map(([status]) => status)
-    : [];
+  // Expand the requested stage ids to the concrete BillStatus values stored on
+  // the row. A stage id can be either a simplified group id (from the default
+  // filter list) or a concrete status (from the search page's expanded detailed
+  // filter). expandStagesToStatuses is the shared source of truth for that
+  // mapping, so the filter UI and this query can't disagree.
+  const statusValues = stages?.length ? expandStagesToStatuses(stages) : [];
 
   const applyFilters = <T extends { where: any }>(qb: T): T => {
     let out: any = qb;
