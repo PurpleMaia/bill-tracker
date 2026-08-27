@@ -29,6 +29,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Hawaiʻi Bill Tracker',
   description: 'Track Hawaiʻi\'s bills. Stay informed, stay engaged, and make your voice heard.',
+  manifest: '/manifest.webmanifest',
+  icons: {
+    // Browser tab favicon (the Food+ logo lives in src/app/favicon.ico).
+    icon: '/favicon.ico',
+    // iOS home-screen bookmark tile — white background, no transparency.
+    apple: '/apple-touch-icon.png',
+  },
+  appleWebApp: {
+    capable: true,
+    title: 'Bill Tracker',
+    statusBarStyle: 'default',
+  },
 };
 
 export default async function RootLayout({
