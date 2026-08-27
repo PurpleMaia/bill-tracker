@@ -21,8 +21,13 @@ export interface BillStanding {
   action: string | null;
 }
 
-// Statuses where a hearing is on the calendar (mirror of SCHEDULED_STATUSES,
-// but we key off the shared list to avoid drift).
+// Standing narration buckets. These deliberately DIFFER from testimony's
+// shared SCHEDULED_STATUSES: there, 'conferenceScheduled' counts as a
+// scheduled hearing (testimony urgency); here it belongs with the other
+// conference statuses so the reason reads "waiting on conferees" rather than
+// "a committee hearing is scheduled". So we do NOT import the shared list —
+// the two are checked in status order (conference before scheduled) below,
+// and only these committee-hearing statuses fall into SCHEDULED_STATUSES.
 const CONFERENCE_STATUSES: DBBillStatus[] = [
   'conferenceAssigned',
   'conferenceScheduled',
@@ -87,7 +92,7 @@ export function deriveBillStanding(bill: BillDetails, today: string): BillStandi
 
   // From here down the bill is in a chamber's committee process. Whether the
   // reader can act depends on the testimony window, so resolve that once.
-  const chamber = currentChamberPhrase(bill.bill_number, status);
+  const chamber = currentChamberPhrase(bill.bill_number || '', status);
   const eligibility = getTestimonyEligibility({
     dead: bill.dead,
     billStatus: status,

@@ -583,7 +583,7 @@ function TestimonyCard({
               )}
               {item.dead && (
                 <Badge variant="destructive" className="h-4 rounded-full px-1.5 text-[10px] text-white">
-                  Dead
+                  Failed
                 </Badge>
               )}
               <span className="text-xs text-muted-foreground">
