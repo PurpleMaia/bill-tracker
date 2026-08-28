@@ -21,7 +21,7 @@ import { getNextDeadline } from '@/lib/bills/dead-bill';
 import type { SessionDeadlines, DeadlineEntry } from '@/lib/bills/dead-bill';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
-import { ArrowUp, ArrowDown, ArrowUpDown, Clock } from 'lucide-react';
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 
 // ─── Sort Types ──────────────────────────────────────────────
 type SortKey = 'bill_number' | 'current_bill_status' | 'bill_title' | 'committee_assignment' | 'introducer' | 'year' | 'next_deadline';
@@ -184,12 +184,12 @@ export function KanbanSpreadsheet() {
             <TableRow>
               <SortHeader label="Bill #" columnKey="bill_number" sticky className="w-[6rem] md:w-[8rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Current Status" columnKey="current_bill_status" className="w-[8rem] md:w-[10rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <SortHeader label="Next Deadline" columnKey="next_deadline" className="w-[8rem] md:w-[10rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Bill Title" columnKey="bill_title" className="min-w-[12rem] md:min-w-[20rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <TableHead className="sticky top-0 z-10 bg-background min-w-[10rem] md:min-w-[15rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem] py-2 md:py-4">Policy Description</TableHead>
               <SortHeader label="Committee" columnKey="committee_assignment" className="w-[8rem] md:w-[12rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Introducer" columnKey="introducer" className="w-[8rem] md:w-[12rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <SortHeader label="Year" columnKey="year" className="w-[5rem] md:w-[6rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
-              <SortHeader label="Next Deadline" columnKey="next_deadline" className="w-[8rem] md:w-[10rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
               <TableHead className="sticky top-0 z-10 bg-background w-[10rem] md:w-[15rem] py-2 md:py-4">Tags</TableHead>
             </TableRow>
           </TableHeader>
@@ -215,6 +215,15 @@ export function KanbanSpreadsheet() {
                 const isUrgent = deadlineDaysAway !== null && deadlineDaysAway <= 7;
                 const hasTags = bill.tags && bill.tags.length > 0;
                 const firstTagColor = hasTags ? (bill.tags![0].color || '#3b82f6') : null;
+
+                // Row tint precedence: failed (red) > deadline soon (yellow) > tag color.
+                // A failed or urgent bill gets a full-row status tint that overrides
+                // its tag tint, so the state reads at a glance across the whole row.
+                const tintColor = bill.dead
+                  ? '#ef4444' // red-500 — failed
+                  : isUrgent
+                    ? '#eab308' // yellow-500 — deadline soon
+                    : firstTagColor;
 
                 return (
                   <React.Fragment key={bill.id}>
@@ -249,22 +258,22 @@ export function KanbanSpreadsheet() {
                         group-hover. */}
                     <TableRow
                       style={
-                        firstTagColor
+                        tintColor
                           ? ({
-                              '--row-tint': `${firstTagColor}14`,
-                              '--row-tint-hover': `${firstTagColor}2e`,
+                              '--row-tint': `${tintColor}14`,
+                              '--row-tint-hover': `${tintColor}2e`,
                               // Opaque equivalents for the sticky cell: same tint
                               // composited over the page background, as plain
                               // background-color so hover can transition (a
                               // gradient layer can't animate).
-                              '--cell-tint': `color-mix(in srgb, ${firstTagColor} 8%, hsl(var(--background)))`,
-                              '--cell-tint-hover': `color-mix(in srgb, ${firstTagColor} 18%, hsl(var(--background)))`,
+                              '--cell-tint': `color-mix(in srgb, ${tintColor} 8%, hsl(var(--background)))`,
+                              '--cell-tint-hover': `color-mix(in srgb, ${tintColor} 18%, hsl(var(--background)))`,
                             } as React.CSSProperties)
                           : undefined
                       }
                       className={cn(
                         'group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
-                        firstTagColor
+                        tintColor
                           ? 'bg-[var(--row-tint)] hover:bg-[var(--row-tint-hover)]'
                           : 'hover:bg-secondary'
                       )}
@@ -286,7 +295,7 @@ export function KanbanSpreadsheet() {
                           // the row's tint/hover, with the same 150ms fade so the
                           // whole row highlights as one unit.
                           'transition-colors',
-                          firstTagColor
+                          tintColor
                             ? 'bg-[var(--cell-tint)] group-hover:bg-[var(--cell-tint-hover)]'
                             : 'bg-background group-hover:bg-secondary'
                         )}
@@ -310,6 +319,18 @@ export function KanbanSpreadsheet() {
                         >
                           {formatBillStatusName(bill.current_bill_status)}
                         </Term>
+                      </TableCell>
+
+                      {/* Next Deadline — placed right after Current Status */}
+                      <TableCell className="w-[8rem] md:w-[10rem] py-2 md:py-4">
+                        {deadline ? (
+                          <div className={`text-sm ${isUrgent ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
+                            <div>{new Date(deadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                            <div className="text-xs">{deadline.name}</div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
 
                       <TableCell className="text-wrap min-w-[12rem] md:min-w-[20rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem] py-2 md:py-4">
@@ -339,21 +360,6 @@ export function KanbanSpreadsheet() {
 
                       <TableCell className="w-[5rem] md:w-[6rem] py-2 md:py-4">
                         {bill.year ?? 'N/A'}
-                      </TableCell>
-
-                      {/* Next Deadline */}
-                      <TableCell className="w-[8rem] md:w-[10rem] py-2 md:py-4">
-                        {deadline ? (
-                          <div className={`flex items-center gap-1 text-sm ${isUrgent ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
-                            <Clock className="h-3.5 w-3.5 flex-shrink-0" />
-                            <div>
-                              <div>{new Date(deadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
-                              <div className="text-xs">{deadline.name}</div>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
                       </TableCell>
 
                       {/* Tags cell — shows "No tags" placeholder for bills without tags */}
