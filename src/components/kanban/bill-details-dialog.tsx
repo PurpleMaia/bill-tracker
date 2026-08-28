@@ -574,6 +574,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
 
               {/* Status change — pinned to bottom of left panel; org ADMINS only
                   (org statuses are tenant-scoped; workers and public users don't set them) */}
+              {/* TEMPORARILY DISABLED: bill status change hidden
               {canChangeStatus && (
                 <div className="border-t p-4 shrink-0 bg-muted/30">
                   <div className="flex items-center gap-2 mb-2">
@@ -598,6 +599,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   </div>
                 </div>
               )}
+              */}
             </div>
             );
 

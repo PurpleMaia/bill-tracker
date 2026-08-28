@@ -16,7 +16,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { ArrowLeft, LogIn, MailCheck } from 'lucide-react';
-import { GoogleSignInButton } from './google-sign-in-button';
+// TEMPORARILY DISABLED: OAuth (Google) sign-in hidden
+// import { GoogleSignInButton } from './google-sign-in-button';
 
 interface LoginDialogProps {
   /**
@@ -249,21 +250,25 @@ export function LoginDialog({ trigger }: LoginDialogProps = {}) {
                 </Button>
               </form>
 
-              {/* Google sits directly under the login button as an alternative
-                  way to sign in, above the sign-up divider — email/password
-                  stays the default path. */}
-              <div className="relative my-4">
-                <div aria-hidden className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center">
-                  <span className="bg-background px-2 text-xs uppercase tracking-wide text-muted-foreground">
-                    or
-                  </span>
-                </div>
-              </div>
+              {/* TEMPORARILY DISABLED: OAuth (Google) sign-in hidden.
+                  Google sat directly under the login button as an alternative
+                  way to sign in, above the sign-up divider. */}
+              {false && (
+                <>
+                  <div className="relative my-4">
+                    <div aria-hidden className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-background px-2 text-xs uppercase tracking-wide text-muted-foreground">
+                        or
+                      </span>
+                    </div>
+                  </div>
 
-              <GoogleSignInButton onNavigate={() => setIsOpen(false)} />
+                  {/* <GoogleSignInButton onNavigate={() => setIsOpen(false)} /> */}
+                </>
+              )}
 
               {/* Sign-up is a genuinely separate destination, so it reads as its
                   own action below a divider rather than as inline link text. */}
