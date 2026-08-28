@@ -100,7 +100,7 @@ export function BillBreakdown({
         <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3">
           <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />
           <p className="text-sm leading-relaxed text-destructive">
-            This bill has failed — it is no longer moving. Everything below describes where it got
+            This bill has failed. Everything below translates what the bill is and where it got
             to before it stopped.
           </p>
         </div>

@@ -492,7 +492,7 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
     message: eligibility.allowed
       ? urgent
         ? 'Testimony is open and a hearing is imminent — submit as soon as possible.'
-        : 'Testimony is open — you can submit on this bill.'
+        : 'You can prepare testimony before a hearing is scheduled. '
       : `Testimony is closed — ${eligibility.reason ?? 'not currently accepting testimony'}.`,
   };
 
