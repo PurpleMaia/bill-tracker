@@ -66,6 +66,13 @@ interface KanbanCardProps extends React.HTMLAttributes<HTMLDivElement> {
 const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     ({ bill, isDragging, onCardClick, onUnadopt, showUnadoptButton = false, isHighlighted = false, boardMode = 'own', orgTestimonyState, isTracked = false, onTrackForSelf, className, style, ...props }, ref) => {
 
+    // `props` carries @hello-pangea/dnd's dragHandleProps (onClick/onKeyDown/…)
+    // when the card is wrapped in a <Draggable>. We pull the two handlers we also
+    // want to own out of the spread so we can COMPOSE with them rather than let
+    // the spread clobber ours (or vice-versa). See the outer div below.
+    const { onClick: dragHandleClick, onKeyDown: dragHandleKeyDown, ...restProps } =
+      props as React.HTMLAttributes<HTMLDivElement>;
+
     const [isProcessing, setIsProcessing] = useState(false);
     const [isRemoving, setIsRemoving] = useState(false);
     const [showRemoveDialog, setShowRemoveDialog] = useState(false);
@@ -215,7 +222,31 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                 className
             )}
             style={style}
-            {...props}
+            {...restProps}
+            // Tap-to-open lives on the SAME element that carries dnd's drag
+            // handle. On touch, @hello-pangea/dnd arms a one-shot click guard on
+            // the handle element after any touch; a click on a NESTED inner div
+            // (the previous setup) bubbles up into that guard and gets swallowed,
+            // so the first tap did nothing and only the second opened the dialog.
+            // Handling the click on the handle element itself — and composing
+            // with the handler dnd supplies via props — lets a genuine tap
+            // through on the first touch while still blocking the click that
+            // follows a real drag.
+            onClick={(e) => {
+                dragHandleClick?.(e);
+                if (e.defaultPrevented) return;
+                handleCardClick(e);
+            }}
+            onKeyDown={(e) => {
+                dragHandleKeyDown?.(e);
+                if (e.defaultPrevented) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleCardClick(e as unknown as React.MouseEvent<HTMLDivElement>);
+                }
+            }}
+            role="button"
+            aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
             tabIndex={0}
         >
             {/* Grayed-out content layer for dead bills */}
@@ -224,19 +255,9 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
               bill.dead && "opacity-50 grayscale-[50%]"
             )}>
 
-            {/* Main clickable area */}
+            {/* Main content area */}
             <div
                 className="flex flex-col w-full cursor-pointer p-3 pb-2"
-                onClick={handleCardClick}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleCardClick(e as any);
-                    }
-                }}
-                role="button"
-                tabIndex={0}
-                aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
             >
                 {/* Tags row + dead badge */}
                 <div className="flex items-start justify-between gap-1">
