@@ -5,7 +5,7 @@ import type { BillStatus as DBBillStatus } from '@/db/types';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import { getNextDeadline, isFiscalBill, isEnacted, formatDeadlineStanding, parseCommittees } from '@/lib/bills/dead-bill';
-import { COLUMN_TITLES, isAwaitingHearing } from '@/lib/bills/kanban-columns';
+import { COLUMN_DESCRIPTIONS, COLUMN_TITLES, isAwaitingHearing } from '@/lib/bills/kanban-columns';
 import { formatBillStatusName } from '@/lib/core/utils';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { sortVersions } from '@/lib/versions/bill-versions';
@@ -89,7 +89,7 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
     } else {
       // Terminal statuses without an upcoming deadline: show the friendly board
       // title, never the raw enum value.
-      const label = COLUMN_TITLES[status] ?? formatBillStatusName(status);
+      const label = COLUMN_DESCRIPTIONS[status] ?? formatBillStatusName(status);
       standing = `Currently ${label.toLowerCase()}${fiscal ? ' · fiscal bill' : ''}.`;
     }
   }

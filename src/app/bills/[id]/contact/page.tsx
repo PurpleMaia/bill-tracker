@@ -18,6 +18,7 @@ import {
   jointReferralPartners,
   JOINT_REFERRAL_NOTE,
 } from '@/lib/testimony/committees';
+import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -68,6 +69,7 @@ export default function ContactLegislatorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
+  const committeeNames = useCommitteeNames();
 
   const backHref = searchParams.get('from') === 'testimonies' ? '/testimonies' : '/';
 
@@ -143,7 +145,7 @@ export default function ContactLegislatorPage() {
   // The committee's display name: prefer the current group's DB name (the same
   // string the contact cards show) so the script and the cards never disagree;
   // fall back to the code's mapped full name if no chair group matched.
-  const currentCommitteeName = currentGroup?.name ?? (currentCode ? committeeFullName(currentCode) : undefined);
+  const currentCommitteeName = currentGroup?.name ?? (currentCode ? committeeFullName(currentCode, committeeNames) : undefined);
 
   // Seed the shared scripts once the bill and its current committee are known.
   useEffect(() => {

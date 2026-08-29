@@ -9,6 +9,15 @@ import {
 } from '@/lib/glossary/resolvers';
 import { PROGRESS_STAGES } from '@/lib/bills/progress-stages';
 import { KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
+import type { CommitteeNameMap } from '@/lib/testimony/committees';
+
+// Committee names are DB-backed; the resolvers receive the map as an argument.
+const NAMES: CommitteeNameMap = {
+  FIN: 'Finance',
+  AGR: 'Agriculture & Food Systems',
+  WLA: 'Water and Land',
+  EIG: 'Energy and Intergovernmental Affairs',
+};
 
 describe('GLOSSARY', () => {
   it('gives every term a display name and a short definition', () => {
@@ -60,13 +69,13 @@ describe('resolveStatusTerm', () => {
 
 describe('resolveCommitteeTerm', () => {
   it('expands a known committee code', () => {
-    const term = resolveCommitteeTerm('FIN');
+    const term = resolveCommitteeTerm('FIN', NAMES);
     expect(term).not.toBeNull();
     expect(term!.short).toContain('Finance');
   });
 
   it('handles a joint referral and flags it as joint', () => {
-    const short = resolveCommitteeTerm('WLA/EIG')!.short;
+    const short = resolveCommitteeTerm('WLA/EIG', NAMES)!.short;
     expect(short).toContain('/');
     expect(short.toLowerCase()).toContain('joint referral');
   });
@@ -74,17 +83,24 @@ describe('resolveCommitteeTerm', () => {
   // committeeFullName passes unknown codes through unchanged, so a naive
   // implementation would "define" XYZ as "XYZ". That must be null instead.
   it('returns null for a code with no known name', () => {
-    expect(resolveCommitteeTerm('XYZ')).toBeNull();
+    expect(resolveCommitteeTerm('XYZ', NAMES)).toBeNull();
   });
 
   it('returns null for empty input', () => {
-    expect(resolveCommitteeTerm('')).toBeNull();
+    expect(resolveCommitteeTerm('', NAMES)).toBeNull();
+  });
+
+  // Before the DB fetch resolves the map is empty, so every code is "unknown"
+  // and the caller shows a bare chip with no tooltip — never an empty card.
+  it('returns null for every code when the map is empty (pre-fetch state)', () => {
+    expect(resolveCommitteeTerm('FIN', {})).toBeNull();
+    expect(resolveCommitteeTerm('WLA/EIG', {})).toBeNull();
   });
 });
 
 describe('resolveCommitteeListTerm', () => {
   it('joins the expansions for known codes', () => {
-    const term = resolveCommitteeListTerm(['AGR', 'FIN']);
+    const term = resolveCommitteeListTerm(['AGR', 'FIN'], NAMES);
     expect(term).not.toBeNull();
     expect(term!.short).toContain('Agriculture');
     expect(term!.short).toContain('Finance');
@@ -93,14 +109,14 @@ describe('resolveCommitteeListTerm', () => {
   // committeeFullName passes unknown codes through, so echoing them would
   // render "XYZ — XYZ" — the bogus affordance the null path exists to prevent.
   it('drops unknown codes but keeps known ones', () => {
-    const term = resolveCommitteeListTerm(['AGR', 'XYZ']);
+    const term = resolveCommitteeListTerm(['AGR', 'XYZ'], NAMES);
     expect(term!.short).toContain('Agriculture');
     expect(term!.short).not.toContain('XYZ');
   });
 
   it('returns null when no code is known', () => {
-    expect(resolveCommitteeListTerm(['XYZ', 'QQQ'])).toBeNull();
-    expect(resolveCommitteeListTerm([])).toBeNull();
+    expect(resolveCommitteeListTerm(['XYZ', 'QQQ'], NAMES)).toBeNull();
+    expect(resolveCommitteeListTerm([], NAMES)).toBeNull();
   });
 });
 

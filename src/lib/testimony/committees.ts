@@ -1,60 +1,21 @@
-/**
- * Hawaii State Legislature committee acronyms → full committee names.
- * Covers every code present in the bills data (House and Senate, including
- * codes from earlier sessions). Pure data + lookup — safe for src/lib.
- */
-export const COMMITTEE_NAMES: Record<string, string> = {
-  // House
-  AGR: 'Agriculture & Food Systems',
-  CAA: 'Culture & the Arts',
-  CPC: 'Consumer Protection & Commerce',
-  ECD: 'Economic Development',
-  EDN: 'Education',
-  EEP: 'Energy & Environmental Protection',
-  FIN: 'Finance',
-  HED: 'Higher Education',
-  HLT: 'Health',
-  HSG: 'Housing',
-  HSH: 'Human Services & Homelessness',
-  JHA: 'Judiciary & Hawaiian Affairs',
-  LAB: 'Labor',
-  LMG: 'Legislative Management',
-  PBS: 'Public Safety',
-  TOU: 'Tourism',
-  TRN: 'Transportation',
-  WAL: 'Water & Land',
-  // Senate
-  AEN: 'Agriculture and Environment',
-  CPN: 'Commerce and Consumer Protection',
-  EDT: 'Economic Development and Tourism',
-  EDU: 'Education',
-  EIG: 'Energy and Intergovernmental Affairs',
-  GVO: 'Government Operations',
-  HHS: 'Health and Human Services',
-  HOU: 'Housing',
-  HRE: 'Higher Education',
-  HWN: 'Hawaiian Affairs',
-  JDC: 'Judiciary',
-  LBT: 'Labor and Technology',
-  PSM: 'Public Safety and Military Affairs',
-  TCA: 'Transportation, Culture and the Arts',
-  TRS: 'Transportation',
-  WAM: 'Ways and Means',
-  WLA: 'Water and Land',
-  WTL: 'Water and Land',
-};
+/** acronym (upper-cased) → full committee name, sourced from the DB. */
+export type CommitteeNameMap = Record<string, string>;
 
 /**
  * Full name for a single referral token. Handles joint referrals
  * ("WLA/EIG" → "Water and Land / Energy and Intergovernmental Affairs").
  * Unknown codes pass through unchanged.
+ *
+ * Names are INJECTED (the DB-backed map from useCommitteeNames), not hardcoded,
+ * so this stays a pure, synchronous, DB-free function. An empty map — the state
+ * before the one-time fetch resolves — makes every code pass through unchanged.
  */
-export function committeeFullName(code: string): string {
+export function committeeFullName(code: string, names: CommitteeNameMap): string {
   return code
     .split('/')
     .map((part) => {
       const key = part.trim().toUpperCase();
-      return COMMITTEE_NAMES[key] ?? part.trim();
+      return names[key] ?? part.trim();
     })
     .join(' / ');
 }

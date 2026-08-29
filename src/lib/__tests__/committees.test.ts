@@ -1,12 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import {
-  COMMITTEE_NAMES,
   committeeFullName,
   parseCommitteeCodes,
   inferCurrentCommittee,
   hasJointReferral,
   jointReferralPartners,
+  type CommitteeNameMap,
 } from '../testimony/committees';
+
+// Committee names are DB-backed now, so tests inject their own fixture map
+// rather than asserting against a hardcoded production table.
+const NAMES: CommitteeNameMap = {
+  FIN: 'Finance',
+  WAM: 'Ways and Means',
+  AGR: 'Agriculture & Food Systems',
+  JDC: 'Judiciary',
+  WLA: 'Water and Land',
+  EIG: 'Energy and Intergovernmental Affairs',
+};
 
 describe('jointReferralPartners', () => {
   it('returns both committees of the joint token containing the code', () => {
@@ -46,32 +57,31 @@ describe('hasJointReferral', () => {
 });
 
 describe('committeeFullName', () => {
-  it('translates known House and Senate codes', () => {
-    expect(committeeFullName('FIN')).toBe('Finance');
-    expect(committeeFullName('WAM')).toBe('Ways and Means');
-    expect(committeeFullName('AGR')).toBe('Agriculture & Food Systems');
-    expect(committeeFullName('JDC')).toBe('Judiciary');
+  it('translates known codes from the injected names map', () => {
+    expect(committeeFullName('FIN', NAMES)).toBe('Finance');
+    expect(committeeFullName('WAM', NAMES)).toBe('Ways and Means');
+    expect(committeeFullName('AGR', NAMES)).toBe('Agriculture & Food Systems');
+    expect(committeeFullName('JDC', NAMES)).toBe('Judiciary');
   });
 
   it('handles joint referrals with slashes', () => {
-    expect(committeeFullName('WLA/EIG')).toBe('Water and Land / Energy and Intergovernmental Affairs');
-    expect(committeeFullName('JDC/WAM')).toBe('Judiciary / Ways and Means');
+    expect(committeeFullName('WLA/EIG', NAMES)).toBe('Water and Land / Energy and Intergovernmental Affairs');
+    expect(committeeFullName('JDC/WAM', NAMES)).toBe('Judiciary / Ways and Means');
   });
 
   it('is case-insensitive and trims whitespace', () => {
-    expect(committeeFullName(' fin ')).toBe('Finance');
-    expect(committeeFullName('wla/ eig')).toBe('Water and Land / Energy and Intergovernmental Affairs');
+    expect(committeeFullName(' fin ', NAMES)).toBe('Finance');
+    expect(committeeFullName('wla/ eig', NAMES)).toBe('Water and Land / Energy and Intergovernmental Affairs');
   });
 
   it('passes unknown codes through unchanged', () => {
-    expect(committeeFullName('XYZ')).toBe('XYZ');
-    expect(committeeFullName('XYZ/FIN')).toBe('XYZ / Finance');
+    expect(committeeFullName('XYZ', NAMES)).toBe('XYZ');
+    expect(committeeFullName('XYZ/FIN', NAMES)).toBe('XYZ / Finance');
   });
 
-  it('has a non-empty name for every mapped code', () => {
-    for (const [code, name] of Object.entries(COMMITTEE_NAMES)) {
-      expect(name.length, `empty name for ${code}`).toBeGreaterThan(0);
-    }
+  it('passes every code through unchanged when the map is empty (pre-fetch state)', () => {
+    expect(committeeFullName('FIN', {})).toBe('FIN');
+    expect(committeeFullName('WLA/EIG', {})).toBe('WLA / EIG');
   });
 });
 

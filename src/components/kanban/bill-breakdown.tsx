@@ -30,6 +30,7 @@ import {
   hasJointReferral,
   JOINT_REFERRAL_NOTE,
 } from '@/lib/testimony/committees';
+import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
 import { COLUMN_TITLES } from '@/lib/bills/kanban-columns';
 
 /**
@@ -85,6 +86,7 @@ export function BillBreakdown({
     [bill.committee_assignment]
   );
   const isJointReferral = hasJointReferral(bill.committee_assignment);
+  const committeeNames = useCommitteeNames();
 
   const statusTerm = resolveStatusTerm(currentStatus);
   const stage = PROGRESS_STAGES.find((s) => s.statuses.includes(currentStatus));
@@ -141,11 +143,11 @@ export function BillBreakdown({
           <BreakdownRow value={committeeReferrals.join(', ')}>
             {committeeReferrals
               .map((referral) => {
-                const resolved = resolveCommitteeTerm(referral);
+                const resolved = resolveCommitteeTerm(referral, committeeNames);
                 if (!resolved) return null;
                 return referral.includes('/')
-                  ? `${referral} is a joint referral to ${committeeFullName(referral)}`
-                  : `${referral} is ${committeeFullName(referral)}`;
+                  ? `${referral} is a joint referral to ${committeeFullName(referral, committeeNames)}`
+                  : `${referral} is ${committeeFullName(referral, committeeNames)}`;
               })
               .filter(Boolean)
               .join('; ')}

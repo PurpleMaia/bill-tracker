@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/hooks/contexts/auth-context';
 import { KanbanBoardProvider } from '@/hooks/contexts/kanban-board-context';
 import { BillsProvider } from '@/hooks/contexts/bills-context';
+import { CommitteeNamesProvider } from '@/hooks/contexts/committee-names-context';
 import { queryClient } from '@/lib/core/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { UNRESOLVED_AUTH, type InitialAuth } from '@/lib/auth/initial-auth-types';
@@ -26,7 +27,9 @@ export function Providers({
         <AuthProvider>
           <KanbanBoardProvider>
             <BillsProvider>
-              {children}
+              <CommitteeNamesProvider>
+                {children}
+              </CommitteeNamesProvider>
             </BillsProvider>
           </KanbanBoardProvider>
         </AuthProvider>

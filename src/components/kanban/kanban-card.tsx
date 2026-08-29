@@ -4,6 +4,7 @@ import { canAssignBills } from '@/lib/auth/permissions';
 import { parseCommittees } from '@/lib/bills/dead-bill';
 import { isAwaitingHearing } from '@/lib/bills/kanban-columns';
 import { committeeFullName, hasJointReferral, JOINT_REFERRAL_NOTE } from '@/lib/testimony/committees';
+import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 /** Shadcn tooltip wrapper for the card's chips — replaces native title attrs. */
@@ -79,6 +80,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const [showTrackDialog, setShowTrackDialog] = useState(false);
     const { acceptLLMChange, rejectLLMChange, removeBill, testimonyStatuses, showArchived } = useBills();
     const { user, activeTenant } = useAuth();
+    const committeeNames = useCommitteeNames();
     const vis = cardVisibility(boardMode);
 
     const canSeeTracking = activeTenant?.orgRole === 'admin';
@@ -110,7 +112,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
         <ul className="space-y-0.5">
           {committeeReferrals.map((code) => (
             <li key={code}>
-              <span className="font-medium">{code}</span> — {committeeFullName(code)}
+              <span className="font-medium">{code}</span> — {committeeFullName(code, committeeNames)}
             </li>
           ))}
         </ul>

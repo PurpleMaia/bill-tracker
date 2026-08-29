@@ -10,6 +10,7 @@ import { PenLine, GitCompare, ScrollText, Phone, Clock, AlertTriangle } from 'lu
 import { cn } from '@/lib/core/utils';
 import { Term } from '@/components/ui/term';
 import { resolveVersionTerm, resolveCommitteeTerm } from '@/lib/glossary/resolvers';
+import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
 import { isEnacted } from '@/lib/bills/dead-bill';
 import { getColumnPhaseBg } from '@/lib/bills/kanban-columns';
 
@@ -35,6 +36,7 @@ export function BillBriefing({
   onNextStep: (a: 'testimony' | 'diff' | 'reports' | 'contact') => void;
 }) {
   const facts = useMemo(() => deriveBriefingFacts(bill, today), [bill, today]);
+  const committeeNames = useCommitteeNames();
   // A bill signed into law reads as a positive terminal state — highlight
   // "Where it stands" with the same green the GOVERNOR SIGNED kanban column uses.
   const enacted = !dead && isEnacted(bill.current_bill_status);
@@ -127,7 +129,7 @@ export function BillBriefing({
               ? facts.committeeReferrals.map((referral, i) => (
                   <span key={referral}>
                     {i > 0 && ', '}
-                    <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(referral)}>
+                    <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(referral, committeeNames)}>
                       {referral}
                     </Term>
                   </span>

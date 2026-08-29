@@ -15,6 +15,7 @@ import { BillDetailsDialog } from './bill-details-dialog';
 import { cn, formatBillStatusName, todayHawaii } from '@/lib/core/utils';
 import { Term } from '@/components/ui/term';
 import { resolveStatusTerm, resolveCommitteeTerm } from '@/lib/glossary/resolvers';
+import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
 import { parseCommitteeCodes } from '@/lib/testimony/committees';
 import { filterBills } from '@/lib/bills/bill-filters';
 import { getNextDeadline } from '@/lib/bills/dead-bill';
@@ -129,6 +130,7 @@ function SortHeader({ label, columnKey, className, sticky, sortKey, sortDirectio
 export function KanbanSpreadsheet() {
   const { bills, loadingBills } = useBills();
   const { searchQuery, selectedTagIds, selectedYears, deadFilter } = useKanbanBoard();
+  const committeeNames = useCommitteeNames();
 
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -346,7 +348,7 @@ export function KanbanSpreadsheet() {
                           ? parseCommitteeCodes(bill.committee_assignment).map((code, i) => (
                               <span key={code}>
                                 {i > 0 && ', '}
-                                <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(code)}>
+                                <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(code, committeeNames)}>
                                   {code}
                                 </Term>
                               </span>

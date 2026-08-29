@@ -8,7 +8,7 @@
 import type { GlossaryTerm } from './terms';
 import { GLOSSARY } from './terms';
 import { COLUMN_DESCRIPTIONS, COLUMN_TITLES } from '@/lib/bills/kanban-columns';
-import { COMMITTEE_NAMES, committeeFullName, JOINT_REFERRAL_NOTE } from '@/lib/testimony/committees';
+import { committeeFullName, JOINT_REFERRAL_NOTE, type CommitteeNameMap } from '@/lib/testimony/committees';
 import { describeVersionLabel } from '@/lib/versions/version-labels';
 
 /** Status id -> COLUMN_DESCRIPTIONS copy. */
@@ -20,10 +20,14 @@ export function resolveStatusTerm(statusId: string): GlossaryTerm | null {
 
 /**
  * Committee code -> full name. Returns null unless EVERY token in a joint
- * referral is known: committeeFullName passes unknown codes through unchanged,
- * so trusting it alone would "define" XYZ as "XYZ".
+ * referral is known in `names`: committeeFullName passes unknown codes through
+ * unchanged, so trusting it alone would "define" XYZ as "XYZ".
+ *
+ * `names` is the DB-backed acronym→name map (from useCommitteeNames). Before it
+ * loads it is empty, so every code is "unknown" and this returns null — the
+ * caller then shows a bare chip with no tooltip, exactly as for a real unknown.
  */
-export function resolveCommitteeTerm(code: string): GlossaryTerm | null {
+export function resolveCommitteeTerm(code: string, names: CommitteeNameMap): GlossaryTerm | null {
   const trimmed = code.trim();
   if (!trimmed) return null;
 
@@ -32,9 +36,9 @@ export function resolveCommitteeTerm(code: string): GlossaryTerm | null {
     .map((t) => t.trim().toUpperCase())
     .filter(Boolean);
   if (!tokens.length) return null;
-  if (!tokens.every((t) => t in COMMITTEE_NAMES)) return null;
+  if (!tokens.every((t) => t in names)) return null;
 
-  const fullName = committeeFullName(trimmed);
+  const fullName = committeeFullName(trimmed, names);
   // A multi-token referral (HHS/AEN) is a JOINT referral — say so, so the chip
   // reads as more than two names glued together.
   const isJoint = tokens.length > 1;
@@ -52,12 +56,15 @@ export function resolveCommitteeTerm(code: string): GlossaryTerm | null {
  * through unchanged, so including them would render "XYZ — XYZ". If no code is
  * known the whole thing is null, so the caller shows no affordance at all.
  */
-export function resolveCommitteeListTerm(codes: string[]): GlossaryTerm | null {
-  const known = codes.filter((code) => resolveCommitteeTerm(code) !== null);
+export function resolveCommitteeListTerm(
+  codes: string[],
+  names: CommitteeNameMap,
+): GlossaryTerm | null {
+  const known = codes.filter((code) => resolveCommitteeTerm(code, names) !== null);
   if (known.length === 0) return null;
   return {
     term: 'Referred to',
-    short: known.map((code) => `${code} — ${committeeFullName(code)}`).join('. '),
+    short: known.map((code) => `${code} — ${committeeFullName(code, names)}`).join('. '),
     learnMoreAnchor: GLOSSARY.committee.learnMoreAnchor,
   };
 }
