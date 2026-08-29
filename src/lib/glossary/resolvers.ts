@@ -8,7 +8,7 @@
 import type { GlossaryTerm } from './terms';
 import { GLOSSARY } from './terms';
 import { COLUMN_DESCRIPTIONS, COLUMN_TITLES } from '@/lib/bills/kanban-columns';
-import { COMMITTEE_NAMES, committeeFullName } from '@/lib/testimony/committees';
+import { COMMITTEE_NAMES, committeeFullName, JOINT_REFERRAL_NOTE } from '@/lib/testimony/committees';
 import { describeVersionLabel } from '@/lib/versions/version-labels';
 
 /** Status id -> COLUMN_DESCRIPTIONS copy. */
@@ -35,9 +35,12 @@ export function resolveCommitteeTerm(code: string): GlossaryTerm | null {
   if (!tokens.every((t) => t in COMMITTEE_NAMES)) return null;
 
   const fullName = committeeFullName(trimmed);
+  // A multi-token referral (HHS/AEN) is a JOINT referral — say so, so the chip
+  // reads as more than two names glued together.
+  const isJoint = tokens.length > 1;
   return {
     term: trimmed.toUpperCase(),
-    short: `${fullName} — ${GLOSSARY.committee.short}`,
+    short: isJoint ? `${fullName}. ${JOINT_REFERRAL_NOTE}` : fullName,
     learnMoreAnchor: GLOSSARY.committee.learnMoreAnchor,
   };
 }

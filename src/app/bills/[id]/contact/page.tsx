@@ -11,7 +11,13 @@ import {
   buildCallScript,
   personalizeScript,
 } from '@/lib/legislators/contact-script';
-import { committeeFullName, inferCurrentCommittee } from '@/lib/testimony/committees';
+import {
+  committeeFullName,
+  inferCurrentCommittee,
+  hasJointReferral,
+  jointReferralPartners,
+  JOINT_REFERRAL_NOTE,
+} from '@/lib/testimony/committees';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -103,13 +109,35 @@ export default function ContactLegislatorPage() {
     () => inferCurrentCommittee(bill?.committee_assignment ?? null, bill?.updates),
     [bill],
   );
-  const currentGroup = useMemo(
-    () => groups.find((g) => g.code === currentCode) ?? groups[0] ?? null,
-    [groups, currentCode],
+
+  // The committee(s) currently holding the bill. For a JOINT referral (HHS/WAE)
+  // both committees hear it together, so BOTH are foregrounded — neither drops
+  // into the collapsed "other committees" list. For a normal referral this is
+  // just the one inferred group.
+  const currentCodes = useMemo(
+    () =>
+      new Set(
+        currentCode
+          ? jointReferralPartners(bill?.committee_assignment ?? null, currentCode)
+          : [],
+      ),
+    [bill?.committee_assignment, currentCode],
   );
+  const currentGroups = useMemo(() => {
+    const matched = groups.filter((g) => currentCodes.has(g.code));
+    // Fall back to the first group so a bill whose inference misses still shows
+    // someone to contact rather than an empty foreground.
+    return matched.length > 0 ? matched : groups.slice(0, 1);
+  }, [groups, currentCodes]);
   const otherGroups = useMemo(
-    () => groups.filter((g) => g !== currentGroup),
-    [groups, currentGroup],
+    () => groups.filter((g) => !currentGroups.includes(g)),
+    [groups, currentGroups],
+  );
+
+  // Word the script for the primary current committee (the one furthest along).
+  const currentGroup = useMemo(
+    () => currentGroups.find((g) => g.code === currentCode) ?? currentGroups[0] ?? null,
+    [currentGroups, currentCode],
   );
 
   // The committee's display name: prefer the current group's DB name (the same
@@ -245,8 +273,9 @@ export default function ContactLegislatorPage() {
               <EmptyState />
             ) : (
               <Compose
-                currentGroup={currentGroup}
+                currentGroups={currentGroups}
                 otherGroups={otherGroups}
+                isJointReferral={hasJointReferral(bill?.committee_assignment)}
                 subject={scriptSubject}
                 body={scriptBody}
                 onChange={setScriptBody}
@@ -270,8 +299,9 @@ function chairKey(chair: CommitteeChair): string {
 }
 
 function Compose({
-  currentGroup,
+  currentGroups,
   otherGroups,
+  isJointReferral,
   subject,
   body,
   onChange,
@@ -279,8 +309,9 @@ function Compose({
   onCallChange,
   panelCollapsed,
 }: {
-  currentGroup: CommitteeGroup | null;
+  currentGroups: CommitteeGroup[];
   otherGroups: CommitteeGroup[];
+  isJointReferral: boolean;
   subject: string;
   body: string;
   onChange: (v: string) => void;
@@ -306,6 +337,14 @@ function Compose({
           This bill is waiting on a committee to schedule a hearing. Send the message below to that committee&apos;s
           chair and vice-chair — the more requests they get, the more likely they are to put it on the agenda.
         </p>
+        {isJointReferral && (
+          <div className="mt-2 flex items-start gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              {JOINT_REFERRAL_NOTE} Contact the chair and vice-chair of both committees.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-8">
@@ -362,26 +401,28 @@ function Compose({
           </div>
         </div>
 
-        {/* Right — the contact list, current committee foregrounded */}
+        {/* Right — the contact list, current committee(s) foregrounded. A joint
+            referral foregrounds both committees (the "Ask for a hearing" card
+            above explains why); contact all of them. */}
         <div className={['space-y-4', contactSpan].join(' ')}>
-          {currentGroup && (
-            <div>
+          {currentGroups.map((group) => (
+            <div key={group.code}>
               <div className="mb-2 flex items-center gap-2 border-b pb-1.5">
                 <span className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary">
-                  {currentGroup.code}
+                  {group.code}
                 </span>
-                <h3 className="truncate text-sm font-semibold">{currentGroup.name}</h3>
+                <h3 className="truncate text-sm font-semibold">{group.name}</h3>
                 <span className="ml-auto inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                   Awaiting hearing
                 </span>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {currentGroup.chairs.map((chair) => (
+                {group.chairs.map((chair) => (
                   <ChairCard key={chairKey(chair)} chair={chair} subject={subject} body={body} />
                 ))}
               </div>
             </div>
-          )}
+          ))}
 
           {otherGroups.length > 0 && (
             <div className="rounded-lg border bg-muted/20">

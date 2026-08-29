@@ -23,7 +23,13 @@ import {
 } from '@/lib/glossary/resolvers';
 import { PROGRESS_STAGES } from '@/lib/bills/progress-stages';
 import { sortVersions } from '@/lib/versions/bill-versions';
-import { parseCommitteeCodes, committeeFullName } from '@/lib/testimony/committees';
+import { parseCommittees } from '@/lib/bills/dead-bill';
+import {
+  parseCommitteeCodes,
+  committeeFullName,
+  hasJointReferral,
+  JOINT_REFERRAL_NOTE,
+} from '@/lib/testimony/committees';
 import { COLUMN_TITLES } from '@/lib/bills/kanban-columns';
 
 /**
@@ -68,10 +74,17 @@ export function BillBreakdown({
    *  here rather than bloating that tooltip. */
   deadlineName?: string | null;
 }) {
+  // Flattened codes drive the "must clear all N" count; raw referral tokens
+  // drive display so a joint referral (HHS/AEN) stays one entry.
   const committeeCodes = useMemo(
     () => parseCommitteeCodes(bill.committee_assignment ?? null),
     [bill.committee_assignment]
   );
+  const committeeReferrals = useMemo(
+    () => (bill.committee_assignment ? parseCommittees(bill.committee_assignment) : []),
+    [bill.committee_assignment]
+  );
+  const isJointReferral = hasJointReferral(bill.committee_assignment);
 
   const statusTerm = resolveStatusTerm(currentStatus);
   const stage = PROGRESS_STAGES.find((s) => s.statuses.includes(currentStatus));
@@ -121,12 +134,18 @@ export function BillBreakdown({
           <BreakdownRow value={bill.introducer}>{GLOSSARY.introducers.short}</BreakdownRow>
         )}
 
-        {committeeCodes.length > 0 && (
-          <BreakdownRow value={committeeCodes.join(', ')}>
-            {committeeCodes
-              .map((code) => {
-                const resolved = resolveCommitteeTerm(code);
-                return resolved ? `${code} is ${committeeFullName(code)}` : null;
+        {committeeReferrals.length > 0 && (
+          /* Value keeps joint referrals intact ("HHS/AEN, FIN") so they read as
+             joint referrals; the count of committees to clear uses the flattened
+             codes. */
+          <BreakdownRow value={committeeReferrals.join(', ')}>
+            {committeeReferrals
+              .map((referral) => {
+                const resolved = resolveCommitteeTerm(referral);
+                if (!resolved) return null;
+                return referral.includes('/')
+                  ? `${referral} is a joint referral to ${committeeFullName(referral)}`
+                  : `${referral} is ${committeeFullName(referral)}`;
               })
               .filter(Boolean)
               .join('; ')}
@@ -134,6 +153,7 @@ export function BillBreakdown({
               ? `. This bill must clear all ${committeeCodes.length} to stay alive. `
               : '. '}
             {GLOSSARY['committee-chair'].short}
+            {isJointReferral ? ` ${JOINT_REFERRAL_NOTE}` : ''}
           </BreakdownRow>
         )}
 

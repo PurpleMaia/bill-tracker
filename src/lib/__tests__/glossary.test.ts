@@ -65,8 +65,10 @@ describe('resolveCommitteeTerm', () => {
     expect(term!.short).toContain('Finance');
   });
 
-  it('handles a joint referral', () => {
-    expect(resolveCommitteeTerm('WLA/EIG')!.short).toContain('/');
+  it('handles a joint referral and flags it as joint', () => {
+    const short = resolveCommitteeTerm('WLA/EIG')!.short;
+    expect(short).toContain('/');
+    expect(short.toLowerCase()).toContain('joint referral');
   });
 
   // committeeFullName passes unknown codes through unchanged, so a naive

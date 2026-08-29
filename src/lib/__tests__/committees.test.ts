@@ -4,7 +4,46 @@ import {
   committeeFullName,
   parseCommitteeCodes,
   inferCurrentCommittee,
+  hasJointReferral,
+  jointReferralPartners,
 } from '../testimony/committees';
+
+describe('jointReferralPartners', () => {
+  it('returns both committees of the joint token containing the code', () => {
+    expect(jointReferralPartners('HHS/WAE, SDL', 'HHS')).toEqual(['HHS', 'WAE']);
+    expect(jointReferralPartners('HHS/WAE, SDL', 'WAE')).toEqual(['HHS', 'WAE']);
+  });
+
+  it('returns just the code for a lone referral', () => {
+    expect(jointReferralPartners('HHS/WAE, SDL', 'SDL')).toEqual(['SDL']);
+    expect(jointReferralPartners('AGR, FIN', 'AGR')).toEqual(['AGR']);
+  });
+
+  it('is case-insensitive and null/empty safe', () => {
+    expect(jointReferralPartners('hhs/wae', 'HHS')).toEqual(['HHS', 'WAE']);
+    expect(jointReferralPartners(null, 'HHS')).toEqual(['HHS']);
+    expect(jointReferralPartners('AGR, FIN', 'XYZ')).toEqual(['XYZ']);
+  });
+});
+
+describe('hasJointReferral', () => {
+  it('detects a slash within a single referral token', () => {
+    expect(hasJointReferral('HHS/WAE')).toBe(true);
+    expect(hasJointReferral('HHS/WAE, SDL')).toBe(true);
+    expect(hasJointReferral('AGR, EDN/FIN')).toBe(true);
+  });
+
+  it('is false for separate (comma-only) referrals', () => {
+    expect(hasJointReferral('AGR, FIN')).toBe(false);
+    expect(hasJointReferral('AGR')).toBe(false);
+  });
+
+  it('is null/empty safe', () => {
+    expect(hasJointReferral(null)).toBe(false);
+    expect(hasJointReferral(undefined)).toBe(false);
+    expect(hasJointReferral('')).toBe(false);
+  });
+});
 
 describe('committeeFullName', () => {
   it('translates known House and Senate codes', () => {

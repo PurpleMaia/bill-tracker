@@ -60,6 +60,51 @@ export function committeeFullName(code: string): string {
 }
 
 /**
+ * True when any single referral is a JOINT referral — two committees joined by a
+ * slash ("HHS/WAE") that hear the bill together. Operates on comma-split tokens
+ * so it can tell "HHS/WAE" (one joint referral) from "HHS, WAE" (two separate
+ * ones); a slash WITHIN a token is the signal. Null/empty-safe.
+ */
+export function hasJointReferral(assignment: string | null | undefined): boolean {
+  if (!assignment) return false;
+  return assignment.split(',').some((token) => token.includes('/'));
+}
+
+/**
+ * Plain-language explanation of a joint referral, shared across every surface
+ * that mentions committees so the wording never drifts. Kept generic (no codes)
+ * so it reads correctly whether one or several referrals are joint.
+ */
+export const JOINT_REFERRAL_NOTE =
+  'A committee code with a slash (like HHS/WAE) is a joint referral: both committees hear the bill together, so both chairs have to agree on when to schedule the hearing.';
+
+/**
+ * The set of committee codes that share a JOINT referral with `code`, INCLUDING
+ * `code` itself. For "HHS/WAE, SDL" and code "HHS" this returns ["HHS","WAE"];
+ * for "SDL" (a lone referral) it returns just ["SDL"].
+ *
+ * Used to foreground a whole joint referral together: both committees hear the
+ * bill at the same hearing, so both are "current" — neither belongs in the
+ * collapsed "other committees" list. Comma-split (not `/`-split) so the joint
+ * grouping survives. Null/empty-safe; returns [code] when nothing matches.
+ */
+export function jointReferralPartners(
+  assignment: string | null | undefined,
+  code: string,
+): string[] {
+  const target = code.trim().toUpperCase();
+  if (!assignment) return [target];
+  for (const token of assignment.split(',')) {
+    const codes = token
+      .split('/')
+      .map((c) => c.trim().toUpperCase())
+      .filter(Boolean);
+    if (codes.includes(target)) return codes;
+  }
+  return [target];
+}
+
+/**
  * Split a committee_assignment string ("AGR, EDN/FIN") into unique, upper-cased
  * committee codes. Splits on commas and slashes, trims, and de-dupes.
  * Empty/null-safe.

@@ -120,13 +120,15 @@ export function BillBriefing({
         <div className="rounded-md border p-2.5">
           <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Committee activity</h4>
           <p className="text-[12px] text-foreground/80">
-            {/* Codes stay tappable — an acronym is opaque. The heading does not. */}
-            {facts.committeeCodes.length > 0
-              ? facts.committeeCodes.map((code, i) => (
-                  <span key={code}>
+            {/* Referrals stay tappable — an acronym is opaque. A joint referral
+                (HHS/AEN) renders as ONE chip so it reads as a joint referral,
+                not two independent committees. The heading does not. */}
+            {facts.committeeReferrals.length > 0
+              ? facts.committeeReferrals.map((referral, i) => (
+                  <span key={referral}>
                     {i > 0 && ', '}
-                    <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(code)}>
-                      {code}
+                    <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(referral)}>
+                      {referral}
                     </Term>
                   </span>
                 ))

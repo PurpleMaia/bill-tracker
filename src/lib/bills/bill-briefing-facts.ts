@@ -4,7 +4,7 @@ import type { BillDetails } from '@/types/legislation';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
-import { getNextDeadline, isFiscalBill, isEnacted, formatDeadlineStanding } from '@/lib/bills/dead-bill';
+import { getNextDeadline, isFiscalBill, isEnacted, formatDeadlineStanding, parseCommittees } from '@/lib/bills/dead-bill';
 import { COLUMN_TITLES, isAwaitingHearing } from '@/lib/bills/kanban-columns';
 import { formatBillStatusName } from '@/lib/core/utils';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
@@ -21,7 +21,11 @@ export interface BriefingFacts {
   standing: string;
   latestVersionLabel: string | null;
   latestVersionHtml: string | null;
+  /** Flattened, de-duped codes — used for counts and next-step gating. */
   committeeCodes: string[];
+  /** Raw referral tokens with joints intact ("HHS/AEN" stays one entry) — used
+   *  for display, so a joint referral reads as a joint referral. */
+  committeeReferrals: string[];
   reportCount: number;
   nextSteps: BriefingStep[];
 }
@@ -96,6 +100,7 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   const sorted = sortVersions(versions);
   const latest = sorted.length > 0 ? sorted[sorted.length - 1] : null;
   const committeeCodes = parseCommitteeCodes(committeeAssignment);
+  const committeeReferrals = committeeAssignment ? parseCommittees(committeeAssignment) : [];
 
   const nextSteps: BriefingStep[] = [];
   if (testimony.open) {
@@ -118,6 +123,7 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
     latestVersionLabel: latest?.label ?? null,
     latestVersionHtml: latest?.htmlLink ?? null,
     committeeCodes,
+    committeeReferrals,
     reportCount: reports.length,
     nextSteps,
   };
