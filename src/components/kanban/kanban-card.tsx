@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { cn, formatBillHeadline, formatBillStatusName, formatRelativeDate, todayHawaii } from '@/lib/core/utils';
 import { canAssignBills } from '@/lib/auth/permissions';
 import { parseCommittees } from '@/lib/bills/dead-bill';
@@ -73,6 +73,19 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const { onClick: dragHandleClick, onKeyDown: dragHandleKeyDown, ...restProps } =
       props as React.HTMLAttributes<HTMLDivElement>;
 
+    // Tap-to-open on touch. @hello-pangea/dnd's touch sensor arms a one-shot
+    // click blocker after any touch on the drag handle; the click it lets
+    // through arrives with defaultPrevented=true on the FIRST tap, so relying on
+    // the composed onClick swallowed that tap and only the second opened the
+    // dialog. Instead we detect a genuine tap ourselves from pointer events —
+    // pointerdown then pointerup at nearly the same spot, quickly, with no drag
+    // — which fires on the first touch and never during a real drag (a drag
+    // moves the pointer well past the threshold).
+    const tapStart = useRef<{ x: number; y: number; t: number } | null>(null);
+    // Set when a touch tap opens the card via onPointerUp, so the synthetic
+    // click the browser fires right after doesn't open it a second time.
+    const touchTapAt = useRef(0);
+
     const [isProcessing, setIsProcessing] = useState(false);
     const [isRemoving, setIsRemoving] = useState(false);
     const [showRemoveDialog, setShowRemoveDialog] = useState(false);
@@ -139,6 +152,18 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
       e.stopPropagation();
       onCardClick(bill);
     };
+
+    // True when the event originated on an interactive control nested in the
+    // card (buttons, links, the tag selector, dialog triggers). Those stop
+    // propagation on click, but pointer events still bubble to the card's
+    // onPointerUp — so a touch tap on a button would ALSO open the card without
+    // this guard.
+    // Note: the card itself has role="button", so we match real nested
+    // controls (buttons/links/inputs) rather than [role="button"], which would
+    // match the card and block every tap.
+    const isInteractiveTarget = (target: EventTarget | null) =>
+      target instanceof Element &&
+      !!target.closest('button, a, input, textarea, select, [role="menuitem"]');
 
     const handleAccept = async () => {
       setIsProcessing(true);
@@ -242,18 +267,43 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
             )}
             style={style}
             {...restProps}
-            // Tap-to-open lives on the SAME element that carries dnd's drag
-            // handle. On touch, @hello-pangea/dnd arms a one-shot click guard on
-            // the handle element after any touch; a click on a NESTED inner div
-            // (the previous setup) bubbles up into that guard and gets swallowed,
-            // so the first tap did nothing and only the second opened the dialog.
-            // Handling the click on the handle element itself — and composing
-            // with the handler dnd supplies via props — lets a genuine tap
-            // through on the first touch while still blocking the click that
-            // follows a real drag.
+            // Touch tap-to-open. Record where/when the finger went down so
+            // onPointerUp can tell a tap from a drag. Also forward to any
+            // pointer handler dnd supplied via the spread.
+            onPointerDown={(e) => {
+                (restProps.onPointerDown as React.PointerEventHandler<HTMLDivElement> | undefined)?.(e);
+                if (e.pointerType === 'touch') {
+                    tapStart.current = { x: e.clientX, y: e.clientY, t: e.timeStamp };
+                }
+            }}
+            onPointerUp={(e) => {
+                (restProps.onPointerUp as React.PointerEventHandler<HTMLDivElement> | undefined)?.(e);
+                if (e.pointerType !== 'touch') return;
+                const start = tapStart.current;
+                tapStart.current = null;
+                if (!start) return;
+                // Let taps on nested controls do their own thing.
+                if (isInteractiveTarget(e.target)) return;
+                // A genuine tap: barely moved and lifted quickly. A real drag
+                // moves the finger well past this threshold, so it won't open.
+                const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y);
+                const elapsed = e.timeStamp - start.t;
+                if (moved <= 10 && elapsed <= 500) {
+                    touchTapAt.current = e.timeStamp;
+                    handleCardClick(e as unknown as React.MouseEvent<HTMLDivElement>);
+                }
+            }}
+            // Mouse/keyboard path. Tap-to-open lives on the SAME element that
+            // carries dnd's drag handle. dnd arms a one-shot click guard after a
+            // touch, so we skip synthetic touch clicks here (onPointerUp already
+            // handled the tap) and let genuine mouse clicks through, composing
+            // with the handler dnd supplies via props.
             onClick={(e) => {
                 dragHandleClick?.(e);
                 if (e.defaultPrevented) return;
+                // Skip the synthetic click that follows a touch tap onPointerUp
+                // already handled (browsers fire it within ~a few hundred ms).
+                if (e.timeStamp - touchTapAt.current < 700) return;
                 handleCardClick(e);
             }}
             onKeyDown={(e) => {
