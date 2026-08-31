@@ -181,7 +181,7 @@ export default function ContactLegislatorPage() {
         <div className="space-y-1">
           <h1 className="text-lg font-semibold">This bill has become law</h1>
           <p className="max-w-sm text-sm text-muted-foreground">
-            {bill.bill_number} has been signed into law — legislators can no longer act on it, so
+            {bill.bill_number} has been signed into law. Legislators can no longer act on it, so
             there is no one to contact about it.
           </p>
         </div>
@@ -337,7 +337,7 @@ function Compose({
         </div>
         <p className="text-xs text-muted-foreground">
           This bill is waiting on a committee to schedule a hearing. Send the message below to that committee&apos;s
-          chair and vice-chair — the more requests they get, the more likely they are to put it on the agenda.
+          chair and vice-chair. The more requests they get, the more likely they are to put it on the agenda.
         </p>
         {isJointReferral && (
           <div className="mt-2 flex items-start gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2">

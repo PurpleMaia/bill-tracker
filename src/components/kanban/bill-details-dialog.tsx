@@ -237,12 +237,12 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   const testimonyCountdown = testimonyEligibility.allowed ? testimonyDeadline.countdown : null;
   const urgentTooltip = hearingAt
     ? `Hearing ${hearingAt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Submit testimony at least 24 hours before the hearing.`
-    : 'Hearing scheduled — submit testimony at least 24 hours before the hearing.';
+    : 'Hearing scheduled! Submit testimony at least 24 hours before the hearing.';
 
   // Once a bill is signed into law, legislators can no longer act on it — the
   // same enacted check that closes testimony also closes Contact Legislator.
   const contactDisabled = isEnacted(currentStatus as DBBillStatus);
-  const contactDisabledReason = 'This bill has become law — legislators can no longer act on it.';
+  const contactDisabledReason = 'This bill has become law! Legislators can no longer act on it.';
 
   const handleSave = async () => {
     try {
@@ -452,7 +452,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{testimonyEligibility.reason} — testimony is closed.</p>
+                      <p>Testimony closed! {testimonyEligibility.reason}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
