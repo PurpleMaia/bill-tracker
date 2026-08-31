@@ -747,7 +747,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                         )}
                         {!testimonyEligibility.allowed && (
                           <p className="text-center text-xs text-muted-foreground">
-                            {testimonyEligibility.reason} — testimony is closed.
+                            Testimony is closed! {testimonyEligibility.reason}.
                           </p>
                         )}
                         {contactDisabled && (

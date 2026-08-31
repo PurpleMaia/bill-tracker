@@ -56,7 +56,7 @@ export function getTestimonyEligibility(params: {
   }
 
   if (params.dead) {
-    return { allowed: false, reason: 'This bill is dead' };
+    return { allowed: false, reason: 'This bill failed' };
   }
 
   // Once a bill reaches conference (or Governor/Law after it), public testimony
