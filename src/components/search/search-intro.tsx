@@ -25,7 +25,10 @@ interface SearchIntroProps {
   children: React.ReactNode;
   /** Sessions covered by the corpus — passed in so this copy never goes stale. */
   sessionYears: number[];
-  /** Hides the suggestion chips once the user has started searching. */
+  /**
+   * Hides the suggestion chips once the user has typed a query. Filters and
+   * year selections keep the chips visible — they're always a valid entry point.
+   */
   showSuggestions: boolean;
 }
 

@@ -17,7 +17,6 @@ import { useBillSearch } from '@/hooks/use-bill-search';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import {
   DEFAULT_FILTERS,
-  activeFilterCount,
   parseSearchParams,
   type SearchFilters,
 } from '@/lib/bills/search-params';
@@ -102,7 +101,6 @@ export function BillSearchView() {
   }, []);
 
   const hasQuery = filters.q.trim().length > 0;
-  const isPristine = !hasQuery && activeFilterCount(filters) === 0;
   // The dialog takes only a bill id; the Track control needs the bill number for
   // its label and toasts, so resolve the open row from the loaded results.
   const openBill = openBillId ? bills.find((b) => b.id === openBillId) : undefined;
@@ -171,7 +169,7 @@ export function BillSearchView() {
             <SearchIntro
               onSuggestionClick={(term) => setFilters({ ...filters, q: term })}
               sessionYears={SESSION_YEARS}
-              showSuggestions={isPristine}
+              showSuggestions={!hasQuery}
             >
               {searchInput}
             </SearchIntro>
