@@ -114,7 +114,7 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   }
   // No point contacting legislators once the bill is law — the process is over.
   if (committeeCodes.length > 0 && !isEnacted(status)) {
-    nextSteps.push({ text: 'Contact the committee chairs about this bill.', action: 'contact' });
+    nextSteps.push({ text: 'Contact the committee chairs to schedule a hearing.', action: 'contact' });
   }
 
   return {
