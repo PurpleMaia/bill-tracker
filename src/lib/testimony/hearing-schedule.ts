@@ -13,6 +13,21 @@ import { isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 const HEARING_DATETIME_PATTERN =
   /(\d{1,2})-(\d{1,2})-(\d{2,4})[,\s]+(?:at\s+)?(\d{1,2}):(\d{2})\s*([AP])\.?M\.?/i;
 
+// A committee that has voted issues a recommendation — "recommend(s) that the
+// measure be PASSED / DEFERRED" — which means its hearing has concluded. The bill
+// then advances to a waiting/deferred status (see src/services/llm.ts), so it is no
+// longer a scheduled status even though the status text still carries the (now past)
+// hearing notice.
+const COMMITTEE_RECOMMENDATION_PATTERN = /recommend(?:\(s\)|s)?\s+that\s+the\s+measure\s+be\s+(?:passed|deferred)/i;
+
+/**
+ * True when the status text records a committee recommendation (PASSED/DEFERRED),
+ * i.e. that committee's hearing has already been held.
+ */
+export function hasCommitteeRecommendation(statusText: string): boolean {
+  return COMMITTEE_RECOMMENDATION_PATTERN.test(statusText);
+}
+
 const HOUR_MS = 60 * 60 * 1000;
 const TESTIMONY_WINDOW_MS = 24 * HOUR_MS;
 /** Deadline (hearing minus 24h) within this window counts as imminent. */
@@ -76,11 +91,24 @@ export function getTestimonyDeadline(params: {
   latestStatusText: string | null;
   now: Date;
 }): TestimonyDeadline {
+  // A bill still in a scheduled status has an upcoming hearing to count down to.
+  // A bill whose committee already recommended (PASSED/DEFERRED) has moved to a
+  // waiting/deferred status, but its notice still carries the concluded hearing —
+  // parse it too so we can close testimony once that hearing has passed.
+  const recommended =
+    !!params.latestStatusText && hasCommitteeRecommendation(params.latestStatusText);
   const hearingAt =
-    isTestimonyUrgent(params.billStatus) && params.latestStatusText
+    (isTestimonyUrgent(params.billStatus) || recommended) && params.latestStatusText
       ? parseHearingDatetime(params.latestStatusText)
       : null;
   if (!hearingAt) return { hearingAt: null, countdown: null, urgent: false, hearingPassed: false };
+
+  // For a concluded-committee bill there is no live testimony window to count down
+  // to; the only signal we take from its notice is whether that hearing is now past.
+  if (recommended && !isTestimonyUrgent(params.billStatus)) {
+    const hearingPassed = params.now.getTime() >= hearingAt.getTime();
+    return { hearingAt, countdown: null, urgent: false, hearingPassed };
+  }
 
   const countdown = getTestimonyCountdownLabel(hearingAt, params.now);
   if (!countdown) {

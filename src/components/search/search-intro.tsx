@@ -55,8 +55,7 @@ export function SearchIntro({
           Search Hawai&#699;i legislation
         </h1>
         <p className="mx-auto mt-1.5 max-w-lg text-sm text-primary-foreground/80">
-          Every bill from the {sessionLabel} sessions — search by bill number, title, or what the
-          bill actually says, then track the ones you care about to your board.
+          Search by bill number, title, or what the bill actually says, then track the ones you care about to your kanban board.
         </p>
       </div>
 

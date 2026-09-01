@@ -127,7 +127,7 @@ export const COLUMN_DESCRIPTIONS: Record<string, string> = {
   passedCommittees:
     'The bill passed all of its committees, but the House and Senate passed different versions. It heads to a conference committee to reconcile the differences.',
   conferenceAssigned:
-    'The bill is in conference and waiting for conferees — negotiators from both chambers — to be appointed to work out a single compromise version.',
+    'The bill is in conference and waiting for conferees (negotiators from both chambers) to be appointed to work out a single compromise version.',
   conferenceScheduled:
     'A conference committee meeting has been scheduled to negotiate the differences between the House and Senate versions of the bill.',
   conferencePassed:
