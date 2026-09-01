@@ -26,7 +26,6 @@ import { Button } from '@/components/ui/button';
 import { CardTagSelector } from '../tags/card-tag-selector';
 import { getNextDeadline, getDeadlineTier, formatDeadlineStanding } from '@/lib/bills/dead-bill';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
-import { isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import { DeadBillInfoPopover } from './dead-bill-info-popover';
@@ -185,7 +184,10 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
       }
       setIsRemoving(true);
       try {
-        await removeBillFromOrg(bill.id, activeTenant.tenantId);
+        // Pass the acting user's id so their own NULL-tenant tracking row for
+        // this bill is cleared too — otherwise a bill tracked before joining the
+        // org survives the tenant-scoped delete and reappears on reload.
+        await removeBillFromOrg(bill.id, activeTenant.tenantId, user?.id);
         removeBill(bill.id);
         toast({ title: 'Bill Removed', description: `${bill.bill_number} removed from the board.`, duration: 5000 });
         setShowRemoveDialog(false);
@@ -215,7 +217,11 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const testimonyState = boardMode === 'active-boards' ? orgTestimonyState : testimonyStatuses[bill.id]; // undefined | 'draft' | 'submitted'
     // One derivation for hearing datetime → countdown / passed, shared with the
     // dialog and testimonies view so the card can't drift from them.
-    const testimonyDeadline = !bill.dead && isTestimonyUrgent(bill.current_bill_status as DBBillStatus)
+    // Don't pre-gate on isTestimonyUrgent here — getTestimonyDeadline also closes
+    // testimony for a bill whose committee already recommended (now a waiting/deferred
+    // status) once its hearing has passed, so the card's chip stays in sync with the
+    // dialog and testimonies view.
+    const testimonyDeadline = !bill.dead
       ? getTestimonyDeadline({
           billStatus: bill.current_bill_status as DBBillStatus,
           latestStatusText: bill.latest_update?.statustext ?? null,

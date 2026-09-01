@@ -49,7 +49,7 @@ describe('getTestimonyEligibility', () => {
   it('closes testimony when the bill is dead', () => {
     expect(getTestimonyEligibility({ ...base, dead: true })).toEqual({
       allowed: false,
-      reason: 'This bill is dead',
+      reason: 'This bill failed',
     });
   });
 
@@ -122,10 +122,18 @@ describe('getTestimonyEligibility', () => {
     ).toEqual({ allowed: true, reason: null });
   });
 
+  it('closes testimony for a waiting bill whose recommended committee hearing has passed', () => {
+    // Bill moved to waiting2 after a committee recommended PASSED, but its last
+    // hearing (derived via getTestimonyDeadline.hearingPassed) is already over.
+    expect(
+      getTestimonyEligibility({ ...base, billStatus: 'waiting2', hearingPassed: true }),
+    ).toEqual({ allowed: false, reason: 'The hearing has already been held' });
+  });
+
   it('prefers the dead/enacted reason over a passed hearing', () => {
     expect(
       getTestimonyEligibility({ ...base, dead: true, hearingPassed: true }),
-    ).toEqual({ allowed: false, reason: 'This bill is dead' });
+    ).toEqual({ allowed: false, reason: 'This bill failed' });
     expect(
       getTestimonyEligibility({ ...base, billStatus: 'governorSigns', hearingPassed: true }),
     ).toEqual({ allowed: false, reason: 'This bill has been enacted into law' });
