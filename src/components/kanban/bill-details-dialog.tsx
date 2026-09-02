@@ -230,6 +230,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
     deadlines: SESSION_DEADLINES,
     today,
     hearingPassed: testimonyDeadline.hearingPassed,
+    latestStatusText: latestUpdateText,
   });
   const testimonyUrgent =
     testimonyEligibility.allowed && isTestimonyUrgent(currentStatus as DBBillStatus);

@@ -130,6 +130,38 @@ describe('getTestimonyEligibility', () => {
     ).toEqual({ allowed: false, reason: 'The hearing has already been held' });
   });
 
+  it('closes testimony when the latest status text is a committee recommendation (no hearing date)', () => {
+    // Once a committee reports a bill out ("recommend(s) that the measure be PASSED"),
+    // its hearing is over — testimony closes even when the text carries no hearing date.
+    expect(
+      getTestimonyEligibility({
+        ...base,
+        billStatus: 'waiting2',
+        latestStatusText: 'The committee(s) on SIM-JHA recommend(s) that the measure be PASSED, unamended.',
+      }),
+    ).toEqual({ allowed: false, reason: 'The hearing has already been held' });
+  });
+
+  it('closes testimony on a committee DEFERRED recommendation', () => {
+    expect(
+      getTestimonyEligibility({
+        ...base,
+        billStatus: 'deferred2',
+        latestStatusText: 'The committee(s) on WAM recommend(s) that the measure be DEFERRED.',
+      }),
+    ).toEqual({ allowed: false, reason: 'The hearing has already been held' });
+  });
+
+  it('still allows testimony when the latest status text has no recommendation', () => {
+    expect(
+      getTestimonyEligibility({
+        ...base,
+        billStatus: 'waiting2',
+        latestStatusText: 'Passed Second Reading and referred to the committee(s) on WAM.',
+      }),
+    ).toEqual({ allowed: true, reason: null });
+  });
+
   it('prefers the dead/enacted reason over a passed hearing', () => {
     expect(
       getTestimonyEligibility({ ...base, dead: true, hearingPassed: true }),

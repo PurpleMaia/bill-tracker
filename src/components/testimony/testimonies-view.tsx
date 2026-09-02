@@ -95,6 +95,7 @@ function decorate(item: TestimonyListItem, now: Date): DecoratedTestimony {
       committeeAssignment: item.committeeAssignment,
       deadlines: SESSION_DEADLINES,
       today: now.toISOString().split('T')[0],
+      latestStatusText: item.latestStatusText,
     });
 
     if (!eligibility.allowed) {

@@ -99,6 +99,7 @@ export function deriveBillStanding(bill: BillDetails, today: string): BillStandi
     committeeAssignment,
     deadlines: SESSION_DEADLINES,
     today,
+    latestStatusText: bill.latest_update?.statustext ?? null,
   });
   const testimonyAction = eligibility.allowed ? 'Submit testimony on this bill.' : null;
 

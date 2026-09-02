@@ -49,6 +49,7 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
     deadlines: SESSION_DEADLINES,
     today,
     hearingPassed: testimonyDeadline.hearingPassed,
+    latestStatusText: bill.latest_update?.statustext ?? null,
   });
   const urgent = eligibility.allowed && isTestimonyUrgent(status);
   // Lowercase the reason's leading letter so it reads as one sentence

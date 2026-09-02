@@ -140,16 +140,18 @@ export async function getUserTrackedBills(userId: string, showArchived: boolean 
       throw new Error('User not found');
     }
 
-    // Get bills directly adopted by the user
+    // Get bills directly adopted by the user. "My Bills" is intentionally
+    // tenant-AGNOSTIC: it shows every bill THIS user tracks, in any tenant
+    // context (or none). We deliberately do NOT filter by ub.tenant_id here —
+    // many user_bills rows were tracked with tenant_id = NULL (drift), and
+    // scoping them out silently emptied the dashboard for such users. tenantId
+    // is still used below, but only to resolve tenant-scoped tags / org
+    // statuses — not to decide which bills the user sees.
     let userBillsQuery = db
       .selectFrom('bills as b')
       .innerJoin('user_bills as ub', 'b.id', 'ub.bill_id') // Only bills that have been adopted (bills that have a bill id in the user_bills table)
       .selectAll('b')
       .where('ub.user_id', '=', userId);
-
-    if (tenantId) {
-      userBillsQuery = userBillsQuery.where('ub.tenant_id', '=', tenantId);
-    }
 
     // Conditionally exclude archived bills
     if (!showArchived) {
@@ -179,14 +181,12 @@ export async function getUserTrackedBills(userId: string, showArchived: boolean 
 
       // Get bills adopted by these interns
       if (internIds.length > 0) {
+        // Same tenant-agnostic rule as the user's own bills above: a
+        // supervisor sees every bill their interns track, in any tenant.
         let internBillsQuery = db
           .selectFrom('bills as b')
           .innerJoin('user_bills as ub', 'b.id', 'ub.bill_id')
           .where('ub.user_id', 'in', internIds);
-
-        if (tenantId) {
-          internBillsQuery = internBillsQuery.where('ub.tenant_id', '=', tenantId);
-        }
 
         // Conditionally exclude archived bills
         if (!showArchived) {

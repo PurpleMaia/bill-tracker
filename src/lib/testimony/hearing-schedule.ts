@@ -8,25 +8,10 @@
 // hearing time minus 24h.
 
 import type { BillStatus } from '@/db/types';
-import { isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
+import { isTestimonyUrgent, hasCommitteeRecommendation } from '@/lib/testimony/testimony-eligibility';
 
 const HEARING_DATETIME_PATTERN =
   /(\d{1,2})-(\d{1,2})-(\d{2,4})[,\s]+(?:at\s+)?(\d{1,2}):(\d{2})\s*([AP])\.?M\.?/i;
-
-// A committee that has voted issues a recommendation — "recommend(s) that the
-// measure be PASSED / DEFERRED" — which means its hearing has concluded. The bill
-// then advances to a waiting/deferred status (see src/services/llm.ts), so it is no
-// longer a scheduled status even though the status text still carries the (now past)
-// hearing notice.
-const COMMITTEE_RECOMMENDATION_PATTERN = /recommend(?:\(s\)|s)?\s+that\s+the\s+measure\s+be\s+(?:passed|deferred)/i;
-
-/**
- * True when the status text records a committee recommendation (PASSED/DEFERRED),
- * i.e. that committee's hearing has already been held.
- */
-export function hasCommitteeRecommendation(statusText: string): boolean {
-  return COMMITTEE_RECOMMENDATION_PATTERN.test(statusText);
-}
 
 const HOUR_MS = 60 * 60 * 1000;
 const TESTIMONY_WINDOW_MS = 24 * HOUR_MS;

@@ -11,6 +11,20 @@ import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import { isFiscalBill, isEnacted } from '@/lib/bills/dead-bill';
 import { isConferenceOrLater } from '@/lib/bills/progress-stages';
 
+// A committee that has voted issues a recommendation — "recommend(s) that the
+// measure be PASSED / DEFERRED" — which means its hearing has concluded and the
+// public testimony window for it is closed, whether or not the notice also carries
+// a hearing date. The bill then advances to a waiting/deferred status.
+const COMMITTEE_RECOMMENDATION_PATTERN = /recommend(?:\(s\)|s)?\s+that\s+the\s+measure\s+be\s+(?:passed|deferred)/i;
+
+/**
+ * True when the status text records a committee recommendation (PASSED/DEFERRED),
+ * i.e. that committee's hearing has already been held.
+ */
+export function hasCommitteeRecommendation(statusText: string): boolean {
+  return COMMITTEE_RECOMMENDATION_PATTERN.test(statusText);
+}
+
 export const SCHEDULED_STATUSES: BillStatus[] = [
   'scheduled1',
   'scheduled2',
@@ -50,6 +64,12 @@ export function getTestimonyEligibility(params: {
    * keeping the card's "Testimony closed" chip and the dialog's Write action in sync.
    */
   hearingPassed?: boolean;
+  /**
+   * The latest status-update text. When it records a committee recommendation
+   * (PASSED/DEFERRED) the hearing is over and testimony closes — even if the text
+   * carries no parseable hearing date for hearingPassed to key off.
+   */
+  latestStatusText?: string | null;
 }): TestimonyEligibility {
   if (isEnacted(params.billStatus)) {
     return { allowed: false, reason: 'This bill has been enacted into law' };
@@ -66,6 +86,13 @@ export function getTestimonyEligibility(params: {
   }
 
   if (params.hearingPassed) {
+    return { allowed: false, reason: 'The hearing has already been held' };
+  }
+
+  // A committee recommendation (PASSED/DEFERRED) in the latest text means that
+  // committee's hearing has concluded — close testimony even when no hearing date
+  // is present for hearingPassed to fire.
+  if (params.latestStatusText && hasCommitteeRecommendation(params.latestStatusText)) {
     return { allowed: false, reason: 'The hearing has already been held' };
   }
 

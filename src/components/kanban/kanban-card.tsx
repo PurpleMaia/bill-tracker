@@ -27,7 +27,7 @@ import { CardTagSelector } from '../tags/card-tag-selector';
 import { getNextDeadline, getDeadlineTier, formatDeadlineStanding } from '@/lib/bills/dead-bill';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
-import type { SessionDeadlines } from '@/lib/bills/dead-bill';
+import { hasCommitteeRecommendation } from '@/lib/testimony/testimony-eligibility';
 import { DeadBillInfoPopover } from './dead-bill-info-popover';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import { useBills } from '@/hooks/contexts/bills-context';
@@ -229,10 +229,18 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
         })
       : null;
     const hearingAt = testimonyDeadline?.hearingAt ?? null;
+    // A committee recommendation (PASSED/DEFERRED) in the latest text means the
+    // hearing is over even when the notice carries no parseable date — matches the
+    // dialog's closed Write action (getTestimonyEligibility).
+    const recommended =
+      !bill.dead && hasCommitteeRecommendation(bill.latest_update?.statustext ?? '');
     // Still-open hearing: show the "Testimony due" chip when no draft/submission exists yet.
-    const testimonyDue = !testimonyState && !!testimonyDeadline && !testimonyDeadline.hearingPassed && !!hearingAt;
-    // Hearing has passed: show a muted "Testimony closed" chip instead.
-    const testimonyClosed = !testimonyState && !!testimonyDeadline?.hearingPassed;
+    const testimonyDue =
+      !testimonyState && !recommended && !!testimonyDeadline && !testimonyDeadline.hearingPassed && !!hearingAt;
+    // Hearing has passed (by date) or the committee has reported the bill out:
+    // show a muted "Testimony closed" chip instead.
+    const testimonyClosed =
+      !testimonyState && (!!testimonyDeadline?.hearingPassed || recommended);
     const countdownLabel = testimonyDeadline?.countdown ?? null;
 
     // Bottom-right fate countdown while the bill waits for a hearing: if the
