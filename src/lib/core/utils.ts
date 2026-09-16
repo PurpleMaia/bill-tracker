@@ -40,13 +40,33 @@ export function formatBillHeadline(bill: { nickname?: string | null; bill_title?
 }
 
 /**
+ * Parses a date string to a Date in the LOCAL timezone.
+ *
+ * The important case is a date-only ISO string ("YYYY-MM-DD", how status
+ * updates and deadlines are stored): `new Date("2026-09-13")` parses it as
+ * UTC midnight, which in Hawaii (UTC-10) reads back as Sep 12 — a one-day
+ * shift. Appending 'T00:00:00' forces local-midnight parsing so the calendar
+ * day is preserved (the same guard the deadline rendering already uses).
+ * Any other format (e.g. "M/D/YYYY", full ISO with time) is already parsed
+ * locally by `new Date`, so it's passed through unchanged.
+ *
+ * Returns null for empty or unparseable input.
+ */
+export function parseLocalDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? `${dateStr}T00:00:00` : dateStr;
+  const d = new Date(normalized);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/**
  * Compact relative date for activity lines: "today", "yesterday", "4d ago",
  * "3w ago", then a short absolute date ("Mar 5", with year when it differs
  * from the current one). Returns '' for unparseable dates.
  */
 export function formatRelativeDate(dateStr: string, now: Date = new Date()): string {
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return '';
+  const date = parseLocalDate(dateStr);
+  if (!date) return '';
 
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const days = Math.round((startOfDay(now) - startOfDay(date)) / 86_400_000);

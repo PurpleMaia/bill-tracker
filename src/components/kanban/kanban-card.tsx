@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { cn, formatBillHeadline, formatBillStatusName, formatRelativeDate, todayHawaii } from '@/lib/core/utils';
+import { cn, formatBillHeadline, formatBillStatusName, formatRelativeDate, parseLocalDate, todayHawaii } from '@/lib/core/utils';
 import { canAssignBills } from '@/lib/auth/permissions';
 import { parseCommittees } from '@/lib/bills/dead-bill';
 import { isAwaitingHearing } from '@/lib/bills/kanban-columns';
@@ -456,7 +456,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                     content={
                       <>
                         <p className="font-medium">
-                          {new Date(bill.latest_update.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                          {parseLocalDate(bill.latest_update.date)?.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                         </p>
                         <p>{bill.latest_update.statustext}</p>
                       </>

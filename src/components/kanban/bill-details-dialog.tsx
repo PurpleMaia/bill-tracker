@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn, todayHawaii } from '@/lib/core/utils';
+import { cn, parseLocalDate, todayHawaii } from '@/lib/core/utils';
 import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -639,7 +639,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                               </Badge>
                             </Term>
                             <span className="text-[10px] text-muted-foreground tabular-nums">
-                              {new Date(update.date).toLocaleDateString('en-US', {
+                              {parseLocalDate(update.date)?.toLocaleDateString('en-US', {
                                 month: 'short', day: 'numeric', year: 'numeric'
                               })}
                             </span>
