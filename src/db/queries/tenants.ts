@@ -4,6 +4,10 @@ import { db } from '@/db/kysely/client';
 import type { Membership, OrgRole } from '@/types/tenant';
 import { Errors } from '@/lib/core/errors';
 import { auth } from '@/lib/auth/session';
+import { deriveOrgSlug, slugCandidate } from '@/lib/tenants/org-slug';
+
+/** How many suffixed slug candidates we try before giving up. */
+const MAX_SLUG_ATTEMPTS = 50;
 
 type MutationOptions = { skipAuth?: boolean };
 
@@ -489,11 +493,58 @@ export async function claimInviteToken(
 }
 
 /**
+ * Finds a free slug for `name`: the base derivation, or the first suffixed
+ * candidate (`-2`, `-3`, …) whose slug no tenant currently uses.
+ *
+ * Two concurrent creators can still race to the same free slug and one INSERT
+ * will fail; that surfaces as a thrown error to the caller, which is acceptable
+ * for this rare, user-initiated action.
+ */
+async function findFreeSlug(name: string): Promise<string | null> {
+  const base = deriveOrgSlug(name);
+  if (!base) return null;
+
+  for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
+    const candidate = slugCandidate(base, attempt);
+    const existing = await db
+      .selectFrom('tenants')
+      .select('id')
+      .where('slug', '=', candidate)
+      .executeTakeFirst();
+    if (!existing) return candidate;
+  }
+  return null;
+}
+
+/**
+ * Creates an organization for an existing user and makes them its admin.
+ *
+ * Used by the self-serve "Create Organization" flow: a public user (no
+ * memberships) promotes themselves. Derives a UNIQUE slug so two orgs with the
+ * same name don't collide. Throws on failure — unlike {@link createOrgForNewUser},
+ * the caller is an explicit user action, so a real error must reach them.
+ */
+export async function createOrgForUser(
+  orgName: string,
+  userId: string
+): Promise<{ id: string; name: string; slug: string }> {
+  const trimmedName = orgName.trim();
+  if (!trimmedName) throw Errors.INVALID_REQUEST;
+
+  const slug = await findFreeSlug(trimmedName);
+  if (!slug) throw Errors.INVALID_REQUEST;
+
+  const tenant = await createTenant(trimmedName, slug, undefined, { skipAuth: true });
+  await addMember(tenant.id, userId, 'admin', { skipAuth: true });
+  return tenant;
+}
+
+/**
  * Creates an organization for a newly registered user and makes them its admin.
  *
- * Slug derivation matches what the register route has always done. Failure is
- * swallowed to a null return: a signup that succeeded should not be undone
- * because the optional org name collided.
+ * Failure is swallowed to a null return: a signup that succeeded should not be
+ * undone because the optional org name collided. Delegates slug/creation to
+ * {@link createOrgForUser} so the derivation lives in one place.
  */
 export async function createOrgForNewUser(
   orgName: string,
@@ -502,17 +553,8 @@ export async function createOrgForNewUser(
   const trimmedName = orgName.trim();
   if (!trimmedName || trimmedName.length > 100) return null;
 
-  const slug = trimmedName
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .slice(0, 50);
-
   try {
-    const tenant = await createTenant(trimmedName, slug, undefined, { skipAuth: true });
-    await addMember(tenant.id, userId, 'admin', { skipAuth: true });
-    return tenant;
+    return await createOrgForUser(trimmedName, userId);
   } catch (orgError) {
     console.error('[createOrgForNewUser] Failed to create organization:', orgError);
     return null;

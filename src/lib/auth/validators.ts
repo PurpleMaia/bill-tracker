@@ -62,3 +62,11 @@ export const newTagSchema = z.object({
 export const usersSchema = z.object({
     userIds: z.array(z.string().uuid()).min(1, { message: "At least one user ID is required." })
 });
+
+// Self-serve organization creation (a public user promoting themselves to admin).
+export const createOrgSchema = z.object({
+    name: z.string()
+        .trim()
+        .min(1, { message: "Organization name is required." })
+        .max(100, { message: "Organization name cannot exceed 100 characters." })
+});
