@@ -23,8 +23,10 @@ export function deriveOrgSlug(name: string): string {
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, MAX_SLUG_LENGTH);
+    .slice(0, MAX_SLUG_LENGTH)
+    // Trim AFTER slicing: a cut that lands on a hyphen would otherwise leave a
+    // trailing separator.
+    .replace(/^-|-$/g, '');
 }
 
 /**
@@ -35,5 +37,8 @@ export function deriveOrgSlug(name: string): string {
 export function slugCandidate(base: string, attempt: number): string {
   if (attempt === 0) return base;
   const suffix = `-${attempt + 1}`;
-  return base.slice(0, MAX_SLUG_LENGTH - suffix.length) + suffix;
+  // Trim a trailing hyphen off the truncated base so a cut landing on a
+  // separator doesn't produce a doubled hyphen ('foo--2').
+  const truncated = base.slice(0, MAX_SLUG_LENGTH - suffix.length).replace(/-$/, '');
+  return truncated + suffix;
 }

@@ -27,6 +27,15 @@ describe('deriveOrgSlug', () => {
     const long = 'a'.repeat(80);
     expect(deriveOrgSlug(long)).toHaveLength(MAX_SLUG_LENGTH);
   });
+
+  it('has no trailing hyphen when the length cut lands on a separator', () => {
+    // 'ab-' repeated: characters at index 48 ('a') 49 ('b') 50 ('-') — the cut
+    // at MAX_SLUG_LENGTH would land just past a hyphen without a post-slice trim.
+    const name = Array.from({ length: 30 }, () => 'ab').join(' ');
+    const slug = deriveOrgSlug(name);
+    expect(slug.length).toBeLessThanOrEqual(MAX_SLUG_LENGTH);
+    expect(slug.endsWith('-')).toBe(false);
+  });
 });
 
 describe('slugCandidate', () => {
@@ -43,6 +52,14 @@ describe('slugCandidate', () => {
     const base = 'a'.repeat(MAX_SLUG_LENGTH);
     const candidate = slugCandidate(base, 1);
     expect(candidate.length).toBeLessThanOrEqual(MAX_SLUG_LENGTH);
+    expect(candidate.endsWith('-2')).toBe(true);
+  });
+
+  it('does not produce a doubled hyphen when the slice lands on a separator', () => {
+    // Base whose char at the truncation boundary (MAX_SLUG_LENGTH - 2) is '-'.
+    const base = 'a'.repeat(MAX_SLUG_LENGTH - 2) + '-bb';
+    const candidate = slugCandidate(base, 1);
+    expect(candidate.includes('--')).toBe(false);
     expect(candidate.endsWith('-2')).toBe(true);
   });
 });

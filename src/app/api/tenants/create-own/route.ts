@@ -14,7 +14,9 @@ export async function POST(request: NextRequest) {
     const { user } = await requireSession.fromRequest(request);
 
     // Only public users may promote themselves. Anyone already in an org must
-    // go through the normal invite/admin flow.
+    // go through the normal invite/admin flow. This is a cheap fast-path reject;
+    // the authoritative, concurrency-safe check runs inside createOrgForUser's
+    // transaction (requireNoExistingMembership).
     const memberships = await getUserMemberships(user.id);
     if (memberships.length > 0) {
       return NextResponse.json(
@@ -30,7 +32,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: messages }, { status: 400 });
     }
 
-    const tenant = await createOrgForUser(validation.data.name, user.id);
+    const tenant = await createOrgForUser(validation.data.name, user.id, {
+      requireNoExistingMembership: true,
+    });
     return NextResponse.json({ tenant }, { status: 201 });
   } catch (error: any) {
     if (error?.statusCode) {

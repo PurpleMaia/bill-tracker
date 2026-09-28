@@ -69,4 +69,7 @@ export const createOrgSchema = z.object({
         .trim()
         .min(1, { message: "Organization name is required." })
         .max(100, { message: "Organization name cannot exceed 100 characters." })
+        // A symbol-only name would derive to an empty slug and fail deep in the
+        // query layer with an opaque error; require something slug-able here.
+        .regex(/[a-zA-Z0-9]/, { message: "Organization name must contain at least one letter or number." })
 });
