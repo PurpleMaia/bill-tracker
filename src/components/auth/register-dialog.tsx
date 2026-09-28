@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { GoogleSignInButton } from './google-sign-in-button';
 
 export function RegisterDialog() {
   const [email, setEmail] = useState('');
@@ -206,6 +207,29 @@ export function RegisterDialog() {
                   : 'Register'}
           </Button>
         </form>
+
+        {/* Google sign-up carries the same context the form would. Hidden when
+            the invite is broken — there is nothing valid to sign up into. */}
+        {!(isInviteFlow && inviteError) && (
+          <>
+            <div className="relative my-2">
+              <div aria-hidden className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-background px-2 text-xs uppercase tracking-wide text-muted-foreground">
+                  or
+                </span>
+              </div>
+            </div>
+
+            <GoogleSignInButton
+              inviteToken={inviteToken}
+              orgName={!isInviteFlow && createOrg ? orgName.trim() : undefined}
+              onNavigate={() => setIsOpen(false)}
+            />
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

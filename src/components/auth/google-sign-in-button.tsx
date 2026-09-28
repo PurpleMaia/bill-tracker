@@ -33,6 +33,13 @@ function GoogleMark() {
 }
 
 interface GoogleSignInButtonProps {
+  /**
+   * Which OAuth provider to start. Defaults to Google; the button hits
+   * `/api/auth/{provider}`, so adding another provider is a matter of passing
+   * its id (and giving this button a matching mark/label). See
+   * lib/auth/oauth-registry.ts for the known ids.
+   */
+  provider?: string;
   /** Invite token to carry through the OAuth round trip, when signing up from an invite. */
   inviteToken?: string | null;
   /** Organization to create for the new user, when signing up with an org name. */
@@ -44,12 +51,15 @@ interface GoogleSignInButtonProps {
 }
 
 /**
- * Starts Google sign-in.
+ * Starts an OAuth sign-in flow (Google by default).
  *
- * A real link, not a fetch: OAuth requires a full-page navigation to Google, so
- * this is the one auth affordance that does not go through the data-client.
+ * A real link, not a fetch: OAuth requires a full-page navigation to the
+ * provider, so this is the one auth affordance that does not go through the
+ * data-client. The `/api/auth/{provider}` route is provider-agnostic, so this
+ * button generalizes to future providers via the `provider` prop.
  */
 export function GoogleSignInButton({
+  provider = 'google',
   inviteToken,
   orgName,
   label = 'Continue with Google',
@@ -60,7 +70,8 @@ export function GoogleSignInButton({
   if (orgName) params.set('orgName', orgName);
 
   const query = params.toString();
-  const href = query ? `/api/auth/google?${query}` : '/api/auth/google';
+  const base = `/api/auth/${provider}`;
+  const href = query ? `${base}?${query}` : base;
 
   return (
     <Button asChild variant="outline" className="w-full">
