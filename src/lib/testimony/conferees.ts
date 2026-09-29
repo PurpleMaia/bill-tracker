@@ -44,11 +44,16 @@ export function isConferenceStatus(status: string | null | undefined): boolean {
   return typeof status === 'string' && CONFERENCE_CONTACT_STATUSES.has(status);
 }
 
-// "House Conferees Appointed: <roster>" — captures chamber + the roster text.
-// The roster runs to the end of the line/string; a trailing sentence period is
-// stripped in parseRoster. We can't terminate on a bare period because initials
-// ("Lee, M.") contain periods mid-roster.
-const APPOINTMENT_RE = /(House|Senate)\s+Conferees\s+Appointed:\s*([^\n]*)/gi;
+// "House Conferees Appointed: <roster>" / "…Added: <sentence>" — captures the
+// chamber, the verb (Appointed vs. Added), and the text after the colon. The
+// text runs to the end of the line/string; a trailing sentence period is stripped
+// downstream. We can't terminate on a bare period because initials ("Lee, M.")
+// contain periods mid-roster.
+//
+// Two verbs, two semantics: "Appointed" names a full roster and REPLACES the
+// chamber's conferees (latest appointment wins); "Added" names one or more
+// members joining and APPENDS them to the roster built so far.
+const CONFEREE_LINE_RE = /(House|Senate)\s+Conferees\s+(Appointed|Added):\s*([^\n]*)/gi;
 
 /** A role marker that closes a semicolon-group (everyone in it is a chair). */
 const ROLE_RE = /^(?:co-?\s*)?(?:vice[\s-]*)?chairs?$/i;
@@ -56,27 +61,71 @@ const ROLE_RE = /^(?:co-?\s*)?(?:vice[\s-]*)?chairs?$/i;
 /** A bare initial like "M" or "M." — attaches to the preceding surname. */
 const INITIAL_RE = /^[A-Z]\.?$/;
 
+// A legislator title prefix on an "Added" line ("Representative Garcia") — dropped
+// so only the surname remains.
+const TITLE_RE = /\b(?:Representatives?|Senators?|Reps?\.?|Sens?\.?)\s+/gi;
+// The trailing clause of an "Added" sentence: "added as Conferee(s)" or
+// "added as Co-Chair(s)". Captures the role so we can flag chairs.
+const ADDED_CLAUSE_RE = /\s+added\s+as\s+((?:co-?\s*)?(?:vice[\s-]*)?chairs?|conferees?)\s*\.?\s*$/i;
+
 /**
  * Parse conferees from a bill's status updates. Returns House members first,
- * then Senate, in appointment order. When a chamber is re-appointed (a later
- * "Conferees Appointed" line for the same chamber), the LATEST line wins.
- * Returns [] when no appointment line is present. Pure.
+ * then Senate, in appointment order. "Conferees Appointed" REPLACES a chamber's
+ * roster (latest appointment wins); "Conferees Added" APPENDS the named member(s)
+ * to it, skipping anyone already present. Returns [] when no conferee line is
+ * present. Pure.
  */
 export function parseConferees(updates: StatusLine[] | null | undefined): ParsedConferee[] {
   const byChamber = new Map<'House' | 'Senate', ParsedConferee[]>();
 
   for (const update of updates ?? []) {
     const text = update.statustext ?? '';
-    APPOINTMENT_RE.lastIndex = 0;
+    CONFEREE_LINE_RE.lastIndex = 0;
     let m: RegExpExecArray | null;
-    while ((m = APPOINTMENT_RE.exec(text)) !== null) {
+    while ((m = CONFEREE_LINE_RE.exec(text)) !== null) {
       const chamber = (m[1][0].toUpperCase() === 'H' ? 'House' : 'Senate') as 'House' | 'Senate';
-      const members = parseRoster(m[2], chamber);
-      if (members.length > 0) byChamber.set(chamber, members); // latest wins
+      const isAddition = m[2].toLowerCase() === 'added';
+      const members = isAddition ? parseAddition(m[3], chamber) : parseRoster(m[3], chamber);
+      if (members.length === 0) continue;
+
+      if (isAddition) {
+        // Append to the roster built so far, skipping anyone already present.
+        const existing = byChamber.get(chamber) ?? [];
+        const have = new Set(existing.map((c) => c.surname.toLowerCase()));
+        const fresh = members.filter((c) => !have.has(c.surname.toLowerCase()));
+        byChamber.set(chamber, [...existing, ...fresh]);
+      } else {
+        byChamber.set(chamber, members); // latest appointment wins
+      }
     }
   }
 
   return [...(byChamber.get('House') ?? []), ...(byChamber.get('Senate') ?? [])];
+}
+
+/**
+ * Parse an "Added" sentence ("Representative Garcia added as Conferee.",
+ * "Representatives Garcia, Lee added as Conferees.") into conferees. Strips title
+ * prefixes and the trailing "added as <role>" clause, splits the remaining names
+ * on commas / "and", and flags them as chairs when the clause names a chair role.
+ */
+function parseAddition(sentence: string, chamber: 'House' | 'Senate'): ParsedConferee[] {
+  let body = sentence.trim();
+
+  // Peel off the trailing "added as Conferee(s)/Co-Chair(s)" clause and read the role.
+  let isChair = false;
+  const clause = body.match(ADDED_CLAUSE_RE);
+  if (clause) {
+    isChair = ROLE_RE.test(clause[1].trim());
+    body = body.slice(0, clause.index).trim();
+  }
+  body = body.replace(TITLE_RE, ' ').replace(/\.\s*$/, '').trim();
+
+  return body
+    .split(/\s*,\s*|\s+and\s+/i)
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0)
+    .map((surname) => ({ surname, chamber, isChair }));
 }
 
 /**

@@ -80,4 +80,59 @@ describe('parseConferees', () => {
       { surname: 'Reyes Oda', chamber: 'House', isChair: false },
     ]);
   });
+
+  it('parses an "Added" line naming a single legislator with a title prefix', () => {
+    // "Representative Garcia added as Conferee." — a different verb ("Added"),
+    // a title prefix, and a sentence rather than a roster.
+    expect(
+      parseConferees(lines('House Conferees Added: Representative Garcia added as Conferee.')),
+    ).toEqual([{ surname: 'Garcia', chamber: 'House', isChair: false }]);
+  });
+
+  it('strips the Senator title prefix on an "Added" line', () => {
+    expect(
+      parseConferees(lines('Senate Conferees Added: Senator Rhoads added as Conferee.')),
+    ).toEqual([{ surname: 'Rhoads', chamber: 'Senate', isChair: false }]);
+  });
+
+  it('marks an "Added" conferee as chair when the line says Co-Chair', () => {
+    expect(
+      parseConferees(lines('House Conferees Added: Representative Garcia added as Co-Chair.')),
+    ).toEqual([{ surname: 'Garcia', chamber: 'House', isChair: true }]);
+  });
+
+  it('APPENDS an "Added" conferee to an earlier appointed roster for the same chamber', () => {
+    const result = parseConferees(
+      lines(
+        'House Conferees Appointed: Sayama, Chair; Reyes Oda.',
+        'House Conferees Added: Representative Garcia added as Conferee.',
+      ),
+    );
+    expect(result).toEqual([
+      { surname: 'Sayama', chamber: 'House', isChair: true },
+      { surname: 'Reyes Oda', chamber: 'House', isChair: false },
+      { surname: 'Garcia', chamber: 'House', isChair: false },
+    ]);
+  });
+
+  it('does not duplicate a conferee already on the roster when re-added', () => {
+    const result = parseConferees(
+      lines(
+        'House Conferees Appointed: Garcia, Chair.',
+        'House Conferees Added: Representative Garcia added as Conferee.',
+      ),
+    );
+    expect(result).toEqual([{ surname: 'Garcia', chamber: 'House', isChair: true }]);
+  });
+
+  it('handles multiple names on a single "Added" line', () => {
+    expect(
+      parseConferees(
+        lines('House Conferees Added: Representatives Garcia, Lee added as Conferees.'),
+      ),
+    ).toEqual([
+      { surname: 'Garcia', chamber: 'House', isChair: false },
+      { surname: 'Lee', chamber: 'House', isChair: false },
+    ]);
+  });
 });
