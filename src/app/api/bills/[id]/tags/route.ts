@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '../../../../../db/kysely/client';
 import { validateSession } from '@/lib/auth/session';
 import { getSessionCookie } from '@/lib/auth/cookies';
+import { requireAdmin } from '@/lib/auth/auth-guards';
 import { tagsSchema } from '@/lib/auth/validators';
 import { validateMembership } from '@/db/queries/tenants';
 
@@ -68,16 +69,6 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const sessionToken = getSessionCookie(request);
-    const user = await validateSession(sessionToken);
-
-    if (user.role !== 'admin' && user.role !== 'supervisor') {
-      return NextResponse.json(
-        { error: 'Forbidden: Only admins and supervisors can tag bills' },
-        { status: 403 }
-      );
-    }
-
     const body = await request.json();
     const { tagIds, tenantId } = body;
     const { id: billId } = await params;
@@ -86,7 +77,10 @@ export async function POST(
       return NextResponse.json({ error: 'tenantId is required' }, { status: 400 });
     }
 
-    await validateMembership(user.id, tenantId);
+    // Must be an ADMIN OF THIS TENANT. (The old check tested the global
+    // user.role, which both blocked legitimate org admins whose global role is
+    // 'user' and failed to verify org-admin status in the target tenant.)
+    await requireAdmin.fromRequest(request, tenantId);
 
     const validation = tagsSchema.safeParse({ tagIds });
     if (!validation.success) {

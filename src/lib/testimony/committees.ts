@@ -1,62 +1,68 @@
-/**
- * Hawaii State Legislature committee acronyms → full committee names.
- * Covers every code present in the bills data (House and Senate, including
- * codes from earlier sessions). Pure data + lookup — safe for src/lib.
- */
-export const COMMITTEE_NAMES: Record<string, string> = {
-  // House
-  AGR: 'Agriculture & Food Systems',
-  CAA: 'Culture & the Arts',
-  CPC: 'Consumer Protection & Commerce',
-  ECD: 'Economic Development',
-  EDN: 'Education',
-  EEP: 'Energy & Environmental Protection',
-  FIN: 'Finance',
-  HED: 'Higher Education',
-  HLT: 'Health',
-  HSG: 'Housing',
-  HSH: 'Human Services & Homelessness',
-  JHA: 'Judiciary & Hawaiian Affairs',
-  LAB: 'Labor',
-  LMG: 'Legislative Management',
-  PBS: 'Public Safety',
-  TOU: 'Tourism',
-  TRN: 'Transportation',
-  WAL: 'Water & Land',
-  // Senate
-  AEN: 'Agriculture and Environment',
-  CPN: 'Commerce and Consumer Protection',
-  EDT: 'Economic Development and Tourism',
-  EDU: 'Education',
-  EIG: 'Energy and Intergovernmental Affairs',
-  GVO: 'Government Operations',
-  HHS: 'Health and Human Services',
-  HOU: 'Housing',
-  HRE: 'Higher Education',
-  HWN: 'Hawaiian Affairs',
-  JDC: 'Judiciary',
-  LBT: 'Labor and Technology',
-  PSM: 'Public Safety and Military Affairs',
-  TCA: 'Transportation, Culture and the Arts',
-  TRS: 'Transportation',
-  WAM: 'Ways and Means',
-  WLA: 'Water and Land',
-  WTL: 'Water and Land',
-};
+/** acronym (upper-cased) → full committee name, sourced from the DB. */
+export type CommitteeNameMap = Record<string, string>;
 
 /**
  * Full name for a single referral token. Handles joint referrals
  * ("WLA/EIG" → "Water and Land / Energy and Intergovernmental Affairs").
  * Unknown codes pass through unchanged.
+ *
+ * Names are INJECTED (the DB-backed map from useCommitteeNames), not hardcoded,
+ * so this stays a pure, synchronous, DB-free function. An empty map — the state
+ * before the one-time fetch resolves — makes every code pass through unchanged.
  */
-export function committeeFullName(code: string): string {
+export function committeeFullName(code: string, names: CommitteeNameMap): string {
   return code
     .split('/')
     .map((part) => {
       const key = part.trim().toUpperCase();
-      return COMMITTEE_NAMES[key] ?? part.trim();
+      return names[key] ?? part.trim();
     })
     .join(' / ');
+}
+
+/**
+ * True when any single referral is a JOINT referral — two committees joined by a
+ * slash ("HHS/WAE") that hear the bill together. Operates on comma-split tokens
+ * so it can tell "HHS/WAE" (one joint referral) from "HHS, WAE" (two separate
+ * ones); a slash WITHIN a token is the signal. Null/empty-safe.
+ */
+export function hasJointReferral(assignment: string | null | undefined): boolean {
+  if (!assignment) return false;
+  return assignment.split(',').some((token) => token.includes('/'));
+}
+
+/**
+ * Plain-language explanation of a joint referral, shared across every surface
+ * that mentions committees so the wording never drifts. Kept generic (no codes)
+ * so it reads correctly whether one or several referrals are joint.
+ */
+export const JOINT_REFERRAL_NOTE =
+  'A committee code with a slash (like HHS/WAE) is a joint referral: both committees hear the bill together, so both chairs have to agree on when to schedule the hearing.';
+
+/**
+ * The set of committee codes that share a JOINT referral with `code`, INCLUDING
+ * `code` itself. For "HHS/WAE, SDL" and code "HHS" this returns ["HHS","WAE"];
+ * for "SDL" (a lone referral) it returns just ["SDL"].
+ *
+ * Used to foreground a whole joint referral together: both committees hear the
+ * bill at the same hearing, so both are "current" — neither belongs in the
+ * collapsed "other committees" list. Comma-split (not `/`-split) so the joint
+ * grouping survives. Null/empty-safe; returns [code] when nothing matches.
+ */
+export function jointReferralPartners(
+  assignment: string | null | undefined,
+  code: string,
+): string[] {
+  const target = code.trim().toUpperCase();
+  if (!assignment) return [target];
+  for (const token of assignment.split(',')) {
+    const codes = token
+      .split('/')
+      .map((c) => c.trim().toUpperCase())
+      .filter(Boolean);
+    if (codes.includes(target)) return codes;
+  }
+  return [target];
 }
 
 /**
@@ -73,121 +79,81 @@ export function parseCommitteeCodes(assignment: string | null): string[] {
   return Array.from(new Set(codes));
 }
 
-/**
- * Split a committee_assignment string into ordered referral STEPS, preserving
- * joint hearings. Commas separate sequential steps; a slash marks committees
- * heard together in one step. "AGR, JDC/HWN, FIN" → [["AGR"], ["JDC","HWN"],
- * ["FIN"]]. Codes are upper-cased and trimmed; a code already seen in an earlier
- * step is dropped (so steps stay disjoint), and empty steps are removed.
- */
-export function parseCommitteeSteps(assignment: string | null): string[][] {
-  if (!assignment) return [];
-  const seen = new Set<string>();
-  const steps: string[][] = [];
-  for (const token of assignment.split(',')) {
-    const step: string[] = [];
-    for (const part of token.split('/')) {
-      const code = part.trim().toUpperCase();
-      if (!code || seen.has(code)) continue;
-      seen.add(code);
-      step.push(code);
-    }
-    if (step.length > 0) steps.push(step);
-  }
-  return steps;
-}
-
 /** One scraped status line: the text plus the codes it references. */
 export interface StatusLine {
   statustext: string;
 }
 
 /**
- * Whether a status line reports that the named committee has FINISHED with the
- * bill — passed it, reported it out, or recommended it be passed — i.e. cleared
- * it onward. A deferral is NOT clearing: the bill is stuck at that committee, so
- * it remains the current one. Matches the common capitol phrasings:
- *   "The committee(s) on AEN recommend(s) that the measure be PASSED …"
- *   "Reported from AEN …" / "The committee on AEN passed the measure."
- *   "Passed Second Reading and referred to the committee(s) on WAM."  (AEN cleared)
+ * Referral committee codes a status line names via an explicit connective
+ * phrase — "referred to the committee(s) on WAM", "The committee(s) on AEN
+ * has scheduled…", "scheduled to be heard by HSG". Only codes in `referralCodes`
+ * are returned, upper-cased. This is the PRECISE pass; joint tokens ("WLA/EIG")
+ * are split into their parts.
  */
-function committeeCleared(text: string, code: string): boolean {
-  const upper = text.toUpperCase();
-  const c = code.toUpperCase();
-
-  // "referred to (the committee(s) on) X" means every EARLIER committee cleared
-  // it — the bill now sits at X. Callers handle that via referral position; here
-  // we answer specifically whether THIS committee has let the bill move on.
-
-  // Explicit report/pass by this committee.
-  const reportedFrom = new RegExp(`\\bREPORTED\\b[^.]*\\bFROM\\b[^.]*\\b${c}\\b`).test(upper);
-  const committeeActed = new RegExp(`\\b${c}\\b[^.]*\\b(?:PASSED|REPORTED|RECOMMEND(?:S|ED)?\\s+THAT\\s+THE\\s+MEASURE\\s+BE\\s+PASSED)\\b`).test(upper);
-
-  return reportedFrom || committeeActed;
+function phraseCodes(text: string, referralCodes: Set<string>): string[] {
+  const found = new Set<string>();
+  const phraseRe = /(?:committee(?:\(s\))?\s+on|heard\s+by|referred\s+to(?:\s+the)?)\s+([A-Z]{2,4}(?:\/[A-Z]{2,4})*)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = phraseRe.exec(text)) !== null) {
+    for (const part of m[1].split('/')) {
+      const code = part.trim().toUpperCase();
+      if (referralCodes.has(code)) found.add(code);
+    }
+  }
+  return Array.from(found);
 }
 
 /**
- * Infers the committee(s) a bill is *currently* awaiting a hearing before.
+ * Referral codes that appear anywhere in the line as a whole word. Looser than
+ * {@link phraseCodes} — used only as a fallback when no phrase matched, so an
+ * incidental mention never overrides an explicit "committee on X" phrasing.
+ */
+function bareCodes(text: string, referralCodes: Set<string>): string[] {
+  const upper = text.toUpperCase();
+  return Array.from(referralCodes).filter((code) => new RegExp(`\\b${code}\\b`).test(upper));
+}
+
+/**
+ * Infers which committee a bill is *currently* awaiting a hearing before.
  *
- * Referral STEPS are met IN ORDER — the FIRST step is the gate the bill must
- * clear first, the last is the final gate. So the current step is the EARLIEST
- * one not yet cleared (passed / reported / recommended passage). A later step
- * can't be current while an earlier one still holds the bill.
+ * A bill only moves FORWARD through its referral list (AEN → WAM, never back),
+ * so the current committee is the one *furthest along* that the status history
+ * mentions. We collect every referral committee named by an explicit phrase
+ * ("committee(s) on X", "referred to X", "heard by X") across all updates and
+ * return the one latest in referral order. This is deliberately independent of
+ * update ordering, so same-day updates (whose relative order the DB does not
+ * guarantee) can't flip the result.
  *
- * A joint hearing ("JDC/HWN") is ONE step whose committees are heard together,
- * so it is returned WHOLE (all its codes) and is only considered cleared once
- * EVERY committee in it has cleared. Callers should foreground all returned
- * codes, not just the first.
- *
- * We treat an explicit "referred to X" as proof that everything in steps BEFORE
- * X's step cleared, advancing the frontier even when the clearing line is terse.
- * Deferrals do not clear a committee (the bill is stuck there). This is
- * independent of update ordering, so same-day updates can't flip the result.
- *
- * Fallback when the status history gives no signal: the FIRST step, the gate a
- * freshly-referred bill must meet first. Returns [] only when there is no
- * committee assignment at all. Pure — no DB, no network.
+ * When no update names a referral committee via a phrase, we fall back to codes
+ * mentioned as bare words, and finally to the LAST code in the referral list
+ * (referrals are appended as a bill advances). Pure — no DB, no network.
  */
 export function inferCurrentCommittee(
   committeeAssignment: string | null,
   updates: StatusLine[] | null | undefined,
-): string[] {
-  const steps = parseCommitteeSteps(committeeAssignment);
-  if (steps.length === 0) return [];
+): string | null {
+  const referral = parseCommitteeCodes(committeeAssignment);
+  if (referral.length === 0) return null;
+  const referralSet = new Set(referral);
   const list = updates ?? [];
 
-  // Step index of a code, or -1 if it isn't in the referral.
-  const stepIndexOf = (code: string): number =>
-    steps.findIndex((step) => step.includes(code));
-
-  // The furthest-along STEP the bill has been explicitly REFERRED to: every step
-  // before it has necessarily cleared. A joint token advances the frontier to the
-  // step its (concurrent) members belong to.
-  let referredFrontier = -1;
-  for (const update of list) {
-    const text = update.statustext ?? '';
-    // Only count referral phrasing, not a bare hearing mention.
-    const referredRe = /referred\s+to(?:\s+the)?(?:\s+committee(?:\(s\))?\s+on)?\s+([A-Z]{2,4}(?:\/[A-Z]{2,4})*)/gi;
-    let m: RegExpExecArray | null;
-    while ((m = referredRe.exec(text)) !== null) {
-      for (const part of m[1].split('/')) {
-        const idx = stepIndexOf(part.trim().toUpperCase());
-        if (idx > referredFrontier) referredFrontier = idx;
+  // Prefer explicit phrase mentions; only if none exist anywhere do we consider
+  // looser bare-word mentions. Either way, the current committee is the one
+  // furthest along the (forward-only) referral path.
+  const collect = (extract: (t: string) => string[]): string | null => {
+    let best: string | null = null;
+    for (const update of list) {
+      for (const code of extract(update.statustext ?? '')) {
+        if (best === null || referral.indexOf(code) > referral.indexOf(best)) best = code;
       }
     }
-  }
+    return best;
+  };
 
-  // Walk the steps in order; the current step is the first that is neither before
-  // the referred frontier nor fully cleared. A joint step clears only when ALL of
-  // its committees have cleared.
-  for (let i = 0; i < steps.length; i++) {
-    if (i < referredFrontier) continue; // an earlier gate the bill already passed
-    const step = steps[i];
-    const allCleared = step.every((code) => list.some((u) => committeeCleared(u.statustext ?? '', code)));
-    if (!allCleared) return step;
-  }
-
-  // Every step has cleared — the bill is past its referral gates. Surface the
-  // final step as the last one that acted.
-  return steps[steps.length - 1];
+  return (
+    collect((t) => phraseCodes(t, referralSet)) ??
+    collect((t) => bareCodes(t, referralSet)) ??
+    referral[referral.length - 1]
+  );
 }

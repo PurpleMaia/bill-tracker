@@ -6,6 +6,7 @@ import { Check, Loader2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LoginDialog } from '@/components/auth/login-dialog';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { useBills } from '@/hooks/contexts/bills-context';
 import { useToast } from '@/hooks/use-toast';
 import { data } from '@/lib/data-client';
 
@@ -38,6 +39,7 @@ interface TrackButtonProps {
 export function TrackButton({ billId, billNumber, initialTracked = false }: TrackButtonProps) {
   const { user, activeTenant } = useAuth();
   const { toast } = useToast();
+  const { refreshBills } = useBills();
   const queryClient = useQueryClient();
   const [isTracking, setIsTracking] = useState(false);
   const [isTracked, setIsTracked] = useState(initialTracked);
@@ -72,9 +74,15 @@ export function TrackButton({ billId, billNumber, initialTracked = false }: Trac
       // The cached search pages still hold is_tracked:false for this bill, so a
       // "Not tracked" list would keep showing it and a second button (e.g. the
       // dialog's) would still read Track. Invalidate the search cache so every
-      // instance re-derives from a fresh is_tracked. Board views live in their
-      // own context and update through useTrackedBills, not this key.
+      // instance re-derives from a fresh is_tracked.
       queryClient.invalidateQueries({ queryKey: ['bills', 'search'] });
+      // The board ("Your Bills") reads from BillsProvider, a separate app-level
+      // context that this React Query key does not touch — so without this the
+      // board stays stale until a full reload. BillsProvider is mounted once at
+      // the root layout, so refreshing here refetches the same state the board
+      // renders, and the newly tracked bill shows up when the user navigates to
+      // it. Fire-and-forget: the search UI already reflects the track locally.
+      void refreshBills();
       toast({
         title: result.tracked ? `${billNumber} tracked` : `${billNumber} was already tracked`,
         description: result.tracked

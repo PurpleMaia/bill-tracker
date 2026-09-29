@@ -4,6 +4,10 @@ import { db } from '@/db/kysely/client';
 import type { Membership, OrgRole } from '@/types/tenant';
 import { Errors } from '@/lib/core/errors';
 import { auth } from '@/lib/auth/session';
+import { deriveOrgSlug, slugCandidate } from '@/lib/tenants/org-slug';
+
+/** How many suffixed slug candidates we try before giving up. */
+const MAX_SLUG_ATTEMPTS = 50;
 
 type MutationOptions = { skipAuth?: boolean };
 
@@ -441,4 +445,188 @@ export async function listFollowedTenants(userId: string) {
     // skip the extra sample-bills query here.
     sampleBills: [],
   }));
+}
+
+/**
+ * Claims an invite token atomically and returns the org it grants access to.
+ *
+ * The UPDATE ... WHERE status='pending' is what makes this safe: two
+ * simultaneous redemptions of the same token race on the same row, and only
+ * the one that flips the status sees a row returned.
+ *
+ * Returns a `reason` instead of throwing because every caller renders the
+ * failure to the user rather than treating it as an error.
+ *
+ * Extracted from the register route so the Google OAuth callback claims
+ * invites through exactly the same path — CLAUDE.md keeps queries here, not
+ * inline in a transport.
+ */
+export async function claimInviteToken(
+  token: string,
+  email: string
+): Promise<{ ok: true; tenantId: string } | { ok: false; reason: string }> {
+  const invite = await db
+    .updateTable('invite_tokens')
+    .set({ status: 'accepted', accepted_at: new Date() })
+    .where('token', '=', token)
+    .where('status', '=', 'pending')
+    .where('expires_at', '>', new Date())
+    .returning(['id', 'tenant_id', 'email'])
+    .executeTakeFirst();
+
+  if (!invite) {
+    return { ok: false, reason: 'Invite is invalid, expired, or already used.' };
+  }
+
+  // An invite is issued to one address. Release the claim so a mis-matched
+  // attempt doesn't burn a token the rightful recipient still needs.
+  if (invite.email !== email) {
+    await db
+      .updateTable('invite_tokens')
+      .set({ status: 'pending', accepted_at: null })
+      .where('id', '=', invite.id)
+      .execute();
+    return { ok: false, reason: 'This invite was issued to a different email address.' };
+  }
+
+  return { ok: true, tenantId: invite.tenant_id };
+}
+
+/**
+ * Finds a free slug for `name` using `trx`: the base derivation, or the first
+ * suffixed candidate (`-2`, `-3`, …) whose slug no tenant currently uses.
+ *
+ * Runs inside the caller's transaction so the free-slug check and the INSERT
+ * that consumes it happen atomically. Two concurrent creators can still race to
+ * the same free slug and one INSERT will fail on the unique constraint; that
+ * surfaces as a thrown error to the caller, which is acceptable for this rare,
+ * user-initiated action.
+ */
+async function findFreeSlug(trx: typeof db, name: string): Promise<string | null> {
+  const base = deriveOrgSlug(name);
+  if (!base) return null;
+
+  for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
+    const candidate = slugCandidate(base, attempt);
+    const existing = await trx
+      .selectFrom('tenants')
+      .select('id')
+      .where('slug', '=', candidate)
+      .executeTakeFirst();
+    if (!existing) return candidate;
+  }
+  return null;
+}
+
+/** True if a tenant already uses this exact (trimmed) display name. */
+export async function tenantNameExists(name: string): Promise<boolean> {
+  const row = await db
+    .selectFrom('tenants')
+    .select('id')
+    .where('name', '=', name.trim())
+    .executeTakeFirst();
+  return !!row;
+}
+
+type CreateOrgOptions = {
+  /**
+   * When true, the transaction re-checks that the user has NO memberships (under
+   * a row lock) before creating the org, and throws {@link Errors.USER_ALREADY_EXISTS}
+   * if they do. The self-serve "promote yourself" flow sets this so two
+   * concurrent requests from the same public user can't both create an org.
+   * Registration leaves it off — a brand-new user has no memberships by
+   * construction and must always get their org.
+   */
+  requireNoExistingMembership?: boolean;
+};
+
+/**
+ * Creates an organization for an existing user and makes them its admin.
+ *
+ * Used by the self-serve "Create Organization" flow: a public user (no
+ * memberships) promotes themselves. Derives a UNIQUE slug so two orgs with the
+ * same name don't collide. Throws on failure — unlike {@link createOrgForNewUser},
+ * the caller is an explicit user action, so a real error must reach them.
+ *
+ * The tenant INSERT and the admin-membership INSERT run in one transaction, so a
+ * failure in either leaves no orphan tenant holding a leaked slug.
+ */
+export async function createOrgForUser(
+  orgName: string,
+  userId: string,
+  options?: CreateOrgOptions
+): Promise<{ id: string; name: string; slug: string }> {
+  const trimmedName = orgName.trim();
+  if (!trimmedName) throw Errors.INVALID_REQUEST;
+
+  return db.transaction().execute(async (trx) => {
+    // Lock the user row so concurrent create-own requests from the same user
+    // serialize here; the second waits for the first to commit, then sees the
+    // membership it created and is rejected below.
+    if (options?.requireNoExistingMembership) {
+      await trx
+        .selectFrom('user')
+        .select('id')
+        .where('id', '=', userId)
+        .forUpdate()
+        .executeTakeFirst();
+
+      const existingMembership = await trx
+        .selectFrom('members')
+        .select('user_id')
+        .where('user_id', '=', userId)
+        .executeTakeFirst();
+      if (existingMembership) throw Errors.USER_ALREADY_EXISTS;
+    }
+
+    // `tenants.name` is UNIQUE in the schema, so a duplicate display name would
+    // fail the INSERT with an untyped Postgres error (→ 500). Detect it here and
+    // surface a clean 409 instead. (The slug suffix loop only resolves *slug*
+    // collisions, which happen for distinct names that derive to the same slug.)
+    const existingName = await trx
+      .selectFrom('tenants')
+      .select('id')
+      .where('name', '=', trimmedName)
+      .executeTakeFirst();
+    if (existingName) throw Errors.ORG_NAME_TAKEN;
+
+    const slug = await findFreeSlug(trx, trimmedName);
+    if (!slug) throw Errors.ORG_NAME_INVALID;
+
+    const tenant = await trx
+      .insertInto('tenants')
+      .values({ name: trimmedName, slug, branding_config: null })
+      .returning(['id', 'name', 'slug'])
+      .executeTakeFirst();
+    if (!tenant) throw Errors.INTERNAL_ERROR;
+
+    await trx
+      .insertInto('members')
+      .values({ user_id: userId, tenant_id: tenant.id, org_role: 'admin' })
+      .execute();
+
+    return { id: tenant.id, name: tenant.name, slug: tenant.slug };
+  });
+}
+
+/**
+ * Creates an organization for a newly registered user and makes them its admin.
+ *
+ * Failure is swallowed to a null return: a signup that succeeded should not be
+ * undone because the optional org name collided. Delegates slug/creation to
+ * {@link createOrgForUser} so the derivation lives in one place.
+ */
+export async function createOrgForNewUser(
+  orgName: string,
+  userId: string
+): Promise<{ id: string; name: string; slug: string } | null> {
+  const trimmedName = orgName.trim();
+  if (!trimmedName || trimmedName.length > 100) return null;
+
+  try {
+    return await createOrgForUser(trimmedName, userId);
+  } catch (orgError) {
+    console.error('[createOrgForNewUser] Failed to create organization:', orgError);
+    return null;
+  }
 }

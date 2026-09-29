@@ -12,8 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn, todayHawaii } from '@/lib/core/utils';
-import { FileText, Loader2, ExternalLink, Clock, AlarmClock, XCircle, PenLine, LayoutDashboard, Files, Users } from 'lucide-react';
+import { cn, parseLocalDate, todayHawaii } from '@/lib/core/utils';
+import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
@@ -41,14 +41,10 @@ import { PROGRESS_STAGES, getProgressValue, getCurrentStageName } from '@/lib/bi
 import { Term } from '@/components/ui/term';
 import { resolveDeadlineTerm } from '@/lib/glossary/resolvers';
 import { BillBreakdownButton } from './bill-breakdown';
-import { isBillDead, getNextDeadline, isFiscalBill } from '@/lib/bills/dead-bill';
-import type { SessionDeadlines } from '@/lib/bills/dead-bill';
+import { isBillDead, getNextDeadline, isFiscalBill, isEnacted } from '@/lib/bills/dead-bill';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import type { BillStatus as DBBillStatus } from '@/db/types';
-// Real calendar for deriving why a bill already failed (historical fact);
-// switchable calendar for upcoming-deadline displays (demo-aware).
-import deadlinesJson from '@/data/session-deadlines-2026.json';
 import type { BoardMode } from '@/lib/bills/board-display';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 
@@ -198,7 +194,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
           committee_assignment: committeeAssign,
         },
         (billDetails.updates || []).map(u => ({ statustext: u.statustext, date: u.date, chamber: u.chamber })),
-        deadlinesJson as SessionDeadlines,
+        SESSION_DEADLINES,
         today,
       ).reason
     : null;
@@ -213,10 +209,6 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
       )
     : null;
 
-  const deadlineDaysAway = nextDeadline
-    ? Math.ceil((new Date(nextDeadline.date + 'T00:00:00').getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-    : null;
-  const isUrgent = deadlineDaysAway !== null && deadlineDaysAway <= 7;
   const fiscal = committeeAssign ? isFiscalBill(committeeAssign) : false;
 
   const latestUpdateText =
@@ -238,6 +230,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
     deadlines: SESSION_DEADLINES,
     today,
     hearingPassed: testimonyDeadline.hearingPassed,
+    latestStatusText: latestUpdateText,
   });
   const testimonyUrgent =
     testimonyEligibility.allowed && isTestimonyUrgent(currentStatus as DBBillStatus);
@@ -245,7 +238,12 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   const testimonyCountdown = testimonyEligibility.allowed ? testimonyDeadline.countdown : null;
   const urgentTooltip = hearingAt
     ? `Hearing ${hearingAt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Submit testimony at least 24 hours before the hearing.`
-    : 'Hearing scheduled — submit testimony at least 24 hours before the hearing.';
+    : 'Hearing scheduled! Submit testimony at least 24 hours before the hearing.';
+
+  // Once a bill is signed into law, legislators can no longer act on it — the
+  // same enacted check that closes testimony also closes Contact Legislator.
+  const contactDisabled = isEnacted(currentStatus as DBBillStatus);
+  const contactDisabledReason = 'This bill has become law! Legislators can no longer act on it.';
 
   const handleSave = async () => {
     try {
@@ -455,12 +453,28 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{testimonyEligibility.reason} — testimony is closed.</p>
+                      <p>Testimony closed! {testimonyEligibility.reason}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               )}
-              {user && (
+              {user && (contactDisabled ? (
+                <TooltipProvider delayDuration={100}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-block shrink-0 cursor-not-allowed">
+                        <Button size="sm" variant="outline" disabled className="pointer-events-none">
+                          <Users className="mr-1.5 h-3.5 w-3.5" />
+                          Contact Legislator
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{contactDisabledReason}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
                 <Button
                   size="sm"
                   variant="outline"
@@ -472,7 +486,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   <Users className="mr-1.5 h-3.5 w-3.5" />
                   Contact Legislator
                 </Button>
-              )}
+              ))}
             </div>
           </div>
         </DialogHeader>
@@ -511,7 +525,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                     dead={bill.dead}
                     deadReason={deadReason}
                     progressValue={progressValue}
-                    progressStages={PROGRESS_STAGES.map(s => s.name)}
+                    progressStages={PROGRESS_STAGES.map(s => s.shortName)}
                     currentStageName={currentStageName}
                     onNextStep={(action) => {
                       if (action === 'diff' || action === 'reports') setActiveTab('versions');
@@ -519,56 +533,6 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                       else if (action === 'contact') { onClose(); router.push(`/bills/${bill.id}/contact`); }
                     }}
                   />
-
-                  {/* Failed / deadline status. A bill's failed state is derived
-                      automatically from missed deadlines and committee action (see
-                      the dead-bill sweep) — it is not manually toggled here. The
-                      dead state is also shown in the briefing's "Bill failed" cell. */}
-                  {/* Uses the app's warm palette (ochre for urgency, teal
-                      primary otherwise) rather than raw blue/amber Tailwind,
-                      matching the deadline pill on the kanban card. */}
-                  {bill.dead ? (
-                    <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2.5">
-                      <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" aria-hidden="true" />
-                      <span className="text-xs font-medium text-destructive">Marked failed</span>
-                    </div>
-                  ) : nextDeadline ? (
-                    <div className={cn(
-                      "rounded-lg border px-4 py-3",
-                      isUrgent ? "border-ochre/40 bg-ochre-soft" : "border-border bg-secondary/40"
-                    )}>
-                      <div className="mb-1 flex items-center gap-1.5">
-                        {isUrgent
-                          ? <AlarmClock className="h-3.5 w-3.5 shrink-0 text-ochre" />
-                          : <Clock className="h-3.5 w-3.5 shrink-0 text-primary" />}
-                        <span className={cn(
-                          "text-sm font-semibold leading-none",
-                          isUrgent ? "text-ochre" : "text-foreground"
-                        )}>
-                          {nextDeadline.name}
-                        </span>
-                        {/* Explains the deadline's jargon name in place. Inherits
-                            the box's color via currentColor. */}
-                        <Term
-                          variant="help"
-                          billId={bill.id}
-                          side="top"
-                          className={isUrgent ? 'text-ochre' : 'text-primary'}
-                          term={resolveDeadlineTerm(nextDeadline.name)}
-                        />
-                      </div>
-                      <p className={cn(
-                        "text-xs",
-                        isUrgent ? "text-ochre/90" : "text-muted-foreground"
-                      )}>
-                        {new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                        {deadlineDaysAway !== null && (
-                          deadlineDaysAway > 0 ? ` — ${deadlineDaysAway} day${deadlineDaysAway !== 1 ? 's' : ''} away`
-                            : deadlineDaysAway === 0 ? ' — today' : ''
-                        )}
-                      </p>
-                    </div>
-                  ) : null}
 
                   {/* Bill details */}
                   <div className="space-y-4">
@@ -611,6 +575,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
 
               {/* Status change — pinned to bottom of left panel; org ADMINS only
                   (org statuses are tenant-scoped; workers and public users don't set them) */}
+              {/* TEMPORARILY DISABLED: bill status change hidden
               {canChangeStatus && (
                 <div className="border-t p-4 shrink-0 bg-muted/30">
                   <div className="flex items-center gap-2 mb-2">
@@ -635,6 +600,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   </div>
                 </div>
               )}
+              */}
             </div>
             );
 
@@ -673,7 +639,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                               </Badge>
                             </Term>
                             <span className="text-[10px] text-muted-foreground tabular-nums">
-                              {new Date(update.date).toLocaleDateString('en-US', {
+                              {parseLocalDate(update.date)?.toLocaleDateString('en-US', {
                                 month: 'short', day: 'numeric', year: 'numeric'
                               })}
                             </span>
@@ -765,6 +731,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                           <Button
                             variant="outline"
                             className="h-11 w-full px-2"
+                            disabled={contactDisabled}
                             onClick={() => {
                               onClose();
                               router.push(`/bills/${bill.id}/contact`);
@@ -781,7 +748,12 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                         )}
                         {!testimonyEligibility.allowed && (
                           <p className="text-center text-xs text-muted-foreground">
-                            {testimonyEligibility.reason} — testimony is closed.
+                            Testimony is closed! {testimonyEligibility.reason}.
+                          </p>
+                        )}
+                        {contactDisabled && (
+                          <p className="text-center text-xs text-muted-foreground">
+                            {contactDisabledReason}
                           </p>
                         )}
                       </>

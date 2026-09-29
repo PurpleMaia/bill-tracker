@@ -3,7 +3,7 @@
 import { CalendarDays, CheckCircle2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
-import deadlinesJson from '@/data/session-deadlines-2026.json';
+import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 
 // Official video by the Hawai'i State Senate: "Participate in the
 // Legislative Process" — https://www.youtube.com/watch?v=88kLYLFaCOU
@@ -65,10 +65,10 @@ function flattenDeadlines(deadlines: SessionDeadlines): FlatDeadline[] {
  * condensed submission guide, and the session's upcoming deadlines.
  */
 export function TestimoniesSidebar() {
-  const deadlines = flattenDeadlines(deadlinesJson as SessionDeadlines);
+  const deadlines = flattenDeadlines(SESSION_DEADLINES);
   const today = new Date().toISOString().split('T')[0];
   const upcoming = deadlines.filter((d) => d.date >= today).slice(0, 3);
-  const sineDie = (deadlinesJson as SessionDeadlines).deadlines.adjournment_sine_die;
+  const sineDie = SESSION_DEADLINES.deadlines.adjournment_sine_die;
 
   return (
     <div className="space-y-4">
@@ -125,7 +125,7 @@ export function TestimoniesSidebar() {
       <section className="rounded-lg border bg-card p-4" aria-label="Session deadlines">
         <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold">
           <CalendarDays className="h-4 w-4 text-primary" />
-          {(deadlinesJson as SessionDeadlines).session} session deadlines
+          {SESSION_DEADLINES.session} session deadlines
         </h3>
         {upcoming.length > 0 ? (
           <ul className="space-y-2">

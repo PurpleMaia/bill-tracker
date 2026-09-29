@@ -314,7 +314,7 @@ per project convention (no DB, no mocks):
 - Cursor encode/decode round-trips.
 - Chamber-prefix derivation from bill numbers.
 
-Then `npm test`, `npm run typecheck`, and `npm run build` — the build catches
+Then `npm test`, `pnpm  typecheck`, and `pnpm  build` — the build catches
 `'use server'` export violations that typecheck does not.
 
 Manual verification: search `agriculture` returns title matches above description

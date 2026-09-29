@@ -7,7 +7,7 @@
 # which is how this harness gets the raw token without reading email.
 #
 # Usage:
-#   npm run dev > /tmp/dev.log 2>&1 &
+#   pnpm dev > /tmp/dev.log 2>&1 &
 #   ./scripts/test-password-reset-e2e.sh http://localhost:9002 /tmp/dev.log
 #
 # Exits non-zero if any assertion fails.

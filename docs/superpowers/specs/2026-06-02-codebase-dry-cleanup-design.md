@@ -381,8 +381,8 @@ Each phase can be shipped independently. Phase 1 is the highest leverage. Phases
 
 - All existing tests in `src/lib/__tests__/` must continue to pass after each phase.
 - Phase 1 (API route DRY): manually verify all user flows — login, register, bill tracking, proposals, member management, invites, tags. Ensure no regressions from the wrapper refactor.
-- Phase 2 (file splits): `npm run typecheck` confirms no broken imports. Re-export via `index.ts` preserves existing import paths.
-- Phases 3-4: `npm run typecheck` + `npm run lint` + visual verification of affected components.
+- Phase 2 (file splits): `pnpm  typecheck` confirms no broken imports. Re-export via `index.ts` preserves existing import paths.
+- Phases 3-4: `pnpm  typecheck` + `pnpm  lint` + visual verification of affected components.
 
 ## Out of Scope
 

@@ -24,10 +24,17 @@ describe('deriveBriefingFacts', () => {
     expect(f.testimony.open).toBe(true);
     expect(f.latestVersionLabel).toBe('HB1334_HD1');
     expect(f.committeeCodes).toEqual(['AGR', 'FIN']);
+    expect(f.committeeReferrals).toEqual(['AGR', 'FIN']);
     // testimony open → a testimony next-step is offered
     expect(f.nextSteps.some((s) => s.action === 'testimony')).toBe(true);
     // two versions → a diff next-step is offered
     expect(f.nextSteps.some((s) => s.action === 'diff')).toBe(true);
+  });
+
+  it('keeps a joint referral as one entry in committeeReferrals but flattens committeeCodes', () => {
+    const f = deriveBriefingFacts(baseBill({ committee_assignment: 'HHS/AEN, WAM' }), '2026-02-01');
+    expect(f.committeeReferrals).toEqual(['HHS/AEN', 'WAM']);
+    expect(f.committeeCodes).toEqual(['HHS', 'AEN', 'WAM']);
   });
 
   it('marks testimony closed and gives a reason for a dead bill', () => {

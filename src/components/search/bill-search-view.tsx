@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ArrowUp, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,17 +17,57 @@ import { useBillSearch } from '@/hooks/use-bill-search';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import {
   DEFAULT_FILTERS,
-  activeFilterCount,
+  parseSearchParams,
   type SearchFilters,
 } from '@/lib/bills/search-params';
+import { loadSearchFilters, saveSearchFilters } from '@/lib/bills/search-filter-storage';
 
 /** Sessions the corpus covers, newest first. Mirrors the rail's YEARS list. */
-const SESSION_YEARS = [2026, 2025];
+const SESSION_YEARS = [2027, 2026];
 
 export function BillSearchView() {
   const { user, activeTenant } = useAuth();
   const isLoggedIn = Boolean(user);
-  const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
+  // Seed filters from the URL once, so a link into the page (e.g. a board
+  // column's "+" -> /search?stages=…&tracked=untracked) lands pre-filtered.
+  // Lazy init reads the params a single time; the filter controls own state
+  // thereafter (they don't push back to the URL). A missing `years` param keeps
+  // the default live-session scope rather than widening to all sessions.
+  const searchParams = useSearchParams();
+  // Whether the entry URL carried filter params. A deep link must win over
+  // stored filters; only when the URL is bare do we restore the last session.
+  const urlHadParams = useRef(false);
+  const [filters, setFilters] = useState<SearchFilters>(() => {
+    const raw = new URLSearchParams(searchParams.toString());
+    urlHadParams.current = Array.from(raw.keys()).length > 0;
+    const parsed = parseSearchParams(raw);
+    return { ...parsed, years: parsed.years.length ? parsed.years : DEFAULT_FILTERS.years };
+  });
+
+  // Restore the last-used filters from localStorage AFTER mount (the read must
+  // run client-side; a lazy initializer would see no `window` during SSR and
+  // React doesn't re-run it on hydration). A deep link with params wins, so we
+  // only restore when the entry URL was bare. `hydrated` is state, not a ref,
+  // so flipping it commits a render before the persist effect runs — the
+  // initial defaults can never overwrite what's stored.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    if (!urlHadParams.current) {
+      const stored = loadSearchFilters();
+      if (stored) setFilters(stored);
+    }
+    setHydrated(true);
+    // Run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist filter changes so they survive navigation and reload. Gated on
+  // `hydrated` so the persist effect first runs only after the restore above
+  // has committed — the initial defaults are never written over stored filters.
+  useEffect(() => {
+    if (!hydrated) return;
+    saveSearchFilters(filters);
+  }, [hydrated, filters]);
   const [openBillId, setOpenBillId] = useState<string | null>(null);
   const {
     bills,
@@ -91,7 +132,6 @@ export function BillSearchView() {
   }, []);
 
   const hasQuery = filters.q.trim().length > 0;
-  const isPristine = !hasQuery && activeFilterCount(filters) === 0;
   // The dialog takes only a bill id; the Track control needs the bill number for
   // its label and toasts, so resolve the open row from the loaded results.
   const openBill = openBillId ? bills.find((b) => b.id === openBillId) : undefined;
@@ -160,7 +200,7 @@ export function BillSearchView() {
             <SearchIntro
               onSuggestionClick={(term) => setFilters({ ...filters, q: term })}
               sessionYears={SESSION_YEARS}
-              showSuggestions={isPristine}
+              showSuggestions={!hasQuery}
             >
               {searchInput}
             </SearchIntro>

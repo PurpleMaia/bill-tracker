@@ -17,7 +17,7 @@
 - **A `'use server'` file may only export async functions** — keep shared types in plain modules.
 - **AI is OPTIONAL and STUBBED this pass** — the briefing's core is DERIVED (no AI, always shown); an optional "Summarize with AI", per-version/report summaries, and compare "summarize changes" use one `ai-stub.ts` module returning labeled placeholders. Diffs are REAL. No committee AI-draft.
 - **Olive marks AI features, teal marks primary actions, semantic red/green for diffs.** Tailwind exposes named olive utilities (`text-olive-dark`, `border-olive-dark`, `bg-olive-soft`, `bg-olive`) — prefer these over arbitrary `text-[hsl(var(--olive-dark))]` forms. Where a task's code shows the arbitrary form, substitute the named utility (e.g. `text-[hsl(var(--olive-dark))]` → `text-olive-dark`, `bg-[hsl(var(--olive-soft))]/40` → `bg-olive-soft/40`).
-- **Verification:** `npm test`/`pnpm test`, `npm run typecheck`, `npm run build` must pass (build catches `'use server'` violations). Use `npx vitest run <file>` for single-file test runs.
+- **Verification:** `npm test`/`pnpm test`, `pnpm  typecheck`, `pnpm  build` must pass (build catches `'use server'` violations). Use `npx vitest run <file>` for single-file test runs.
 - **Commit style:** prefixes `feat:`/`fix:`/`refactor:`/`docs:`. No `Co-Authored-By` lines.
 
 ## File Structure
@@ -362,7 +362,7 @@ export function stubBriefingNarrative(bill: BillDetails): Promise<string> {
 
 - [ ] **Step 2: Verify typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS. (No test — thin stub verified via consuming components.)
 
 - [ ] **Step 3: Commit**
@@ -492,7 +492,7 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
     message: eligibility.allowed
       ? urgent
         ? 'Testimony is open and a hearing is imminent — submit as soon as possible.'
-        : 'Testimony is open — you can submit on this bill.'
+        : 'You can prepare testimony before a hearing is scheduled. '
       : `Testimony is closed — ${eligibility.reason ?? 'not currently accepting testimony'}.`,
   };
 
@@ -681,7 +681,7 @@ export function BillBriefing({
 
 - [ ] **Step 6: Verify typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS.
 
 - [ ] **Step 7: Commit**
@@ -753,7 +753,7 @@ export function CommitteeContacts({ bill }: { bill: BillDetails }) {
 
 - [ ] **Step 2: Verify typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
@@ -868,7 +868,7 @@ Then, inside that `<li>`, immediately after the existing `ReadTextButton` for th
 
 - [ ] **Step 3: Verify typecheck and tests**
 
-Run: `npm run typecheck && npx vitest run src/lib/__tests__/bill-versions.test.ts`
+Run: `pnpm  typecheck && npx vitest run src/lib/__tests__/bill-versions.test.ts`
 Expected: PASS. (Ordering logic in `bill-versions.ts` is unchanged; only the panel's render order flips.)
 
 - [ ] **Step 4: Commit**
@@ -1011,7 +1011,7 @@ function DiffColumn({ label, rows, keep, className }: { label: string; rows: Dif
 
 - [ ] **Step 2: Verify typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
@@ -1064,7 +1064,7 @@ export function VersionsReportsTab({ versions, reports }: { versions: BillVersio
 
 - [ ] **Step 2: Verify typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
@@ -1183,7 +1183,7 @@ Find the mobile `if (isMobile) { return (` block (line ~583). Replace its `<Tabs
 
 - [ ] **Step 5: Verify typecheck and build**
 
-Run: `npm run typecheck && npm run build`
+Run: `pnpm  typecheck && pnpm  build`
 Expected: PASS. If build flags unused `versionsPanel`/`rightPanel`, delete those `const` blocks (Step 3 note).
 
 - [ ] **Step 6: Commit**
@@ -1204,12 +1204,12 @@ Expected: PASS, including `bill-diff.test.ts` and `committees.test.ts`.
 
 - [ ] **Step 2: Typecheck + build**
 
-Run: `npm run typecheck && npm run build`
+Run: `pnpm  typecheck && pnpm  build`
 Expected: both PASS.
 
 - [ ] **Step 3: Manual smoke (dev server)**
 
-Run `npm run dev`; open a demo bill (e.g. HB1334 or SB894 on the jkapali / Jaden Kapali board). Verify:
+Run `pnpm  dev`; open a demo bill (e.g. HB1334 or SB894 on the jkapali / Jaden Kapali board). Verify:
 - Two top-level tabs: Overview, Versions & Reports.
 - Overview left: Bill Briefing showing DERIVED facts with NO AI click (testimony open/closed message, where-it-stands, latest version, committee activity, next steps), plus an optional "Summarize with AI" that adds a placeholder narrative; Details; Committees directory (AGR/FIN with members + roles, no email/AI). Right: Status Updates scrolls independently.
 - Versions & Reports: Timeline sub-tab is current-first; a version shows "Diff vs <prev>" that expands a real red/green diff. Compare sub-tab: two pickers + side-by-side diff + Summarize changes (placeholder).

@@ -119,7 +119,8 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    const proposal = await findPendingProposalById(proposalId);
+    // Pass tenantId so a tenant admin can only decide proposals in their own org.
+    const proposal = await findPendingProposalById(proposalId, tenantId);
 
     if (!proposal) {
       return NextResponse.json({ success: false, error: 'Proposal not found' }, { status: 404 });

@@ -62,3 +62,14 @@ export const newTagSchema = z.object({
 export const usersSchema = z.object({
     userIds: z.array(z.string().uuid()).min(1, { message: "At least one user ID is required." })
 });
+
+// Self-serve organization creation (a public user promoting themselves to admin).
+export const createOrgSchema = z.object({
+    name: z.string()
+        .trim()
+        .min(1, { message: "Organization name is required." })
+        .max(100, { message: "Organization name cannot exceed 100 characters." })
+        // A symbol-only name would derive to an empty slug and fail deep in the
+        // query layer with an opaque error; require something slug-able here.
+        .regex(/[a-zA-Z0-9]/, { message: "Organization name must contain at least one letter or number." })
+});

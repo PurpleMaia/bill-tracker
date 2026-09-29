@@ -405,8 +405,16 @@ export async function untrackBill(userId: string, billId: string, tenantId?: str
       .where('user_id', '=', userId)
       .where('bill_id', '=', billId);
 
+    // Scope to this user's row for the bill. Many rows were tracked with a NULL
+    // tenant_id (before an org was joined / while no org was active); a strict
+    // `tenant_id = tenantId` would miss those and silently delete nothing, so
+    // the card vanished optimistically but reappeared on reload. Since this is
+    // already scoped to a single user_id + bill_id, also clearing the user's
+    // NULL-tenant row for the bill is safe and matches "remove it anyway".
     if (tenantId) {
-      query = query.where('tenant_id', '=', tenantId);
+      query = query.where((eb) =>
+        eb.or([eb('tenant_id', '=', tenantId), eb('tenant_id', 'is', null)]),
+      );
     }
 
     await query.executeTakeFirstOrThrow();
@@ -429,10 +437,22 @@ export async function untrackBill(userId: string, billId: string, tenantId?: str
  * copy ("...including for anyone else in {org} tracking it"). It does NOT touch
  * the global bill row (food_related, status) or other tenants' tracking.
  *
+ * When `actingUserId` is given, the acting admin's OWN NULL-tenant tracking row
+ * for the bill is cleared too. Many rows were tracked with tenant_id = NULL
+ * (before an org was joined / while no org was active) and never migrated to
+ * the org; the strict tenant-scoped delete misses them, so the card would
+ * disappear from the board optimistically but reappear on reload. We only touch
+ * the acting user's own NULL row — other users' NULL-tenant tracking (they may
+ * not even be in this org) is left alone.
+ *
  * @returns the number of user_bills rows removed.
  */
-export async function removeBillFromOrg(billId: string, tenantId: string): Promise<number> {
-  console.log('removeBillFromOrg called with:', { billId, tenantId });
+export async function removeBillFromOrg(
+  billId: string,
+  tenantId: string,
+  actingUserId?: string,
+): Promise<number> {
+  console.log('removeBillFromOrg called with:', { billId, tenantId, actingUserId });
   return await db.transaction().execute(async (trx) => {
     const deleted = await trx
       .deleteFrom('user_bills')
@@ -440,13 +460,26 @@ export async function removeBillFromOrg(billId: string, tenantId: string): Promi
       .where('tenant_id', '=', tenantId)
       .executeTakeFirst();
 
+    let ownNullRemoved = 0;
+    if (actingUserId) {
+      const deletedOwnNull = await trx
+        .deleteFrom('user_bills')
+        .where('bill_id', '=', billId)
+        .where('user_id', '=', actingUserId)
+        .where('tenant_id', 'is', null)
+        .executeTakeFirst();
+      ownNullRemoved =
+        deletedOwnNull.numDeletedRows != null ? Number(deletedOwnNull.numDeletedRows) : 0;
+    }
+
     await trx
       .deleteFrom('org_bills')
       .where('bill_id', '=', billId)
       .where('tenant_id', '=', tenantId)
       .execute();
 
-    const removed = deleted.numDeletedRows != null ? Number(deleted.numDeletedRows) : 0;
+    const removed =
+      (deleted.numDeletedRows != null ? Number(deleted.numDeletedRows) : 0) + ownNullRemoved;
     console.log(`Removed bill ${billId} from org ${tenantId} (${removed} tracking row(s)).`);
     return removed;
   });

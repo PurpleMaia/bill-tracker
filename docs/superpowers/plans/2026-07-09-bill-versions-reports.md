@@ -14,7 +14,7 @@
 - **`src/lib/` is DB-free** — pure utilities only; anything running a query belongs in `src/db/queries/`.
 - **A `'use server'` file may only export async functions** — no type exports, no re-exports. Shared types/mappers live in plain modules (`bill-mappers.ts`, `legislation.ts`).
 - **Tests are pure unit tests** in `src/lib/__tests__/` using `describe`/`it`/`expect` from vitest — no DB, no mocking.
-- **Verification:** `npm test`, `npm run typecheck`, and `npm run build` must all pass (build catches `'use server'` export violations typecheck misses).
+- **Verification:** `npm test`, `pnpm  typecheck`, and `pnpm  build` must all pass (build catches `'use server'` export violations typecheck misses).
 - **Commit style:** prefixes `feat:`/`fix:`/`refactor:`/`docs:`. Do NOT add `Co-Authored-By` lines.
 
 ---
@@ -85,7 +85,7 @@ export interface BillDetails extends Bill {
 
 - [ ] **Step 2: Verify it typechecks**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS (no code consumes the removed `BillDraft` — grep confirmed only the type definition referenced it). If any error mentions `BillDraft`, that file imported it; remove that import.
 
 - [ ] **Step 3: Commit**
@@ -409,7 +409,7 @@ with:
 
 - [ ] **Step 3: Verify typecheck passes**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS. (If an error says `created_at` is not assignable, confirm the `new Date(...).toISOString()` coercion is present in both mappers.)
 
 - [ ] **Step 4: Verify the query returns seeded data**
@@ -487,7 +487,7 @@ export function VersionTextViewer({ text, label = 'Read text', defaultOpen = fal
 
 - [ ] **Step 2: Verify typecheck passes**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
@@ -678,7 +678,7 @@ export function BillVersionsPanel({ versions, reports }: { versions: BillVersion
 
 - [ ] **Step 2: Verify typecheck passes**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
@@ -845,7 +845,7 @@ Note: on mobile the right panel's own tab wrapper is bypassed — the mobile bra
 
 - [ ] **Step 6: Verify typecheck and build pass**
 
-Run: `npm run typecheck && npm run build`
+Run: `pnpm  typecheck && pnpm  build`
 Expected: PASS. The build must succeed (catches `'use server'` export violations). If build flags an unused `rightPanel` on mobile, that's fine — it's used in the desktop `return`.
 
 - [ ] **Step 7: Commit**
@@ -866,12 +866,12 @@ Expected: PASS, including the new `bill-versions.test.ts`.
 
 - [ ] **Step 2: Typecheck + build**
 
-Run: `npm run typecheck && npm run build`
+Run: `pnpm  typecheck && pnpm  build`
 Expected: both PASS.
 
 - [ ] **Step 3: Manual smoke (dev server)**
 
-Run: `npm run dev` and open a bill that has versions/reports (e.g. `HB139 HD2 SD1`). Verify:
+Run: `pnpm  dev` and open a bill that has versions/reports (e.g. `HB139 HD2 SD1`). Verify:
 - No AI Update button in the status bar.
 - Right panel has "Activity" and "Versions & Reports" tabs (desktop).
 - Latest card shows the most recent version + its summary placeholder + latest report.

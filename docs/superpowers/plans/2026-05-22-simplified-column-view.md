@@ -259,7 +259,7 @@ Update the Provider value to include `columnView, setColumnView`:
 
 - [ ] **Step 2: Verify typecheck passes**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS (no type errors — `columnView` and `setColumnView` are now available but not yet consumed)
 
 - [ ] **Step 3: Commit**
@@ -305,7 +305,7 @@ Add the toggle switch. Insert it as a new element inside the right-side `div` (t
 
 - [ ] **Step 2: Verify the dev server renders correctly**
 
-Run: `npm run dev` (if not already running)
+Run: `pnpm  dev` (if not already running)
 Open `http://localhost:9002` in a browser. Verify:
 - The "Detailed View" toggle switch appears in the header toolbar
 - Toggling it on/off does not crash the page (the board doesn't change yet — that's Task 5)
@@ -653,7 +653,7 @@ pendingTempBills={tempBillsByColumn[column.id] || []}
 
 - [ ] **Step 9: Verify typecheck passes**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS
 
 - [ ] **Step 10: Run all tests**

@@ -11,10 +11,10 @@
 ## Global Constraints
 
 - Work in the `demo-tree` worktree (`/Users/jkapali/Documents/Github/PMF/Food+/demo-tree`) on branch `feat/testimony-writer`. All paths below are relative to that root.
-- Package manager is **pnpm** (`packageManager: pnpm@10.30.3`). Install with `pnpm add`, run scripts with `pnpm run <script>`.
+- Package manager is **pnpm** (`packageManager: pnpm@10.30.3`). Install with `pnpm add`, run scripts with `ppnpm  <script>`.
 - All Kysely queries go in `src/db/queries/*`; routes/actions are thin transports. `src/lib/` stays DB-free.
 - Auth via `@/lib/auth-guards` (`requireSession`, `requireMembership`) — never hand-roll cookie→session checks.
-- `'use server'` files may only export async functions (no type/const re-exports). The build (`pnpm run build`) catches violations that typecheck doesn't.
+- `'use server'` files may only export async functions (no type/const re-exports). The build (`ppnpm  build`) catches violations that typecheck doesn't.
 - Data-client contract: `action` and `fetch` arms take identical params and resolve to the same unwrapped value; register pairs with `defineClient`.
 - Tenant scoping: `testimonies.tenant_id` comes from the client's `activeTenant.tenantId` and is validated server-side with `requireMembership` when non-null.
 - Commit prefixes `feat:`/`fix:`/`refactor:`/`docs:`; **no `Co-Authored-By` lines**.
@@ -66,7 +66,7 @@ DROP TABLE IF EXISTS testimonies;
 
 - [ ] **Step 3: Run the migration**
 
-Run: `pnpm run migrate:up`
+Run: `ppnpm  migrate:up`
 Expected: applies version 24 cleanly. (If no local `DATABASE_URL` is configured, note it in the task report and continue — SQL will be exercised in the maintainer's environment.)
 
 - [ ] **Step 4: Add the Kysely row type**
@@ -130,7 +130,7 @@ export interface TestimonyDraftInput {
 
 - [ ] **Step 6: Typecheck**
 
-Run: `pnpm run typecheck`
+Run: `ppnpm  typecheck`
 Expected: PASS (no new errors).
 
 - [ ] **Step 7: Commit**
@@ -231,7 +231,7 @@ Note: `content_json` is stringified because `pg` requires explicit serialization
 
 - [ ] **Step 2: Typecheck**
 
-Run: `pnpm run typecheck`
+Run: `ppnpm  typecheck`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
@@ -332,7 +332,7 @@ export async function PUT(
 
 - [ ] **Step 3: Typecheck**
 
-Run: `pnpm run typecheck`
+Run: `ppnpm  typecheck`
 Expected: PASS.
 
 - [ ] **Step 4: Commit**
@@ -412,7 +412,7 @@ and inside `data`:
 
 - [ ] **Step 3: Typecheck**
 
-Run: `pnpm run typecheck`
+Run: `ppnpm  typecheck`
 Expected: PASS (defineClient structurally verifies the fetch arm matches the action arm).
 
 - [ ] **Step 4: Commit**
@@ -646,7 +646,7 @@ describe('composeHeaderLines', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pnpm run test -- src/lib/__tests__/testimony-blocks.test.ts`
+Run: `ppnpm  test -- src/lib/__tests__/testimony-blocks.test.ts`
 Expected: FAIL — cannot resolve `@/lib/testimony-export/blocks`.
 
 - [ ] **Step 3: Implement the converter**
@@ -785,8 +785,8 @@ export function composeHeaderLines(meta: TestimonyMeta): string[] {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm run test -- src/lib/__tests__/testimony-blocks.test.ts`
-Expected: PASS (all tests). Then run the full suite: `pnpm run test` — all existing tests still pass.
+Run: `ppnpm  test -- src/lib/__tests__/testimony-blocks.test.ts`
+Expected: PASS (all tests). Then run the full suite: `ppnpm  test` — all existing tests still pass.
 
 - [ ] **Step 5: Commit**
 
@@ -1009,7 +1009,7 @@ export function downloadBlob(blob: Blob, filename: string): void {
 
 - [ ] **Step 5: Typecheck**
 
-Run: `pnpm run typecheck`
+Run: `ppnpm  typecheck`
 Expected: PASS. (If `pdfmake/build/vfs_fonts` lacks a type declaration, add `declare module 'pdfmake/build/vfs_fonts';` and `declare module 'pdfmake/build/pdfmake';` to a new `src/types/pdfmake-build.d.ts` and re-run.)
 
 - [ ] **Step 6: Commit**
@@ -1237,7 +1237,7 @@ export function TestimonyEditor({ initialContent, onChange }: TestimonyEditorPro
 
 - [ ] **Step 3: Typecheck**
 
-Run: `pnpm run typecheck`
+Run: `ppnpm  typecheck`
 Expected: PASS. (If `immediatelyRender` is not in this Tiptap version's `useEditor` options type, delete that line — it's an SSR guard that Next 15 client components don't strictly need.)
 
 - [ ] **Step 4: Commit**
@@ -1766,8 +1766,8 @@ function TestimonySubmitStep(props: { bill: BillDetails; onBack: () => void }) {
 
 - [ ] **Step 5: Verify manually**
 
-Run: `pnpm run typecheck` — expected PASS.
-Then `pnpm run dev` and open `http://localhost:9002/bills/<some-bill-uuid>/testimony` while logged in (grab a bill id from the kanban board's dialog URL fetches or the DB). Expected: reference panel shows description/introducers/updates; typing in the editor and header fields shows "Saving… → Saved"; reloading the page restores the draft. Stop the dev server after checking. (If no local DB/session is available, note it and rely on typecheck + build.)
+Run: `ppnpm  typecheck` — expected PASS.
+Then `ppnpm  dev` and open `http://localhost:9002/bills/<some-bill-uuid>/testimony` while logged in (grab a bill id from the kanban board's dialog URL fetches or the DB). Expected: reference panel shows description/introducers/updates; typing in the editor and header fields shows "Saving… → Saved"; reloading the page restores the draft. Stop the dev server after checking. (If no local DB/session is available, note it and rely on typecheck + build.)
 
 - [ ] **Step 6: Commit**
 
@@ -1958,7 +1958,7 @@ import { TestimonyExportStep } from '@/components/testimony/testimony-export-ste
 
 - [ ] **Step 4: Verify**
 
-Run: `pnpm run typecheck` — PASS.
+Run: `ppnpm  typecheck` — PASS.
 In the dev server, on step 2: preview shows the centered header block + formatted body; both download buttons produce files that open (PDF in the browser viewer, DOCX in Word/Pages/LibreOffice) with the header and formatting intact.
 
 - [ ] **Step 5: Commit**
@@ -2081,7 +2081,7 @@ import { TestimonySubmitGuide } from '@/components/testimony/testimony-submit-gu
 
 - [ ] **Step 3: Verify**
 
-Run: `pnpm run typecheck` — PASS. In the dev server, step 3 shows the 5-step guide with both external links working.
+Run: `ppnpm  typecheck` — PASS. In the dev server, step 3 shows the 5-step guide with both external links working.
 
 - [ ] **Step 4: Commit**
 
@@ -2141,7 +2141,7 @@ Replace the existing `bill_url` anchor block (the `{billDetails?.bill_url && (<a
 
 - [ ] **Step 3: Verify**
 
-Run: `pnpm run typecheck` — PASS. In the dev server: open a bill's dialog, click "Write Testimony" → dialog closes and the testimony page opens for that bill.
+Run: `ppnpm  typecheck` — PASS. In the dev server: open a bill's dialog, click "Write Testimony" → dialog closes and the testimony page opens for that bill.
 
 - [ ] **Step 4: Commit**
 
@@ -2158,17 +2158,17 @@ git commit -m "feat: add write-testimony button to bill details dialog"
 
 - [ ] **Step 1: Run the full test suite**
 
-Run: `pnpm run test`
+Run: `ppnpm  test`
 Expected: all tests pass, including `testimony-blocks.test.ts`.
 
 - [ ] **Step 2: Typecheck**
 
-Run: `pnpm run typecheck`
+Run: `ppnpm  typecheck`
 Expected: PASS.
 
 - [ ] **Step 3: Production build**
 
-Run: `pnpm run build`
+Run: `ppnpm  build`
 Expected: builds cleanly — this is what catches `'use server'` export violations in `actions/testimony.ts` and `db/queries/testimony.ts`.
 
 - [ ] **Step 4: Fix anything that surfaced, re-run all three, then commit any fixes**

@@ -13,13 +13,13 @@ case $ENV_ARG in
     ;;
   *)
     echo "Error: Invalid environment specified"
-    echo "Usage: npm run migrate:up [l|local|p|prod] [number_of_migrations]"
+    echo "Usage: pnpm  migrate:up [l|local|p|prod] [number_of_migrations]"
     echo ""
     echo "Examples:"
-    echo "  npm run migrate:up l        # Run all pending migrations (local)"
-    echo "  npm run migrate:up l 1      # Run only 1 migration (local)"
-    echo "  npm run migrate:up p        # Run all pending migrations (prod)"
-    echo "  npm run migrate:up p 3      # Run 3 migrations (prod)"
+    echo "  pnpm migrate:up l        # Run all pending migrations (local)"
+    echo "  pnpm migrate:up l 1      # Run only 1 migration (local)"
+    echo "  pnpm migrate:up p        # Run all pending migrations (prod)"
+    echo "  pnpm migrate:up p 3      # Run 3 migrations (prod)"
     exit 1
     ;;
 esac

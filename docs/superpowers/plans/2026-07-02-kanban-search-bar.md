@@ -19,7 +19,7 @@
 - Fuzzy bounds: edit distance ≤ 1 for query tokens of 5–8 letters, ≤ 2 for 9+, none for ≤ 4 letters.
 - Shortened nav labels: `Search`, `Your Bills`, `Testimonies`, `Active Boards`.
 - Commit prefixes `feat:`/`refactor:`; NO `Co-Authored-By` lines.
-- Verification: `npm test`, `npm run typecheck`, `npm run build` after each task touching multiple files.
+- Verification: `npm test`, `pnpm  typecheck`, `pnpm  build` after each task touching multiple files.
 
 ---
 
@@ -243,7 +243,7 @@ Expected: PASS (11 tests).
 
 - [ ] **Step 5: Run the whole suite and typecheck**
 
-Run: `npm test && npm run typecheck`
+Run: `npm test && pnpm  typecheck`
 Expected: all pass.
 
 - [ ] **Step 6: Commit**
@@ -397,7 +397,7 @@ Expected: no remaining references.
 
 - [ ] **Step 7: Verify**
 
-Run: `npm test && npm run typecheck && npm run build`
+Run: `npm test && pnpm  typecheck && pnpm  build`
 Expected: all pass.
 
 - [ ] **Step 8: Commit**
@@ -452,7 +452,7 @@ with:
 
 - [ ] **Step 2: Verify**
 
-Run: `npm run typecheck && npm test`
+Run: `pnpm  typecheck && npm test`
 Expected: pass.
 
 - [ ] **Step 3: Commit**
@@ -651,7 +651,7 @@ In `src/app/(main)/page.tsx`:
 
 - [ ] **Step 6: Verify**
 
-Run: `npm run typecheck && npm run build`
+Run: `pnpm  typecheck && pnpm  build`
 Expected: pass. (`ViewToggle` is still imported by `header-subnav.tsx`, so no dead-code warning.)
 
 - [ ] **Step 7: Commit**
@@ -713,7 +713,7 @@ In the desktop row (`<div className="hidden md:flex items-center justify-between
 
 - [ ] **Step 3: Verify**
 
-Run: `npm run typecheck && npm run build`
+Run: `pnpm  typecheck && pnpm  build`
 Expected: pass.
 
 - [ ] **Step 4: Commit**
@@ -731,7 +731,7 @@ git commit -m "feat: move bill search into kanban header, controlled on desktop 
 
 - [ ] **Step 1: Run the full suite**
 
-Run: `npm test && npm run typecheck && npm run build`
+Run: `npm test && pnpm  typecheck && pnpm  build`
 Expected: all pass; test count grows by the new bill-search tests.
 
 - [ ] **Step 2: Manual smoke check (running app)**

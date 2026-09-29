@@ -88,8 +88,8 @@ No new failure modes: no data fetching is added. The login wall relies on `useAu
 No new pure logic (`src/lib/` untouched), so no new unit tests. Verification:
 
 - `npm test` — existing suite passes
-- `npm run typecheck`
-- `npm run build` — also validates the route-group move and `'use server'` constraints
+- `pnpm  typecheck`
+- `pnpm  build` — also validates the route-group move and `'use server'` constraints
 
 Manual check: nav tabs navigate and highlight correctly on desktop and mobile; `/` shows login wall when logged out and the board + view toggle when logged in; register/verify-email pages render without the header.
 

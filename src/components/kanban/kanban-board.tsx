@@ -266,9 +266,13 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
       }
     }
 
-    // Sort each column's bills by latest status update date (most recent first)
+    // Sort each column's bills: alive bills first, dead ones sink to the bottom;
+    // within each group, most recent status update first.
     Object.keys(grouped).forEach((status) => {
       grouped[status].sort((a, b) => {
+        // Primary: alive (dead === false) above dead.
+        if (a.dead !== b.dead) return Number(a.dead) - Number(b.dead);
+
         const getLatestUpdateDate = (bill: Bill): number => {
           if (bill.latest_update && bill.latest_update.date) {
             const date = new Date(bill.latest_update.date);

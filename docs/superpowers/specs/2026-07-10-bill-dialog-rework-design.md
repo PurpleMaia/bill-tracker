@@ -176,7 +176,7 @@ committee section has no AI.)
   (`deriveBriefingFacts` — testimony-open vs closed, next-deadline present,
   latest-version selection, next-steps gating). All pure transformations,
   fitting the pure-logic test convention; tests live in `src/lib/__tests__/`.
-- `npm run typecheck`, `npm run build` (build catches `'use server'` export
+- `pnpm  typecheck`, `pnpm  build` (build catches `'use server'` export
   violations).
 
 ## Open Items (follow-ups, out of scope here)

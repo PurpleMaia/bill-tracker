@@ -202,7 +202,7 @@ Pure unit tests only, in `src/lib/__tests__/contact-script.test.ts` (flat, per c
 - subject line format
 
 No DB tests (matches the repo's pure-logic-only testing convention). Run `npm test`,
-`npm run typecheck`, and `npm run build` before committing (the build catches
+`pnpm  typecheck`, and `pnpm  build` before committing (the build catches
 `'use server'` export violations).
 
 ## Out of scope (YAGNI — deferred)

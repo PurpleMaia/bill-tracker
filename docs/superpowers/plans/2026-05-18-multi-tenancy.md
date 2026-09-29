@@ -1002,7 +1002,7 @@ npx tsc --noEmit --pretty 2>&1 | head -30
 
 Start the dev server and verify the kanban board still loads:
 ```bash
-npm run dev
+pnpm  dev
 ```
 
 - [ ] **Step 8: Commit**
@@ -1401,7 +1401,7 @@ And update all calls from `canCommitStatus(user?.role)` to `canCommitStatus(acti
 
 ```bash
 npx tsc --noEmit --pretty 2>&1 | head -30
-npm run dev
+pnpm  dev
 ```
 
 Open the app in a browser, verify the kanban board loads with bills.
@@ -1593,7 +1593,7 @@ Fix any import errors from components that still reference deleted routes.
 - [ ] **Step 3: Full app test**
 
 ```bash
-npm run dev
+pnpm  dev
 ```
 
 Test all major flows:

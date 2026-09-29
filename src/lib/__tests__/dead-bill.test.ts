@@ -11,6 +11,7 @@ import {
   getDeadReasonFromUpdate,
   getNextDeadline,
   getDeadlineTier,
+  formatDeadlineStanding,
   getApplicableDeadlines,
   getRelevantDeadline,
   isBillDead,
@@ -192,6 +193,31 @@ describe('isEnacted', () => {
     expect(isEnacted(null)).toBe(false);
     expect(isEnacted(undefined)).toBe(false);
     expect(isEnacted('')).toBe(false);
+  });
+});
+
+describe('formatDeadlineStanding', () => {
+  const next = { name: 'First Lateral', date: '2025-03-05', minimumStatus: 'waiting2' as BillStatus };
+
+  it('uses the committee-chair framing when awaiting a hearing', () => {
+    expect(formatDeadlineStanding(next, 12, true)).toBe(
+      "If the committee chair doesn't schedule this bill by First Lateral (March 5), it fails. 12 days left.",
+    );
+  });
+
+  it('uses the neutral deadline framing when not awaiting a hearing', () => {
+    expect(formatDeadlineStanding(next, 12, false)).toBe('First Lateral deadline: March 5. 12 days left.');
+  });
+
+  it('singularizes "1 day left"', () => {
+    expect(formatDeadlineStanding(next, 1, false)).toBe('First Lateral deadline: March 5. 1 day left.');
+  });
+
+  it('says "Due today." at zero or negative days', () => {
+    expect(formatDeadlineStanding(next, 0, false)).toBe('First Lateral deadline: March 5. Due today.');
+    expect(formatDeadlineStanding(next, -3, true)).toBe(
+      "If the committee chair doesn't schedule this bill by First Lateral (March 5), it fails. Due today.",
+    );
   });
 });
 

@@ -23,7 +23,14 @@ import {
 } from '@/lib/glossary/resolvers';
 import { PROGRESS_STAGES } from '@/lib/bills/progress-stages';
 import { sortVersions } from '@/lib/versions/bill-versions';
-import { parseCommitteeCodes, committeeFullName } from '@/lib/testimony/committees';
+import { parseCommittees } from '@/lib/bills/dead-bill';
+import {
+  parseCommitteeCodes,
+  committeeFullName,
+  hasJointReferral,
+  JOINT_REFERRAL_NOTE,
+} from '@/lib/testimony/committees';
+import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
 import { COLUMN_TITLES } from '@/lib/bills/kanban-columns';
 
 /**
@@ -68,10 +75,18 @@ export function BillBreakdown({
    *  here rather than bloating that tooltip. */
   deadlineName?: string | null;
 }) {
+  // Flattened codes drive the "must clear all N" count; raw referral tokens
+  // drive display so a joint referral (HHS/AEN) stays one entry.
   const committeeCodes = useMemo(
     () => parseCommitteeCodes(bill.committee_assignment ?? null),
     [bill.committee_assignment]
   );
+  const committeeReferrals = useMemo(
+    () => (bill.committee_assignment ? parseCommittees(bill.committee_assignment) : []),
+    [bill.committee_assignment]
+  );
+  const isJointReferral = hasJointReferral(bill.committee_assignment);
+  const committeeNames = useCommitteeNames();
 
   const statusTerm = resolveStatusTerm(currentStatus);
   const stage = PROGRESS_STAGES.find((s) => s.statuses.includes(currentStatus));
@@ -100,7 +115,7 @@ export function BillBreakdown({
         <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3">
           <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />
           <p className="text-sm leading-relaxed text-destructive">
-            This bill has failed — it is no longer moving. Everything below describes where it got
+            This bill has failed. Everything below translates what the bill is and where it got
             to before it stopped.
           </p>
         </div>
@@ -121,12 +136,18 @@ export function BillBreakdown({
           <BreakdownRow value={bill.introducer}>{GLOSSARY.introducers.short}</BreakdownRow>
         )}
 
-        {committeeCodes.length > 0 && (
-          <BreakdownRow value={committeeCodes.join(', ')}>
-            {committeeCodes
-              .map((code) => {
-                const resolved = resolveCommitteeTerm(code);
-                return resolved ? `${code} is ${committeeFullName(code)}` : null;
+        {committeeReferrals.length > 0 && (
+          /* Value keeps joint referrals intact ("HHS/AEN, FIN") so they read as
+             joint referrals; the count of committees to clear uses the flattened
+             codes. */
+          <BreakdownRow value={committeeReferrals.join(', ')}>
+            {committeeReferrals
+              .map((referral) => {
+                const resolved = resolveCommitteeTerm(referral, committeeNames);
+                if (!resolved) return null;
+                return referral.includes('/')
+                  ? `${referral} is a joint referral to ${committeeFullName(referral, committeeNames)}`
+                  : `${referral} is ${committeeFullName(referral, committeeNames)}`;
               })
               .filter(Boolean)
               .join('; ')}
@@ -134,6 +155,7 @@ export function BillBreakdown({
               ? `. This bill must clear all ${committeeCodes.length} to stay alive. `
               : '. '}
             {GLOSSARY['committee-chair'].short}
+            {isJointReferral ? ` ${JOINT_REFERRAL_NOTE}` : ''}
           </BreakdownRow>
         )}
 
@@ -200,12 +222,17 @@ export function BillBreakdownButton({
         <Button
           variant="outline"
           size="sm"
-          /* Outline that darkens on hover, no background fill — ghost's
-             hover:bg-accent read as a dark teal block. */
-          className="h-6 gap-1 border-border bg-transparent px-1.5 text-[11px] font-medium text-muted-foreground hover:border-foreground hover:bg-transparent hover:text-foreground"
+          /* Prominent help affordance: a tinted primary pill so newcomers
+             actually notice the "how to read this" entry point. The label
+             now shows on mobile too — on the smallest screens it collapses
+             to "How to read", but never to a bare icon. */
+          className="h-7 gap-1.5 rounded-full border-primary/30 bg-primary/10 px-2.5 text-xs font-semibold text-primary hover:border-primary/50 hover:bg-primary/20 hover:text-primary"
           aria-label="How to read this bill"
         >
-          <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
+          <HelpCircle className="h-4 w-4" aria-hidden="true" />
+          {/* Always labeled — even on mobile the pill reads "How to read",
+              expanding to the full phrase once there's room. */}
+          <span className="sm:hidden">How to read</span>
           <span className="hidden sm:inline">How to read this</span>
         </Button>
       </DialogTrigger>

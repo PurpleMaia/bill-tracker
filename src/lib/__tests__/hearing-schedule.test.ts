@@ -108,4 +108,58 @@ describe('getTestimonyDeadline', () => {
       getTestimonyDeadline({ billStatus: 'scheduled1', latestStatusText: null, now: hearing }),
     ).toEqual(empty);
   });
+
+  // A committee that has issued a recommendation ("PASSED"/"DEFERRED") advances the
+  // bill to a waiting/deferred status, so it is no longer a scheduled status. But its
+  // status text still carries the (now past) hearing notice — testimony for that
+  // hearing must close.
+  const passedNotice =
+    'The committee(s) on SIM-JHA recommend(s) that the measure be PASSED, unamended. ' +
+    'The committee(s) on SIM-JHA has scheduled a public hearing on 08-31-26 2:00PM.';
+
+  it('closes testimony when a committee recommended PASSED and its hearing has passed', () => {
+    const result = getTestimonyDeadline({
+      billStatus: 'waiting2',
+      latestStatusText: passedNotice,
+      now: new Date(2026, 8, 1, 9, 0), // Sep 1 2026 — after the Aug 31 hearing
+    });
+    expect(result).toEqual({
+      hearingAt: new Date(2026, 7, 31, 14, 0),
+      countdown: null,
+      urgent: false,
+      hearingPassed: true,
+    });
+  });
+
+  it('does not close testimony when the recommended committee hearing is still upcoming', () => {
+    // A stale recommendation notice whose parsed hearing date is in the future does
+    // not close testimony — the past-date check must gate it.
+    const result = getTestimonyDeadline({
+      billStatus: 'waiting2',
+      latestStatusText: passedNotice,
+      now: new Date(2026, 7, 30, 9, 0), // Aug 30 2026 — before the Aug 31 hearing
+    });
+    expect(result.hearingPassed).toBe(false);
+  });
+
+  it('does not treat a plain "waiting" bill with no recommendation as hearing-passed', () => {
+    const result = getTestimonyDeadline({
+      billStatus: 'waiting2',
+      latestStatusText: 'Passed Second Reading and referred to the committee(s) on WAM.',
+      now: hearing,
+    });
+    expect(result).toEqual({ hearingAt: null, countdown: null, urgent: false, hearingPassed: false });
+  });
+
+  it('closes testimony when a committee recommended DEFERRED and its hearing has passed', () => {
+    const deferredNotice =
+      'The committee(s) on WAM recommend(s) that the measure be DEFERRED. ' +
+      'The committee(s) on WAM has scheduled a public hearing on 08-31-26 2:00PM.';
+    const result = getTestimonyDeadline({
+      billStatus: 'deferred2',
+      latestStatusText: deferredNotice,
+      now: new Date(2026, 8, 1, 9, 0),
+    });
+    expect(result.hearingPassed).toBe(true);
+  });
 });

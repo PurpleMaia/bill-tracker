@@ -162,16 +162,16 @@ And add to the `DB` interface (alphabetically consistent with siblings like `use
 
 - [ ] **Step 8: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS (no errors).
 
 - [ ] **Step 9: Verify migration round-trips**
 
-Run: `npm run migrate:up`
+Run: `pnpm  migrate:up`
 Expected: applies `000022` cleanly.
-Run: `npm run migrate:down`
+Run: `pnpm  migrate:down`
 Expected: rolls back cleanly.
-Run: `npm run migrate:up`
+Run: `pnpm  migrate:up`
 Expected: re-applies cleanly (leave it applied).
 
 > If the local DB is unavailable, note that in the report as unverified rather than skipping silently.
@@ -256,7 +256,7 @@ export async function updateUserPreferences(
 
 - [ ] **Step 2: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS. (If Kysely complains that `values` requires all non-generated columns, confirm `user_id` is present — it is; the other columns have DB defaults / are `Generated<>`.)
 
 - [ ] **Step 3: Commit**
@@ -415,12 +415,12 @@ and inside the `data` object:
 
 - [ ] **Step 5: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS. `defineClient` structurally requires the fetch arm to match the action arm's signature — a mismatch surfaces here.
 
 - [ ] **Step 6: Build (catches `'use server'` export violations)**
 
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: succeeds. If it complains that `preferences.ts` exports a non-async value, ensure it exports only the two async functions.
 
 - [ ] **Step 7: Commit**
@@ -522,9 +522,9 @@ In the `<AuthContext.Provider value={{ ... }}>` object, add:
 
 - [ ] **Step 7: Typecheck + build**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS.
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: succeeds.
 
 - [ ] **Step 8: Commit**
@@ -688,9 +688,9 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
 - [ ] **Step 3: Typecheck + build**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS.
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: succeeds. If any shadcn import name is wrong (Step 1), fix to match the actual exports.
 
 - [ ] **Step 4: Commit**
@@ -768,9 +768,9 @@ In `src/components/main/mobile-hamburger-menu.tsx`:
 
 - [ ] **Step 3: Typecheck + build**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS.
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: succeeds.
 
 - [ ] **Step 4: Full test suite**

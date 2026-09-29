@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toDate, formatBillStatusName, todayHawaii, formatBillHeadline, formatRelativeDate } from '../core/utils';
+import { toDate, formatBillStatusName, todayHawaii, formatBillHeadline, formatRelativeDate, parseLocalDate } from '../core/utils';
 
 describe('toDate', () => {
   it('returns null for null/undefined', () => {
@@ -114,8 +114,43 @@ describe('formatBillHeadline', () => {
   });
 });
 
+describe('parseLocalDate', () => {
+  it('parses a YYYY-MM-DD date-only string as local midnight, not UTC', () => {
+    // The bug: `new Date("2026-09-13")` is UTC midnight, which in any
+    // negative-offset zone (e.g. Hawaii, UTC-10) reads back as Sep 12.
+    // parseLocalDate must keep it on Sep 13 regardless of the runner's zone.
+    const d = parseLocalDate('2026-09-13');
+    expect(d).toBeInstanceOf(Date);
+    expect(d!.getFullYear()).toBe(2026);
+    expect(d!.getMonth()).toBe(8); // September (0-indexed)
+    expect(d!.getDate()).toBe(13);
+  });
+
+  it('parses a M/D/YYYY string (already local) unchanged', () => {
+    const d = parseLocalDate('9/13/2026');
+    expect(d!.getFullYear()).toBe(2026);
+    expect(d!.getMonth()).toBe(8);
+    expect(d!.getDate()).toBe(13);
+  });
+
+  it('returns null for empty or garbage input', () => {
+    expect(parseLocalDate('')).toBeNull();
+    expect(parseLocalDate('not a date')).toBeNull();
+  });
+});
+
 describe('formatRelativeDate', () => {
   const now = new Date('2026-07-08T12:00:00');
+
+  it('treats a YYYY-MM-DD date as a local date (no UTC off-by-one)', () => {
+    // A DB status-update date "2026-07-05" is 3 days before local now.
+    // The old `new Date(dateStr)` UTC parse shifted it to 07-04 => "4d ago".
+    expect(formatRelativeDate('2026-07-05', now)).toBe('3d ago');
+  });
+
+  it('keeps the fallback short-date on the correct day for YYYY-MM-DD', () => {
+    expect(formatRelativeDate('2026-03-05', now)).toBe('Mar 5');
+  });
 
   it('says Today and Yesterday', () => {
     expect(formatRelativeDate('7/8/2026', now)).toBe('Today');

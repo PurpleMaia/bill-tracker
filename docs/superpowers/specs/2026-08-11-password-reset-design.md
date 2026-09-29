@@ -178,13 +178,13 @@ does. States:
   production mode, valid input accepted).
 - The remainder is DB and transport code, which this repo deliberately does not
   unit-test (tests are pure-logic only, no DB, no mocking).
-- Verification: `npm test`, `npm run typecheck`, `npm run build`. The build is
+- Verification: `npm test`, `pnpm  typecheck`, `pnpm  build`. The build is
   required because it catches `'use server'` export violations that typecheck
   does not.
 
 ## Manual verification
 
-1. `npm run migrate:up`.
+1. `pnpm  migrate:up`.
 2. Request a reset for a known address; confirm the URL appears in the server log
    (works without `RESEND_API_KEY` in development).
 3. Open the link — the form appears; reload it to confirm the token was not

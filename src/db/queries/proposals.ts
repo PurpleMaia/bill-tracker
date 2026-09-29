@@ -180,14 +180,26 @@ export async function upsertProposal(params: {
   return result.id;
 }
 
-/** Finds a pending proposal by id (used before approve/reject). */
-export async function findPendingProposalById(proposalId: string) {
-  return db
+/**
+ * Finds a pending proposal by id (used before approve/reject).
+ *
+ * When `tenantId` is provided, the proposal MUST belong to that tenant — this
+ * prevents a tenant admin from approving/rejecting another org's proposal by id
+ * (the caller only proved they are an admin of *their* tenant). When `tenantId`
+ * is omitted (the legacy no-tenant path), no tenant filter is applied.
+ */
+export async function findPendingProposalById(proposalId: string, tenantId?: string) {
+  let query = db
     .selectFrom('pending_proposals')
     .selectAll()
     .where('id', '=', proposalId)
-    .where('approval_status', '=', 'pending')
-    .executeTakeFirst();
+    .where('approval_status', '=', 'pending');
+
+  if (tenantId) {
+    query = query.where('tenant_id', '=', tenantId);
+  }
+
+  return query.executeTakeFirst();
 }
 
 /** Marks a proposal approved by the given user. */

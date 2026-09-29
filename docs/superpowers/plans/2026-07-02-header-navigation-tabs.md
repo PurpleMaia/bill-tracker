@@ -15,7 +15,7 @@
 - No changes to `db/queries`, API routes, or server actions. No data fetching added.
 - `register/` and `verify-email/` pages stay OUTSIDE the route group (no header).
 - The public read-only board is intentionally dropped; do NOT remove the `if (!user)` branch inside `ProtectedKanbanBoardOrSpreadsheet` (out of scope).
-- No new unit tests: project tests cover pure logic in `src/lib/` only, and this change adds none. Verification is `npm run typecheck`, `npm run build`, `npm test`.
+- No new unit tests: project tests cover pure logic in `src/lib/` only, and this change adds none. Verification is `pnpm  typecheck`, `pnpm  build`, `npm test`.
 - Commit prefixes `feat:`/`refactor:`; NO `Co-Authored-By` lines.
 - All new components are client components (`'use client'`) EXCEPT `placeholder-page.tsx` and the three placeholder pages, which are server components.
 
@@ -79,7 +79,7 @@ Note: this file has NO `'use server'` directive, so exporting the `NAV_ITEMS` co
 
 - [ ] **Step 2: Verify it compiles**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: exits 0, no errors.
 
 - [ ] **Step 3: Commit**
@@ -161,7 +161,7 @@ function getIconForView(view: string) {
 
 - [ ] **Step 2: Verify it compiles**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: exits 0, no errors.
 
 - [ ] **Step 3: Commit**
@@ -312,10 +312,10 @@ The file keeps: title + tenant selector, the board search `Input`, the settings 
 
 - [ ] **Step 5: Verify**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: exits 0.
 
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: build succeeds; route list shows `/` (from the `(main)` group), `/register`, `/verify-email`.
 
 - [ ] **Step 6: Commit**
@@ -367,7 +367,7 @@ export function PlaceholderPage({ icon: Icon, title, description, children }: Pl
 
 - [ ] **Step 2: Verify it compiles**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: exits 0.
 
 - [ ] **Step 3: Commit**
@@ -412,7 +412,7 @@ export default function SearchPage() {
 
 - [ ] **Step 2: Verify**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: exits 0.
 
 - [ ] **Step 3: Commit**
@@ -485,10 +485,10 @@ export default function BoardsPage() {
 
 - [ ] **Step 3: Verify**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: exits 0.
 
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: build succeeds; route list now includes `/search`, `/testimonies`, `/boards`.
 
 - [ ] **Step 4: Commit**
@@ -564,7 +564,7 @@ At the TOP of the `<div className="flex flex-col gap-4">` inside `PopoverContent
 
 - [ ] **Step 4: Verify**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: exits 0.
 
 - [ ] **Step 5: Commit**
@@ -585,15 +585,15 @@ git commit -m "feat: add top-level nav links to mobile hamburger menu"
 Run: `npm test`
 Expected: all existing tests pass (pure-logic suite untouched).
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: exits 0.
 
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: build succeeds with routes `/`, `/search`, `/testimonies`, `/boards`, `/register`, `/verify-email`.
 
 - [ ] **Step 2: Manual smoke check (dev server)**
 
-Run: `npm run dev` (port 9002) and verify:
+Run: `pnpm  dev` (port 9002) and verify:
 - Logged out: `/` shows the login wall card (no board); nav tabs render centered in the header on desktop; clicking each nav tab navigates and highlights it.
 - `/search`, `/testimonies`, `/boards` show their placeholder content under the header.
 - Logged in: `/` shows the ViewToggle toolbar and the kanban board; admin users also see the Admin tab in the toggle.

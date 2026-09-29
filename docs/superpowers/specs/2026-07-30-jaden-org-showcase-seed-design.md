@@ -132,7 +132,7 @@ file needed.
 
 ## Verification (after seeding)
 
-1. `npm run typecheck`.
+1. `pnpm  typecheck`.
 2. Run seed; run a read asserting the Jaden org now has ≥1 card in every simple-view
    column and the three failure exemplars are `dead` with expected reasons.
 3. Launch with `NEXT_PUBLIC_DEMO_DEADLINES=1`, open the Jaden org board (simple view) as

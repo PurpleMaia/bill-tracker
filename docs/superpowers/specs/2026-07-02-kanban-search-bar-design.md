@@ -87,7 +87,7 @@ None needed at runtime: search is a pure synchronous function over in-memory dat
 
 New: `src/lib/__tests__/bill-search.test.ts` covering — empty/whitespace query returns input unchanged; bill-number normalization (`"sb 123"` finds `SB123`); AND-token semantics; ranking tiers (number > title > description); fuzzy matching (1 edit for 5+ letter tokens, 2 for 9+, none for ≤ 4); stable tie order; case insensitivity.
 
-Existing suite, `npm run typecheck`, and `npm run build` must pass. Manual check: type in the kanban header search (desktop + mobile), see instant filtering in both board and spreadsheet views, board auto-scrolls to the best match, no spinner appears while typing. Header: view toggle appears centered in the header on `/` when logged in (absent when logged out and on other pages); nav links sit on the right as plain text with olive underline on the active page; the board is no longer pushed down by a toolbar row.
+Existing suite, `pnpm  typecheck`, and `pnpm  build` must pass. Manual check: type in the kanban header search (desktop + mobile), see instant filtering in both board and spreadsheet views, board auto-scrolls to the best match, no spinner appears while typing. Header: view toggle appears centered in the header on `/` when logged in (absent when logged out and on other pages); nav links sit on the right as plain text with olive underline on the active page; the board is no longer pushed down by a toolbar row.
 
 ## Out of Scope
 

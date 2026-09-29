@@ -21,7 +21,7 @@
 - **Bill versions and committee reports behave identically** everywhere.
 - **LLM call style** (match `services/llm.ts`): `temperature: 0.0`, ` /no_think` appended to the user turn, model from `process.env.VLLM || process.env.LLM`, rate-limited with `limitFixedWindow`.
 - **Architecture rules (CLAUDE.md):** all queries in `src/db/queries/*`; `src/lib/` is DB-free; client components call `data.*` from `@/lib/data-client`, never raw `fetch`; a `'use server'` file may only export async functions; auth via `@/lib/auth-guards`.
-- **Before committing any task:** `npm test`, `npm run typecheck`, and `npm run build` must all pass.
+- **Before committing any task:** `npm test`, `pnpm  typecheck`, and `pnpm  build` must all pass.
 - **Generated content held in local `useState` MUST be keyed to the identity of what it describes.** A component that stores an AI summary and whose props can change to a *different* document (or version pair) while it stays mounted will render the old summary under the new heading — a summary of the wrong legislative document. Add `key={<the id(s)>}` at the call site so a change of identity forces a fresh instance. This bit twice during implementation: Tasks 9 and 10 both needed it.
 
 ## File Structure
@@ -99,7 +99,7 @@ ALTER TABLE committee_reports
 
 - [ ] **Step 3: Run the migration**
 
-Run: `npm run migrate:up`
+Run: `pnpm  migrate:up`
 Expected: succeeds with no error.
 
 - [ ] **Step 4: Verify the backfill did what it claims**
@@ -124,7 +124,7 @@ In `export interface BillVersions` and `export interface CommitteeReports`, add:
 
 - [ ] **Step 6: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: passes.
 
 - [ ] **Step 7: Commit**
@@ -614,7 +614,7 @@ Expected: PASS, 8 tests.
 
 - [ ] **Step 5: Run the full suite and typecheck**
 
-Run: `npm test && npm run typecheck`
+Run: `npm test && pnpm  typecheck`
 Expected: both pass.
 
 - [ ] **Step 6: Commit**
@@ -738,7 +738,7 @@ Move the two `import` statements to the top of the file with the existing import
 
 `llm.ts` is a `'use server'` module, so it may export ONLY async functions. `getSummaryModelName` is async for exactly this reason even though it does no I/O. Confirm no `const`/`type` was exported.
 
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: passes. (Typecheck alone does NOT catch `'use server'` export violations — per CLAUDE.md, the build does.)
 
 - [ ] **Step 3: Commit**
@@ -840,7 +840,7 @@ If Kysely rejects the dynamic `TABLE[target]` string interpolation in `select`/`
 
 - [ ] **Step 2: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: passes. If the dynamic table name fails to typecheck, apply the two-branch fallback above, then re-run.
 
 - [ ] **Step 3: Commit**
@@ -1008,7 +1008,7 @@ import type { SummaryResult } from '@/types/legislation';
 
 - [ ] **Step 3: Build to confirm**
 
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: passes. A `'use server'` export violation fails here even though typecheck is clean.
 
 - [ ] **Step 4: Commit**
@@ -1103,7 +1103,7 @@ Check the `params` signature against a sibling route (e.g. `src/app/api/bills/[i
 
 - [ ] **Step 3: Build**
 
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: passes.
 
 - [ ] **Step 4: Commit**
@@ -1200,7 +1200,7 @@ export const data = {
 
 - [ ] **Step 3: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: passes. `defineClient` structurally requires the fetch arm to match the action arm's signature — a mismatch fails here, which is the point.
 
 - [ ] **Step 4: Commit**
@@ -1354,7 +1354,7 @@ Read each call site and use the variable actually in scope there (`report`, `lat
 
 - [ ] **Step 4: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: passes. Missing `target`/`documentId` at any call site fails here.
 
 - [ ] **Step 5: Delete the stub if unused**
@@ -1367,7 +1367,7 @@ git rm src/components/kanban/ai-stub.ts
 
 - [ ] **Step 6: Build and test**
 
-Run: `npm test && npm run typecheck && npm run build`
+Run: `npm test && pnpm  typecheck && pnpm  build`
 Expected: all pass.
 
 - [ ] **Step 7: Commit**
@@ -1502,7 +1502,7 @@ At line ~112 the accordion is rendered as `<VersionDiffAccordion comparison={com
 
 - [ ] **Step 3: Typecheck and build**
 
-Run: `npm run typecheck && npm run build`
+Run: `pnpm  typecheck && pnpm  build`
 Expected: both pass.
 
 - [ ] **Step 4: Verify the no-auto-generate rule by inspection**
@@ -1554,14 +1554,14 @@ In `src/db/queries/bill-mappers.ts`, add to the object returned by `mapVersionRo
 
 Adding a required field breaks object literals in existing tests. Run:
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: errors in `src/lib/__tests__/bill-versions.test.ts`, `bill-briefing-facts.test.ts`, `bill-diff.test.ts` — each builds `BillVersion` literals.
 
 Add `summaryGeneratedAt: null` to each failing fixture, then re-run until clean.
 
 - [ ] **Step 4: Full verification**
 
-Run: `npm test && npm run typecheck && npm run build`
+Run: `npm test && pnpm  typecheck && pnpm  build`
 Expected: all pass.
 
 - [ ] **Step 5: Commit**
@@ -1582,7 +1582,7 @@ git commit -m "feat: carry summary provenance through the bill mappers"
 
 - [ ] **Step 1: Start the dev server**
 
-Run: `npm run dev`
+Run: `pnpm  dev`
 Expected: listening on port 9002.
 
 - [ ] **Step 2: Verify the opted-out path shows no AI affordance**

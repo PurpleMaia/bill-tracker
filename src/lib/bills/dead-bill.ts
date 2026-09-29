@@ -189,6 +189,28 @@ export function getDeadlineTier(daysAway: number): DeadlineTier {
 }
 
 /**
+ * The deadline sentence shown on the kanban card's countdown chip tooltip AND
+ * in the bill briefing's "Where it stands" card — kept here as ONE source so
+ * the two never drift. `awaitingHearing` picks the committee-chair framing
+ * (the bill fails if it isn't scheduled in time) over the neutral one used
+ * once a hearing is on the calendar.
+ */
+export function formatDeadlineStanding(
+  next: DeadlineEntry,
+  daysAway: number,
+  awaitingHearing: boolean,
+): string {
+  const dateLong = new Date(next.date + 'T00:00:00').toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+  });
+  const remaining = daysAway <= 0 ? 'Due today.' : `${daysAway} day${daysAway === 1 ? '' : 's'} left.`;
+  return awaitingHearing
+    ? `If the committee chair doesn't schedule this bill by ${next.name} (${dateLong}), it fails. ${remaining}`
+    : `${next.name} deadline: ${dateLong}. ${remaining}`;
+}
+
+/**
  * Returns the next upcoming deadline for a bill based on its current status,
  * referral type, chamber, and fiscal status. Returns null if all deadlines passed.
  */

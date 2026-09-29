@@ -68,5 +68,5 @@ Public users (no tenant) see no tags. Tag UI is hidden when `activeTenant` is ab
 ## Testing
 
 - Existing unit tests should continue to pass (they test pure logic, not tag queries)
-- Run `npm run typecheck` to verify all call sites pass the now-required `tenantId`
-- Run `npm run build` to catch any missed call sites
+- Run `pnpm  typecheck` to verify all call sites pass the now-required `tenantId`
+- Run `pnpm  build` to catch any missed call sites

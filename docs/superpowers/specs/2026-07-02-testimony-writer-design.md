@@ -115,7 +115,7 @@ src/components/testimony/
 ## Testing
 
 - `testimony-blocks.test.ts` — Tiptap JSON → blocks converter (pure).
-- Existing suite must stay green: `npm test`, `npm run typecheck`, `npm run build` (build catches `'use server'` export violations).
+- Existing suite must stay green: `npm test`, `pnpm  typecheck`, `pnpm  build` (build catches `'use server'` export violations).
 
 ## Out of Scope (v1)
 

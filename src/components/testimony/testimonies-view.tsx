@@ -95,6 +95,7 @@ function decorate(item: TestimonyListItem, now: Date): DecoratedTestimony {
       committeeAssignment: item.committeeAssignment,
       deadlines: SESSION_DEADLINES,
       today: now.toISOString().split('T')[0],
+      latestStatusText: item.latestStatusText,
     });
 
     if (!eligibility.allowed) {
@@ -583,7 +584,7 @@ function TestimonyCard({
               )}
               {item.dead && (
                 <Badge variant="destructive" className="h-4 rounded-full px-1.5 text-[10px] text-white">
-                  Dead
+                  Failed
                 </Badge>
               )}
               <span className="text-xs text-muted-foreground">

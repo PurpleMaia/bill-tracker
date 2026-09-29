@@ -23,7 +23,7 @@
 - **Data-client contract:** the `action` and `fetch` arms take identical params and resolve to the SAME already-unwrapped value, throwing on error. See `src/lib/data-client/define-client.ts`.
 - **A `'use server'` file may only export async functions** — no type exports, no re-exports. Shared types live in plain modules.
 - **CLAUDE.md:** all DB access in `src/db/queries/*`; `src/lib/` is DB-free; third-party/network wrappers in `src/services/*`; client components call `data.*`, never raw `fetch`. Do not delete old API routes. Commit prefixes `feat:`/`fix:`/`refactor:`/`docs:`, and **no `Co-Authored-By` lines**.
-- **Verify with:** `npm test`, `npm run typecheck`, and `npm run build` (the build catches `'use server'` export violations that typecheck misses).
+- **Verify with:** `npm test`, `pnpm  typecheck`, and `pnpm  build` (the build catches `'use server'` export violations that typecheck misses).
 
 ---
 
@@ -414,7 +414,7 @@ export function normalizeComparison(
 Run: `npx vitest run src/lib/__tests__/version-diff.test.ts`
 Expected: PASS (all cases).
 
-Then `npm run typecheck` — expected: clean.
+Then `pnpm  typecheck` — expected: clean.
 
 - [ ] **Step 5: Commit**
 
@@ -531,7 +531,7 @@ Expected: a byte count around 96,000, `has <html>: true`, and `404 -> fetch-fail
 
 - [ ] **Step 3: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: clean.
 
 - [ ] **Step 4: Commit**
@@ -999,15 +999,15 @@ export const billsClient = defineClient('bills', {
 
 - [ ] **Step 6: Verify both arms typecheck and build**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: clean.
 
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: succeeds. This is the step that catches `'use server'` export violations — if it complains about a non-async export in `actions/bills.ts`, the `CompareVersionsParams` interface was declared there instead of in `types/legislation.ts`.
 
 - [ ] **Step 7: Verify the route end-to-end**
 
-Start the dev server (`npm run dev`), then with two real version ids from the same bill:
+Start the dev server (`pnpm  dev`), then with two real version ids from the same bill:
 
 ```bash
 psql "postgres://localhost:5432/civtrack_local3?sslmode=disable" -c \
@@ -1187,7 +1187,7 @@ export function VersionDiffAccordion({ comparison }: { comparison: VersionCompar
 
 - [ ] **Step 2: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: clean. If `AccordionTrigger` rejects the `className` prop, check `src/components/ui/accordion.tsx`'s signature and pass through whatever prop it forwards.
 
 - [ ] **Step 3: Commit**
@@ -1601,13 +1601,13 @@ git rm src/components/kanban/version-diff-inline.tsx
 
 - [ ] **Step 6: Verify**
 
-Run: `npm run typecheck` — expected: clean.
+Run: `pnpm  typecheck` — expected: clean.
 Run: `npm test` — expected: all pass.
-Run: `npm run build` — expected: succeeds.
+Run: `pnpm  build` — expected: succeeds.
 
 - [ ] **Step 7: Manual check in the browser**
 
-`npm run dev`, open a bill with several versions (HB1494 has six), Versions & Reports tab:
+`pnpm  dev`, open a bill with several versions (HB1494 has six), Versions & Reports tab:
 
 1. Clicking **Compare** on a timeline row updates both dropdowns in the right panel to that version and its predecessor, and the accordion reloads.
 2. That timeline row shows the "comparing" badge and the tinted background.
@@ -1646,7 +1646,7 @@ Expected: all pass, including the new `version-diff` and fixture tests.
 
 - [ ] **Step 3: Typecheck and build**
 
-Run: `npm run typecheck && npm run build`
+Run: `pnpm  typecheck && pnpm  build`
 Expected: both clean.
 
 - [ ] **Step 4: Confirm the diff quality against the measured baseline**

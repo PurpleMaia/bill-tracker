@@ -90,7 +90,7 @@ Per project conventions, only pure logic is unit-tested (no DB, no mocking). Thi
 - Manual verification: as an org admin, as a `worker` member, and as a public/logged-out user, confirm the card shows/hides correctly, shows correct stats and role label, and shows the correct footer verbiage. Confirm a private-board org still shows the card for its members.
 - Confirm the sub-nav reads "Browse".
 - Confirm "At a glance" is now light gray and the Your Organization card is olive.
-- Run `npm run typecheck`, `npm test`, and `npm run build` (the build catches `'use server'` export violations).
+- Run `pnpm  typecheck`, `npm test`, and `pnpm  build` (the build catches `'use server'` export violations).
 - If any pure helper is extracted (e.g. a role-label formatter), add a unit test in `src/lib/__tests__/`.
 
 ## Out of scope (explicitly)

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 function RegisterForm() {
   const [email, setEmail] = useState("");
@@ -200,6 +201,29 @@ function RegisterForm() {
                   : "Register"}
           </Button>
         </form>
+
+        {/* Google sign-up carries the same context the form would: the invite
+            token when joining an org, or the org name when creating one. Hidden
+            when the invite is broken — there is nothing valid to sign up into. */}
+        {!(isInviteFlow && inviteError) && (
+          <>
+            <div className="relative my-4">
+              <div aria-hidden className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-white px-2 text-xs uppercase tracking-wide text-muted-foreground">
+                  or
+                </span>
+              </div>
+            </div>
+
+            <GoogleSignInButton
+              inviteToken={inviteToken}
+              orgName={!isInviteFlow && createOrg ? orgName.trim() : undefined}
+            />
+          </>
+        )}
 
         <p className="mt-4 text-center text-sm text-muted-foreground">
           Already have an account?{" "}

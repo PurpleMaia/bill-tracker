@@ -59,7 +59,7 @@ body {
 
 Check that the `metadata` export in `src/app/layout.tsx` exists. Next.js 15 automatically adds `<meta name="viewport" content="width=device-width, initial-scale=1">` when you export a `metadata` object, which this file already does at lines 28-31. No change needed unless the viewport is missing from the rendered HTML.
 
-Run: `npm run dev` (if not running), then open http://localhost:9002 in a browser. Inspect the `<head>` and confirm the viewport meta tag is present.
+Run: `pnpm  dev` (if not running), then open http://localhost:9002 in a browser. Inspect the `<head>` and confirm the viewport meta tag is present.
 
 - [ ] **Step 3: Commit**
 
@@ -835,7 +835,7 @@ git commit -m "feat: responsive spreadsheet with compact mobile columns and padd
 - [ ] **Step 1: Run typecheck**
 
 ```bash
-npm run typecheck
+pnpm  typecheck
 ```
 
 Expected: no type errors.
@@ -851,7 +851,7 @@ Expected: all tests pass (these are pure unit tests that don't test UI, so they 
 - [ ] **Step 3: Run lint**
 
 ```bash
-npm run lint
+pnpm  lint
 ```
 
 Expected: no lint errors.

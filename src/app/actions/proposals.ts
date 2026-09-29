@@ -91,7 +91,8 @@ export async function decideProposalAction(params: DecideProposalParams): Promis
     throw new Error('Unauthorized');
   }
 
-  const proposal = await findPendingProposalById(proposalId);
+  // Pass tenantId so a tenant admin can only decide proposals in their own org.
+  const proposal = await findPendingProposalById(proposalId, tenantId);
   if (!proposal) {
     throw new Error('Proposal not found');
   }

@@ -217,7 +217,7 @@ Pure-logic unit tests in `src/lib/__tests__/` per repo convention:
 - A `boardMode` display-rule helper (extract the "what shows on a card" decision into
   a pure function so it is unit-testable).
 
-Then run `npm test`, `npm run typecheck`, and `npm run build` (the build catches
+Then run `npm test`, `pnpm  typecheck`, and `pnpm  build` (the build catches
 `'use server'` export violations that typecheck does not).
 
 ## Out of scope (v1)

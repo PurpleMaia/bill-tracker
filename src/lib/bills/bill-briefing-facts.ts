@@ -4,7 +4,9 @@ import type { BillDetails } from '@/types/legislation';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
-import { getNextDeadline, getDeadlineTier, isFiscalBill } from '@/lib/bills/dead-bill';
+import { getNextDeadline, isFiscalBill, isEnacted, formatDeadlineStanding, parseCommittees } from '@/lib/bills/dead-bill';
+import { COLUMN_DESCRIPTIONS, COLUMN_TITLES, isAwaitingHearing } from '@/lib/bills/kanban-columns';
+import { formatBillStatusName } from '@/lib/core/utils';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { sortVersions } from '@/lib/versions/bill-versions';
 import { parseCommitteeCodes } from '@/lib/testimony/committees';
@@ -20,11 +22,15 @@ export interface BriefingFacts {
   standing: string;
   latestVersionLabel: string | null;
   latestVersionHtml: string | null;
+  /** Flattened, de-duped codes — used for counts and next-step gating. */
   committeeCodes: string[];
   /** True at the conference contact stages — swaps committee display for conferees. */
   atConference: boolean;
   /** Conferees parsed from status updates; only populated at conference stage. */
   conferees: ParsedConferee[];
+  /** Raw referral tokens with joints intact ("HHS/AEN" stays one entry) — used
+   *  for display, so a joint referral reads as a joint referral. */
+  committeeReferrals: string[];
   reportCount: number;
   nextSteps: BriefingStep[];
 }
@@ -48,6 +54,7 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
     deadlines: SESSION_DEADLINES,
     today,
     hearingPassed: testimonyDeadline.hearingPassed,
+    latestStatusText: bill.latest_update?.statustext ?? null,
   });
   const urgent = eligibility.allowed && isTestimonyUrgent(status);
   // Lowercase the reason's leading letter so it reads as one sentence
@@ -60,13 +67,14 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
     urgent,
     message: eligibility.allowed
       ? urgent
-        ? 'Testimony is open and a hearing is imminent — submit as soon as possible.'
-        : 'Testimony is open — you can submit on this bill.'
-      : `Testimony is closed — ${closedReason}.`,
+        ? 'Testimony is open and a hearing is imminent. Submit as soon as possible.'
+        : 'You can prepare testimony before a hearing is scheduled. Submit it once a hearing is set.'
+      : `Testimony is closed! ${closedReason}.`,
   };
 
-  // Where it stands: dead reason, or next deadline (with days-away + tier), or
-  // a plain status line.
+  // Where it stands: dead reason, the upcoming-deadline sentence (identical to
+  // the card's countdown-chip tooltip), or a plain status line for terminal
+  // statuses that have no upcoming deadline.
   const fiscal = committeeAssignment ? isFiscalBill(committeeAssignment) : false;
   let standing: string;
   if (bill.dead) {
@@ -80,13 +88,15 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
         (new Date(next.date + 'T00:00:00').getTime() - new Date(today + 'T00:00:00').getTime()) /
           86_400_000,
       );
-      const tier = getDeadlineTier(daysAway);
-      standing =
-        `Next deadline: ${next.name} on ${next.date}` +
-        (daysAway > 0 ? ` (${daysAway} day${daysAway !== 1 ? 's' : ''} away, ${tier})` : daysAway === 0 ? ' (today)' : '') +
-        (fiscal ? ' · fiscal bill' : '');
+      // Same verbiage as the kanban card's deadline chip tooltip (shared helper).
+      standing = formatDeadlineStanding(next, daysAway, isAwaitingHearing(status));
+    } else if (isEnacted(status)) {
+      standing = 'This bill has passed and is now law.';
     } else {
-      standing = `Currently ${status}${fiscal ? ' · fiscal bill' : ''}.`;
+      // Terminal statuses without an upcoming deadline: show the friendly board
+      // title, never the raw enum value.
+      const label = COLUMN_DESCRIPTIONS[status] ?? formatBillStatusName(status);
+      standing = `Currently ${label.toLowerCase()}${fiscal ? ' · fiscal bill' : ''}.`;
     }
   }
 
@@ -98,6 +108,7 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   const committeeCodes = parseCommitteeCodes(committeeAssignment);
   const atConference = isConferenceStatus(status);
   const conferees = atConference ? parseConferees(bill.updates) : [];
+  const committeeReferrals = committeeAssignment ? parseCommittees(committeeAssignment) : [];
 
   // At conference the actionable step is contacting the appointed conferees —
   // foreground it. Elsewhere it's the committee chairs, shown after the reading
@@ -118,8 +129,9 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   if (reports.length > 0) {
     nextSteps.push({ text: `Review the ${reports.length} committee report(s).`, action: 'reports' });
   }
-  if (!atConference && committeeCodes.length > 0) {
-    nextSteps.push({ text: 'Contact the committee chairs about this bill.', action: 'contact' });
+  // No point contacting legislators once the bill is law — the process is over.
+  if (committeeCodes.length > 0 && !isEnacted(status)) {
+    nextSteps.push({ text: 'Contact the committee chairs to schedule a hearing.', action: 'contact' });
   }
 
   return {
@@ -130,6 +142,7 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
     committeeCodes,
     atConference,
     conferees,
+    committeeReferrals,
     reportCount: reports.length,
     nextSteps,
   };

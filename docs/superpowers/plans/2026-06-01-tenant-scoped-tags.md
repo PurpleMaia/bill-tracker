@@ -39,7 +39,7 @@ ALTER TABLE tags
 
 - [ ] **Step 3: Run the migration**
 
-Run: `npm run migrate:up`
+Run: `pnpm  migrate:up`
 Expected: Migration completes successfully, no errors.
 
 - [ ] **Step 4: Commit**
@@ -89,7 +89,7 @@ export interface Tags {
 
 - [ ] **Step 3: Run typecheck to see what breaks**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: Type errors in service functions and components where `tenantId` is optional or missing. This is expected — we fix them in the next tasks.
 
 - [ ] **Step 4: Commit**
@@ -422,7 +422,7 @@ export async function updateBillTags(billId: string, tagIds: string[], tenantId:
 
 - [ ] **Step 8: Run typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: Errors in components and callers that don't pass `tenantId` — this is expected and will be fixed in the next tasks.
 
 - [ ] **Step 9: Commit**
@@ -582,7 +582,7 @@ useEffect(() => {
 
 - [ ] **Step 5: Run typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: Errors should be reduced. Remaining errors will be in `use-tracked-bills.tsx` and `legislation.ts` (fixed in next tasks).
 
 - [ ] **Step 6: Commit**
@@ -655,7 +655,7 @@ Check that both of these components import `useAuth` and have `activeTenant` ava
 
 - [ ] **Step 3: Run typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: No type errors related to tags.
 
 - [ ] **Step 4: Commit**
@@ -867,7 +867,7 @@ case 'updateTags': {
 
 - [ ] **Step 4: Run typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: No type errors.
 
 - [ ] **Step 5: Commit**
@@ -885,17 +885,17 @@ git commit -m "feat: enforce tenant filtering in tag API routes"
 
 - [ ] **Step 1: Run tests**
 
-Run: `npm run test`
+Run: `pnpm  test`
 Expected: All existing tests pass. Tag tests are pure unit tests and shouldn't be affected.
 
 - [ ] **Step 2: Run typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: No errors.
 
 - [ ] **Step 3: Run build**
 
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: Build succeeds with no errors.
 
 - [ ] **Step 4: Final commit (if any lint/type fixes were needed)**

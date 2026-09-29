@@ -11,7 +11,7 @@ status-change control, but nothing about the bill's **draft versions**
 That data now exists in the local database (`bill_versions`,
 `committee_reports`, migration `000022`) but was not exposed in the app:
 
-- The generated Kysely types were stale — regenerated via `npm run codegen`
+- The generated Kysely types were stale — regenerated via `pnpm  codegen`
   so `BillVersions` and `CommitteeReports` interfaces now exist in
   `src/db/types.ts`.
 - The `BillDraft` type in `src/types/legislation.ts` was defined but never
@@ -142,7 +142,7 @@ Following CLAUDE.md navigation rules (queries in `db/queries`, pure logic in
 
 - Pure unit tests for `bill-versions.ts` (parsing + grouping), per the
   "pure logic only" test convention.
-- `npm run typecheck` and `npm run build` (build catches `'use server'`
+- `pnpm  typecheck` and `pnpm  build` (build catches `'use server'`
   export violations).
 
 ## Open Items (confirm later)

@@ -21,7 +21,7 @@
 - **No left-edge accent strips** — role shown as an icon medallion/chip.
 - **No horizontal scroll at 375px.** Mobile button lives in the sticky bottom action bar, not the header.
 - Commit prefixes: `feat:`, `fix:`, `refactor:`, `docs:`. **No `Co-Authored-By` lines.**
-- Run `npm test`, `npm run typecheck`, and `npm run build` before finishing (build catches `'use server'` export violations).
+- Run `npm test`, `pnpm  typecheck`, and `pnpm  build` before finishing (build catches `'use server'` export violations).
 
 ## File Structure
 
@@ -219,7 +219,7 @@ export async function getCommitteeChairs(codes: string[]): Promise<CommitteeChai
 
 - [ ] **Step 3: Verify typecheck passes**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: no errors.
 
 - [ ] **Step 4: Commit**
@@ -485,7 +485,7 @@ export const data = {
 
 - [ ] **Step 5: Verify typecheck + build**
 
-Run: `npm run typecheck && npm run build`
+Run: `pnpm  typecheck && pnpm  build`
 Expected: no errors. Build must pass — it catches any `'use server'` export violation in `actions/legislators.ts`.
 
 - [ ] **Step 6: Commit**
@@ -729,7 +729,7 @@ Note: the unused `User` import is intentional-free — remove any lucide import 
 
 - [ ] **Step 3: Verify typecheck + build**
 
-Run: `npm run typecheck && npm run build`
+Run: `pnpm  typecheck && pnpm  build`
 Expected: no errors. If lint flags an unused import, delete it and re-run.
 
 - [ ] **Step 4: Manual smoke via the run skill (deferred)**
@@ -811,7 +811,7 @@ git rm src/components/kanban/committee-contacts.tsx
 
 - [ ] **Step 6: Verify typecheck + build**
 
-Run: `npm run typecheck && npm run build`
+Run: `pnpm  typecheck && pnpm  build`
 Expected: no errors (no dangling reference to `CommitteeContacts`).
 
 - [ ] **Step 7: Commit**
@@ -834,17 +834,17 @@ Expected: all tests pass, including `contact-script.test.ts` (4 tests).
 
 - [ ] **Step 2: Typecheck**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: no errors.
 
 - [ ] **Step 3: Build**
 
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: success (confirms no `'use server'` export violations, no unused imports).
 
 - [ ] **Step 4: Drive the flow in the app**
 
-Start the dev server (`npm run dev`, port 9002), log in as `jkapali`, open the Jaden Kapali board, open a bill with a committee assignment (e.g. HB9950 → AGR, WAL, FIN). Verify:
+Start the dev server (`pnpm  dev`, port 9002), log in as `jkapali`, open the Jaden Kapali board, open a bill with a committee assignment (e.g. HB9950 → AGR, WAL, FIN). Verify:
   - "Contact Legislator" appears next to "Write Testimony" (desktop header) and in the mobile action bar (narrow the viewport to 375px — no horizontal scroll).
   - Clicking it lands on `/bills/[id]/contact` with chair + vice-chair cards for AGR, WAL, FIN (6 cards).
   - The script is hidden until a position is picked; picking Support/Oppose fills it and enables the per-chair Email button; the mailto opens a prefilled draft.

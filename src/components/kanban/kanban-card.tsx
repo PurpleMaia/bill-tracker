@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { cn, formatBillHeadline, formatBillStatusName, formatRelativeDate, todayHawaii } from '@/lib/core/utils';
+import React, { useRef, useState } from 'react';
+import { cn, formatBillHeadline, formatBillStatusName, formatRelativeDate, parseLocalDate, todayHawaii } from '@/lib/core/utils';
 import { canAssignBills } from '@/lib/auth/permissions';
 import { parseCommittees } from '@/lib/bills/dead-bill';
 import { isAwaitingHearing } from '@/lib/bills/kanban-columns';
-import { Term } from '@/components/ui/term';
-import { resolveCommitteeListTerm } from '@/lib/glossary/resolvers';
+import { committeeFullName, hasJointReferral, JOINT_REFERRAL_NOTE } from '@/lib/testimony/committees';
+import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 /** Shadcn tooltip wrapper for the card's chips — replaces native title attrs. */
@@ -24,11 +24,10 @@ import { Sparkles, X, Check, Users, Info, PenLine, UserPlus, Hourglass, AlarmClo
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTagSelector } from '../tags/card-tag-selector';
-import { getNextDeadline, getDeadlineTier } from '@/lib/bills/dead-bill';
+import { getNextDeadline, getDeadlineTier, formatDeadlineStanding } from '@/lib/bills/dead-bill';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
-import { isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
-import type { SessionDeadlines } from '@/lib/bills/dead-bill';
+import { hasCommitteeRecommendation } from '@/lib/testimony/testimony-eligibility';
 import { DeadBillInfoPopover } from './dead-bill-info-popover';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import { useBills } from '@/hooks/contexts/bills-context';
@@ -66,6 +65,26 @@ interface KanbanCardProps extends React.HTMLAttributes<HTMLDivElement> {
 const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     ({ bill, isDragging, onCardClick, onUnadopt, showUnadoptButton = false, isHighlighted = false, boardMode = 'own', orgTestimonyState, isTracked = false, onTrackForSelf, className, style, ...props }, ref) => {
 
+    // `props` carries @hello-pangea/dnd's dragHandleProps (onClick/onKeyDown/…)
+    // when the card is wrapped in a <Draggable>. We pull the two handlers we also
+    // want to own out of the spread so we can COMPOSE with them rather than let
+    // the spread clobber ours (or vice-versa). See the outer div below.
+    const { onClick: dragHandleClick, onKeyDown: dragHandleKeyDown, ...restProps } =
+      props as React.HTMLAttributes<HTMLDivElement>;
+
+    // Tap-to-open on touch. @hello-pangea/dnd's touch sensor arms a one-shot
+    // click blocker after any touch on the drag handle; the click it lets
+    // through arrives with defaultPrevented=true on the FIRST tap, so relying on
+    // the composed onClick swallowed that tap and only the second opened the
+    // dialog. Instead we detect a genuine tap ourselves from pointer events —
+    // pointerdown then pointerup at nearly the same spot, quickly, with no drag
+    // — which fires on the first touch and never during a real drag (a drag
+    // moves the pointer well past the threshold).
+    const tapStart = useRef<{ x: number; y: number; t: number } | null>(null);
+    // Set when a touch tap opens the card via onPointerUp, so the synthetic
+    // click the browser fires right after doesn't open it a second time.
+    const touchTapAt = useRef(0);
+
     const [isProcessing, setIsProcessing] = useState(false);
     const [isRemoving, setIsRemoving] = useState(false);
     const [showRemoveDialog, setShowRemoveDialog] = useState(false);
@@ -73,6 +92,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const [showTrackDialog, setShowTrackDialog] = useState(false);
     const { acceptLLMChange, rejectLLMChange, removeBill, testimonyStatuses, showArchived } = useBills();
     const { user, activeTenant } = useAuth();
+    const committeeNames = useCommitteeNames();
     const vis = cardVisibility(boardMode);
 
     const canSeeTracking = activeTenant?.orgRole === 'admin';
@@ -91,12 +111,30 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const committeeReferrals = bill.committee_assignment ? parseCommittees(bill.committee_assignment) : [];
     const committeeCodes = committeeReferrals.length > 0 ? committeeReferrals.join(' · ') : null;
 
-    // Unknown codes are dropped rather than echoed back at the reader; all-unknown
-    // yields null, which makes <Term> render plain children with no affordance.
-    const committeeTerm = React.useMemo(
-      () => resolveCommitteeListTerm(committeeReferrals),
-      [committeeReferrals.join('|')]
-    );
+    // Hover-tooltip content for the committee chip: each referral spelled out,
+    // plus a note when any referral is joint. Unknown codes pass through as-is
+    // (committeeFullName echoes them), which is fine inside an explanatory
+    // tooltip — there's no affordance to leave dangling.
+    const committeeIsJoint = bill.committee_assignment
+      ? hasJointReferral(bill.committee_assignment)
+      : false;
+    const committeeTooltip = committeeCodes ? (
+      <div className="space-y-1.5">
+        <p className="font-semibold">Referred to</p>
+        <ul className="space-y-0.5">
+          {committeeReferrals.map((code) => (
+            <li key={code}>
+              <span className="font-medium">{code}</span> — {committeeFullName(code, committeeNames)}
+            </li>
+          ))}
+        </ul>
+        {committeeIsJoint && (
+          <p className="border-t border-border/60 pt-1.5 text-muted-foreground">
+            {JOINT_REFERRAL_NOTE}
+          </p>
+        )}
+      </div>
+    ) : null;
 
     const today = todayHawaii();
     const nextDeadline = !bill.dead && bill.committee_assignment && bill.current_bill_status
@@ -113,6 +151,18 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
       e.stopPropagation();
       onCardClick(bill);
     };
+
+    // True when the event originated on an interactive control nested in the
+    // card (buttons, links, the tag selector, dialog triggers). Those stop
+    // propagation on click, but pointer events still bubble to the card's
+    // onPointerUp — so a touch tap on a button would ALSO open the card without
+    // this guard.
+    // Note: the card itself has role="button", so we match real nested
+    // controls (buttons/links/inputs) rather than [role="button"], which would
+    // match the card and block every tap.
+    const isInteractiveTarget = (target: EventTarget | null) =>
+      target instanceof Element &&
+      !!target.closest('button, a, input, textarea, select, [role="menuitem"]');
 
     const handleAccept = async () => {
       setIsProcessing(true);
@@ -134,7 +184,10 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
       }
       setIsRemoving(true);
       try {
-        await removeBillFromOrg(bill.id, activeTenant.tenantId);
+        // Pass the acting user's id so their own NULL-tenant tracking row for
+        // this bill is cleared too — otherwise a bill tracked before joining the
+        // org survives the tenant-scoped delete and reappears on reload.
+        await removeBillFromOrg(bill.id, activeTenant.tenantId, user?.id);
         removeBill(bill.id);
         toast({ title: 'Bill Removed', description: `${bill.bill_number} removed from the board.`, duration: 5000 });
         setShowRemoveDialog(false);
@@ -164,7 +217,11 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const testimonyState = boardMode === 'active-boards' ? orgTestimonyState : testimonyStatuses[bill.id]; // undefined | 'draft' | 'submitted'
     // One derivation for hearing datetime → countdown / passed, shared with the
     // dialog and testimonies view so the card can't drift from them.
-    const testimonyDeadline = !bill.dead && isTestimonyUrgent(bill.current_bill_status as DBBillStatus)
+    // Don't pre-gate on isTestimonyUrgent here — getTestimonyDeadline also closes
+    // testimony for a bill whose committee already recommended (now a waiting/deferred
+    // status) once its hearing has passed, so the card's chip stays in sync with the
+    // dialog and testimonies view.
+    const testimonyDeadline = !bill.dead
       ? getTestimonyDeadline({
           billStatus: bill.current_bill_status as DBBillStatus,
           latestStatusText: bill.latest_update?.statustext ?? null,
@@ -172,10 +229,18 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
         })
       : null;
     const hearingAt = testimonyDeadline?.hearingAt ?? null;
+    // A committee recommendation (PASSED/DEFERRED) in the latest text means the
+    // hearing is over even when the notice carries no parseable date — matches the
+    // dialog's closed Write action (getTestimonyEligibility).
+    const recommended =
+      !bill.dead && hasCommitteeRecommendation(bill.latest_update?.statustext ?? '');
     // Still-open hearing: show the "Testimony due" chip when no draft/submission exists yet.
-    const testimonyDue = !testimonyState && !!testimonyDeadline && !testimonyDeadline.hearingPassed && !!hearingAt;
-    // Hearing has passed: show a muted "Testimony closed" chip instead.
-    const testimonyClosed = !testimonyState && !!testimonyDeadline?.hearingPassed;
+    const testimonyDue =
+      !testimonyState && !recommended && !!testimonyDeadline && !testimonyDeadline.hearingPassed && !!hearingAt;
+    // Hearing has passed (by date) or the committee has reported the bill out:
+    // show a muted "Testimony closed" chip instead.
+    const testimonyClosed =
+      !testimonyState && (!!testimonyDeadline?.hearingPassed || recommended);
     const countdownLabel = testimonyDeadline?.countdown ?? null;
 
     // Bottom-right fate countdown while the bill waits for a hearing: if the
@@ -215,7 +280,56 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                 className
             )}
             style={style}
-            {...props}
+            {...restProps}
+            // Touch tap-to-open. Record where/when the finger went down so
+            // onPointerUp can tell a tap from a drag. Also forward to any
+            // pointer handler dnd supplied via the spread.
+            onPointerDown={(e) => {
+                (restProps.onPointerDown as React.PointerEventHandler<HTMLDivElement> | undefined)?.(e);
+                if (e.pointerType === 'touch') {
+                    tapStart.current = { x: e.clientX, y: e.clientY, t: e.timeStamp };
+                }
+            }}
+            onPointerUp={(e) => {
+                (restProps.onPointerUp as React.PointerEventHandler<HTMLDivElement> | undefined)?.(e);
+                if (e.pointerType !== 'touch') return;
+                const start = tapStart.current;
+                tapStart.current = null;
+                if (!start) return;
+                // Let taps on nested controls do their own thing.
+                if (isInteractiveTarget(e.target)) return;
+                // A genuine tap: barely moved and lifted quickly. A real drag
+                // moves the finger well past this threshold, so it won't open.
+                const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y);
+                const elapsed = e.timeStamp - start.t;
+                if (moved <= 10 && elapsed <= 500) {
+                    touchTapAt.current = e.timeStamp;
+                    handleCardClick(e as unknown as React.MouseEvent<HTMLDivElement>);
+                }
+            }}
+            // Mouse/keyboard path. Tap-to-open lives on the SAME element that
+            // carries dnd's drag handle. dnd arms a one-shot click guard after a
+            // touch, so we skip synthetic touch clicks here (onPointerUp already
+            // handled the tap) and let genuine mouse clicks through, composing
+            // with the handler dnd supplies via props.
+            onClick={(e) => {
+                dragHandleClick?.(e);
+                if (e.defaultPrevented) return;
+                // Skip the synthetic click that follows a touch tap onPointerUp
+                // already handled (browsers fire it within ~a few hundred ms).
+                if (e.timeStamp - touchTapAt.current < 700) return;
+                handleCardClick(e);
+            }}
+            onKeyDown={(e) => {
+                dragHandleKeyDown?.(e);
+                if (e.defaultPrevented) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleCardClick(e as unknown as React.MouseEvent<HTMLDivElement>);
+                }
+            }}
+            role="button"
+            aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
             tabIndex={0}
         >
             {/* Grayed-out content layer for dead bills */}
@@ -224,19 +338,9 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
               bill.dead && "opacity-50 grayscale-[50%]"
             )}>
 
-            {/* Main clickable area */}
+            {/* Main content area */}
             <div
                 className="flex flex-col w-full cursor-pointer p-3 pb-2"
-                onClick={handleCardClick}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleCardClick(e as any);
-                    }
-                }}
-                role="button"
-                tabIndex={0}
-                aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
             >
                 {/* Tags row + dead badge */}
                 <div className="flex items-start justify-between gap-1">
@@ -352,7 +456,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                     content={
                       <>
                         <p className="font-medium">
-                          {new Date(bill.latest_update.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                          {parseLocalDate(bill.latest_update.date)?.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                         </p>
                         <p>{bill.latest_update.statustext}</p>
                       </>
@@ -412,22 +516,15 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                       </ChipTooltip>
                     )}
                     {!testimonyState && !testimonyDue && !testimonyClosed && committeeCodes && (
-                      /* The whole chip is the term trigger: it has no other action, and
-                         the previous hover-only tooltip was unreachable on touch.
-                         Expansions come from resolveCommitteeTerm so an unknown code
-                         yields null and drops out — calling committeeFullName directly
-                         would pass the code through and render "XYZ — XYZ". If NO code
-                         resolves, committeeTerm is null and Term renders the bare chip
-                         with no affordance. */
-                      <Term
-                        variant="chip"
-                        billId={bill.id}
-                        term={committeeTerm}
-                      >
+                      /* Plain hover/focus tooltip — no click affordance. The chip
+                         spells out each committee (and flags joint referrals) on
+                         hover; it opens nothing, so a tap just falls through to
+                         the card. */
+                      <ChipTooltip content={committeeTooltip}>
                         <span className="inline-flex items-center rounded-full border border-border bg-secondary/60 px-2 h-5 text-[10px] font-medium text-secondary-foreground shrink-0">
                           {committeeCodes}
                         </span>
-                      </Term>
+                      </ChipTooltip>
                     )}
                     {/* <Badge variant="outline" className="text-[10px] h-5 px-2 text-muted-foreground rounded-full">
                       {formatBillStatusName(bill.current_bill_status)}
@@ -454,11 +551,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                          turned a glance-able pill into a paragraph. The jargon
                          is explained in the bill breakdown instead. */
                       <ChipTooltip
-                        content={
-                          showDeadlineCountdown
-                            ? `If the committee chair doesn't schedule this bill by ${nextDeadline.name} (${new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}), it fails. ${deadlineDaysAway <= 0 ? 'Due today.' : `${deadlineDaysAway} day${deadlineDaysAway === 1 ? '' : 's'} left.`}`
-                            : `${nextDeadline.name} deadline: ${new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}. ${deadlineDaysAway <= 0 ? 'Due today.' : `${deadlineDaysAway} day${deadlineDaysAway === 1 ? '' : 's'} left.`}`
-                        }
+                        content={formatDeadlineStanding(nextDeadline, deadlineDaysAway, showDeadlineCountdown)}
                       >
                         <span
                           className={cn(

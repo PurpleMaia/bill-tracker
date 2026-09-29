@@ -15,8 +15,8 @@ export const NAV_ITEMS = [
 ] as const;
 
 export function isNavItemActive(href: string, pathname: string) {
-  // '/' redirects to Search, so treat the bare root as the Search tab too.
-  if (href === '/search') return pathname === '/' || pathname.startsWith('/search');
+  // '/' is Your Bills (the board), so the bare root highlights that tab.
+  if (href === '/your-bills') return pathname === '/' || pathname.startsWith('/your-bills');
   // Active Boards owns the whole /boards tree, not just its own href, so the
   // tab stays highlighted on /boards (View Board) too.
   if (href === '/boards/browse') return pathname.startsWith('/boards');

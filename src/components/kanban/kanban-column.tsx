@@ -2,17 +2,18 @@
 
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
+import Link from 'next/link';
 import type { Bill, TempBill } from '@/types/legislation';
 import { KanbanCard } from './kanban-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Draggable } from '@hello-pangea/dnd';
 import { cn } from '@/lib/core/utils';
 import { TempBillCard } from './temp-card';
-import { HelpCircle, Loader2 } from 'lucide-react';
+import { HelpCircle, Plus } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { COLUMN_DESCRIPTIONS } from '@/lib/bills/kanban-columns';
-import ColumnOptionsMenu from './column-options-menu';
+import { columnTrackSearchHref } from '@/lib/bills/track-bill-links';
 import { useAuth } from '@/hooks/contexts/auth-context';
 
 // Adds readOnly prop to control card rendering
@@ -22,8 +23,12 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 function getColumnPhaseBg(columnId: string): string {
   if (columnId === 'vetoList') return 'bg-[#f8d7d2]';
   if (columnId === 'governorSigns' || columnId === 'lawWithoutSignature') return 'bg-[#d6e8d4]';
-  // Waiting columns (introduced, waiting, crossover waiting) get olive
-  if (columnId === 'introduced' || columnId === 'simpleWaiting' || columnId.startsWith('crossoverWaiting') || columnId === 'simpleCrossoverWaiting')
+  // Entry "waiting" columns get olive: a bill just arrived at a chamber and is
+  // waiting for its FIRST hearing there. That's introduced (originating) and
+  // crossoverWaiting1 (just crossed over). The later waiting columns
+  // (waiting2/3 and crossoverWaiting2/3) fall through to gray — they're
+  // between-committee holds, not chamber entry points.
+  if (columnId === 'introduced' || columnId === 'simpleWaiting' || columnId === 'crossoverWaiting1' || columnId === 'simpleCrossoverWaiting')
     return 'bg-olive-soft';
   // Passed committees and transmitted to governor get olive
   if (columnId === 'passedCommittees' || columnId === 'transmittedGovernor')
@@ -99,7 +104,6 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
     ref
   ) => {
     const { activeTenant } = useAuth();
-    const [refreshing, setRefreshing] = useState(false);
 
     // Use shared refs from parent, or create local ones if not provided
     const localBillCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -143,34 +147,23 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
             </span>
 
             <span className="flex shrink-0 items-center gap-1">
-              {refreshing && (
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Updating column" />
-              )}
+              {/* Tap/click to reveal what this stage means. */}
               <Popover>
                 <PopoverTrigger asChild>
                   <button
-                    className="shrink-0 rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                    className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label={`What does "${title}" mean?`}
                   >
                     <HelpCircle className="h-4 w-4" />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-72" align="end">
-                  <h3 className="text-sm font-semibold mb-1">{title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  <h3 className="mb-1 text-sm font-semibold">{title}</h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
                     {COLUMN_DESCRIPTIONS[columnId] ?? 'No description available for this stage.'}
                   </p>
                 </PopoverContent>
               </Popover>
-              {/* Scraper/LLM column actions are org workflows — org members only,
-                  and meaningless on another org's read-only Active Board. */}
-              {activeTenant && boardMode !== 'active-boards' && (
-                <ColumnOptionsMenu
-                  bills={bills}
-                  onRefreshStart={() => setRefreshing(true)}
-                  onRefreshEnd={() => setRefreshing(false)}
-                />
-              )}
             </span>
           </h2>
         </div>
@@ -254,11 +247,39 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
                 ))}
               </div>
             )}
+
+            {/* Track-more button at the bottom of a non-empty list. Own board
+                only — it links to the search page pre-filtered to this stage.
+                The empty column shows its own centered version instead, so this
+                is gated to when there are actually cards above it. */}
+            {bills.length > 0 && activeTenant && boardMode === 'own' && (
+              <Link
+                href={columnTrackSearchHref(columnId)}
+                className="mt-1 inline-flex items-center justify-center gap-1.5 self-center rounded-md border border-dashed px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Track bills at this stage
+              </Link>
+            )}
           </div>
 
-          {/* Empty state */}
+          {/* Empty state. On your own board it invites you to the search page
+              (pre-filtered to this stage) to track a bill; on public/read-only
+              boards there's nothing to track, so it stays a neutral line. */}
           {!bills.length && pendingCount === 0 && !children && (
-            <p className="p-4 text-center text-sm text-muted-foreground">No bills in this stage.</p>
+            activeTenant && boardMode === 'own' ? (
+              <div className="flex flex-col items-center gap-2 p-4 text-center">                
+                <Link
+                  href={columnTrackSearchHref(columnId)}
+                  className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Track bills at this stage
+                </Link>
+              </div>
+            ) : (
+              <p className="p-4 text-center text-sm text-muted-foreground">No bills in this stage.</p>
+            )
           )}
         </ScrollArea>
       </div>

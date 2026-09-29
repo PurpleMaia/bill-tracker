@@ -22,7 +22,7 @@
 - **Tests are pure unit tests** in `src/lib/__tests__/` — no DB, no mocking.
 - **Commit prefixes:** `feat:`, `fix:`, `refactor:`, `docs:`. **No `Co-Authored-By` lines.**
 - **Card state via icon medallions/chips — never left-edge accent strips.**
-- Run `npm test`, `npm run typecheck`, and `npm run build` before declaring done. The build catches `'use server'` export violations typecheck misses.
+- Run `npm test`, `pnpm  typecheck`, and `pnpm  build` before declaring done. The build catches `'use server'` export violations typecheck misses.
 
 ## File Structure
 
@@ -385,7 +385,7 @@ ALTER TABLE bills DROP COLUMN IF EXISTS search_vector;
 
 - [ ] **Step 3: Run the migration**
 
-Run: `npm run migrate:up`
+Run: `pnpm  migrate:up`
 Expected: migration 000031 applies with no error.
 
 - [ ] **Step 4: Verify the column and indexes exist**
@@ -403,7 +403,7 @@ the spec's fallback is `bill_number ILIKE 'hb2%'` in place of the trigram branch
 
 Run:
 ```bash
-npm run migrate:down && npm run migrate:up
+pnpm  migrate:down && pnpm  migrate:up
 ```
 Expected: both succeed. This proves the down migration before it is ever needed.
 
@@ -601,7 +601,7 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
 
 - [ ] **Step 3: Verify it compiles**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: no errors.
 
 - [ ] **Step 4: Verify against real data**
@@ -729,7 +729,7 @@ export async function trackBillById(
 
 - [ ] **Step 2: Verify it compiles**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: no errors. (`BillStatus` is already imported in this file for
 `trackBill`; if typecheck says otherwise, add it to the existing `@/db/types` import.)
 
@@ -916,7 +916,7 @@ export const billsClient = defineClient('bills', {
 
 - [ ] **Step 5: Verify both arms typecheck and build**
 
-Run: `npm run typecheck && npm run build`
+Run: `pnpm  typecheck && pnpm  build`
 Expected: both pass. The build is what catches an illegal non-async export
 sneaking into the `'use server'` file — if it fails with a `'use server'`
 complaint, move the offending type into a plain module.
@@ -925,7 +925,7 @@ complaint, move the offending type into a plain module.
 
 Run:
 ```bash
-npm run dev &
+pnpm  dev &
 sleep 8
 curl -s "http://localhost:9002/api/bills/search?q=agriculture&years=2026" | head -c 400
 kill %1
@@ -1022,7 +1022,7 @@ export function useBillSearch(filters: SearchFilters) {
 
 - [ ] **Step 2: Verify it compiles**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: no errors.
 
 - [ ] **Step 3: Commit**
@@ -1138,7 +1138,7 @@ export function TrackButton({ billId, billNumber }: TrackButtonProps) {
 
 - [ ] **Step 2: Verify it compiles**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: no errors.
 
 - [ ] **Step 3: Commit**
@@ -1271,7 +1271,7 @@ Expected: one match. If the name differs, use the actual exported name.
 
 - [ ] **Step 3: Verify it compiles**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: no errors.
 
 - [ ] **Step 4: Commit**
@@ -1495,7 +1495,7 @@ export function SearchFiltersSheet({ filters, onChange, onClear }: SearchFilters
 
 - [ ] **Step 3: Verify `SIMPLIFIED_COLUMNS` shape and compile**
 
-Run: `grep -n "SIMPLIFIED_COLUMNS" src/lib/bills/kanban-columns.ts && npm run typecheck`
+Run: `grep -n "SIMPLIFIED_COLUMNS" src/lib/bills/kanban-columns.ts && pnpm  typecheck`
 Expected: the export exists with `{ id, title }` entries; typecheck passes.
 
 - [ ] **Step 4: Commit**
@@ -1681,12 +1681,12 @@ export default function SearchPage() {
 
 - [ ] **Step 3: Verify the full suite**
 
-Run: `npm test && npm run typecheck && npm run build`
+Run: `npm test && pnpm  typecheck && pnpm  build`
 Expected: all three pass.
 
 - [ ] **Step 4: Verify in the browser**
 
-Run: `npm run dev`, open `http://localhost:9002/search`, and check:
+Run: `pnpm  dev`, open `http://localhost:9002/search`, and check:
 - Page loads showing 2026 bills with no search term.
 - Typing `agriculture` returns title matches first, with terms highlighted.
 - Typing `hb2` returns HB20, HB21, HB2xx.

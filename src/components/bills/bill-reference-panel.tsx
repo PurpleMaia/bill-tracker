@@ -8,6 +8,7 @@ import { cn } from '@/lib/core/utils';
 import { Term } from '@/components/ui/term';
 import { resolveCommitteeTerm } from '@/lib/glossary/resolvers';
 import { parseCommitteeCodes } from '@/lib/testimony/committees';
+import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
 
 interface BillReferencePanelProps {
   bill: BillDetails;
@@ -19,6 +20,7 @@ interface BillReferencePanelProps {
  * (testimony writer, contact legislator) as the left context panel.
  */
 export function BillReferencePanel({ bill }: BillReferencePanelProps) {
+  const committeeNames = useCommitteeNames();
   return (
     <ScrollArea className="h-full">
       <div className="space-y-5 p-4">
@@ -46,7 +48,7 @@ export function BillReferencePanel({ bill }: BillReferencePanelProps) {
               ? parseCommitteeCodes(bill.committee_assignment).map((code, i) => (
                   <span key={code}>
                     {i > 0 && ', '}
-                    <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(code)}>
+                    <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(code, committeeNames)}>
                       {code}
                     </Term>
                   </span>

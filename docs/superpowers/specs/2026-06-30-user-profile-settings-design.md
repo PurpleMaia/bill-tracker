@@ -212,10 +212,10 @@ Used by `getUserPreferences` (missing row → defaults) and safe to reuse client
   - full row passes through unchanged.
 - **No DB/action tests** (consistent with the codebase — none exist for other domains).
 - **Verification commands (all must pass):**
-  - `npm run typecheck`
-  - `npm run build` (catches `'use server'` export violations)
+  - `pnpm  typecheck`
+  - `pnpm  build` (catches `'use server'` export violations)
   - `npm test`
-  - Manual smoke: `npm run migrate:up` then `npm run migrate:down` round-trips cleanly.
+  - Manual smoke: `pnpm  migrate:up` then `pnpm  migrate:down` round-trips cleanly.
 
 ## File manifest
 

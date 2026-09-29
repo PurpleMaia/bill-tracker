@@ -20,7 +20,7 @@
 - Public board visibility defaults OFF (opt-in).
 - Commit prefixes: `feat:` `fix:` `refactor:` `docs:`. Do NOT add `Co-Authored-By` lines.
 - Do NOT delete old API routes.
-- Run `npm test`, `npm run typecheck`, `npm run build` before considering work complete (build catches `'use server'` export violations).
+- Run `npm test`, `pnpm  typecheck`, `pnpm  build` before considering work complete (build catches `'use server'` export violations).
 
 ---
 
@@ -74,8 +74,8 @@ DROP TABLE IF EXISTS org_follows;
 
 - [ ] **Step 5: Run the migrations**
 
-Run: `npm run migrate:up`
-Expected: both migrations apply with no error; `npm run migrate:version` shows `000026`.
+Run: `pnpm  migrate:up`
+Expected: both migrations apply with no error; `pnpm  migrate:version` shows `000026`.
 
 - [ ] **Step 6: Update `src/db/types.ts`**
 
@@ -99,7 +99,7 @@ And add to the root `DB` interface:
 
 - [ ] **Step 7: Typecheck & commit**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS
 ```bash
 git add src/db/migrations/000025_* src/db/migrations/000026_* src/db/types.ts
@@ -249,7 +249,7 @@ export async function getOrgTestimonyBillIds(
 
 - [ ] **Step 4: Typecheck & commit**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS
 ```bash
 git add src/db/queries/tenants.ts src/db/queries/testimony.ts src/types/tenant.ts
@@ -480,7 +480,7 @@ export async function GET(
 
 - [ ] **Step 6: Typecheck & commit**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS
 ```bash
 git add src/app/actions/boards.ts src/app/api/boards src/lib/data-client/boards.params.ts
@@ -596,7 +596,7 @@ export const data = {
 
 - [ ] **Step 3: Typecheck, build, commit**
 
-Run: `npm run typecheck && npm run build`
+Run: `pnpm  typecheck && pnpm  build`
 Expected: PASS (build verifies the `'use server'` actions file exports only async functions).
 ```bash
 git add src/lib/data-client/boards.client.ts src/lib/data-client/index.ts
@@ -752,7 +752,7 @@ export function useActiveBoards() {
 
 - [ ] **Step 2: Typecheck & commit**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS
 ```bash
 git add src/hooks/contexts/active-boards-context.tsx
@@ -960,7 +960,7 @@ Adjust the existing card sections (do NOT remove the `useBills()`/`useAuth()` ca
 
 - [ ] **Step 4: Verify `'own'` behavior is unchanged**
 
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: PASS. Manually confirm the `/` board still shows the testimony alert, tracked count (admin), LLM buttons, and remove/assign — i.e. every `vis.*` is `true` under the default `'own'` mode.
 
 - [ ] **Step 5: Commit**
@@ -994,7 +994,7 @@ const canSeeTracking = boardMode !== 'active-boards' && activeTenant?.orgRole ==
 
 - [ ] **Step 2: Typecheck & commit**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS
 ```bash
 git add src/components/kanban/bill-details-dialog.tsx
@@ -1086,7 +1086,7 @@ Also update the file's doc comment: `/boards` now renders its sub-nav (was "rend
 
 - [ ] **Step 3: Typecheck & commit**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS
 ```bash
 git add src/components/boards/active-boards-subnav.tsx src/components/main/header-subnav.tsx
@@ -1190,7 +1190,7 @@ export default function BrowseOrgsPage() {
 
 - [ ] **Step 3: Typecheck & commit**
 
-Run: `npm run typecheck`
+Run: `pnpm  typecheck`
 Expected: PASS
 ```bash
 git add src/components/boards/browse-orgs-list.tsx "src/app/(main)/boards/browse/page.tsx"
@@ -1426,7 +1426,7 @@ export default function BoardsPage() {
 
 - [ ] **Step 5: Build & commit**
 
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: PASS.
 ```bash
 git add src/components/boards/org-switcher-dropdown.tsx src/components/boards/active-board-view.tsx src/components/boards/active-boards-bills-bridge.tsx src/hooks/contexts/bills-context.tsx "src/app/(main)/boards/page.tsx" "src/app/(main)/boards/layout.tsx"
@@ -1591,7 +1591,7 @@ In `src/components/auth/user-menu.tsx`: import `OrgSettingsDialog`, add `const [
 
 - [ ] **Step 5: Build & commit**
 
-Run: `npm run build`
+Run: `pnpm  build`
 Expected: PASS (verifies `'use server'` file still exports only async functions).
 ```bash
 git add src/components/admin/org-settings-dialog.tsx "src/app/api/tenants/[id]/route.ts" src/components/auth/user-menu.tsx src/app/actions/boards.ts src/lib/data-client/boards.client.ts src/lib/data-client/boards.params.ts
@@ -1606,12 +1606,12 @@ git commit -m "feat: add admin Org Settings dialog with public board toggle"
 
 - [ ] **Step 1: Run the full test + type + build gate**
 
-Run: `npm test && npm run typecheck && npm run build`
+Run: `npm test && pnpm  typecheck && pnpm  build`
 Expected: all PASS. Tests include the new `board-display.test.ts` (2 tests).
 
 - [ ] **Step 2: Manual smoke (dev server)**
 
-Run: `npm run dev` then verify in-browser:
+Run: `pnpm  dev` then verify in-browser:
 1. As an org admin: open user menu → Org Settings → toggle Public board visibility ON.
 2. As any user (can be a different account or same): go to Active Boards → Browse Orgs → the opted-in org appears → Follow it.
 3. Switch to View Board → the org's board renders read-only: no testimony alert badge, no Users icon/count, no LLM buttons, no remove/assign, no temp-cards. Tags + tag filtering work. Bills with org testimony show the "testimony written" chip.

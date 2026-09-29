@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { registerUser, createSession } from '@/lib/auth/session';
-import { db } from '@/db/kysely/client';
 import { registerSchema } from '@/lib/auth/validators';
 import { setSessionCookie } from '@/lib/auth/cookies';
-import { createTenant, addMember, getUserMemberships } from '@/db/queries/tenants';
+import {
+  addMember,
+  getUserMemberships,
+  claimInviteToken,
+  createOrgForNewUser,
+  tenantNameExists,
+} from '@/db/queries/tenants';
 import { limitFixedWindow, retryAfterMs } from '@/lib/core/ratelimit-memory';
 import { ApiError } from '@/lib/core/errors';
+import { deriveOrgSlug } from '@/lib/tenants/org-slug';
 
 const REGISTER_RATE_LIMIT = { limit: 5, windowMs: 15 * 60_000 };
 
@@ -36,30 +42,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: messages }, { status: 400 });
     }
 
-    // If inviteToken is provided, atomically claim it before creating the user
-    let validatedInvite: { tenant_id: string; id: string } | null = null;
+    // If inviteToken is provided, atomically claim it before creating the user.
+    // Shared with the Google OAuth callback via db/queries/tenants.
+    let validatedInvite: { tenant_id: string } | null = null;
     if (inviteToken) {
-      const invite = await db
-        .updateTable('invite_tokens')
-        .set({ status: 'accepted', accepted_at: new Date() })
-        .where('token', '=', inviteToken)
-        .where('status', '=', 'pending')
-        .where('expires_at', '>', new Date())
-        .returning(['id', 'tenant_id', 'email'])
-        .executeTakeFirst();
-
-      if (!invite) {
-        return NextResponse.json({ error: 'Invite is invalid, expired, or already used.' }, { status: 400 });
+      const claimed = await claimInviteToken(inviteToken, email);
+      if (!claimed.ok) {
+        return NextResponse.json({ error: claimed.reason }, { status: 400 });
       }
-      if (invite.email !== email) {
-        await db
-          .updateTable('invite_tokens')
-          .set({ status: 'pending', accepted_at: null })
-          .where('id', '=', invite.id)
-          .execute();
-        return NextResponse.json({ error: 'This invite was issued to a different email address.' }, { status: 400 });
-      }
-      validatedInvite = { tenant_id: invite.tenant_id, id: invite.id };
+      validatedInvite = { tenant_id: claimed.tenantId };
     }
 
     // Validate orgName if provided
@@ -67,6 +58,18 @@ export async function POST(req: NextRequest) {
       const trimmed = typeof orgName === 'string' ? orgName.trim() : '';
       if (trimmed.length === 0 || trimmed.length > 100) {
         return NextResponse.json({ error: 'Organization name must be between 1 and 100 characters.' }, { status: 400 });
+      }
+      // A name with no slug-able characters (e.g. "!!!" or "日本語") would derive
+      // to an empty slug and be silently dropped by createOrgForNewUser, leaving
+      // the user registered with no org while the UI reports success. Reject it
+      // up front instead.
+      if (!deriveOrgSlug(trimmed)) {
+        return NextResponse.json({ error: 'Organization name must contain at least one letter or number.' }, { status: 400 });
+      }
+      // tenants.name is UNIQUE — a duplicate would also be swallowed to a silent
+      // no-org success, so reject it here before the user is created.
+      if (await tenantNameExists(trimmed)) {
+        return NextResponse.json({ error: 'An organization with that name already exists. Please choose a different name.' }, { status: 409 });
       }
     }
 
@@ -85,20 +88,7 @@ export async function POST(req: NextRequest) {
     // If orgName provided, create the organization and add user as admin
     let tenant = null;
     if (orgName && typeof orgName === 'string' && orgName.trim().length > 0) {
-      const trimmedName = orgName.trim();
-      const slug = trimmedName
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .slice(0, 50);
-
-      try {
-        tenant = await createTenant(trimmedName, slug, undefined, { skipAuth: true });
-        await addMember(tenant.id, user.id, 'admin', { skipAuth: true });
-      } catch (orgError) {
-        console.error('Failed to create organization:', orgError);
-      }
+      tenant = await createOrgForNewUser(orgName, user.id);
     }
 
     // If registering via invite, add user to the org (invite already marked accepted atomically above)

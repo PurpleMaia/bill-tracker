@@ -111,7 +111,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <section className="flex flex-col gap-2 border-t pt-4">
             <div className="flex items-center justify-between">
               <Label htmlFor="detailed-view" className="text-sm font-medium">
-                Detailed kanban cards
+                Detailed kanban columns
               </Label>
               <Switch
                 id="detailed-view"
@@ -123,7 +123,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Show more detail on each bill card. Off = simplified cards.
+              Shows in-depth bill statuses, highlighting each committee that a bill has to pass through. Off by default for a simpler view.
             </p>
           </section>
         </div>

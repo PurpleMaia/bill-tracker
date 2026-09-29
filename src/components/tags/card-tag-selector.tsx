@@ -29,15 +29,16 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
   const { user, activeTenant } = useAuth();
   const { updateBill } = useBills();
 
-  if (!activeTenant) return null;
-
   const canManageTags = activeTenant?.orgRole === 'admin';
 
   // Use billTags prop directly for display - no local state sync needed
   const displayTags = billTags || [];
 
   useEffect(() => {
-    if (open && canManageTags) {
+    // Guard inside the effect (not with an early return above) so the hook is
+    // always called — an early `return null` before this useEffect changes the
+    // hook count when activeTenant toggles, violating the Rules of Hooks.
+    if (open && canManageTags && activeTenant) {
       const loadData = async () => {
         setLoading(true);
         try {
@@ -51,7 +52,10 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
       };
       loadData();
     }
-  }, [open, canManageTags]);
+  }, [open, canManageTags, activeTenant]);
+
+  // Safe to bail now — all hooks above have been called unconditionally.
+  if (!activeTenant) return null;
 
   const handleToggleTag = async (tag: Tag) => {
     if (!canManageTags) return;

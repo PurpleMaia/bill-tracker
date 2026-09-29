@@ -14,14 +14,22 @@ import {
   buildConferenceCallScript,
   personalizeScript,
 } from '@/lib/legislators/contact-script';
-import { committeeFullName, inferCurrentCommittee } from '@/lib/testimony/committees';
 import { parseConferees, isConferenceStatus } from '@/lib/testimony/conferees';
+import {
+  committeeFullName,
+  inferCurrentCommittee,
+  hasJointReferral,
+  jointReferralPartners,
+  JOINT_REFERRAL_NOTE,
+} from '@/lib/testimony/committees';
+import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { BillReferencePanel } from '@/components/bills/bill-reference-panel';
+import { isEnacted } from '@/lib/bills/dead-bill';
 import {
   ArrowLeft,
   Check,
@@ -65,6 +73,7 @@ export default function ContactLegislatorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
+  const committeeNames = useCommitteeNames();
 
   const backHref = searchParams.get('from') === 'testimonies' ? '/testimonies' : '/';
 
@@ -110,67 +119,92 @@ export default function ContactLegislatorPage() {
   const groups = useMemo(() => groupByCommittee(chairs), [chairs]);
   const hasChairs = chairs.length > 0;
 
-  // The committee(s) the bill is currently awaiting a hearing before — inferred
-  // once, then reused to both foreground their chairs and word the script. A
-  // joint hearing ("JDC/HWN") yields more than one code, all of them current.
-  const currentCodes = useMemo(
+  // The committee the bill is currently awaiting a hearing before — inferred
+  // once, then reused to both foreground its chairs and word the script.
+  const currentCode = useMemo(
     () => inferCurrentCommittee(bill?.committee_assignment ?? null, bill?.updates),
     [bill],
   );
-  const currentCodeSet = useMemo(() => new Set(currentCodes), [currentCodes]);
+
+  // The committee(s) currently holding the bill. For a JOINT referral (HHS/WAE)
+  // both committees hear it together, so BOTH are foregrounded — neither drops
+  // into the collapsed "other committees" list. For a normal referral this is
+  // just the one inferred group.
+  const currentCodes = useMemo(
+    () =>
+      new Set(
+        currentCode
+          ? jointReferralPartners(bill?.committee_assignment ?? null, currentCode)
+          : [],
+      ),
+    [bill?.committee_assignment, currentCode],
+  );
   const currentGroups = useMemo(() => {
-    const matched = groups.filter((g) => currentCodeSet.has(g.code));
-    // If none of the current codes have a chair group yet, fall back to the first
-    // group so the page still foregrounds someone to contact.
+    const matched = groups.filter((g) => currentCodes.has(g.code));
+    // Fall back to the first group so a bill whose inference misses still shows
+    // someone to contact rather than an empty foreground.
     return matched.length > 0 ? matched : groups.slice(0, 1);
-  }, [groups, currentCodeSet]);
+  }, [groups, currentCodes]);
   const otherGroups = useMemo(
     () => groups.filter((g) => !currentGroups.includes(g)),
     [groups, currentGroups],
   );
 
-  // The committee(s) display name: prefer the current groups' DB names (the same
-  // strings the contact cards show) so the script and the cards never disagree;
-  // fall back to the codes' mapped full names if no chair group matched. Joint
-  // hearings read as "A and B".
-  const currentCommitteeName = useMemo(() => {
-    const names = currentGroups.length > 0
-      ? currentGroups.map((g) => g.name)
-      : currentCodes.map((c) => committeeFullName(c));
-    if (names.length === 0) return undefined;
-    if (names.length === 1) return names[0];
-    return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-  }, [currentGroups, currentCodes]);
+  // Word the script for the primary current committee (the one furthest along).
+  const currentGroup = useMemo(
+    () => currentGroups.find((g) => g.code === currentCode) ?? currentGroups[0] ?? null,
+    [currentGroups, currentCode],
+  );
 
-  // Seed the shared scripts once the bill loads. At conference the ask is to
-  // reach agreement (addressed to conferees); otherwise it's a hearing request
-  // addressed to the current committee.
+  // The committee's display name: prefer the current group's DB name (the same
+  // string the contact cards show) so the script and the cards never disagree;
+  // fall back to the code's mapped full name if no chair group matched.
+  const currentCommitteeName = currentGroup?.name ?? (currentCode ? committeeFullName(currentCode, committeeNames) : undefined);
+
+  // Seed the shared scripts once the bill and its current committee are known.
   useEffect(() => {
     if (!bill) return;
-    const base = atConference
-      ? buildConferenceBaseScript({ billNumber: bill.bill_number, billTitle: bill.bill_title ?? null })
-      : buildBaseScript({
-          billNumber: bill.bill_number,
-          billTitle: bill.bill_title ?? null,
-          committeeName: currentCommitteeName,
-        });
+    const base = buildBaseScript({
+      billNumber: bill.bill_number,
+      billTitle: bill.bill_title ?? null,
+      committeeName: currentCommitteeName,
+    });
     setScriptBody(base.body);
     setScriptSubject(base.subject);
     setCallScript(
-      atConference
-        ? buildConferenceCallScript({ billNumber: bill.bill_number, billTitle: bill.bill_title ?? null })
-        : buildCallScript({
-            billNumber: bill.bill_number,
-            billTitle: bill.bill_title ?? null,
-            committeeName: currentCommitteeName,
-          }),
+      buildCallScript({
+        billNumber: bill.bill_number,
+        billTitle: bill.bill_title ?? null,
+        committeeName: currentCommitteeName,
+      }),
     );
-  }, [bill, atConference, currentCommitteeName]);
+  }, [bill, currentCommitteeName]);
 
   const referencePanel = bill ? <BillReferencePanel bill={bill} /> : null;
 
   if (loading) {
     return <ContactSkeleton onBack={() => router.push(backHref)} />;
+  }
+
+  // A bill signed into law is done — legislators can no longer act on it. Guard
+  // the route so a directly-pasted URL can't bypass the disabled Contact button.
+  if (bill && isEnacted(bill.current_bill_status)) {
+    return (
+      <div className="flex h-dvh flex-col items-center justify-center gap-4 p-8 text-center">
+        <ShieldCheck className="h-10 w-10 text-green-700" aria-hidden="true" />
+        <div className="space-y-1">
+          <h1 className="text-lg font-semibold">This bill has become law</h1>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            {bill.bill_number} has been signed into law. Legislators can no longer act on it, so
+            there is no one to contact about it.
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => router.push(backHref)}>
+          <ArrowLeft className="mr-1.5 h-4 w-4" />
+          Back
+        </Button>
+      </div>
+    );
   }
 
   return (
@@ -271,6 +305,7 @@ export default function ContactLegislatorPage() {
               <Compose
                 currentGroups={currentGroups}
                 otherGroups={otherGroups}
+                isJointReferral={hasJointReferral(bill?.committee_assignment)}
                 subject={scriptSubject}
                 body={scriptBody}
                 onChange={setScriptBody}
@@ -296,6 +331,7 @@ function chairKey(chair: CommitteeChair): string {
 function Compose({
   currentGroups,
   otherGroups,
+  isJointReferral,
   subject,
   body,
   onChange,
@@ -305,6 +341,7 @@ function Compose({
 }: {
   currentGroups: CommitteeGroup[];
   otherGroups: CommitteeGroup[];
+  isJointReferral: boolean;
   subject: string;
   body: string;
   onChange: (v: string) => void;
@@ -329,10 +366,17 @@ function Compose({
           <h2 className="text-sm font-semibold">Ask for a hearing</h2>
         </div>
         <p className="text-xs text-muted-foreground">
-          This bill is waiting on {isJoint ? 'a joint committee hearing' : 'a committee'} to be scheduled. Send the
-          message below to {isJoint ? 'each committee’s' : 'that committee’s'} chair and vice-chair — the more
-          requests they get, the more likely they are to put it on the agenda.
+          This bill is waiting on a committee to schedule a hearing. Send the message below to that committee&apos;s
+          chair and vice-chair. The more requests they get, the more likely they are to put it on the agenda.
         </p>
+        {isJointReferral && (
+          <div className="mt-2 flex items-start gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              {JOINT_REFERRAL_NOTE} Contact the chair and vice-chair of both committees.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-8">
@@ -350,7 +394,7 @@ function Compose({
               <h2 className="text-sm font-semibold">Email script</h2>
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
-              One message goes to every chair. Edit it freely — the greeting is filled in for each legislator when you
+              One message goes to every chair. You may edit it freely. The greeting ("Dear Chair") is filled in for each legislator when you
               send.
             </p>
             <div className="mb-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
@@ -377,7 +421,7 @@ function Compose({
               <h2 className="text-sm font-semibold">Call script</h2>
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
-              What to say when you call an office. Keep it short — staff just note your request.
+              What to say when you call an office.
             </p>
             <Textarea
               value={callScript}

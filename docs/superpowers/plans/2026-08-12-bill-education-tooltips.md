@@ -23,7 +23,7 @@
 - Chips get no added icon. ⓘ appears only in the sibling-link case.
 - Tests are pure unit tests in `src/lib/__tests__/` (flat, not mirrored). No DB, no mocking.
 - `/learn` adds no `db/queries` function and no API route; it reads bills through the existing `data.bills` client path.
-- Run `npm test`, `npm run typecheck`, and `npm run build` before each commit. The build catches `'use server'` export violations typecheck misses.
+- Run `npm test`, `pnpm  typecheck`, and `pnpm  build` before each commit. The build catches `'use server'` export violations typecheck misses.
 - Commit prefixes: `feat:`, `fix:`, `refactor:`, `docs:`. No `Co-Authored-By` lines.
 
 ## File Structure
@@ -205,7 +205,7 @@ Leave every call site unchanged — the signatures are identical.
 
 - [ ] **Step 6: Verify nothing broke**
 
-Run: `npm test && npm run typecheck && npm run build`
+Run: `npm test && pnpm  typecheck && pnpm  build`
 Expected: all pass. `PROGRESS_STAGES` is still referenced in the dialog's stage strip, so an unused-import error means a call site was removed by mistake.
 
 - [ ] **Step 7: Commit**
@@ -592,7 +592,7 @@ export function resolveDeadlineTerm(deadlineName: string): GlossaryTerm | null {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run src/lib/__tests__/glossary.test.ts && npm run typecheck`
+Run: `npx vitest run src/lib/__tests__/glossary.test.ts && pnpm  typecheck`
 Expected: PASS.
 
 If `resolveStatusTerm` fails for some column id, `COLUMN_DESCRIPTIONS` is missing that id — add the description to `kanban-columns.ts` rather than weakening the test. The existing `kanban-columns.test.ts:217-227` covers the same invariant.
@@ -796,7 +796,7 @@ Leave the existing local `TooltipProvider` wrappers (e.g. `kanban-card.tsx`'s `C
 
 - [ ] **Step 3: Verify it compiles and the tooltip scroll-dismiss works**
 
-Run: `npm run typecheck && npm run build`
+Run: `pnpm  typecheck && pnpm  build`
 Expected: PASS.
 
 If `PopoverContent` rejects `collisionPadding`, check `src/components/ui/popover.tsx` — it may not forward extra props; add `collisionPadding` to its forwarded props rather than dropping it here.
@@ -987,7 +987,7 @@ Do NOT add a new `db/queries` function or API route. If the direct call fails at
 
 - [ ] **Step 4: Verify the build and the anchors**
 
-Run: `npm run build && npx vitest run src/lib/__tests__/glossary.test.ts`
+Run: `pnpm  build && npx vitest run src/lib/__tests__/glossary.test.ts`
 Expected: build passes; the `learnMoreAnchor` test still passes, confirming every anchor in the registry has a matching `id` on this page.
 
 - [ ] **Step 5: Commit**
@@ -1033,7 +1033,7 @@ Do NOT add terms for bill number, headline, or description on the card — that 
 
 - [ ] **Step 2: Verify tap isolation on the card by hand**
 
-Run: `npm run dev`, open `http://localhost:9002`, and in browser devtools toggle device emulation to a phone (touch, coarse pointer).
+Run: `pnpm  dev`, open `http://localhost:9002`, and in browser devtools toggle device emulation to a phone (touch, coarse pointer).
 
 Check, and do not proceed until all four hold:
 1. Tapping a committee code opens the definition and does **not** open the bill dialog.
@@ -1075,7 +1075,7 @@ Report codes (`HSCR65`, shown raw at ~30 and ~124) have no link of their own: wr
 
 - [ ] **Step 6: Full verification**
 
-Run: `npm test && npm run typecheck && npm run build`
+Run: `npm test && pnpm  typecheck && pnpm  build`
 Expected: all pass.
 
 - [ ] **Step 7: Commit**
@@ -1093,7 +1093,7 @@ Interaction behavior is not unit-tested (pure-logic-only convention), so it is c
 
 - [ ] **Step 1: Desktop (fine pointer)**
 
-Run `npm run dev`. Confirm: terms show on hover with a ~300ms delay; the dotted underline is visible but quiet; "Learn more" is clickable without the tooltip closing first; Tab reaches terms and Enter opens them; Escape closes.
+Run `pnpm  dev`. Confirm: terms show on hover with a ~300ms delay; the dotted underline is visible but quiet; "Learn more" is clickable without the tooltip closing first; Tab reaches terms and Enter opens them; Escape closes.
 
 - [ ] **Step 2: Touch emulation**
 
