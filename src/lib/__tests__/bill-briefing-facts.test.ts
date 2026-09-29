@@ -59,6 +59,19 @@ describe('deriveBriefingFacts', () => {
     expect(f.nextSteps.some((s) => s.action === 'contact')).toBe(false);
   });
 
+  it('at conference, offers only the urge-conferees step, not the schedule-a-hearing step', () => {
+    // A bill in conference still carries its committee referral history, but the
+    // actionable ask is to urge the conferees — never to schedule a new hearing.
+    const f = deriveBriefingFacts(
+      baseBill({ current_bill_status: 'conferenceScheduled' }),
+      '2026-04-15',
+    );
+    const contactSteps = f.nextSteps.filter((s) => s.action === 'contact');
+    expect(contactSteps).toHaveLength(1);
+    expect(contactSteps[0].text.toLowerCase()).toContain('conferee');
+    expect(f.nextSteps.some((s) => s.text.toLowerCase().includes('schedule a hearing'))).toBe(false);
+  });
+
   it('closes testimony once the scheduled hearing has passed', () => {
     // Scheduled bill, well before the session deadline, but the hearing in its
     // latest update was held in the past — testimony can no longer be submitted.

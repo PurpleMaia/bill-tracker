@@ -129,8 +129,10 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   if (reports.length > 0) {
     nextSteps.push({ text: `Review the ${reports.length} committee report(s).`, action: 'reports' });
   }
-  // No point contacting legislators once the bill is law — the process is over.
-  if (committeeCodes.length > 0 && !isEnacted(status)) {
+  // No point contacting committee chairs to schedule a hearing once the bill is
+  // law (the process is over) or in conference (it has cleared its committees —
+  // the actionable ask is urging the conferees, pushed above instead).
+  if (committeeCodes.length > 0 && !isEnacted(status) && !atConference) {
     nextSteps.push({ text: 'Contact the committee chairs to schedule a hearing.', action: 'contact' });
   }
 
