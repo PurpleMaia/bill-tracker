@@ -518,6 +518,16 @@ async function findFreeSlug(trx: typeof db, name: string): Promise<string | null
   return null;
 }
 
+/** True if a tenant already uses this exact (trimmed) display name. */
+export async function tenantNameExists(name: string): Promise<boolean> {
+  const row = await db
+    .selectFrom('tenants')
+    .select('id')
+    .where('name', '=', name.trim())
+    .executeTakeFirst();
+  return !!row;
+}
+
 type CreateOrgOptions = {
   /**
    * When true, the transaction re-checks that the user has NO memberships (under
@@ -569,8 +579,19 @@ export async function createOrgForUser(
       if (existingMembership) throw Errors.USER_ALREADY_EXISTS;
     }
 
+    // `tenants.name` is UNIQUE in the schema, so a duplicate display name would
+    // fail the INSERT with an untyped Postgres error (→ 500). Detect it here and
+    // surface a clean 409 instead. (The slug suffix loop only resolves *slug*
+    // collisions, which happen for distinct names that derive to the same slug.)
+    const existingName = await trx
+      .selectFrom('tenants')
+      .select('id')
+      .where('name', '=', trimmedName)
+      .executeTakeFirst();
+    if (existingName) throw Errors.ORG_NAME_TAKEN;
+
     const slug = await findFreeSlug(trx, trimmedName);
-    if (!slug) throw Errors.INVALID_REQUEST;
+    if (!slug) throw Errors.ORG_NAME_INVALID;
 
     const tenant = await trx
       .insertInto('tenants')

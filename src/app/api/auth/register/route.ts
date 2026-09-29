@@ -7,9 +7,11 @@ import {
   getUserMemberships,
   claimInviteToken,
   createOrgForNewUser,
+  tenantNameExists,
 } from '@/db/queries/tenants';
 import { limitFixedWindow, retryAfterMs } from '@/lib/core/ratelimit-memory';
 import { ApiError } from '@/lib/core/errors';
+import { deriveOrgSlug } from '@/lib/tenants/org-slug';
 
 const REGISTER_RATE_LIMIT = { limit: 5, windowMs: 15 * 60_000 };
 
@@ -56,6 +58,18 @@ export async function POST(req: NextRequest) {
       const trimmed = typeof orgName === 'string' ? orgName.trim() : '';
       if (trimmed.length === 0 || trimmed.length > 100) {
         return NextResponse.json({ error: 'Organization name must be between 1 and 100 characters.' }, { status: 400 });
+      }
+      // A name with no slug-able characters (e.g. "!!!" or "日本語") would derive
+      // to an empty slug and be silently dropped by createOrgForNewUser, leaving
+      // the user registered with no org while the UI reports success. Reject it
+      // up front instead.
+      if (!deriveOrgSlug(trimmed)) {
+        return NextResponse.json({ error: 'Organization name must contain at least one letter or number.' }, { status: 400 });
+      }
+      // tenants.name is UNIQUE — a duplicate would also be swallowed to a silent
+      // no-org success, so reject it here before the user is created.
+      if (await tenantNameExists(trimmed)) {
+        return NextResponse.json({ error: 'An organization with that name already exists. Please choose a different name.' }, { status: 409 });
       }
     }
 
