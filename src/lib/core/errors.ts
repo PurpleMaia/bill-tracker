@@ -30,6 +30,8 @@ export const Errors = {
     INTERNAL_ERROR: new ApiError('INTERNAL_ERROR', 500, 'Internal server error. Please try again later.'),
     NOT_A_MEMBER: new ApiError('NOT_A_MEMBER', 403, 'You are not a member of this organization.'),
     TENANT_NOT_FOUND: new ApiError('TENANT_NOT_FOUND', 404, 'Organization not found.'),
+    ORG_NAME_TAKEN: new ApiError('ORG_NAME_TAKEN', 409, 'An organization with that name already exists. Please choose a different name.'),
+    ORG_NAME_INVALID: new ApiError('ORG_NAME_INVALID', 400, 'Organization name must contain at least one letter or number.'),
 } as const;
 
 /**
