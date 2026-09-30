@@ -120,23 +120,44 @@ export function BillBriefing({
           </p>
         </div>
         <div className="rounded-md border p-2.5">
-          <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Committee activity</h4>
-          <p className="text-[12px] text-foreground/80">
+          {facts.atConference ? (
+            <>
+              <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Conference committee</h4>
+              <p className="text-[12px] text-foreground/80">
+                {/* At conference the negotiators are the conferees, not the committee
+                    chairs — parsed from status updates. */}
+                {facts.conferees.length > 0
+                  ? facts.conferees.map((c, i) => (
+                      <span key={`${c.chamber}-${c.surname}`}>
+                        {i > 0 && ', '}
+                        {c.surname}
+                        {c.isChair && <span className="text-muted-foreground"> (Chair)</span>}
+                      </span>
+                    ))
+                  : 'Conferees not yet appointed'}
+              </p>
+            </>
+          ) : (
+            <>
+              <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Committee activity</h4>
+              <p className="text-[12px] text-foreground/80">
             {/* Referrals stay tappable — an acronym is opaque. A joint referral
                 (HHS/AEN) renders as ONE chip so it reads as a joint referral,
                 not two independent committees. The heading does not. */}
-            {facts.committeeReferrals.length > 0
-              ? facts.committeeReferrals.map((referral, i) => (
-                  <span key={referral}>
-                    {i > 0 && ', '}
-                    <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(referral, committeeNames)}>
-                      {referral}
-                    </Term>
-                  </span>
-                ))
-              : 'No committees'}
-            {` · ${facts.reportCount} report(s)`}
-          </p>
+                {facts.committeeReferrals.length > 0
+                  ? facts.committeeReferrals.map((referral, i) => (
+                      <span key={referral}>
+                        {i > 0 && ', '}
+                        <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(referral, committeeNames)}>
+                          {referral}
+                        </Term>
+                      </span>
+                    ))
+                  : 'No committees'}
+                {` · ${facts.reportCount} report(s)`}
+              </p>
+            </>
+          )}
         </div>
       </div>
 

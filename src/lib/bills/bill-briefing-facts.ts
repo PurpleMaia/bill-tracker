@@ -10,6 +10,7 @@ import { formatBillStatusName } from '@/lib/core/utils';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { sortVersions } from '@/lib/versions/bill-versions';
 import { parseCommitteeCodes } from '@/lib/testimony/committees';
+import { parseConferees, isConferenceStatus, type ParsedConferee } from '@/lib/testimony/conferees';
 
 export interface BriefingStep {
   text: string;
@@ -23,6 +24,10 @@ export interface BriefingFacts {
   latestVersionHtml: string | null;
   /** Flattened, de-duped codes — used for counts and next-step gating. */
   committeeCodes: string[];
+  /** True at the conference contact stages — swaps committee display for conferees. */
+  atConference: boolean;
+  /** Conferees parsed from status updates; only populated at conference stage. */
+  conferees: ParsedConferee[];
   /** Raw referral tokens with joints intact ("HHS/AEN" stays one entry) — used
    *  for display, so a joint referral reads as a joint referral. */
   committeeReferrals: string[];
@@ -101,9 +106,24 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   const sorted = sortVersions(versions);
   const latest = sorted.length > 0 ? sorted[sorted.length - 1] : null;
   const committeeCodes = parseCommitteeCodes(committeeAssignment);
+  const atConference = isConferenceStatus(status);
+  const conferees = atConference ? parseConferees(bill.updates) : [];
   const committeeReferrals = committeeAssignment ? parseCommittees(committeeAssignment) : [];
 
+  // At conference the actionable step is contacting the appointed conferees —
+  // foreground it. Elsewhere it's the committee chairs, shown after the reading
+  // steps. Other steps (diff/reports) still appear when relevant.
   const nextSteps: BriefingStep[] = [];
+  // Only urge the conferees once some have actually been appointed (parsed from
+  // the status text). Before that there is no one to contact — the contact page
+  // shows an "awaiting appointment" state — so offering it as a next step would
+  // dead-end the user.
+  if (atConference && conferees.length > 0) {
+    nextSteps.push({
+      text: 'Urge the conferees to reach agreement on this bill.',
+      action: 'contact',
+    });
+  }
   if (testimony.open) {
     nextSteps.push({ text: 'Write and submit testimony on this bill.', action: 'testimony' });
   }
@@ -113,8 +133,10 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   if (reports.length > 0) {
     nextSteps.push({ text: `Review the ${reports.length} committee report(s).`, action: 'reports' });
   }
-  // No point contacting legislators once the bill is law — the process is over.
-  if (committeeCodes.length > 0 && !isEnacted(status)) {
+  // No point contacting committee chairs to schedule a hearing once the bill is
+  // law (the process is over) or in conference (it has cleared its committees —
+  // the actionable ask is urging the conferees, pushed above instead).
+  if (committeeCodes.length > 0 && !isEnacted(status) && !atConference) {
     nextSteps.push({ text: 'Contact the committee chairs to schedule a hearing.', action: 'contact' });
   }
 
@@ -124,6 +146,8 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
     latestVersionLabel: latest?.label ?? null,
     latestVersionHtml: latest?.htmlLink ?? null,
     committeeCodes,
+    atConference,
+    conferees,
     committeeReferrals,
     reportCount: reports.length,
     nextSteps,
