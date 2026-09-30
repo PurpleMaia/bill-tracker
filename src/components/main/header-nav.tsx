@@ -6,7 +6,7 @@ import { FileText, KanbanSquareIcon, LayoutGrid, Search } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 
 export const NAV_ITEMS = [
-  { href: '/search', label: 'Search', icon: Search },
+  { href: '/search', label: 'Discover Bills', icon: Search },
   { href: '/your-bills', label: 'Your Bills', icon: KanbanSquareIcon },
   { href: '/testimonies', label: 'Testimonies', icon: FileText },
   // Lands on Browse, the section's public entry point — View Board is only
