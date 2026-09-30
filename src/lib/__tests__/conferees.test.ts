@@ -7,6 +7,11 @@ function lines(...texts: string[]): StatusLine[] {
   return texts.map((statustext) => ({ statustext }));
 }
 
+/** Wrap dated [date, text] pairs — the parser sorts by date before parsing. */
+function dated(...pairs: [string, string][]): Array<{ date: string; statustext: string }> {
+  return pairs.map(([date, statustext]) => ({ date, statustext }));
+}
+
 describe('parseConferees', () => {
   it('parses the real capitol format, splitting on ; and , and stripping role markers', () => {
     const result = parseConferees(
@@ -133,6 +138,38 @@ describe('parseConferees', () => {
     ).toEqual([
       { surname: 'Garcia', chamber: 'House', isChair: false },
       { surname: 'Lee', chamber: 'House', isChair: false },
+    ]);
+  });
+
+  it('appends an "Added" member even when updates arrive newest-first (production order)', () => {
+    // The DB returns status updates date-DESC, so the newer "Added" line comes
+    // BEFORE the older "Appointed" line in the array. parseConferees must sort by
+    // date so the append lands on the appointed roster, not an empty one.
+    const result = parseConferees(
+      dated(
+        ['4/20/2026', 'House Conferees Added: Representative Garcia added as Conferee.'],
+        ['4/15/2026', 'House Conferees Appointed: Sayama, Chair; Reyes Oda.'],
+      ),
+    );
+    expect(result).toEqual([
+      { surname: 'Sayama', chamber: 'House', isChair: true },
+      { surname: 'Reyes Oda', chamber: 'House', isChair: false },
+      { surname: 'Garcia', chamber: 'House', isChair: false },
+    ]);
+  });
+
+  it('lets the latest appointment win when updates arrive newest-first (production order)', () => {
+    // Newest-first array: the newer re-appointment (Newmember) is first. Sorting
+    // by date ascending makes the LATER appointment win the replace, as intended.
+    const result = parseConferees(
+      dated(
+        ['4/20/2026', 'House Conferees Appointed: Sayama, Chair; Newmember.'],
+        ['4/15/2026', 'House Conferees Appointed: Sayama, Chair; Oldmember.'],
+      ),
+    );
+    expect(result).toEqual([
+      { surname: 'Sayama', chamber: 'House', isChair: true },
+      { surname: 'Newmember', chamber: 'House', isChair: false },
     ]);
   });
 });

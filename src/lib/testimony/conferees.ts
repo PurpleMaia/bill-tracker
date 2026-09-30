@@ -9,6 +9,16 @@
 // email/phone is the resolver's job (src/db/queries/conferees.ts); here we only
 // parse text.
 import type { StatusLine } from '@/lib/testimony/committees';
+import { parseLocalDate } from '@/lib/core/utils';
+
+/**
+ * A status line as this parser reads it: the text, plus an OPTIONAL date. The
+ * date matters because "Appointed" replaces a chamber's roster and "Added"
+ * appends to it — both are chronological. Real callers pass DB `StatusUpdate`s
+ * (which carry a date); the field is optional so a bare {@link StatusLine} still
+ * works, falling back to input order.
+ */
+type ConfereeStatusLine = StatusLine & { date?: string | null };
 
 export interface ParsedConferee {
   /** Surname as printed, e.g. "Sayama", "Reyes Oda", "Lee, M.". */
@@ -74,11 +84,29 @@ const ADDED_CLAUSE_RE = /\s+added\s+as\s+((?:co-?\s*)?(?:vice[\s-]*)?chairs?|con
  * roster (latest appointment wins); "Conferees Added" APPENDS the named member(s)
  * to it, skipping anyone already present. Returns [] when no conferee line is
  * present. Pure.
+ *
+ * Both semantics are chronological, so we sort updates OLDEST-first before
+ * parsing — callers hand us the DB's newest-first array, and undated (or
+ * same-day) lines keep their input order via a stable sort.
  */
-export function parseConferees(updates: StatusLine[] | null | undefined): ParsedConferee[] {
+/**
+ * Stable oldest-first sort by `date`. Undated / unparseable lines sort as if
+ * dated -Infinity (kept at the front, before any dated line), and ties preserve
+ * input order — matching the sibling parsers' "same-day order is undefined"
+ * caveat rather than inventing an order for it.
+ */
+function sortOldestFirst<T extends ConfereeStatusLine>(updates: T[]): T[] {
+  const time = (u: T): number => {
+    const d = u.date ? parseLocalDate(u.date) : null;
+    return d ? d.getTime() : -Infinity;
+  };
+  return [...updates].sort((a, b) => time(a) - time(b));
+}
+
+export function parseConferees(updates: ConfereeStatusLine[] | null | undefined): ParsedConferee[] {
   const byChamber = new Map<'House' | 'Senate', ParsedConferee[]>();
 
-  for (const update of updates ?? []) {
+  for (const update of sortOldestFirst(updates ?? [])) {
     const text = update.statustext ?? '';
     CONFEREE_LINE_RE.lastIndex = 0;
     let m: RegExpExecArray | null;

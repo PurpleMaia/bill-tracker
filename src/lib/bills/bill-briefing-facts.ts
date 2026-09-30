@@ -114,7 +114,11 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   // foreground it. Elsewhere it's the committee chairs, shown after the reading
   // steps. Other steps (diff/reports) still appear when relevant.
   const nextSteps: BriefingStep[] = [];
-  if (atConference) {
+  // Only urge the conferees once some have actually been appointed (parsed from
+  // the status text). Before that there is no one to contact — the contact page
+  // shows an "awaiting appointment" state — so offering it as a next step would
+  // dead-end the user.
+  if (atConference && conferees.length > 0) {
     nextSteps.push({
       text: 'Urge the conferees to reach agreement on this bill.',
       action: 'contact',

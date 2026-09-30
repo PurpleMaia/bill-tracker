@@ -59,17 +59,36 @@ describe('deriveBriefingFacts', () => {
     expect(f.nextSteps.some((s) => s.action === 'contact')).toBe(false);
   });
 
-  it('at conference, offers only the urge-conferees step, not the schedule-a-hearing step', () => {
+  it('at conference with appointed conferees, offers only the urge-conferees step, not the schedule-a-hearing step', () => {
     // A bill in conference still carries its committee referral history, but the
     // actionable ask is to urge the conferees — never to schedule a new hearing.
     const f = deriveBriefingFacts(
-      baseBill({ current_bill_status: 'conferenceScheduled' }),
+      baseBill({
+        current_bill_status: 'conferenceScheduled',
+        updates: [
+          { id: 'u1', chamber: 'H', date: '4/15/2026', statustext: 'House Conferees Appointed: Sayama, Chair.' },
+        ],
+      }),
       '2026-04-15',
     );
     const contactSteps = f.nextSteps.filter((s) => s.action === 'contact');
     expect(contactSteps).toHaveLength(1);
     expect(contactSteps[0].text.toLowerCase()).toContain('conferee');
     expect(f.nextSteps.some((s) => s.text.toLowerCase().includes('schedule a hearing'))).toBe(false);
+  });
+
+  it('at conference with no conferees appointed yet, offers no contact step at all', () => {
+    // Conference status but no "Conferees Appointed/Added" line parsed yet — there
+    // is no one to urge, and the schedule-a-hearing step is still (correctly)
+    // suppressed. So the briefing offers no contact next-step at this moment.
+    const f = deriveBriefingFacts(
+      baseBill({
+        current_bill_status: 'conferenceScheduled',
+        updates: [{ id: 'u1', chamber: 'H', date: '4/15/2026', statustext: 'The conference committee will be scheduled.' }],
+      }),
+      '2026-04-15',
+    );
+    expect(f.nextSteps.some((s) => s.action === 'contact')).toBe(false);
   });
 
   it('closes testimony once the scheduled hearing has passed', () => {
