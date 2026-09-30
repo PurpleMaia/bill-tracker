@@ -667,12 +667,17 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
   // hitting BOTH words above bills hitting only "food". Each matched token adds
   // an equal share of a 0.5 budget (so all-tokens-matched = 0.5, staying below
   // the FTS tier's +1.0). Empty for single-token queries — nothing to distinguish.
+  //
+  // The divisor is cast to ::real: it binds as an untyped parameter, and the
+  // CASE sum is `integer`, so `integer * unknown` would resolve to integer
+  // multiplication and fail to parse "0.25" as an integer (a 500 on every
+  // multi-token search). The cast forces real multiplication.
   const coverageExpr =
     substringExprs.length > 1
       ? sql`(${sql.join(
           substringExprs.map((e) => sql`(CASE WHEN ${e} THEN 1 ELSE 0 END)`),
           sql` + `,
-        )}) * ${0.5 / substringExprs.length}`
+        )}) * ${0.5 / substringExprs.length}::real`
       : null;
 
   // Every branch must produce `real`, the type ts_rank returns. The keyset
