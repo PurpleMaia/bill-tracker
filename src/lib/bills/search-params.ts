@@ -44,6 +44,27 @@ export function isBillNumberQuery(q: string): boolean {
   return /^[hs][bcrm]?[cr]?\s*-?\s*\d+/i.test(q.trim());
 }
 
+/**
+ * Split a word query into the tokens the substring-fallback branch of
+ * searchBills matches individually. The English stemmer is inconsistent across
+ * word families ("Environmental" stems to `environment`, but the query word
+ * "environment" stems to `environ`), so exact-lexeme FTS silently misses real
+ * variants. Each token here is matched with `col ILIKE '%token%'` alongside FTS
+ * to catch those variants and partial words.
+ *
+ * Tokens are lowercased and stripped of the LIKE metacharacters %, _ and \ so a
+ * user typing them can't change the substring semantics. (Values are still
+ * parameterized at the query, so this is about match meaning, not injection.)
+ * Empty tokens are dropped.
+ */
+export function tokenizeSearchQuery(q: string): string[] {
+  return q
+    .toLowerCase()
+    .split(/\s+/)
+    .map((t) => t.replace(/[%_\\]/g, ''))
+    .filter((t) => t.length > 0);
+}
+
 /** House bills start with H, Senate with S — derived, not stored. */
 export function chamberPrefixes(chambers: Chamber[]): string[] {
   return chambers.map((c) => (c === 'house' ? 'H' : 'S'));

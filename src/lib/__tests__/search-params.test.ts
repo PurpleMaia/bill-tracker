@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   normalizeFilters,
   isBillNumberQuery,
+  tokenizeSearchQuery,
   chamberPrefixes,
   encodeCursor,
   decodeCursor,
@@ -28,6 +29,36 @@ describe('isBillNumberQuery', () => {
     expect(isBillNumberQuery('')).toBe(false);
     // "sb" alone has no digits, so it is a word query, not a number lookup
     expect(isBillNumberQuery('sb')).toBe(false);
+  });
+});
+
+describe('tokenizeSearchQuery', () => {
+  it('splits a query into lowercased whitespace-separated tokens', () => {
+    expect(tokenizeSearchQuery('environment agriculture')).toEqual([
+      'environment',
+      'agriculture',
+    ]);
+  });
+
+  it('collapses extra whitespace and trims', () => {
+    expect(tokenizeSearchQuery('  Environment   Water  ')).toEqual(['environment', 'water']);
+  });
+
+  it('returns an empty array for blank input', () => {
+    expect(tokenizeSearchQuery('')).toEqual([]);
+    expect(tokenizeSearchQuery('   ')).toEqual([]);
+  });
+
+  it('strips ILIKE wildcard metacharacters so a token stays a literal substring', () => {
+    // %, _ and \ are LIKE metacharacters; a user typing them should not change
+    // the match semantics of the substring fallback.
+    expect(tokenizeSearchQuery('100%')).toEqual(['100']);
+    expect(tokenizeSearchQuery('a_b')).toEqual(['ab']);
+    expect(tokenizeSearchQuery('back\\slash')).toEqual(['backslash']);
+  });
+
+  it('drops tokens that are empty after metacharacter stripping', () => {
+    expect(tokenizeSearchQuery('%% __')).toEqual([]);
   });
 });
 
