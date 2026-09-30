@@ -3,6 +3,7 @@
 import type { Bill, BillTracker, BillDetails, StatusUpdate, BillVersion, CommitteeReport, BillSearchResult, BillSearchResponse, SearchBillsParams } from '@/types/legislation';
 import {
   isBillNumberQuery,
+  tokenizeSearchQuery,
   chamberPrefixes,
   encodeCursor,
   decodeCursor,
@@ -642,6 +643,43 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
   const normalizedNumber = trimmed.replace(/[\s-]/g, '');
   const isNumberQuery = trimmed ? isBillNumberQuery(trimmed) : false;
 
+  // Word-query matching. FTS alone misses correctly-spelled variants because the
+  // english stemmer is inconsistent across word families ("Environmental" ->
+  // lexeme `environment`, query "environment" -> `environ`, no match). So a bill
+  // matches if EITHER the weighted FTS vector matches the whole query, OR any
+  // single token appears as a case-insensitive substring of the title or
+  // description (OR across tokens, per product decision). Tokens are stripped of
+  // LIKE metacharacters in tokenizeSearchQuery and parameterized here.
+  const ftsExpr = sql<boolean>`search_vector @@ websearch_to_tsquery('english', ${trimmed})`;
+  const wordTokens = !isNumberQuery && trimmed ? tokenizeSearchQuery(trimmed) : [];
+  const substringExprs = wordTokens.map(
+    (t) => sql<boolean>`(bill_title ILIKE ${'%' + t + '%'} OR description ILIKE ${'%' + t + '%'})`,
+  );
+  // Title-only substring hit. Adds a tiny bonus so that, among rows of equal
+  // ts_rank, a title match sorts above a description-only match. It applies to
+  // FTS-tier and substring-only rows alike — harmless for FTS rows, which are
+  // already separated by the full +1.0 below.
+  const titleSubstringExprs = wordTokens.map(
+    (t) => sql<boolean>`bill_title ILIKE ${'%' + t + '%'}`,
+  );
+  // Token-coverage bonus: within the substring tier, a bill that matches MORE of
+  // the query's tokens ranks higher, so a "food safety" search surfaces bills
+  // hitting BOTH words above bills hitting only "food". Each matched token adds
+  // an equal share of a 0.5 budget (so all-tokens-matched = 0.5, staying below
+  // the FTS tier's +1.0). Empty for single-token queries — nothing to distinguish.
+  //
+  // The divisor is cast to ::real: it binds as an untyped parameter, and the
+  // CASE sum is `integer`, so `integer * unknown` would resolve to integer
+  // multiplication and fail to parse "0.25" as an integer (a 500 on every
+  // multi-token search). The cast forces real multiplication.
+  const coverageExpr =
+    substringExprs.length > 1
+      ? sql`(${sql.join(
+          substringExprs.map((e) => sql`(CASE WHEN ${e} THEN 1 ELSE 0 END)`),
+          sql` + `,
+        )}) * ${0.5 / substringExprs.length}::real`
+      : null;
+
   // Every branch must produce `real`, the type ts_rank returns. The keyset
   // cursor compares this expression against a `::real` parameter, and an
   // untyped `1.0` would be `numeric` — under which `numeric 0.8 < real 0.8` is
@@ -655,7 +693,17 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
           WHEN upper(replace(replace(bill_number, ' ', ''), '-', '')) = upper(${normalizedNumber}) THEN 1.0::real
           WHEN upper(replace(replace(bill_number, ' ', ''), '-', '')) LIKE upper(${normalizedNumber + '%'}) THEN 0.8::real
           ELSE 0.6::real END`
-      : sql<number>`ts_rank(search_vector, websearch_to_tsquery('english', ${trimmed}))`
+      // Tiered so a true FTS lexeme match always outranks a substring-only match
+      // (+1.0). Below that, a token-coverage bonus (0..0.5) ranks broader
+      // substring matches higher, and a tiny +0.001 title-hit bonus breaks ties
+      // toward title matches. The constants sit above/below ts_rank's typical
+      // 0..1 range; the whole expression stays `real`-typed for the keyset cursor.
+      : sql<number>`(
+          ts_rank(search_vector, websearch_to_tsquery('english', ${trimmed}))
+          + CASE WHEN ${ftsExpr} THEN 1.0 ELSE 0 END
+          ${coverageExpr ? sql`+ ${coverageExpr}` : sql``}
+          ${titleSubstringExprs.length ? sql`+ CASE WHEN (${sql.join(titleSubstringExprs, sql` OR `)}) THEN 0.001 ELSE 0 END` : sql``}
+        )::real`
     : sql<number>`0::real`;
 
   // updated_at is nullable in the schema. A NULL in the keyset row-comparison
@@ -666,13 +714,17 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
   let base = db.selectFrom('bills');
 
   if (trimmed) {
-    base = isNumberQuery
-      ? base.where(
-          sql<boolean>`replace(replace(bill_number, ' ', ''), '-', '') ILIKE ${'%' + normalizedNumber + '%'}`,
-        )
-      : base.where(
-          sql<boolean>`search_vector @@ websearch_to_tsquery('english', ${trimmed})`,
-        );
+    if (isNumberQuery) {
+      base = base.where(
+        sql<boolean>`replace(replace(bill_number, ' ', ''), '-', '') ILIKE ${'%' + normalizedNumber + '%'}`,
+      );
+    } else {
+      // FTS OR any-token substring. substringExprs is non-empty for any query
+      // with at least one usable token; if tokenizing leaves nothing (e.g. the
+      // query was only metacharacters), fall back to FTS alone.
+      const matchExprs = [ftsExpr, ...substringExprs];
+      base = base.where(sql<boolean>`(${sql.join(matchExprs, sql` OR `)})`);
+    }
   }
 
   base = applyFilters(base);
