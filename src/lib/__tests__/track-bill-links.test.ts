@@ -3,8 +3,8 @@ import { columnTrackSearchHref, SEARCH_TRACK_HREF } from '../bills/track-bill-li
 import { KANBAN_COLUMNS, SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED } from '../bills/kanban-columns';
 
 describe('SEARCH_TRACK_HREF', () => {
-  it('points at the search page', () => {
-    expect(SEARCH_TRACK_HREF).toBe('/search');
+  it('points at the Discover page', () => {
+    expect(SEARCH_TRACK_HREF).toBe('/discover');
   });
 });
 
@@ -12,26 +12,26 @@ describe('columnTrackSearchHref', () => {
   it('maps a detailed column to its simplified stage and scopes to untracked', () => {
     // scheduled1 -> simpleScheduled
     expect(columnTrackSearchHref('scheduled1')).toBe(
-      '/search?stages=simpleScheduled&tracked=untracked',
+      '/discover?stages=simpleScheduled&tracked=untracked',
     );
   });
 
   it('maps a crossover column to its simplified stage', () => {
     // crossoverWaiting2 -> simpleCrossoverWaiting
     expect(columnTrackSearchHref('crossoverWaiting2')).toBe(
-      '/search?stages=simpleCrossoverWaiting&tracked=untracked',
+      '/discover?stages=simpleCrossoverWaiting&tracked=untracked',
     );
   });
 
   it('passes a simplified column id through unchanged', () => {
     expect(columnTrackSearchHref('simpleWaiting')).toBe(
-      '/search?stages=simpleWaiting&tracked=untracked',
+      '/discover?stages=simpleWaiting&tracked=untracked',
     );
   });
 
   it('passes a conference/governor column (1:1 mapping) through', () => {
     expect(columnTrackSearchHref('transmittedGovernor')).toBe(
-      '/search?stages=transmittedGovernor&tracked=untracked',
+      '/discover?stages=transmittedGovernor&tracked=untracked',
     );
   });
 
@@ -47,15 +47,15 @@ describe('columnTrackSearchHref', () => {
     }
   });
 
-  it('falls back to the bare search page for an unknown column id', () => {
-    expect(columnTrackSearchHref('nonsense')).toBe('/search?tracked=untracked');
+  it('falls back to the bare Discover page for an unknown column id', () => {
+    expect(columnTrackSearchHref('nonsense')).toBe('/discover?tracked=untracked');
   });
 
   it('never emits a stage absent from STATUS_TO_SIMPLIFIED for a known status', () => {
     // Guards the option-a contract: a detailed status maps through the same
     // table the board and DB query use.
     expect(columnTrackSearchHref('waiting2')).toBe(
-      `/search?stages=${STATUS_TO_SIMPLIFIED['waiting2']}&tracked=untracked`,
+      `/discover?stages=${STATUS_TO_SIMPLIFIED['waiting2']}&tracked=untracked`,
     );
   });
 });

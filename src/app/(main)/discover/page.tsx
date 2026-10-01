@@ -3,11 +3,11 @@ import { Suspense } from 'react';
 import { BillSearchView } from '@/components/search/bill-search-view';
 
 export const metadata: Metadata = {
-  title: 'Search Bills',
-  description: 'Search every bill in the Hawaii legislature by number, title, or text.',
+  title: 'Discover Bills',
+  description: 'Discover every bill in the Hawaii legislature by number, title, or text.',
 };
 
-export default function SearchPage() {
+export default function DiscoverPage() {
   // BillSearchView reads useSearchParams to seed its filters from the URL (a
   // board column's "+" links here with ?stages=…). useSearchParams needs a
   // Suspense boundary above it, mirroring the register page's pattern.

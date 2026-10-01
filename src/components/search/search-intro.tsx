@@ -81,6 +81,30 @@ export function SearchIntro({
           </div>
         </div>
       )}
+
+      {/* Build credit — relocated here from the header so the logo stays a clean
+          link home. The hero shares the header's deep-teal background, so the
+          same primary-foreground link treatment carries over unchanged. */}
+      <p className="mt-5 text-center text-xs text-primary-foreground/70">
+        Made by{' '}
+        <a
+          href="https://www.foodpluspolicy.com/"
+          target="_blank"
+          rel="noreferrer"
+          className="underline decoration-primary-foreground/30 underline-offset-2 hover:decoration-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/60"
+        >
+          Hawai&#699;i Food+ Policy
+        </a>{' '}
+        &amp;{' '}
+        <a
+          href="https://www.purplemaia.org/"
+          target="_blank"
+          rel="noreferrer"
+          className="underline decoration-primary-foreground/30 underline-offset-2 hover:decoration-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/60"
+        >
+          Purple Mai&#699;a Foundation
+        </a>
+      </p>
     </div>
   );
 }

@@ -29,7 +29,7 @@ export function BillSearchView() {
   const { user, activeTenant } = useAuth();
   const isLoggedIn = Boolean(user);
   // Seed filters from the URL once, so a link into the page (e.g. a board
-  // column's "+" -> /search?stages=…&tracked=untracked) lands pre-filtered.
+  // column's "+" -> /discover?stages=…&tracked=untracked) lands pre-filtered.
   // Lazy init reads the params a single time; the filter controls own state
   // thereafter (they don't push back to the URL). A missing `years` param keeps
   // the default live-session scope rather than widening to all sessions.

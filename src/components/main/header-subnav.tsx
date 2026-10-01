@@ -8,19 +8,19 @@ import { ViewToggle } from './view-toggle';
 
 /**
  * Contextual sub-navigation for the header's center slot.
- * '/' and '/your-bills' host the board view toggle (logged-in only — hidden over
+ * '/your-bills' hosts the board view toggle (logged-in only — hidden over
  * the login wall); compact icon-only variant on mobile. It lives in the global header
  * rather than the board header so it stays reachable from the admin view.
  * /testimonies renders its All/Drafts/Submitted tabs (both logged-in only
  * — hidden over the login wall). /boards renders its View Board/Browse tabs
  * for everyone, since browsing public orgs needs no account; the View Board
- * tab itself gates. /search renders nothing yet; its sub-nav lands here later.
+ * tab itself gates. '/' and /discover render nothing yet; their sub-nav lands here later.
  */
 export function HeaderSubNav() {
   const pathname = usePathname();
   const { user } = useAuth();
 
-  if ((pathname === '/' || pathname.startsWith('/your-bills')) && user) {
+  if (pathname.startsWith('/your-bills') && user) {
     return (
       <>
         <div className="hidden md:block">

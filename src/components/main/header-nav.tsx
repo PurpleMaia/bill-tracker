@@ -6,7 +6,7 @@ import { FileText, KanbanSquareIcon, LayoutGrid, Search } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 
 export const NAV_ITEMS = [
-  { href: '/search', label: 'Discover Bills', icon: Search },
+  { href: '/discover', label: 'Discover', icon: Search },
   { href: '/your-bills', label: 'Your Bills', icon: KanbanSquareIcon },
   { href: '/testimonies', label: 'Testimonies', icon: FileText },
   // Lands on Browse, the section's public entry point — View Board is only
@@ -15,8 +15,8 @@ export const NAV_ITEMS = [
 ] as const;
 
 export function isNavItemActive(href: string, pathname: string) {
-  // '/' is Your Bills (the board), so the bare root highlights that tab.
-  if (href === '/your-bills') return pathname === '/' || pathname.startsWith('/your-bills');
+  // '/' is Discover (the landing page), so the bare root highlights that tab.
+  if (href === '/discover') return pathname === '/' || pathname.startsWith('/discover');
   // Active Boards owns the whole /boards tree, not just its own href, so the
   // tab stays highlighted on /boards (View Board) too.
   if (href === '/boards/browse') return pathname.startsWith('/boards');
