@@ -47,7 +47,8 @@ export function AuthHeader() {
         // right edge; feedback sits after it as a compact icon-only button so it
         // reads as secondary and never crowds the centered sub-nav. The label is
         // carried by the tooltip + aria-label. The dialog offers registration.
-        <>
+        // Tighter gap keeps the login/feedback pair reading as one cluster.
+        <div className="flex items-center gap-1">
           <LoginDialog />
           <Tooltip>
             <TooltipTrigger asChild>
@@ -64,7 +65,7 @@ export function AuthHeader() {
             </TooltipTrigger>
             <TooltipContent>Feedback</TooltipContent>
           </Tooltip>
-        </>
+        </div>
       )}
     </div>
   );
