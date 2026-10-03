@@ -3,8 +3,8 @@ import { Suspense } from 'react';
 import { BillSearchView } from '@/components/search/bill-search-view';
 
 export const metadata: Metadata = {
-  title: 'Discover Bills',
-  description: 'Discover every bill in the Hawaii legislature by number, title, or text.',
+  title: 'Hawaiʻi Bill Tracker',
+  description: 'Track every bill in the Hawaii legislature.',
 };
 
 export default function DiscoverPage() {

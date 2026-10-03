@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Building2, LogOut, MessageSquarePlus, Settings, Shield, UserPlus } from 'lucide-react';
+import { Building2, LogOut, MessageSquareText, Settings, Shield, UserPlus } from 'lucide-react';
 import { FEEDBACK_FORM_URL } from '@/lib/core/feedback';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useState, useCallback } from 'react';
@@ -135,7 +135,7 @@ export function UserMenu() {
           </DropdownMenuItem>
           <DropdownMenuItem asChild className='cursor-pointer'>
             <a href={FEEDBACK_FORM_URL} target="_blank" rel="noopener noreferrer">
-              <MessageSquarePlus className="mr-2 h-4 w-4" />
+              <MessageSquareText className="mr-2 h-4 w-4" />
               <span>Feedback</span>
             </a>
           </DropdownMenuItem>

@@ -1,9 +1,10 @@
 'use client';
 
 import { Suspense } from 'react';
-import { MessageSquarePlus } from 'lucide-react';
+import { MessageSquareText } from 'lucide-react';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { FEEDBACK_FORM_URL } from '@/lib/core/feedback';
 import { LoginDialog } from './login-dialog';
 import { UserMenu } from './user-menu';
@@ -42,22 +43,27 @@ export function AuthHeader() {
         <UserMenu />   //shows user menu if logged in
       ) : (
         // Signed-out users have no account menu, so the feedback link lives here
-        // beside the login trigger. Icon-only on mobile keeps the header's right
-        // track narrow so it never crowds the centered sub-nav; the label shows
-        // from md up. The dialog itself offers the route to registration.
+        // beside the login trigger. Login is the primary action and anchors the
+        // right edge; feedback sits after it as a compact icon-only button so it
+        // reads as secondary and never crowds the centered sub-nav. The label is
+        // carried by the tooltip + aria-label. The dialog offers registration.
         <>
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="text-primary-foreground hover:bg-white/10 hover:text-primary-foreground"
-          >
-            <a href={FEEDBACK_FORM_URL} target="_blank" rel="noopener noreferrer" aria-label="Feedback">
-              <MessageSquarePlus className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Feedback</span>
-            </a>
-          </Button>
           <LoginDialog />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                className="text-primary-foreground hover:bg-white/10 hover:text-primary-foreground"
+              >
+                <a href={FEEDBACK_FORM_URL} target="_blank" rel="noopener noreferrer" aria-label="Feedback">
+                  <MessageSquareText className="h-4 w-4" />
+                </a>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Feedback</TooltipContent>
+          </Tooltip>
         </>
       )}
     </div>
