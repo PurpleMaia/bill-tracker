@@ -4,8 +4,8 @@ import React, { createContext, useContext, useState, useEffect, useRef, ReactNod
 import { loadBoardFilters, saveBoardFilters } from '@/lib/bills/board-filter-storage';
 
 interface KanbanBoardContextType {
-  view: 'kanban' | 'spreadsheet' | 'admin' | 'supervisor';
-  setView: Dispatch<SetStateAction<'kanban' | 'spreadsheet' | 'admin' | 'supervisor'>>;
+  view: 'kanban' | 'spreadsheet' | 'calendar' | 'admin' | 'supervisor';
+  setView: Dispatch<SetStateAction<'kanban' | 'spreadsheet' | 'calendar' | 'admin' | 'supervisor'>>;
   columnView: 'detailed' | 'simplified';
   setColumnView: Dispatch<SetStateAction<'detailed' | 'simplified'>>;
   searchQuery: string;
@@ -22,7 +22,7 @@ const KanbanBoardContext = createContext<KanbanBoardContextType | undefined>(und
 
 export function KanbanBoardProvider({ children }: { children: ReactNode }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [view, setView] = useState<'kanban' | 'spreadsheet' | 'admin' | 'supervisor'>('kanban');
+  const [view, setView] = useState<'kanban' | 'spreadsheet' | 'calendar' | 'admin' | 'supervisor'>('kanban');
   const [columnView, setColumnView] = useState<'detailed' | 'simplified'>('simplified');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedYears, setSelectedYears] = useState<number[]>([]);
