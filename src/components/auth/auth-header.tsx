@@ -54,9 +54,9 @@ export function AuthHeader() {
             <TooltipTrigger asChild>
               <Button
                 asChild
-                variant="ghost"
+                variant="outline"
                 size="icon"
-                className="text-primary-foreground hover:bg-white/10 hover:text-primary-foreground"
+                className="h-10 w-10 shadow-sm text-primary bg-white"
               >
                 <a href={FEEDBACK_FORM_URL} target="_blank" rel="noopener noreferrer" aria-label="Feedback">
                   <MessageSquareText className="h-4 w-4" />
