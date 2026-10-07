@@ -23,7 +23,7 @@ import {
 import { loadSearchFilters, saveSearchFilters } from '@/lib/bills/search-filter-storage';
 
 /** Sessions the corpus covers, newest first. Mirrors the rail's YEARS list. */
-const SESSION_YEARS = [2027, 2026];
+const SESSION_YEARS = [2026];
 
 export function BillSearchView() {
   const { user, activeTenant } = useAuth();
@@ -145,12 +145,7 @@ export function BillSearchView() {
         <Search
           className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
           aria-hidden="true"
-        />
-        {/*
-          type="text", not type="search": WebKit renders its own clear affordance
-          inside a search input, which sat right next to ours and showed two X
-          buttons. We keep our own so it's styled and labeled consistently.
-        */}
+        />        
         <Input
           id="bill-search"
           type="text"
@@ -175,10 +170,6 @@ export function BillSearchView() {
   );
 
   return (
-    // h-full + min-h-0 makes this a fixed-height shell inside the (main) layout's
-    // scrollable <main>. Without it the whole page scrolled as one unit, which
-    // dragged the search header away and made the tail of the filter rail
-    // unreachable. The rail and the results below each own their scrolling.
     <div className="mx-auto flex h-full w-full min-h-0 max-w-6xl gap-6 p-4 md:p-6">
       <aside className="hidden w-60 shrink-0 lg:block">
         <div className="h-full min-h-0 overflow-y-auto pr-2">
