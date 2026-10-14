@@ -15,6 +15,7 @@ import { boardsClient } from './boards.client';
 import { summariesClient } from './summaries.client';
 import { legislatorsClient } from './legislators.client';
 import { committeesClient } from './committees.client';
+import { calendarClient } from './calendar.client';
 
 export const data = {
   bills: billsClient,
@@ -26,6 +27,7 @@ export const data = {
   summaries: summariesClient,
   legislators: legislatorsClient,
   committees: committeesClient,
+  calendar: calendarClient,
 };
 
 export type { Transport } from './transport';

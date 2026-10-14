@@ -1,6 +1,6 @@
 'use client';
 
-import { KanbanSquareIcon, Table, Users2Icon } from 'lucide-react';
+import { CalendarDaysIcon, KanbanSquareIcon, Table, Users2Icon } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/core/utils';
 const VIEW_META = {
   kanban: { label: 'Kanban', Icon: KanbanSquareIcon },
   spreadsheet: { label: 'Spreadsheet', Icon: Table },
+  calendar: { label: 'Calendar', Icon: CalendarDaysIcon },
   admin: { label: 'Admin', Icon: Users2Icon },
 } as const;
 
@@ -25,13 +26,13 @@ export function ViewToggle({ compact = false }: { compact?: boolean }) {
   const orgRole = activeTenant?.orgRole;
   const views: ViewId[] =
     user && orgRole === 'admin'
-      ? ['kanban', 'spreadsheet', 'admin']
-      : ['kanban', 'spreadsheet'];
+      ? ['kanban', 'spreadsheet', 'calendar', 'admin']
+      : ['kanban', 'spreadsheet', 'calendar'];
 
   return (
     <Tabs
       value={currentView}
-      onValueChange={(v) => setView(v as 'kanban' | 'spreadsheet' | 'admin' | 'supervisor')}
+      onValueChange={(v) => setView(v as ViewId | 'supervisor')}
       className="rounded-md shadow-sm"
     >
       <TabsList className="bg-secondary">

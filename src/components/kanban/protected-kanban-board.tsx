@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { KanbanBoard } from './kanban-board';
 import { KanbanSpreadsheet } from './kanban-spreadsheet';
+import { CalendarView } from '@/components/calendar/calendar-view';
 import { useTrackedBills } from '@/hooks/use-tracked-bills';
 import { TrackBillDialog } from './track-bill-dialog';
 import { useBills } from '@/hooks/contexts/bills-context';
@@ -40,7 +41,7 @@ export function ProtectedKanbanBoardOrSpreadsheet() {
     return (
       <div className="flex h-full min-h-0 flex-col">
         <KanbanHeader />
-        { view === 'kanban' ? <KanbanBoard readOnly={true} /> : <KanbanSpreadsheet />}
+        { view === 'kanban' ? <KanbanBoard readOnly={true} /> : view === 'calendar' ? <CalendarView /> : <KanbanSpreadsheet />}
       </div>
     );
   }
@@ -67,6 +68,15 @@ export function ProtectedKanbanBoardOrSpreadsheet() {
   // Public users and workers viewing "all-bills" mode are read-only
   const isReadOnly = isPublicUser || (activeTenant?.orgRole === 'worker' && viewMode === 'all-bills');
   const shouldShowUnadoptButton = user && (activeTenant?.orgRole === 'admin' || viewMode === 'my-bills');
+
+  if (view === 'calendar') {
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <KanbanHeader />
+        <CalendarView />
+      </div>
+    );
+  }
 
   if (view === 'spreadsheet') {
     // Show adopted bills in spreadsheet view
