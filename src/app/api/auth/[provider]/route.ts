@@ -11,6 +11,7 @@ import {
 } from '@/lib/auth/google-oauth';
 import { limitFixedWindow } from '@/lib/core/ratelimit-memory';
 import { getClientIp } from '@/lib/core/client-ip';
+import { appUrl } from '@/lib/core/app-url';
 
 const OAUTH_START_RATE_LIMIT = { limit: 10, windowMs: 5 * 60_000 };
 
@@ -40,7 +41,7 @@ export async function GET(
     OAUTH_START_RATE_LIMIT.windowMs
   );
   if (!rl.ok) {
-    return NextResponse.redirect(new URL('/?authError=rate_limited', request.url));
+    return NextResponse.redirect(appUrl('/?authError=rate_limited'));
   }
 
   const provider = resolveOAuthProvider(providerId);
@@ -53,7 +54,7 @@ export async function GET(
     config = provider.configFromEnv();
   } catch (error) {
     console.error(`[oauth/${providerId}/start]`, error);
-    return NextResponse.redirect(new URL('/?authError=not_configured', request.url));
+    return NextResponse.redirect(appUrl('/?authError=not_configured'));
   }
 
   const state = generateRandomToken();

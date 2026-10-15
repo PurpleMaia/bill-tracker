@@ -6,6 +6,7 @@ import { resolveGoogleUser, type ResolveGoogleUserResult } from '@/db/queries/us
 import { claimInviteToken, createOrgForNewUser, addMember } from '@/db/queries/tenants';
 import { createSession } from '@/lib/auth/session';
 import { setSessionCookie } from '@/lib/auth/cookies';
+import { appUrl } from '@/lib/core/app-url';
 
 /** Error codes the login/register UI knows how to render. */
 type AuthErrorCode =
@@ -60,7 +61,7 @@ export async function GET(
   const cookies = oauthCookieNames(providerId);
 
   function failureRedirect(code: AuthErrorCode): NextResponse {
-    const response = NextResponse.redirect(new URL(`/?authError=${code}`, request.url));
+    const response = NextResponse.redirect(appUrl(`/?authError=${code}`));
     clearOAuthCookies(response);
     return response;
   }
@@ -137,7 +138,7 @@ export async function GET(
 
     const token = await createSession(user.id);
 
-    const destination = new URL('/', request.url);
+    const destination = appUrl('/');
     if (inviteFailed) destination.searchParams.set('authError', 'invite_invalid');
 
     const response = NextResponse.redirect(destination, {

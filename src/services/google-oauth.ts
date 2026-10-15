@@ -12,6 +12,7 @@
  */
 
 import { createHash, randomBytes } from 'crypto';
+import { getAppUrl } from '@/lib/core/app-url';
 
 const GOOGLE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
@@ -42,13 +43,10 @@ export function getGoogleOAuthConfig(): GoogleOAuthConfig {
     );
   }
 
-  // Same base-URL convention as services/email.ts.
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
-
   return {
     clientId,
     clientSecret,
-    redirectUri: `${appUrl.replace(/\/$/, '')}/api/auth/google/callback`,
+    redirectUri: `${getAppUrl()}/api/auth/google/callback`,
   };
 }
 
