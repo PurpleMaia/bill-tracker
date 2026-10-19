@@ -40,7 +40,15 @@ export function InviteUserDialog({ open, onOpenChange }: InviteUserDialogProps) 
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.emailSent === false) {
+        toast({
+          title: 'Invite created, but the email failed to send',
+          description: `${data.emailError} Copy the invite link for ${email.trim()} from the Pending Invites section of the Admin dashboard and share it directly.`,
+          variant: 'destructive',
+        });
+        setEmail('');
+        onOpenChange(false);
+      } else if (response.ok) {
         toast({
           title: 'Invite sent',
           description: `An invitation has been sent to ${email.trim()}. You can manage and copy invite links in the Pending Invites section of the Admin dashboard.`,

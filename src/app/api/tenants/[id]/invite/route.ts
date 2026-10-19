@@ -87,12 +87,22 @@ export async function POST(
 
     const orgName = tenant?.name ?? 'an organization';
 
-    // Send invite email (fire-and-forget — don't block the response)
-    sendInviteEmail(email, orgName, token).catch((err) => {
-      console.error('Failed to send invite email, but invite token was created:', err);
-    });
+    // Awaited so the admin learns when delivery fails. The invite itself is
+    // still valid either way — its link can be copied from Pending Invites —
+    // so a failed send is reported alongside a 201, not as an error status.
+    const sendResult = await sendInviteEmail(email, orgName, token);
+    if (!sendResult.success) {
+      const reason =
+        typeof sendResult.error === 'string'
+          ? sendResult.error
+          : (sendResult.error as { message?: string } | undefined)?.message;
+      return NextResponse.json(
+        { success: true, emailSent: false, emailError: reason || 'The email could not be sent.' },
+        { status: 201 }
+      );
+    }
 
-    return NextResponse.json({ success: true }, { status: 201 });
+    return NextResponse.json({ success: true, emailSent: true }, { status: 201 });
   } catch (error: any) {
     if (error?.statusCode) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
