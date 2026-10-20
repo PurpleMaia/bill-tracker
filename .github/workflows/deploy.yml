@@ -18,6 +18,6 @@ jobs:
       - name: Push to dokku
         uses: dokku/github-action@master
         with:
-          git_remote_url: 'ssh://dokku@dokku-pmf-sandbox.westus2.cloudapp.azure.com:22/bill-tracker'
+          git_remote_url: 'ssh://dokku@dokku-pmf-sandbox.westus2.cloudapp.azure.com:22/bill-tracker-next'
           ssh_private_key: ${{ secrets.SSH_PRIVATE_SANDBOX_DOKKU }}
           branch: main
