@@ -62,7 +62,15 @@ export function RegisterDialog() {
         inviteToken ? undefined : (createOrg ? orgName.trim() : undefined),
         inviteToken || undefined
       );
-      if (result.success) {
+      if (result.success && result.inviteError) {
+        toast({
+          title: 'Account created',
+          description: `Your account was created, but the invite could not be applied: ${result.inviteError}`,
+          variant: 'destructive',
+        });
+        setIsOpen(false);
+        window.history.replaceState({}, '', window.location.pathname);
+      } else if (result.success) {
         toast({
           title: 'Welcome!',
           description: inviteOrgName

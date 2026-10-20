@@ -447,49 +447,81 @@ export async function listFollowedTenants(userId: string) {
   }));
 }
 
+type InviteResult = { ok: true; tenantId: string } | { ok: false; reason: string };
+
+const INVITE_INVALID = 'Invite is invalid, expired, or already used.';
+const INVITE_WRONG_EMAIL = 'This invite was issued to a different email address.';
+
 /**
- * Claims an invite token atomically and returns the org it grants access to.
+ * Checks that an invite is redeemable by `email` WITHOUT consuming it.
  *
- * The UPDATE ... WHERE status='pending' is what makes this safe: two
- * simultaneous redemptions of the same token race on the same row, and only
- * the one that flips the status sees a row returned.
- *
- * Returns a `reason` instead of throwing because every caller renders the
- * failure to the user rather than treating it as an error.
- *
- * Extracted from the register route so the Google OAuth callback claims
- * invites through exactly the same path — CLAUDE.md keeps queries here, not
- * inline in a transport.
+ * Registration runs this before creating the account so a bad invite is
+ * rejected up front, while the token itself is only spent by
+ * redeemInviteToken once a user exists to receive the membership.
  */
-export async function claimInviteToken(
-  token: string,
-  email: string
-): Promise<{ ok: true; tenantId: string } | { ok: false; reason: string }> {
+export async function checkInviteToken(token: string, email: string): Promise<InviteResult> {
   const invite = await db
-    .updateTable('invite_tokens')
-    .set({ status: 'accepted', accepted_at: new Date() })
+    .selectFrom('invite_tokens')
+    .select(['tenant_id', 'email'])
     .where('token', '=', token)
     .where('status', '=', 'pending')
     .where('expires_at', '>', new Date())
-    .returning(['id', 'tenant_id', 'email'])
     .executeTakeFirst();
 
-  if (!invite) {
-    return { ok: false, reason: 'Invite is invalid, expired, or already used.' };
-  }
-
-  // An invite is issued to one address. Release the claim so a mis-matched
-  // attempt doesn't burn a token the rightful recipient still needs.
-  if (invite.email !== email) {
-    await db
-      .updateTable('invite_tokens')
-      .set({ status: 'pending', accepted_at: null })
-      .where('id', '=', invite.id)
-      .execute();
-    return { ok: false, reason: 'This invite was issued to a different email address.' };
-  }
-
+  if (!invite) return { ok: false, reason: INVITE_INVALID };
+  // An invite is issued to one address.
+  if (invite.email !== email) return { ok: false, reason: INVITE_WRONG_EMAIL };
   return { ok: true, tenantId: invite.tenant_id };
+}
+
+/**
+ * Claims an invite token and adds `userId` to its org, in one transaction.
+ *
+ * The claim is the UPDATE ... WHERE status='pending' (two simultaneous
+ * redemptions race on the same row and only one sees it returned), and it
+ * carries the email match so a mismatched attempt never touches the row. Doing
+ * the membership insert in the same transaction means a failure there rolls the
+ * claim back instead of burning a token the invitee still needs.
+ *
+ * Returns a `reason` instead of throwing because every caller renders the
+ * failure to the user rather than treating it as an error. Shared by the
+ * register route and the OAuth callback so both redeem through one path.
+ */
+export async function redeemInviteToken(
+  token: string,
+  email: string,
+  userId: string
+): Promise<InviteResult> {
+  const tenantId = await db.transaction().execute(async (trx) => {
+    const invite = await trx
+      .updateTable('invite_tokens')
+      .set({ status: 'accepted', accepted_at: new Date() })
+      .where('token', '=', token)
+      .where('status', '=', 'pending')
+      .where('expires_at', '>', new Date())
+      .where('email', '=', email)
+      .returning('tenant_id')
+      .executeTakeFirst();
+
+    if (!invite) return null;
+
+    // An invitee who is already a member (e.g. a returning user re-following
+    // the link) just has the invite marked accepted.
+    await trx
+      .insertInto('members')
+      .values({ user_id: userId, tenant_id: invite.tenant_id, org_role: 'worker' })
+      .onConflict((oc) => oc.columns(['user_id', 'tenant_id']).doNothing())
+      .execute();
+
+    return invite.tenant_id;
+  });
+
+  if (tenantId) return { ok: true, tenantId };
+
+  // Nothing was claimed; report why. If the check now passes, another request
+  // won the race for this token, which is the same as it being used.
+  const check = await checkInviteToken(token, email);
+  return check.ok ? { ok: false, reason: INVITE_INVALID } : check;
 }
 
 /**

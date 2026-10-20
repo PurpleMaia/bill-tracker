@@ -110,13 +110,36 @@ export async function findUserByEmailForReset(
   return user ?? null;
 }
 
-/** Updates the user's password. Passwords live in auth_key, not on user. */
+/**
+ * Sets the user's password. Passwords live in auth_key, not on user.
+ *
+ * A Google-only account has no auth_key row, so a plain UPDATE would match
+ * nothing while the reset reports success. Such accounts get a credential
+ * inserted instead, and are promoted from 'google' to 'both' — the same state
+ * linking Google to a password account produces.
+ */
 export async function updateUserPassword(userId: string, hashedPassword: string): Promise<void> {
-  await db
-    .updateTable('auth_key')
-    .set({ hashed_password: hashedPassword })
-    .where('user_id', '=', userId)
-    .execute();
+  await db.transaction().execute(async (trx) => {
+    const updated = await trx
+      .updateTable('auth_key')
+      .set({ hashed_password: hashedPassword })
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    if (Number(updated.numUpdatedRows) > 0) return;
+
+    await trx
+      .insertInto('auth_key')
+      .values({ id: randomUUID(), user_id: userId, hashed_password: hashedPassword })
+      .execute();
+
+    await trx
+      .updateTable('user')
+      .set({ auth_provider: 'both' })
+      .where('id', '=', userId)
+      .where('auth_provider', '=', 'google')
+      .execute();
+  });
 }
 
 /**

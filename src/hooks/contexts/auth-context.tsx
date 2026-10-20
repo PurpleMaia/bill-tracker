@@ -20,7 +20,7 @@ interface AuthContextType {
   // Auth actions
   login: (authString: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  register: (email: string, username: string, password: string, orgName?: string, inviteToken?: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, username: string, password: string, orgName?: string, inviteToken?: string) => Promise<{ success: boolean; error?: string; inviteError?: string }>;
   checkSession: () => Promise<void>;
 
   // User preferences
@@ -190,7 +190,7 @@ export function AuthProvider({
     }
   };
 
-  const register = async (email: string, username: string, password: string, orgName?: string, inviteToken?: string): Promise<{ success: boolean; error?: string }> => {
+  const register = async (email: string, username: string, password: string, orgName?: string, inviteToken?: string): Promise<{ success: boolean; error?: string; inviteError?: string }> => {
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -220,7 +220,8 @@ export function AuthProvider({
             setPreferences(null);
           }
         }
-        return { success: true };
+        // Set when the account was created but the invite could not be applied.
+        return { success: true, inviteError: typeof data.inviteError === 'string' ? data.inviteError : undefined };
       } else {
         const errorData = await response.json();
         const errorMsg = typeof errorData.error === 'string'

@@ -3,7 +3,7 @@ import { resolveOAuthProvider, type OAuthIdentity } from '@/services/oauth';
 import { isKnownProvider, oauthCookieNames } from '@/lib/auth/oauth-registry';
 import { isValidOAuthState, decodeSignupPayload } from '@/lib/auth/google-oauth';
 import { resolveGoogleUser, type ResolveGoogleUserResult } from '@/db/queries/users';
-import { claimInviteToken, createOrgForNewUser, addMember } from '@/db/queries/tenants';
+import { redeemInviteToken, createOrgForNewUser } from '@/db/queries/tenants';
 import { createSession } from '@/lib/auth/session';
 import { setSessionCookie } from '@/lib/auth/cookies';
 import { appUrl } from '@/lib/core/app-url';
@@ -115,25 +115,24 @@ export async function GET(
 
     const { user, isNewUser } = result;
 
-    // Org side-payloads apply only to a genuinely new account. Replaying them
-    // for a returning user would let a stale cookie silently re-create orgs.
-    let inviteFailed = false;
-    if (isNewUser) {
-      const payload = decodeSignupPayload(request.cookies.get(cookies.payload)?.value);
+    const payload = decodeSignupPayload(request.cookies.get(cookies.payload)?.value);
 
-      if (payload.inviteToken) {
-        const claimed = await claimInviteToken(payload.inviteToken, user.email);
-        if (claimed.ok) {
-          await addMember(claimed.tenantId, user.id, 'worker', { skipAuth: true });
-        } else {
-          // The account is already created and valid, so sign them in anyway
-          // and tell them the invite did not apply.
-          console.warn(`[oauth/${providerId}/callback] Invite claim failed:`, claimed.reason);
-          inviteFailed = true;
-        }
-      } else if (payload.orgName) {
-        await createOrgForNewUser(payload.orgName, user.id);
+    // An invite applies to new AND returning users: an admin can invite someone
+    // who already has an account. It is safe to replay because redemption is
+    // bound to the provider-verified email and a token can only be claimed once.
+    let inviteFailed = false;
+    if (payload.inviteToken) {
+      const redeemed = await redeemInviteToken(payload.inviteToken, user.email, user.id);
+      if (!redeemed.ok) {
+        // The account is valid, so sign them in anyway and tell them the
+        // invite did not apply.
+        console.warn(`[oauth/${providerId}/callback] Invite redemption failed:`, redeemed.reason);
+        inviteFailed = true;
       }
+    } else if (payload.orgName && isNewUser) {
+      // Org creation applies only to a genuinely new account. Replaying it for
+      // a returning user would let a stale cookie silently re-create orgs.
+      await createOrgForNewUser(payload.orgName, user.id);
     }
 
     const token = await createSession(user.id);
