@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { billActionHref } from '@/lib/bills/bill-dialog-url';
 import type { Bill, BillStatus, BillDetails, StatusUpdate } from '@/types/legislation';
 import {
   Dialog,
@@ -48,11 +49,13 @@ import type { BillStatus as DBBillStatus } from '@/db/types';
 import type { BoardMode } from '@/lib/bills/board-display';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 
-interface BillDetailsDialogProps {
+export interface BillDetailsDialogProps {
   billID: string | null;
   isOpen: boolean;
   onClose: () => void;
   boardMode?: BoardMode;
+  /** Page the Contact / Testimony pages' Back button returns to (set by UrlBillDetailsDialog). */
+  returnTo?: string;
   /**
    * Optional control rendered beside the header CTAs. The search page passes a
    * Track button here — a bill opened from search may not be tracked yet, while
@@ -86,11 +89,31 @@ const TABS: readonly DialogTab[] = [
   { id: 'updates', label: 'Status Updates', shortLabel: 'Updates', icon: Clock, mobileOnly: true },
 ];
 
-export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', trackSlot }: BillDetailsDialogProps) {
+export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', returnTo, trackSlot }: BillDetailsDialogProps) {
   const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills();
   const { user, activeTenant } = useAuth();
   const isMobile = useIsMobile();
   const router = useRouter();
+  // Hosts may pass billID null the moment the dialog closes; keep showing the
+  // last bill until the close animation (200ms) has played — see the reset
+  // effect below — then drop it so a closed dialog renders nothing.
+  const [shownId, setShownId] = useState<string | null>(billID);
+  if (billID !== null && billID !== shownId) setShownId(billID);
+
+  // Set while leaving for Contact / Testimony: the dialog stays up until the
+  // next page renders, so show progress and ignore dismissals meanwhile
+  // (closing would pop the history entry the user is about to come back to).
+  const [navigatingTo, setNavigatingTo] = useState<'testimony' | 'contact' | null>(null);
+  useEffect(() => {
+    if (!navigatingTo) return;
+    // Browser back/forward mid-navigation abandons it.
+    const reset = () => setNavigatingTo(null);
+    window.addEventListener('popstate', reset);
+    return () => window.removeEventListener('popstate', reset);
+  }, [navigatingTo]);
+  const handleOpenChange = () => {
+    if (!navigatingTo) onClose();
+  };
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [, setSaving] = useState<boolean>(false);
   const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
@@ -105,11 +128,13 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   // is also opened from /search over the FULL corpus, where the clicked bill is
   // usually absent from context. Fall back to the fetched billDetails (which
   // extends Bill) so a search result still renders instead of returning null.
-  const contextBill = useMemo(() => bills.find(b => b.id === billID), [bills, billID]);
+  const contextBill = useMemo(() => bills.find(b => b.id === shownId), [bills, shownId]);
   const bill = contextBill ?? billDetails;
 
   useEffect(() => {
     if (isOpen && billID) {
+      // Reopened on a different bill before the close reset ran: don't show the old one's details.
+      setBillDetails((prev) => (prev?.id === billID ? prev : null));
       setLoadingDetails(true);
       setDetailsError(null);
       getBillDetails(billID)
@@ -129,7 +154,19 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   }, [isOpen, billID]);
 
   useEffect(() => {
-    if (!isOpen) { setSelectedStatus(''); setBillDetails(null); setDetailsError(null); setActiveTab('overview'); }
+    if (isOpen) return;
+    setNavigatingTo(null);
+    // Clear what the dialog displays only after the close animation, so a
+    // closing dialog keeps its content (fetched details are the only source
+    // for search results that aren't in the bills context).
+    const timer = setTimeout(() => {
+      setShownId(null);
+      setSelectedStatus('');
+      setBillDetails(null);
+      setDetailsError(null);
+      setActiveTab('overview');
+    }, 300);
+    return () => clearTimeout(timer);
   }, [isOpen]);
 
   // 'updates' only exists on mobile. Crossing to desktop while it is selected
@@ -143,10 +180,16 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   // the fetch is in flight show a minimal loading shell (a search result not in
   // context would otherwise flash nothing); once it resolves `bill` is set from
   // billDetails and the full dialog renders below.
+  const goTo = (action: 'testimony' | 'contact') => {
+    if (!bill || navigatingTo) return;
+    setNavigatingTo(action);
+    router.push(billActionHref(bill.id, action, returnTo));
+  };
+
   if (!bill) {
     if (!isOpen) return null;
     return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-[100vw] sm:max-w-2xl h-[100dvh] sm:h-auto flex flex-col items-center justify-center gap-3 p-8">
           {detailsError ? (
             <p className="text-sm text-destructive">Failed to load bill details.</p>
@@ -281,7 +324,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[100vw] sm:max-w-7xl h-[100dvh] sm:h-[95vh] flex flex-col p-0 gap-0 rounded-none sm:rounded-lg [&>button]:p-2 [&>button]:rounded-md sm:[&>button]:p-0 sm:[&>button]:rounded-sm">
         {/* Header — compact, with progress.
             text-left overrides DialogHeader's `text-center sm:text-left` default,
@@ -418,10 +461,8 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                           size="sm"
                           variant="outline"
                           className="relative"
-                          onClick={() => {
-                            onClose();
-                            router.push(`/bills/${bill.id}/testimony`);
-                          }}
+                          disabled={navigatingTo !== null}
+                          onClick={() => goTo('testimony')}
                         >
                           {testimonyUrgent && (
                             <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5" aria-hidden="true">
@@ -429,7 +470,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
                             </span>
                           )}
-                          <PenLine className="mr-1.5 h-3.5 w-3.5" />
+                          {navigatingTo === 'testimony' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <PenLine className="mr-1.5 h-3.5 w-3.5" />}
                           Write Testimony
                         </Button>
                       </TooltipTrigger>
@@ -478,12 +519,10 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => {
-                    onClose();
-                    router.push(`/bills/${bill.id}/contact`);
-                  }}
+                  disabled={navigatingTo !== null}
+                  onClick={() => goTo('contact')}
                 >
-                  <Users className="mr-1.5 h-3.5 w-3.5" />
+                  {navigatingTo === 'contact' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Users className="mr-1.5 h-3.5 w-3.5" />}
                   Contact Legislator
                 </Button>
               ))}
@@ -504,9 +543,9 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
             <div className="text-center">
               <p className="text-sm text-destructive">{detailsError}</p>
               <Button variant="outline" size="sm" className="mt-4" onClick={() => {
-                if (billID) {
+                if (shownId) {
                   setLoadingDetails(true); setDetailsError(null);
-                  getBillDetails(billID).then(setBillDetails).catch(() => setDetailsError('Failed to load')).finally(() => setLoadingDetails(false));
+                  getBillDetails(shownId).then(setBillDetails).catch(() => setDetailsError('Failed to load')).finally(() => setLoadingDetails(false));
                 }
               }}>Try Again</Button>
             </div>
@@ -529,8 +568,8 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                     currentStageName={currentStageName}
                     onNextStep={(action) => {
                       if (action === 'diff' || action === 'reports') setActiveTab('versions');
-                      else if (action === 'testimony') { onClose(); router.push(`/bills/${bill.id}/testimony`); }
-                      else if (action === 'contact') { onClose(); router.push(`/bills/${bill.id}/contact`); }
+                      else if (action === 'testimony') goTo('testimony');
+                      else if (action === 'contact') goTo('contact');
                     }}
                   />
 
@@ -679,7 +718,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                       {leftPanel}
                     </TabsContent>
                     <TabsContent value="versions" className="flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden">
-                      <VersionsReportsTab billId={billID ?? ""} versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
+                      <VersionsReportsTab billId={shownId ?? ""} versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
                     </TabsContent>
                     <TabsContent value="updates" className="flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden">
                       {activityPanel}
@@ -719,25 +758,19 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                           <Button
                             variant="outline"
                             className="h-11 w-full px-2"
-                            disabled={!testimonyEligibility.allowed}
-                            onClick={() => {
-                              onClose();
-                              router.push(`/bills/${bill.id}/testimony`);
-                            }}
+                            disabled={!testimonyEligibility.allowed || navigatingTo !== null}
+                            onClick={() => goTo('testimony')}
                           >
-                            <PenLine className="mr-1.5 h-4 w-4 shrink-0" />
+                            {navigatingTo === 'testimony' ? <Loader2 className="mr-1.5 h-4 w-4 shrink-0 animate-spin" /> : <PenLine className="mr-1.5 h-4 w-4 shrink-0" />}
                             <span className="truncate">Testimony</span>
                           </Button>
                           <Button
                             variant="outline"
                             className="h-11 w-full px-2"
-                            disabled={contactDisabled}
-                            onClick={() => {
-                              onClose();
-                              router.push(`/bills/${bill.id}/contact`);
-                            }}
+                            disabled={contactDisabled || navigatingTo !== null}
+                            onClick={() => goTo('contact')}
                           >
-                            <Users className="mr-1.5 h-4 w-4 shrink-0" />
+                            {navigatingTo === 'contact' ? <Loader2 className="mr-1.5 h-4 w-4 shrink-0 animate-spin" /> : <Users className="mr-1.5 h-4 w-4 shrink-0" />}
                             <span className="truncate">Contact</span>
                           </Button>
                         </div>
@@ -785,7 +818,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   </div>
                 </TabsContent>
                 <TabsContent value="versions" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
-                  <VersionsReportsTab billId={billID ?? ""} versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
+                  <VersionsReportsTab billId={shownId ?? ""} versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
                 </TabsContent>
               </Tabs>
             );
