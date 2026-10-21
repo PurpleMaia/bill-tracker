@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
-import { getAllTags, getBillTags, updateBillTags } from '@/services/data/tags';
+import { getAllTags, getBillTags, updateBillTags } from '@/db/queries/tags';
 import type { Tag } from '@/types/legislation';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -21,22 +21,24 @@ export function TagSelector({ billId, onTagsChange, readOnly = false }: TagSelec
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const { user } = useAuth();
+  const { user, activeTenant } = useAuth();
   const { updateBill } = useBills();
 
+  if (!activeTenant) return null;
+
   // Determine if user can manage tags (admin/supervisor only, unless explicitly read-only)
-  const canManageTags = !readOnly && (user?.role === 'admin' || user?.role === 'supervisor');
+  const canManageTags = !readOnly && activeTenant?.orgRole === 'admin';
 
   useEffect(() => {
     loadData();
-  }, [billId]);
+  }, [billId, activeTenant]);
 
   const loadData = async () => {
     setLoading(true);
     try {
       const [tags, billTags] = await Promise.all([
-        getAllTags(),
-        getBillTags(billId),
+        getAllTags(activeTenant.tenantId),
+        getBillTags(billId, activeTenant.tenantId),
       ]);
       setAllTags(tags);
       setSelectedTags(billTags);
@@ -72,7 +74,8 @@ export function TagSelector({ billId, onTagsChange, readOnly = false }: TagSelec
     try {
       const updatedTags = await updateBillTags(
         billId,
-        newSelectedTags.map(t => t.id)
+        newSelectedTags.map(t => t.id),
+        activeTenant.tenantId
       );
       setSelectedTags(updatedTags);
       // Update the bill's tags in the context without refreshing everything

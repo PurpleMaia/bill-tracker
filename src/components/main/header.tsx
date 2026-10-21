@@ -1,90 +1,49 @@
-'use client'; // Keep header client-side for search input interaction
+'use client';
 
-import { Input } from '@/components/ui/input';
-import { KanbanSquareIcon, ListCheck, Search, Table, Users2Icon } from 'lucide-react';
-import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
-import { useAuth } from '@/hooks/contexts/auth-context';
+import Link from 'next/link';
 import { AuthHeader } from '../auth/auth-header';
-import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
+import { HeaderNav } from './header-nav';
+import { HeaderSubNav } from './header-subnav';
 
 export function Header() {
-  const { view: currentView, setView } = useKanbanBoard();
-  const { user } = useAuth();
-  const publicViews = ['kanban', 'spreadsheet'];  
-
-  const role = user?.role;
-  const views = user
-    ? role === 'admin'
-      ? ['kanban', 'spreadsheet', 'approvals', 'admin']
-      : role === 'supervisor'
-        ? ['kanban', 'spreadsheet', 'approvals']
-        : ['kanban', 'spreadsheet']
-    : publicViews;
-
-  const { setSearchQuery } = useKanbanBoard(); // Access context
-
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const query = event.target.value
-
-    setSearchQuery(query);
-  };
-
   return (
-    <>
-      <header className="sticky top-0 z-10 flex items-center px-8 py-4 border-b bg-white ">
-        {/* Info */}
-        <div className="flex-shrink-0">
-          {/* FOOD+ LOGO HERE */}
-          <h1 className="text-xl font-semibold">Food+ Bill Tracker</h1>
-        </div>
-
-        {/* View Select Bar */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex justify-center w-fit">
-          <Tabs
-            value={currentView}
-            onValueChange={(v) => setView(v as "kanban" | "spreadsheet" | "admin" | "approvals" | "supervisor")}
-            className='border rounded-md shadow-sm'
-          >
-            <TabsList>
-              {views.map(v => (
-                <TabsTrigger key={v} value={v}
-                  className='data-[state=active]:bg-accent data-[state=active]:text-white'
-                >
-                  {getIconForView(v)} {v.charAt(0).toUpperCase() + v.slice(1)}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
-        
-        {/* Search and Auth */}
-        <div className="relative max-w-md flex gap-4 flex-shrink-0 ml-auto">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search..."
-            className="w-full rounded-md bg-muted pl-9 focus:bg-background shadow-sm"
-            onChange={handleSearchChange}
-            aria-label="Search bills"
+    // Three-column grid with equal flexible side tracks so the sub-nav sits at
+    // the true center of the viewport at every breakpoint, regardless of how
+    // wide the brand or the nav/auth cluster is.
+    <header className="sticky top-0 z-10 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 md:gap-4 px-3 md:px-8 py-3 md:py-4 border-b-[3px] border-olive bg-primary text-primary-foreground">
+      {/* Brand — logo only on mobile, logo + name on md+. The build credit now
+          lives in the Discover hero (the landing page), not under the logo. */}
+      <h1 className="min-w-0 justify-self-start font-semibold text-primary-foreground">
+        <Link
+          href="/"
+          className="flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- tiny static asset, no optimization needed */}
+          <img
+            src="/favicon.ico"
+            alt=""
+            className="h-7 w-7 shrink-0 rounded-md"
           />
-          <AuthHeader />
-        </div>
-      </header>
-    </>
-  );
-}
+          <span className="hidden truncate text-lg md:block md:text-xl">Hawaiʻi Bill Tracker</span>
+          <span className="sr-only md:hidden">Hawaiʻi Bill Tracker</span>
+        </Link>
+      </h1>
 
-function getIconForView(view: string) {
-  switch (view) {
-    case 'kanban':
-      return <KanbanSquareIcon className="h-5 w-5 mr-2" />;
-    case 'spreadsheet':
-      return <Table className="h-5 w-5 mr-2" />;
-    case 'approvals':
-      return <ListCheck className="h-5 w-5 mr-2" />;
-    case 'admin':    
-      return <Users2Icon className="h-5 w-5 mr-2" />;
-    default:
-      return null;
-  }
+      {/* Contextual sub-nav — centered grid track (auto-sized, so it keeps its
+          intrinsic width while the minmax(0,1fr) side tracks absorb the
+          remaining space). */}
+      <div className="min-w-0 px-2">
+        <HeaderSubNav />
+      </div>
+
+      {/* Nav links (desktop) + avatar/login (all sizes; page nav lives in the
+          bottom tab bar on mobile) */}
+      <div className="flex items-center gap-4 justify-self-end">
+        <div className="hidden md:flex items-center gap-4">
+          <HeaderNav />
+        </div>
+        <AuthHeader />
+      </div>
+    </header>
+  );
 }

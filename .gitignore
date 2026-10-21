@@ -39,3 +39,6 @@ yarn-error.log*
 next-env.d.ts
 
 .genkit/*
+
+# Superpowers SDD scratch workspace (ledger, briefs, review packages)
+.superpowers/

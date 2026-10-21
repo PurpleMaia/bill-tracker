@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSession } from '@/lib/auth';
+import { validateSession } from '@/lib/auth/session';
 import { db } from '../../../../db/kysely/client';
-import { getSessionCookie } from '@/lib/cookies';
+import { getSessionCookie } from '@/lib/auth/cookies';
 
 export async function GET(request: NextRequest) {
   try {

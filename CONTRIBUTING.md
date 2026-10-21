@@ -29,7 +29,7 @@ We use GitHub to monitor version control and manage reviews. Every change should
    - `git commit -m "<commit message for iterative change>"`
    - `git push`
 3. Wait for CI checks (lint, typecheck, build, tests) to pass.
-   - `npm run lint`
+   - `pnpm lint`
 4. Open a PR in GitHub.
 5. Fill out the PR template.
 6. Request review from a cluster/project lead

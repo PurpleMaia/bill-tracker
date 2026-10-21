@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {deleteSession } from '@/lib/auth';
-import { getClearSessionCookie, getSessionCookie } from '@/lib/cookies';
+import {deleteSession } from '@/lib/auth/session';
+import { getClearSessionCookie, getSessionCookie } from '@/lib/auth/cookies';
 
 export async function POST(request: NextRequest) {
   try {

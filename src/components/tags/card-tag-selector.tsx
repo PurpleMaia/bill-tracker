@@ -9,7 +9,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Plus, X } from 'lucide-react';
-import { getAllTags, getBillTags, updateBillTags } from '@/services/data/tags';
+import { getAllTags, getBillTags, updateBillTags } from '@/db/queries/tags';
 import type { Tag } from '@/types/legislation';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -26,20 +26,23 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, activeTenant } = useAuth();
   const { updateBill } = useBills();
 
-  const canManageTags = user?.role === 'admin' || user?.role === 'supervisor';
+  const canManageTags = activeTenant?.orgRole === 'admin';
 
   // Use billTags prop directly for display - no local state sync needed
   const displayTags = billTags || [];
 
   useEffect(() => {
-    if (open && canManageTags) {
+    // Guard inside the effect (not with an early return above) so the hook is
+    // always called — an early `return null` before this useEffect changes the
+    // hook count when activeTenant toggles, violating the Rules of Hooks.
+    if (open && canManageTags && activeTenant) {
       const loadData = async () => {
         setLoading(true);
         try {
-          const tags = await getAllTags();
+          const tags = await getAllTags(activeTenant.tenantId);
           setAllTags(tags);
         } catch (error) {
           console.error('Failed to load tags:', error);
@@ -49,7 +52,10 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
       };
       loadData();
     }
-  }, [open, canManageTags]);
+  }, [open, canManageTags, activeTenant]);
+
+  // Safe to bail now — all hooks above have been called unconditionally.
+  if (!activeTenant) return null;
 
   const handleToggleTag = async (tag: Tag) => {
     if (!canManageTags) return;
@@ -68,7 +74,8 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
     try {
       const updatedTags = await updateBillTags(
         billId,
-        newSelectedTags.map(t => t.id)
+        newSelectedTags.map(t => t.id),
+        activeTenant.tenantId
       );
       toast({
         title: 'Success',

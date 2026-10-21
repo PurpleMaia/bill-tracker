@@ -3,42 +3,31 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { data } from "@/lib/data-client";
 
 interface RequestSupervisorAccessButtonProps {
-  userId: string;
+  email: string;
   supervisorRequested: boolean;
   setRequested: (requested: boolean) => void;
 }
 
-export function RequestSupervisorAccessButton({ userId, supervisorRequested, setRequested }: RequestSupervisorAccessButtonProps) {
-  const [isRequesting, setIsRequesting] = useState(false); 
+export function RequestSupervisorAccessButton({ email, supervisorRequested, setRequested }: RequestSupervisorAccessButtonProps) {
+  const [isRequesting, setIsRequesting] = useState(false);
   const { toast } = useToast();
 
   const handleRequest = async () => {
     setIsRequesting(true);
     try {
-      const res = await fetch("/api/supervisor/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await data.access.requestSupervisor({ email });
+      toast({
+        title: "Request sent!",
+        description: "Your request for Supervisor access has been submitted. Please wait for approval.",
       });
-      if (res.ok) {
-        toast({
-          title: "Request sent!",
-          description: "Your request for Supervisor access has been submitted. Please wait for approval.",
-        });
-        setRequested(true);
-      } else {
-        const errorData = await res.json();
-        toast({
-          title: "Request failed",
-          description: errorData.error || "Could not send your request. Please try again later.",
-          variant: "destructive",
-        });
-      }
+      setRequested(true);
     } catch (e) {
       toast({
-        title: "Error",
-        description: "An unexpected error occurred.",
+        title: "Request failed",
+        description: "Could not send your request. Please try again later.",
         variant: "destructive",
       });
     } finally {

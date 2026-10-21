@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import type { BillDetails } from '@/types/legislation';
+import React, { useMemo, useState, useCallback } from 'react';
+import type { Bill } from '@/types/legislation';
 import {
   Table,
   TableHeader,
@@ -11,192 +11,380 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
-import { getBillDetails } from '@/services/data/legislation';
-import { formatBillStatusName } from '@/lib/utils';
+import { BillDetailsDialog } from './bill-details-dialog';
+import { cn, formatBillStatusName, todayHawaii } from '@/lib/core/utils';
+import { Term } from '@/components/ui/term';
+import { resolveStatusTerm, resolveCommitteeTerm } from '@/lib/glossary/resolvers';
+import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
+import { parseCommitteeCodes } from '@/lib/testimony/committees';
+import { filterBills } from '@/lib/bills/bill-filters';
+import { getNextDeadline } from '@/lib/bills/dead-bill';
+import type { SessionDeadlines, DeadlineEntry } from '@/lib/bills/dead-bill';
+import type { BillStatus as DBBillStatus } from '@/db/types';
+import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 
+// ─── Sort Types ──────────────────────────────────────────────
+type SortKey = 'bill_number' | 'current_bill_status' | 'bill_title' | 'committee_assignment' | 'introducer' | 'year' | 'next_deadline';
+type SortDirection = 'asc' | 'desc';
 
-interface KanbanSpreadsheetProps {
-  isPublicView?: boolean;
+// ─── Helpers ─────────────────────────────────────────────────
+
+function computeDeadline(bill: Bill, today: string): DeadlineEntry | null {
+  if (bill.dead || !bill.committee_assignment || !bill.current_bill_status) return null;
+  return getNextDeadline(
+    bill.bill_number,
+    bill.current_bill_status as DBBillStatus,
+    bill.committee_assignment,
+    SESSION_DEADLINES,
+    today,
+  );
 }
 
-export function KanbanSpreadsheet({ isPublicView = false }: KanbanSpreadsheetProps) {
-  const { bills } = useBills();
-  const { searchQuery } = useKanbanBoard();
-  const [loading, setLoading] = useState<boolean>(false);
-  const [filteredBills, setFilteredBills] = useState<BillDetails[]>([]);
-  const firstMatchRef = useRef<HTMLTableRowElement | null>(null);
+function compareBills(
+  a: Bill,
+  b: Bill,
+  key: SortKey,
+  direction: SortDirection,
+  deadlineCache: Map<string, DeadlineEntry | null>,
+): number {
+  let result: number;
 
-  // From the bills object, fetch all bill details
-  useEffect(() => {
-    const fetchBillDetails = async () => {
-      setLoading(true);
-      setFilteredBills([]); // Clear previous data to prevent duplicates
-
-      try {
-        // Fetch all bill details in parallel
-        const detailsPromises = bills.map(bill =>
-          getBillDetails(bill.id).catch(err => {
-            console.error('Error fetching bill details for', bill.bill_number, err);
-            return null; // Return null for failed fetches
-          })
-        );
-
-        const allDetails = await Promise.all(detailsPromises);
-
-        // Filter out null values (failed fetches) and deduplicate by ID
-        const validDetails = allDetails.filter((detail): detail is BillDetails => detail !== null);
-        const uniqueDetails = Array.from(
-          new Map(validDetails.map(detail => [detail.id, detail])).values()
-        );
-
-        setFilteredBills(uniqueDetails);
-      } catch (err) {
-        console.error('Error fetching bill details:', err);
-        setFilteredBills([]);
-      } finally {
-        setLoading(false);
+  switch (key) {
+    case 'bill_number': {
+      const prefixA = a.bill_number.replace(/\d/g, '');
+      const prefixB = b.bill_number.replace(/\d/g, '');
+      if (prefixA !== prefixB) {
+        result = prefixA.localeCompare(prefixB);
+      } else {
+        const numA = parseInt(a.bill_number.replace(/\D/g, ''), 10) || 0;
+        const numB = parseInt(b.bill_number.replace(/\D/g, ''), 10) || 0;
+        result = numA - numB;
       }
-    };
+      break;
+    }
+    case 'year': {
+      const yA = a.year ?? (direction === 'asc' ? Infinity : -Infinity);
+      const yB = b.year ?? (direction === 'asc' ? Infinity : -Infinity);
+      result = (yA as number) - (yB as number);
+      break;
+    }
+    case 'next_deadline': {
+      const dA = deadlineCache.get(a.id)?.date ?? null;
+      const dB = deadlineCache.get(b.id)?.date ?? null;
+      if (dA === null && dB === null) result = 0;
+      else if (dA === null) result = 1; // nulls last
+      else if (dB === null) result = -1;
+      else result = dA.localeCompare(dB);
+      break;
+    }
+    default: {
+      const valA = (a[key] as string | null) ?? '';
+      const valB = (b[key] as string | null) ?? '';
+      result = valA.localeCompare(valB);
+      break;
+    }
+  }
 
-    fetchBillDetails();
-  }, [bills]);
+  return direction === 'asc' ? result : -result;
+}
 
-  // Filter bills based on search query (async)
-  // useEffect(() => {
-  //   if (!searchQuery.trim()) {
-  //     setFilteredBills(bills);
-  //     return;
-  //   }
+// ─── Sort Header ─────────────────────────────────────────────
 
-  //   const handler = setTimeout(async () => {
-  //     try {
-  //       const results = await searchBills(bills, searchQuery);
-  //       setFilteredBills(results);
-  //     } catch (err) {
-  //       console.error('Error searching bills:', err);
-  //       setFilteredBills(bills);
-  //     }
-  //   }, 300);
+interface SortHeaderProps {
+  label: string;
+  columnKey: SortKey;
+  className?: string;
+  sticky?: boolean;
+  sortKey: SortKey | null;
+  sortDirection: SortDirection;
+  onSort: (key: SortKey) => void;
+}
 
-  //   return () => {
-  //     clearTimeout(handler);
-  //   };
-  // }, [bills, searchQuery]);
+function SortHeader({ label, columnKey, className, sticky, sortKey, sortDirection, onSort }: SortHeaderProps) {
+  const isActive = sortKey === columnKey;
+  return (
+    <TableHead
+      aria-sort={isActive ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+      className={`${className ?? ''} sticky top-0 bg-background ${sticky ? 'left-0 z-20' : 'z-10'} py-2 md:py-4 select-none`}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(columnKey)}
+        className="flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={`Sort by ${label}`}
+      >
+        {label}
+        {isActive ? (
+          sortDirection === 'asc' ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />
+        ) : (
+          <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/50" />
+        )}
+      </button>
+    </TableHead>
+  );
+}
 
-  // Scroll to first match when search results change
-  // useEffect(() => {
-  //   if (searchQuery.trim() && filteredBills.length > 0 && firstMatchRef.current) {
-  //     // Small delay to ensure DOM is updated
-  //     setTimeout(() => {
-  //       firstMatchRef.current?.scrollIntoView({ 
-  //         behavior: 'smooth', 
-  //         block: 'center' 
-  //       });
-  //     }, 100);
-  //   }
-  // }, [filteredBills, searchQuery]);
+// ─── Component ───────────────────────────────────────────────
+
+export function KanbanSpreadsheet() {
+  const { bills, loadingBills } = useBills();
+  const { searchQuery, selectedTagIds, selectedYears, deadFilter } = useKanbanBoard();
+  const committeeNames = useCommitteeNames();
+
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+
+  const openBillDetails = useCallback((billId: string) => {
+    setSelectedBillId(billId);
+    setIsDialogOpen(true);
+  }, []);
+
+  const handleSort = useCallback((key: SortKey) => {
+    if (sortKey === key) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
+  }, [sortKey]);
+
+  const today = todayHawaii();
+
+  // Pre-compute deadlines for all bills so sorting can access them
+  const deadlineCache = useMemo(() => {
+    const cache = new Map<string, DeadlineEntry | null>();
+    for (const bill of bills) {
+      cache.set(bill.id, computeDeadline(bill, today));
+    }
+    return cache;
+  }, [bills, today]);
+
+  const displayBills = useMemo(() => {
+    let items = filterBills(bills, { searchQuery, selectedTagIds, selectedYears, deadFilter });
+
+    // Sort
+    if (sortKey) {
+      items = [...items].sort((a, b) => compareBills(a, b, sortKey, sortDirection, deadlineCache));
+    }
+
+    return items;
+  }, [bills, searchQuery, selectedTagIds, selectedYears, deadFilter, sortKey, sortDirection, deadlineCache]);
+
+  const totalColumns = 9;
 
   return (
-    <div className="h-full w-full overflow-auto">
-      <div className="min-w-max p-4">
-        <Table className="min-w-max">
+    // Single scroll surface for BOTH axes: sticky top-0 headers and the
+    // sticky left-0 bill column both resolve against this container, and the
+    // horizontal scrollbar stays reachable without scrolling to the bottom.
+    <div className="min-h-0 w-full flex-1 overflow-auto">
+      <div className="min-w-max p-2 md:p-4">
+        <Table className="min-w-max text-xs md:text-sm">
           <TableHeader>
             <TableRow>
-              <TableHead className="sticky left-0 z-20 bg-background w-[8rem] py-4">Bill #</TableHead>
-              <TableHead className="w-[10rem] py-4">Current Status</TableHead>
-              <TableHead className="min-w-[20rem] max-w-[30rem] w-[30rem] py-4">Bill Title</TableHead>
-              <TableHead className="min-w-[15rem] max-w-[30rem] w-[30rem] py-4">Policy Description</TableHead>
-              <TableHead className="w-[12rem] py-4">Committee</TableHead>
-              <TableHead className="w-[12rem] py-4">Introducer</TableHead>
-              <TableHead className="w-[15rem] py-4">Tags</TableHead>
-              {!isPublicView && <TableHead className="w-[12rem] py-4">Tracking</TableHead>}
+              <SortHeader label="Bill #" columnKey="bill_number" sticky className="w-[6rem] md:w-[8rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <SortHeader label="Current Status" columnKey="current_bill_status" className="w-[8rem] md:w-[10rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <SortHeader label="Next Deadline" columnKey="next_deadline" className="w-[8rem] md:w-[10rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <SortHeader label="Bill Title" columnKey="bill_title" className="min-w-[12rem] md:min-w-[20rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <TableHead className="sticky top-0 z-10 bg-background min-w-[10rem] md:min-w-[15rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem] py-2 md:py-4">Policy Description</TableHead>
+              <SortHeader label="Committee" columnKey="committee_assignment" className="w-[8rem] md:w-[12rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <SortHeader label="Introducer" columnKey="introducer" className="w-[8rem] md:w-[12rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <SortHeader label="Year" columnKey="year" className="w-[5rem] md:w-[6rem]" sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} />
+              <TableHead className="sticky top-0 z-10 bg-background w-[10rem] md:w-[15rem] py-2 md:py-4">Tags</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {loadingBills ? (
               <TableRow>
-                <TableCell colSpan={isPublicView ? 7 : 8} className="text-center py-8 text-muted-foreground">
-                  Loading bill details...
+                <TableCell colSpan={totalColumns} className="text-center py-8 text-muted-foreground">
+                  Loading bills...
                 </TableCell>
               </TableRow>
-            ) : filteredBills.length === 0 ? (
+            ) : displayBills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isPublicView ? 7 : 8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={totalColumns} className="text-center py-8 text-muted-foreground">
                   {searchQuery.trim() ? `No bills found matching "${searchQuery}"` : 'No bills available'}
                 </TableCell>
               </TableRow>
             ) : (
-              filteredBills.map((bill, index) => (
-                <TableRow
-                  key={bill.id}
-                  ref={index === 0 && searchQuery.trim() ? firstMatchRef : null}
-                  className={index === 0 && searchQuery.trim() ? 'bg-blue-50 border-blue-300 border-2' : ''}
-                >
-                  {/* Bill Number */}
-                  <TableCell className="sticky left-0 z-20 bg-background w-[8rem] py-4">
-                    {bill.bill_number}
-                  </TableCell>
+              displayBills.map((bill) => {
+                const deadline = deadlineCache.get(bill.id) ?? null;
+                const deadlineDaysAway = deadline
+                  ? Math.ceil((new Date(deadline.date + 'T00:00:00').getTime() - new Date(today + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24))
+                  : null;
+                const isUrgent = deadlineDaysAway !== null && deadlineDaysAway <= 7;
+                const hasTags = bill.tags && bill.tags.length > 0;
+                const firstTagColor = hasTags ? (bill.tags![0].color || '#3b82f6') : null;
 
-                  {/* Current Status */}
-                  <TableCell className="w-[10rem] py-4">
-                    {formatBillStatusName(bill.current_bill_status)}
-                  </TableCell>
+                // Row tint precedence: failed (red) > deadline soon (yellow) > tag color.
+                // A failed or urgent bill gets a full-row status tint that overrides
+                // its tag tint, so the state reads at a glance across the whole row.
+                const tintColor = bill.dead
+                  ? '#ef4444' // red-500 — failed
+                  : isUrgent
+                    ? '#eab308' // yellow-500 — deadline soon
+                    : firstTagColor;
 
-                  {/* Bill Title */}
-                  <TableCell className="text-wrap min-w-[20rem] max-w-[30rem] w-[30rem] py-4">
-                    {bill.bill_title}
-                  </TableCell>
+                return (
+                  <React.Fragment key={bill.id}>
+                    {/* Tag row — rendered above data row for bills with tags */}
+                    {hasTags && (
+                      <TableRow className="border-b-0 hover:bg-transparent">
+                        <TableCell colSpan={totalColumns} className="py-1 px-2 md:px-4">
+                          <div className="flex flex-wrap gap-1">
+                            {bill.tags!.map((tag) => (
+                              <Badge
+                                key={tag.id}
+                                variant="outline"
+                                style={{
+                                  backgroundColor: tag.color || '#3b82f6',
+                                  color: 'white',
+                                  fontSize: '10px',
+                                  padding: '2px 6px',
+                                }}
+                                className="text-[10px] rounded-md"
+                              >
+                                {tag.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
 
-                  {/* Policy Description */}
-                  <TableCell className="text-wrap min-w-[15rem] max-w-[30rem] w-[30rem] py-4">
-                    {bill.description}
-                  </TableCell>
-
-                  {/* Committee */}
-                  <TableCell className="text-wrap w-[12rem] py-4">
-                    {bill.committee_assignment || 'N/A'}
-                  </TableCell>
-
-                  {/* Introducer */}
-                  <TableCell className="text-wrap w-[12rem] py-4">
-                    {bill.introducer || 'N/A'}
-                  </TableCell>
-
-                  {/* Tags */}
-                  <TableCell className="w-[15rem] py-4">
-                    <div className="flex flex-wrap gap-1">
-                      {bill.tags && bill.tags.length > 0 ? (
-                        bill.tags.map((tag) => (
-                          <Badge key={tag.id} variant="secondary" className="text-xs">
-                            {tag.name}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-muted-foreground text-sm">No tags</span>
+                    {/* Data row — click or Enter/Space opens the bill details dialog.
+                        Tag tint lives in CSS vars (not inline background) so the
+                        hover state can deepen it; the sticky cell mirrors both via
+                        group-hover. */}
+                    <TableRow
+                      style={
+                        tintColor
+                          ? ({
+                              '--row-tint': `${tintColor}14`,
+                              '--row-tint-hover': `${tintColor}2e`,
+                              // Opaque equivalents for the sticky cell: same tint
+                              // composited over the page background, as plain
+                              // background-color so hover can transition (a
+                              // gradient layer can't animate).
+                              '--cell-tint': `color-mix(in srgb, ${tintColor} 8%, hsl(var(--background)))`,
+                              '--cell-tint-hover': `color-mix(in srgb, ${tintColor} 18%, hsl(var(--background)))`,
+                            } as React.CSSProperties)
+                          : undefined
+                      }
+                      className={cn(
+                        'group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+                        tintColor
+                          ? 'bg-[var(--row-tint)] hover:bg-[var(--row-tint-hover)]'
+                          : 'hover:bg-secondary'
                       )}
-                    </div>
-                  </TableCell>
-
-                  {/* Tracking Information - Hidden in public view */}
-                  {!isPublicView && (
-                    <TableCell className="w-[12rem] py-4">
-                      <div className="text-sm">
-                        {bill.tracked_count !== undefined && bill.tracked_count > 0 ? (
-                          <span className="text-muted-foreground">
-                            {bill.tracked_count} {bill.tracked_count === 1 ? 'tracker' : 'trackers'}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">Not tracked</span>
+                      tabIndex={0}
+                      aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
+                      onClick={() => openBillDetails(bill.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          openBillDetails(bill.id);
+                        }
+                      }}
+                    >
+                      {/* Bill # with dead badge */}
+                      <TableCell
+                        className={cn(
+                          'sticky left-0 z-0 w-[6rem] md:w-[8rem] py-2 md:py-4',
+                          // Opaque backgrounds (mask scrolling content) that mirror
+                          // the row's tint/hover, with the same 150ms fade so the
+                          // whole row highlights as one unit.
+                          'transition-colors',
+                          tintColor
+                            ? 'bg-[var(--cell-tint)] group-hover:bg-[var(--cell-tint-hover)]'
+                            : 'bg-background group-hover:bg-secondary'
                         )}
-                      </div>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))
+                      >
+                        <div className="flex items-center gap-2">
+                          {bill.bill_number}
+                          {bill.dead && (
+                            <Badge variant="destructive" className="text-[10px] h-5 px-2 text-white rounded-full shrink-0">
+                              Failed
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="w-[8rem] md:w-[10rem] py-2 md:py-4">
+                        {/* This surface had no tooltips at all before. */}
+                        <Term
+                          variant="chip"
+                          billId={bill.id}
+                          term={resolveStatusTerm(bill.current_bill_status)}
+                        >
+                          {formatBillStatusName(bill.current_bill_status)}
+                        </Term>
+                      </TableCell>
+
+                      {/* Next Deadline — placed right after Current Status */}
+                      <TableCell className="w-[8rem] md:w-[10rem] py-2 md:py-4">
+                        {deadline ? (
+                          <div className={`text-sm ${isUrgent ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
+                            <div>{new Date(deadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                            <div className="text-xs">{deadline.name}</div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="text-wrap min-w-[12rem] md:min-w-[20rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem] py-2 md:py-4">
+                        {bill.bill_title}
+                      </TableCell>
+
+                      <TableCell className="text-wrap min-w-[10rem] md:min-w-[15rem] max-w-[15rem] md:max-w-[30rem] w-[15rem] md:w-[30rem] py-2 md:py-4">
+                        {bill.description}
+                      </TableCell>
+
+                      <TableCell className="text-wrap w-[8rem] md:w-[12rem] py-2 md:py-4">
+                        {bill.committee_assignment
+                          ? parseCommitteeCodes(bill.committee_assignment).map((code, i) => (
+                              <span key={code}>
+                                {i > 0 && ', '}
+                                <Term variant="chip" billId={bill.id} term={resolveCommitteeTerm(code, committeeNames)}>
+                                  {code}
+                                </Term>
+                              </span>
+                            ))
+                          : 'N/A'}
+                      </TableCell>
+
+                      <TableCell className="text-wrap w-[8rem] md:w-[12rem] py-2 md:py-4">
+                        {bill.introducer || 'N/A'}
+                      </TableCell>
+
+                      <TableCell className="w-[5rem] md:w-[6rem] py-2 md:py-4">
+                        {bill.year ?? 'N/A'}
+                      </TableCell>
+
+                      {/* Tags cell — shows "No tags" placeholder for bills without tags */}
+                      <TableCell className="w-[10rem] md:w-[15rem] py-2 md:py-4">
+                        {!hasTags && (
+                          <span className="text-muted-foreground text-sm">No tags</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  </React.Fragment>
+                );
+              })
             )}
           </TableBody>
         </Table>
       </div>
+
+      {/* Details dialog (portal — renders outside the scroll container) */}
+      <BillDetailsDialog
+        billID={selectedBillId}
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+      />
     </div>
   );
 }

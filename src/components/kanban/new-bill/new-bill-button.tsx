@@ -7,8 +7,8 @@ export default function NewBillButton() {
     const [ isDialogOpen, setIsDialogOpen] = useState<boolean>(false)
     return (
         <>
-        <Button onClick={() => setIsDialogOpen(true)}>
-           <ListTodo />Add or Remove Bill 
+        <Button variant="outline" onClick={() => setIsDialogOpen(true)}>
+           <ListTodo />Manage Bills
         </Button>
 
         <NewBillDialog

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSession } from '@/lib/auth';
-import { getUsersByIds } from '@/services/data/users';
-import { getSessionCookie } from '@/lib/cookies';
+import { validateSession } from '@/lib/auth/session';
+import { getUsersByIds } from '@/db/queries/users';
+import { getSessionCookie } from '@/lib/auth/cookies';
 
 export async function POST(request: NextRequest) {
   try {

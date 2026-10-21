@@ -2,7 +2,7 @@
 import React from 'react';
 import type { TempBill } from '@/types/legislation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/core/utils';
 import { ArrowRight } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { useBills } from '@/hooks/contexts/bills-context';
@@ -74,7 +74,7 @@ export const TempBillCard: React.FC<TempBillCardProps> = ({
                     "relative transition-all duration-300",
                     "border-2 border-dashed border-gray-300 bg-gray-50/80",
                     "hover:border-blue-300 hover:bg-blue-50/50",
-                    "opacity-75 w-full max-w-[300px]",
+                    "opacity-75 w-full",
                     className
                 )}>
 

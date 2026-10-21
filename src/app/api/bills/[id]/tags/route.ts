@@ -1,16 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '../../../../../db/kysely/client';
-import { validateSession } from '@/lib/auth';
-import { getSessionCookie } from '@/lib/cookies';
-import { tagsSchema } from '@/lib/validators';
+import { validateSession } from '@/lib/auth/session';
+import { getSessionCookie } from '@/lib/auth/cookies';
+import { requireAdmin } from '@/lib/auth/auth-guards';
+import { tagsSchema } from '@/lib/auth/validators';
+import { validateMembership } from '@/db/queries/tenants';
 
-// GET - Get tags for a specific bill (public access for filtering)
+// GET - Get tags for a specific bill (requires tenant context)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: billId } = await params;
+
+    const sessionToken = getSessionCookie(request);
+    if (!sessionToken) {
+      return NextResponse.json({ tags: [] });
+    }
+
+    let user;
+    try {
+      user = await validateSession(sessionToken);
+    } catch {
+      return NextResponse.json({ tags: [] });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId');
+    if (!tenantId) {
+      return NextResponse.json({ tags: [] });
+    }
+
+    await validateMembership(user.id, tenantId);
 
     const tags = await db
       .selectFrom('bill_tags as bt')
@@ -19,15 +41,20 @@ export async function GET(
         't.id',
         't.name',
         't.color',
+        't.tenant_id',
         't.created_at',
         't.updated_at',
       ])
       .where('bt.bill_id', '=', billId)
+      .where('t.tenant_id', '=', tenantId)
       .orderBy('t.name', 'asc')
       .execute();
 
     return NextResponse.json({ tags });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.statusCode) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    }
     console.error('Error fetching bill tags:', error);
     return NextResponse.json(
       { error: 'Failed to fetch bill tags' },
@@ -36,33 +63,30 @@ export async function GET(
   }
 }
 
-// POST - Add tags to a bill (admin and supervisor only)
+// POST - Add tags to a bill (admin and supervisor only, requires tenant context)
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const sessionToken = getSessionCookie(request);
-    const user = await validateSession(sessionToken);    
+    const body = await request.json();
+    const { tagIds, tenantId } = body;
+    const { id: billId } = await params;
 
-    // Only admin and supervisor can tag bills
-    if (user.role !== 'admin' && user.role !== 'supervisor') {
-      return NextResponse.json(
-        { error: 'Forbidden: Only admins and supervisors can tag bills' },
-        { status: 403 }
-      );
+    if (!tenantId) {
+      return NextResponse.json({ error: 'tenantId is required' }, { status: 400 });
     }
 
-    const body = await request.json();
-    const { tagIds } = body;
-    const { id: billId } = await params;
+    // Must be an ADMIN OF THIS TENANT. (The old check tested the global
+    // user.role, which both blocked legitimate org admins whose global role is
+    // 'user' and failed to verify org-admin status in the target tenant.)
+    await requireAdmin.fromRequest(request, tenantId);
 
     const validation = tagsSchema.safeParse({ tagIds });
     if (!validation.success) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
+      return NextResponse.json({ error: validation.error.issues.map(i => i.message).join(', ') }, { status: 400 });
     }
 
-    // Check if bill exists
     const bill = await db
       .selectFrom('bills')
       .select('id')
@@ -73,19 +97,21 @@ export async function POST(
       return NextResponse.json({ error: 'Bill not found' }, { status: 404 });
     }
 
-    // Remove existing tags for this bill
+    // Remove existing tags for this bill that belong to this tenant
     await db
       .deleteFrom('bill_tags')
       .where('bill_id', '=', billId)
+      .where('tag_id', 'in',
+        db.selectFrom('tags').select('id').where('tenant_id', '=', tenantId)
+      )
       .execute();
 
-    // Add new tags
     if (tagIds.length > 0) {
-      // Verify all tag IDs exist
       const validTags = await db
         .selectFrom('tags')
         .select('id')
         .where('id', 'in', tagIds as string[])
+        .where('tenant_id', '=', tenantId)
         .execute();
 
       if (validTags.length !== tagIds.length) {
@@ -95,7 +121,6 @@ export async function POST(
         );
       }
 
-      // Insert new bill_tags
       await db
         .insertInto('bill_tags')
         .values(
@@ -107,7 +132,6 @@ export async function POST(
         .execute();
     }
 
-    // Fetch updated tags
     const tags = await db
       .selectFrom('bill_tags as bt')
       .innerJoin('tags as t', 'bt.tag_id', 't.id')
@@ -115,15 +139,20 @@ export async function POST(
         't.id',
         't.name',
         't.color',
+        't.tenant_id',
         't.created_at',
         't.updated_at',
       ])
       .where('bt.bill_id', '=', billId)
+      .where('t.tenant_id', '=', tenantId)
       .orderBy('t.name', 'asc')
       .execute();
 
     return NextResponse.json({ tags });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.statusCode) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    }
     console.error('Error updating bill tags:', error);
     return NextResponse.json(
       { error: 'Failed to update bill tags' },
@@ -131,4 +160,3 @@ export async function POST(
     );
   }
 }
-

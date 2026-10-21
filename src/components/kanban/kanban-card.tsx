@@ -1,10 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { cn, formatBillStatusName, canAssignBills } from '@/lib/utils';
-import { CardHeader, CardTitle, CardContent } from '@/components/ui/card'; // Removed unused imports
-import { Calendar, CheckCircle, Clock, FileText, GitBranch, Send, Gavel, Sparkles, X, Check } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { cn, formatBillHeadline, formatBillStatusName, formatRelativeDate, parseLocalDate, todayHawaii } from '@/lib/core/utils';
+import { canAssignBills } from '@/lib/auth/permissions';
+import { parseCommittees } from '@/lib/bills/dead-bill';
+import { isAwaitingHearing } from '@/lib/bills/kanban-columns';
+import { committeeFullName, hasJointReferral, JOINT_REFERRAL_NOTE } from '@/lib/testimony/committees';
+import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+/** Shadcn tooltip wrapper for the card's chips — replaces native title attrs. */
+function ChipTooltip({ content, children }: { content: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-[280px] text-xs leading-relaxed">
+          {content}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+import { Sparkles, X, Check, Users, Info, PenLine, UserPlus, Hourglass, AlarmClock, History, Loader2, Plus } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTagSelector } from '../tags/card-tag-selector';
+import { getNextDeadline, getDeadlineTier, formatDeadlineStanding } from '@/lib/bills/dead-bill';
+import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
+import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
+import { hasCommitteeRecommendation } from '@/lib/testimony/testimony-eligibility';
+import { DeadBillInfoPopover } from './dead-bill-info-popover';
+import type { BillStatus as DBBillStatus } from '@/db/types';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { AssignBillDialog } from './assign-bill-dialog';
@@ -20,8 +45,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { updateFoodStatusOrCreateBill } from '@/services/data/legislation';
+import { removeBillFromOrg } from '@/db/queries/bills-write';
 import { toast } from '@/hooks/use-toast';
+import { cardVisibility } from '@/lib/bills/board-display';
 
 interface KanbanCardProps extends React.HTMLAttributes<HTMLDivElement> {
   bill: Bill;
@@ -30,87 +56,140 @@ interface KanbanCardProps extends React.HTMLAttributes<HTMLDivElement> {
   onUnadopt?: (billId: string) => void;
   showUnadoptButton?: boolean;
   isHighlighted?: boolean;
+  boardMode?: import('@/lib/bills/board-display').BoardMode;
+  orgTestimonyState?: 'submitted' | undefined;
+  isTracked?: boolean;
+  onTrackForSelf?: (bill: Bill) => void | Promise<void>;
 }
 
-// Function to get an appropriate icon based on status
-const getStatusIcon = (status: Bill['current_bill_status']): React.ReactNode => {
-  if (!status) return <FileText className="h-3 w-3 text-muted-foreground" />; // Handle undefined/null
-  if (status.includes('scheduled')) return <Calendar className="h-3 w-3 text-blue-600" />;
-  if (status.includes('deferred') || status.includes('vetoList')) return <Clock className="h-3 w-3 text-orange-600" />;
-  if (status.includes('passedCommittees')) return <CheckCircle className="h-3 w-3 text-green-600" />;
-  if (status.includes('governorSigns') || status.includes('lawWithoutSignature')) return <Gavel className="h-3 w-3 text-green-700" />;
-  if (status.includes('conference')) return <GitBranch className="h-3 w-3 text-purple-600" />;
-  if (status.includes('transmittedGovernor')) return <Send className="h-3 w-3 text-blue-600" />;
-  if (status.includes('introduced') || status.includes('waiting')) return <FileText className="h-3 w-3 text-muted-foreground" />;
-  return <FileText className="h-3 w-3 text-muted-foreground" />; // Default icon
-};
-
-// Function to get status color variant
-const getStatusVariant = (status: Bill['current_bill_status']): "default" | "secondary" | "destructive" | "outline" => {
-  if (!status) return "outline"; // Handle undefined/null
-  if (status.includes('passedCommittees') || status.includes('governorSigns') || status.includes('lawWithoutSignature')) return "default";
-  if (status.includes('deferred') || status.includes('vetoList')) return "destructive";
-  if (status.includes('scheduled') || status.includes('transmittedGovernor')) return "secondary";
-  return "outline";
-};
-
 const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
-    ({ bill, isDragging, onCardClick, onUnadopt, showUnadoptButton = false, isHighlighted = false, className, style, ...props }, ref) => {
+    ({ bill, isDragging, onCardClick, onUnadopt, showUnadoptButton = false, isHighlighted = false, boardMode = 'own', orgTestimonyState, isTracked = false, onTrackForSelf, className, style, ...props }, ref) => {
 
-    // All hooks must be called before any conditional logic
-    const [formattedDate, setFormattedDate] = useState<string>('N/A');
+    // `props` carries @hello-pangea/dnd's dragHandleProps (onClick/onKeyDown/…)
+    // when the card is wrapped in a <Draggable>. We pull the two handlers we also
+    // want to own out of the spread so we can COMPOSE with them rather than let
+    // the spread clobber ours (or vice-versa). See the outer div below.
+    const { onClick: dragHandleClick, onKeyDown: dragHandleKeyDown, ...restProps } =
+      props as React.HTMLAttributes<HTMLDivElement>;
+
+    // Tap-to-open on touch. @hello-pangea/dnd's touch sensor arms a one-shot
+    // click blocker after any touch on the drag handle; the click it lets
+    // through arrives with defaultPrevented=true on the FIRST tap, so relying on
+    // the composed onClick swallowed that tap and only the second opened the
+    // dialog. Instead we detect a genuine tap ourselves from pointer events —
+    // pointerdown then pointerup at nearly the same spot, quickly, with no drag
+    // — which fires on the first touch and never during a real drag (a drag
+    // moves the pointer well past the threshold).
+    const tapStart = useRef<{ x: number; y: number; t: number } | null>(null);
+    // Set when a touch tap opens the card via onPointerUp, so the synthetic
+    // click the browser fires right after doesn't open it a second time.
+    const touchTapAt = useRef(0);
+
     const [isProcessing, setIsProcessing] = useState(false);
     const [isRemoving, setIsRemoving] = useState(false);
     const [showRemoveDialog, setShowRemoveDialog] = useState(false);
-    const { acceptLLMChange, rejectLLMChange, removeBill } = useBills();
-    const { user } = useAuth();    
+    const [isTracking, setIsTracking] = useState(false);
+    const [showTrackDialog, setShowTrackDialog] = useState(false);
+    const { acceptLLMChange, rejectLLMChange, removeBill, testimonyStatuses, showArchived } = useBills();
+    const { user, activeTenant } = useAuth();
+    const committeeNames = useCommitteeNames();
+    const vis = cardVisibility(boardMode);
 
-    const canSeeTracking = user?.role === 'admin' || user?.role === 'supervisor';
-
-    // Bill now has latest_update and tracked_by directly
-    const latestUpdate = bill.latest_update;
+    const canSeeTracking = activeTenant?.orgRole === 'admin';
     const trackedBy = bill.tracked_by ?? [];
     const trackedCount = bill.tracked_count ?? trackedBy.length;
-    const visibleTrackers = trackedBy.slice(0, 2);
-    const extraTrackerCount = Math.max(0, trackedCount - visibleTrackers.length);
 
+    const canAssign = canAssignBills(user, activeTenant?.orgRole);
+    // Removing a bill takes it off the board for EVERYONE in the org, so it is
+    // restricted to org admins (not merely anyone who can assign bills).
+    const canRemoveFromBoard = activeTenant?.orgRole === 'admin';
+    // Anyone who can't remove the bill org-wide can still stop tracking it
+    // themselves (org workers, and default/no-org users removing their own list).
+    const canUntrack = !canRemoveFromBoard && showUnadoptButton && !!onUnadopt;
+
+    const headline = formatBillHeadline(bill);
+    const committeeReferrals = bill.committee_assignment ? parseCommittees(bill.committee_assignment) : [];
+    const committeeCodes = committeeReferrals.length > 0 ? committeeReferrals.join(' · ') : null;
+
+    // Hover-tooltip content for the committee chip: each referral spelled out,
+    // plus a note when any referral is joint. Unknown codes pass through as-is
+    // (committeeFullName echoes them), which is fine inside an explanatory
+    // tooltip — there's no affordance to leave dangling.
+    const committeeIsJoint = bill.committee_assignment
+      ? hasJointReferral(bill.committee_assignment)
+      : false;
+    const committeeTooltip = committeeCodes ? (
+      <div className="space-y-1.5">
+        <p className="font-semibold">Referred to</p>
+        <ul className="space-y-0.5">
+          {committeeReferrals.map((code) => (
+            <li key={code}>
+              <span className="font-medium">{code}</span> — {committeeFullName(code, committeeNames)}
+            </li>
+          ))}
+        </ul>
+        {committeeIsJoint && (
+          <p className="border-t border-border/60 pt-1.5 text-muted-foreground">
+            {JOINT_REFERRAL_NOTE}
+          </p>
+        )}
+      </div>
+    ) : null;
+
+    const today = todayHawaii();
+    const nextDeadline = !bill.dead && bill.committee_assignment && bill.current_bill_status
+      ? getNextDeadline(
+          bill.bill_number,
+          bill.current_bill_status as DBBillStatus,
+          bill.committee_assignment,
+          SESSION_DEADLINES,
+          today
+        )
+      : null;
 
     const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
-      e.stopPropagation(); // Prevent drag-and-drop from triggering
+      e.stopPropagation();
       onCardClick(bill);
     };
 
+    // True when the event originated on an interactive control nested in the
+    // card (buttons, links, the tag selector, dialog triggers). Those stop
+    // propagation on click, but pointer events still bubble to the card's
+    // onPointerUp — so a touch tap on a button would ALSO open the card without
+    // this guard.
+    // Note: the card itself has role="button", so we match real nested
+    // controls (buttons/links/inputs) rather than [role="button"], which would
+    // match the card and block every tap.
+    const isInteractiveTarget = (target: EventTarget | null) =>
+      target instanceof Element &&
+      !!target.closest('button, a, input, textarea, select, [role="menuitem"]');
+
     const handleAccept = async () => {
       setIsProcessing(true);
-      try {
-        await acceptLLMChange(bill.id);
-      } finally {
-        setIsProcessing(false);
-      }
+      try { await acceptLLMChange(bill.id); } finally { setIsProcessing(false); }
     };
-  
+
     const handleReject = async () => {
       setIsProcessing(true);
-      try {
-        await rejectLLMChange(bill.id);
-      } finally {
-        setIsProcessing(false);
-      }
+      try { await rejectLLMChange(bill.id); } finally { setIsProcessing(false); }
     };
 
     const handleRemoveBill = async () => {
+      // Org-wide removal deletes every member's tracking row for this bill in the
+      // tenant, so it requires an active org context and admin role. Without a
+      // tenant there is no org board to remove from.
+      if (!activeTenant?.tenantId) {
+        console.error('Cannot remove bill: no active organization.');
+        return;
+      }
       setIsRemoving(true);
       try {
-        // Update the food_related flag to false
-        await updateFoodStatusOrCreateBill(bill, false);
-        // Remove from local state
+        // Pass the acting user's id so their own NULL-tenant tracking row for
+        // this bill is cleared too — otherwise a bill tracked before joining the
+        // org survives the tenant-scoped delete and reappears on reload.
+        await removeBillFromOrg(bill.id, activeTenant.tenantId, user?.id);
         removeBill(bill.id);
-
-        toast({
-          title: 'Bill Removed',
-          description: `Bill ${bill.bill_number} has been removed from the board.`,
-          duration: 5000,
-        });
+        toast({ title: 'Bill Removed', description: `${bill.bill_number} removed from the board.`, duration: 5000 });
         setShowRemoveDialog(false);
       } catch (error) {
         console.error('Error removing bill from board:', error);
@@ -119,222 +198,532 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
       }
     };
 
+    const handleTrackForSelf = async () => {
+      setIsTracking(true);
+      try {
+        await onTrackForSelf?.(bill);
+        setShowTrackDialog(false);
+      } finally {
+        setIsTracking(false);
+      }
+    };
+
+    // Deadline urgency
+    const deadlineDaysAway = nextDeadline
+      ? Math.ceil((new Date(nextDeadline.date + 'T00:00:00').getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+      : null;
+
+    // Testimony progress: submitted > draft written > due (hearing scheduled) > closed (hearing passed)
+    const testimonyState = boardMode === 'active-boards' ? orgTestimonyState : testimonyStatuses[bill.id]; // undefined | 'draft' | 'submitted'
+    // One derivation for hearing datetime → countdown / passed, shared with the
+    // dialog and testimonies view so the card can't drift from them.
+    // Don't pre-gate on isTestimonyUrgent here — getTestimonyDeadline also closes
+    // testimony for a bill whose committee already recommended (now a waiting/deferred
+    // status) once its hearing has passed, so the card's chip stays in sync with the
+    // dialog and testimonies view.
+    const testimonyDeadline = !bill.dead
+      ? getTestimonyDeadline({
+          billStatus: bill.current_bill_status as DBBillStatus,
+          latestStatusText: bill.latest_update?.statustext ?? null,
+          now: new Date(),
+        })
+      : null;
+    const hearingAt = testimonyDeadline?.hearingAt ?? null;
+    // A committee recommendation (PASSED/DEFERRED) in the latest text means the
+    // hearing is over even when the notice carries no parseable date — matches the
+    // dialog's closed Write action (getTestimonyEligibility).
+    const recommended =
+      !bill.dead && hasCommitteeRecommendation(bill.latest_update?.statustext ?? '');
+    // Still-open hearing: show the "Testimony due" chip when no draft/submission exists yet.
+    const testimonyDue =
+      !testimonyState && !recommended && !!testimonyDeadline && !testimonyDeadline.hearingPassed && !!hearingAt;
+    // Hearing has passed (by date) or the committee has reported the bill out:
+    // show a muted "Testimony closed" chip instead.
+    const testimonyClosed =
+      !testimonyState && (!!testimonyDeadline?.hearingPassed || recommended);
+    const countdownLabel = testimonyDeadline?.countdown ?? null;
+
+    // Bottom-right fate countdown while the bill waits for a hearing: if the
+    // committee chair doesn't schedule it before the next deadline, it fails.
+    // Neutral framing — informative whether the viewer supports or opposes the
+    // bill. The Failed badge takes over the corner when the bill dies.
+    const showDeadlineCountdown =
+      !bill.dead &&
+      nextDeadline !== null &&
+      deadlineDaysAway !== null &&
+      isAwaitingHearing(bill.current_bill_status);
+    const deadlineTier = deadlineDaysAway !== null ? getDeadlineTier(deadlineDaysAway) : null;
+    const testimonyChipTitle = hearingAt
+      ? `Hearing ${hearingAt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} — submit testimony at least 24 hours before the hearing`
+      : 'Hearing scheduled — submit testimony at least 24 hours before the hearing';
+    const testimonyClosedTitle = hearingAt
+      ? `Hearing was held ${hearingAt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} — the testimony submission window has closed`
+      : 'The testimony submission window has closed';
+
     return (
         <div
             ref={ref}
             className={cn(
-                "rounded-md border bg-card text-card-foreground shadow-sm transition-all duration-200",
-                "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 w-full max-w-[300px]", // limit card width
-                "flex flex-col", // Flex column layout
-                isDragging ? "opacity-80 shadow-xl rotate-3 scale-105 cursor-grabbing" : "hover:shadow-md cursor-grab",
-                latestUpdate && "ring-1 ring-green-200/50", // Subtle glow for active bills
-                isHighlighted && "ring-2 ring-blue-500 ring-offset-2 bg-blue-50/50 border-blue-300", // Highlight search match
-                 className
+                "group relative rounded-lg border bg-card text-card-foreground transition-all duration-200 w-full",
+                // Red wash as a gradient layer over the opaque card white — a
+                // translucent bg-destructive/5 would replace bg-card and blend
+                // with the olive column behind, reading yellow.
+                bill.dead && "[background-image:linear-gradient(hsl(var(--destructive)/0.05),hsl(var(--destructive)/0.05))] border-destructive/20",
+                // Keyboard-only focus ring: :focus-visible stays false for mouse
+                // clicks, so selecting a card with the mouse draws no border.
+                "outline-none focus-visible:ring-2 has-[:focus-visible]:ring-2 ring-ring ring-offset-2",
+                "flex flex-col overflow-hidden",
+                isDragging
+                  ? "opacity-80 shadow-xl rotate-2 scale-105 cursor-grabbing"
+                  : "shadow-sm hover:shadow-md cursor-grab",
+                isHighlighted && "ring-2 ring-ring ring-offset-2",
+                className
             )}
-            style={style} // dnd positioning
-            {...props} // dnd props
-            tabIndex={0} // Make focusable
+            style={style}
+            {...restProps}
+            // Touch tap-to-open. Record where/when the finger went down so
+            // onPointerUp can tell a tap from a drag. Also forward to any
+            // pointer handler dnd supplied via the spread.
+            onPointerDown={(e) => {
+                (restProps.onPointerDown as React.PointerEventHandler<HTMLDivElement> | undefined)?.(e);
+                if (e.pointerType === 'touch') {
+                    tapStart.current = { x: e.clientX, y: e.clientY, t: e.timeStamp };
+                }
+            }}
+            onPointerUp={(e) => {
+                (restProps.onPointerUp as React.PointerEventHandler<HTMLDivElement> | undefined)?.(e);
+                if (e.pointerType !== 'touch') return;
+                const start = tapStart.current;
+                tapStart.current = null;
+                if (!start) return;
+                // Let taps on nested controls do their own thing.
+                if (isInteractiveTarget(e.target)) return;
+                // A genuine tap: barely moved and lifted quickly. A real drag
+                // moves the finger well past this threshold, so it won't open.
+                const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y);
+                const elapsed = e.timeStamp - start.t;
+                if (moved <= 10 && elapsed <= 500) {
+                    touchTapAt.current = e.timeStamp;
+                    handleCardClick(e as unknown as React.MouseEvent<HTMLDivElement>);
+                }
+            }}
+            // Mouse/keyboard path. Tap-to-open lives on the SAME element that
+            // carries dnd's drag handle. dnd arms a one-shot click guard after a
+            // touch, so we skip synthetic touch clicks here (onPointerUp already
+            // handled the tap) and let genuine mouse clicks through, composing
+            // with the handler dnd supplies via props.
+            onClick={(e) => {
+                dragHandleClick?.(e);
+                if (e.defaultPrevented) return;
+                // Skip the synthetic click that follows a touch tap onPointerUp
+                // already handled (browsers fire it within ~a few hundred ms).
+                if (e.timeStamp - touchTapAt.current < 700) return;
+                handleCardClick(e);
+            }}
+            onKeyDown={(e) => {
+                dragHandleKeyDown?.(e);
+                if (e.defaultPrevented) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleCardClick(e as unknown as React.MouseEvent<HTMLDivElement>);
+                }
+            }}
+            role="button"
+            aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
+            tabIndex={0}
         >
-            {/* Add click handler to the content div */}
-            <div 
-                className="flex flex-col w-full min-h-[80px] cursor-pointer"
-                onClick={handleCardClick}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleCardClick(e as any);
-                    }
-                }}
-                role="button"
-                tabIndex={0}
-                aria-label={`View details for bill ${bill.id}: ${bill.bill_title}`}
-            >
-                <CardHeader className="px-3 py-2 space-y-2 justify-between relative">
+            {/* Grayed-out content layer for dead bills */}
+            <div className={cn(
+              "flex flex-col",
+              bill.dead && "opacity-50 grayscale-[50%]"
+            )}>
 
-                      {/* Remove Bill Button - Only for admins and supervisors */}
-                      {canAssignBills(user) && (
-                        <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
-                          <AlertDialogTrigger asChild>
+            {/* Main content area */}
+            <div
+                className="flex flex-col w-full cursor-pointer p-3 pb-2"
+            >
+                {/* Tags row + dead badge */}
+                <div className="flex items-start justify-between gap-1">
+                  <div className="flex-1 min-w-0">
+                    <CardTagSelector billId={bill.id} billTags={bill.tags} />
+                  </div>                  
+                </div>
+
+                {/* Bill number + year + X remove button */}
+                <div className="flex items-center gap-1.5 mt-1">
+                  {/* Reference label — the headline below is the card's primary text */}
+                  <span className="text-xs font-medium tracking-wide text-muted-foreground">
+                    {bill.bill_number}
+                  </span>
+                  {/* Year only matters when archived (older-session) bills are
+                      mixed into the board — redundant on a single-session view */}
+                  {bill.year && showArchived && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 rounded-md text-muted-foreground">
+                      {bill.year}
+                    </Badge>
+                  )}
+                  {(canAssign || canUntrack || canRemoveFromBoard) && (
+                    <div className="ml-auto flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {canUntrack && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="cursor-pointer h-5 w-5 p-0 text-muted-foreground hover:bg-secondary hover:text-destructive"
+                          onClick={(e) => { e.stopPropagation(); onUnadopt?.(bill.id); }}
+                          title="Untrack bill"
+                          aria-label={`Untrack ${bill.bill_number}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {canAssign && !bill.dead && (
+                        <AssignBillDialog
+                          bill={bill}
+                          trigger={
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="cursor-pointer absolute top-2 right-2 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 z-10"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowRemoveDialog(true);
-                              }}
+                              className="cursor-pointer h-5 w-5 p-0 text-muted-foreground hover:bg-secondary hover:text-primary"
+                              onClick={(e) => e.stopPropagation()}
+                              title="Assign to user"
+                              aria-label={`Assign ${bill.bill_number} to a user`}
+                            >
+                              <UserPlus className="h-3 w-3" />
+                            </Button>
+                          }
+                        />
+                      )}
+                      {canRemoveFromBoard && !bill.dead && (
+                      <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="cursor-pointer h-5 w-5 p-0 text-muted-foreground hover:bg-secondary hover:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); setShowRemoveDialog(true); }}
+                            disabled={isRemoving}
+                            title="Remove from board"
+                            aria-label={`Remove ${bill.bill_number} from the board`}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove Bill from Board?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {activeTenant
+                                ? `This bill will be removed from your organization's list, including for anyone else in ${activeTenant.name} tracking it. You can track it again anytime using the Track Bill button.`
+                                : 'This bill will no longer be tracked on your list, and it will be removed for anyone else tracking it. You can track it again anytime using the Track Bill button.'}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={(e) => { e.stopPropagation(); handleRemoveBill(); }}
+                              className="bg-destructive hover:bg-destructive/90"
                               disabled={isRemoving}
                             >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Remove Bill from Board?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to remove this bill from the list? This will set the bill as not food-related. You can add back the bill by finding its URL in the Hawaii State Legislature site and using the Add or Remove Bill button.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel onClick={(e) => e.stopPropagation()}>
-                                Cancel
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRemoveBill();
-                                }}
-                                className="bg-red-600 hover:bg-red-700"
-                                disabled={isRemoving}
-                              >
-                                {isRemoving ? 'Removing...' : 'Remove Bill'}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-
-                      <CardTagSelector
-                        billId={bill.id}
-                        billTags={bill.tags}
-                      />
-                      <div className="flex gap-2 my-1 items-center">
-                        <CardTitle className="text-md font-bold" title={bill.bill_title}>
-                          {bill.bill_number}
-                        </CardTitle>
-                        {bill.year && (
-                          <Badge variant='secondary' className="text-xs h-4 px-1 rounded-md text-muted-foreground">
-                            {bill.year}
-                          </Badge>
-                        )}
-                     </div>
-
-                </CardHeader>
-                <CardContent className="p-0 gap-2">
-                    {/* {bill.user_nickname && (
-                      <p className="text-xs text-muted-foreground">
-                        Nickname: {bill.user_nickname}
-                      </p>
-                    )} */}
-                    <p className='text-sm text-foreground text-wrap line-clamp-2 px-3'>{bill.description}</p>
-
-                    {/* Latest Status Update Preview */}
-                    {latestUpdate && (
-                        <div className="border-y bg-slate-100 bg-muted/30 my-2 p-3 mt-3 items-center align-middle justify-center">
-                            <div className="flex items-start gap-2">
-                                <div className="w-2 h-2 bg-primary rounded-full mt-1.5 flex-shrink-0"></div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <p className="text-xs text-muted-foreground">
-                                            Latest update • {new Date(latestUpdate.date).toLocaleDateString()}
-                                        </p>                                        
-                                    </div>
-                                    <p className="text-xs text-foreground line-clamp-2 leading-relaxed">
-                                        {latestUpdate.statustext}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className='flex justify-between items-center mt-2 px-3 mb-2'>
-
-                      <Badge variant='outline' className='text-muted-foreground'>
-                        {formatBillStatusName(bill.current_bill_status)}
-                      </Badge>
-
-                      {canSeeTracking ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Tracked By: </span>
-                          {trackedBy.length > 0 ? (
-                            <div className="gap-1 flex items-center">
-                              {visibleTrackers.map((tracker) => (
-                                <Badge key={tracker.id} variant="default" className="text-[10px] h-5 px-1.5">
-                                  {tracker.username || tracker.email || 'Unknown'}
-                                </Badge>
-                              ))}
-                              {extraTrackerCount > 0 && (
-                              <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-                                +{extraTrackerCount} more
-                              </Badge>
-                            )}
-                          </div>
-                          ) : trackedBy.length === 0 ? (
-                          <Badge variant="destructive" className="text-[10px] text-white">No One</Badge>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground">Restricted</span>
-                        )}
-                        </div>
-                      ) : (
-                        <div>
-                          {trackedCount > 0 ? (
-                            <Badge className="h-5 px-1.5">
-                              Tracked
-                            </Badge>
-                          ) : (
-                            <Badge variant="destructive" className="text-white">Not Tracked</Badge>
-                          )}
-                        </div>
+                              {isRemoving ? 'Removing...' : 'Remove'}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                       )}
                     </div>
+                  )}
+                </div>
 
-                </CardContent>                           
+                {/* Headline — curated nickname or cleaned-up official title */}
+                {headline && (
+                  <p className="mt-1 text-sm font-semibold leading-snug truncate" title={headline}>
+                    {headline}
+                  </p>
+                )}
+
+                {/* Description — 2 lines with ellipsis */}
+                <p className={cn(
+                  'line-clamp-2 leading-relaxed',
+                  headline ? 'mt-0.5 text-xs text-muted-foreground' : 'mt-1 text-sm text-foreground'
+                )}>
+                  {bill.description}
+                </p>
+
+                {/* Latest activity — relative time for scannability; the full
+                    date and untruncated text live in the tooltip */}
+                {bill.latest_update && (
+                  <ChipTooltip
+                    content={
+                      <>
+                        <p className="font-medium">
+                          {parseLocalDate(bill.latest_update.date)?.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        </p>
+                        <p>{bill.latest_update.statustext}</p>
+                      </>
+                    }
+                  >
+                    <div className="mt-2 flex items-center gap-1 rounded-md bg-border/30 px-2 py-1.5">
+                      <History className="h-3 w-3 shrink-0 text-foreground/70" aria-hidden="true" />
+                      <span className="shrink-0 text-xs font-medium text-foreground/70">
+                        {formatRelativeDate(bill.latest_update.date)}
+                      </span>
+                      <p className="min-w-0 truncate text-xs text-muted-foreground">
+                        &mdash; {bill.latest_update.statustext}
+                      </p>
+                    </div>
+                  </ChipTooltip>
+                )}
+
+                {/* Status badges footer.
+                    Bottom-left: committee identity, superseded by testimony
+                    progress chips when there's testimony state.
+                    Bottom-right: deadline countdown, superseded by Failed. */}
+                <div className="flex items-center flex-wrap gap-1.5 mt-2.5">
+                    {testimonyState === 'submitted' && (
+                      <ChipTooltip content="You submitted testimony for this bill">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 h-5 text-[10px] font-medium text-primary shrink-0">
+                          <Check className="h-2.5 w-2.5" />
+                          Submitted
+                        </span>
+                      </ChipTooltip>
+                    )}
+                    {testimonyState === 'draft' && (
+                      <ChipTooltip content="You have a testimony draft for this bill">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 h-5 text-[10px] font-medium text-secondary-foreground shrink-0">
+                          <PenLine className="h-2.5 w-2.5" />
+                          Draft written
+                        </span>
+                      </ChipTooltip>
+                    )}
+                    {testimonyDue && (
+                      <ChipTooltip content={testimonyChipTitle}>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 h-5 text-[10px] font-medium text-destructive shrink-0">
+                          <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+                            <span className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75 motion-safe:animate-ping" />
+                            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-destructive" />
+                          </span>
+                          <PenLine className="h-2.5 w-2.5" />
+                          {countdownLabel ? `Testimony ${countdownLabel}` : 'Testimony due'}
+                        </span>
+                      </ChipTooltip>
+                    )}
+                    {testimonyClosed && (
+                      <ChipTooltip content={testimonyClosedTitle}>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 h-5 text-[10px] font-medium text-muted-foreground shrink-0">
+                          <History className="h-2.5 w-2.5" />
+                          Testimony closed
+                        </span>
+                      </ChipTooltip>
+                    )}
+                    {!testimonyState && !testimonyDue && !testimonyClosed && committeeCodes && (
+                      /* Plain hover/focus tooltip — no click affordance. The chip
+                         spells out each committee (and flags joint referrals) on
+                         hover; it opens nothing, so a tap just falls through to
+                         the card. */
+                      <ChipTooltip content={committeeTooltip}>
+                        <span className="inline-flex items-center rounded-full border border-border bg-secondary/60 px-2 h-5 text-[10px] font-medium text-secondary-foreground shrink-0">
+                          {committeeCodes}
+                        </span>
+                      </ChipTooltip>
+                    )}
+                    {/* <Badge variant="outline" className="text-[10px] h-5 px-2 text-muted-foreground rounded-full">
+                      {formatBillStatusName(bill.current_bill_status)}
+                    </Badge> */}
+                    {vis.showTrackedCount && canSeeTracking && (
+                      <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                        <Users className="h-2.5 w-2.5" />
+                        <span>{trackedCount}</span>
+                      </div>
+                    )}
+
+                  {/* Bottom-right: tiered deadline countdown for any bill with an
+                      upcoming deadline — Failed takes over the corner when the
+                      bill dies. Waiting-stage bills get the committee-chair
+                      framing in the tooltip; later stages a neutral one. */}
+                  <div className="flex items-center gap-2 ml-auto">
+                    {bill.dead ? (
+                      <Badge variant="destructive" className="text-[10px] h-5 px-2 text-white rounded-full shrink-0">
+                        Failed
+                      </Badge>
+                    ) : nextDeadline && deadlineDaysAway !== null && (
+                      /* Original concise tooltip, deliberately NOT a glossary
+                         term: appending the deadline-jargon definition here
+                         turned a glance-able pill into a paragraph. The jargon
+                         is explained in the bill breakdown instead. */
+                      <ChipTooltip
+                        content={formatDeadlineStanding(nextDeadline, deadlineDaysAway, showDeadlineCountdown)}
+                      >
+                        <span
+                          className={cn(
+                            'inline-flex items-center gap-1 rounded-full border px-2 h-5 text-[10px] font-medium shrink-0',
+                            deadlineTier === 'urgent' && 'border-destructive/30 bg-destructive/10 text-destructive',
+                            deadlineTier === 'warning' && 'border-ochre/40 bg-ochre-soft text-ochre',
+                            deadlineTier === 'safe' && 'border-border bg-secondary/60 text-muted-foreground'
+                          )}
+                        >
+                          {deadlineTier === 'urgent' ? (
+                            <AlarmClock className="h-2.5 w-2.5" />
+                          ) : (
+                            <Hourglass className="h-2.5 w-2.5" />
+                          )}
+                          {new Date(nextDeadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {' · '}
+                          {deadlineDaysAway <= 0 ? 'Today' : `${deadlineDaysAway}d`}
+                        </span>
+                      </ChipTooltip>
+                    )}
+                  </div>
+                </div>
             </div>
 
             {/* LLM Action Buttons */}
-            {bill.llm_suggested && !bill.llm_processing && (
-              <div className="p-4 flex gap-2 mt-3 pt-3 border-t border-blue-100">
+            {vis.showLlmActions && bill.llm_suggested && !bill.llm_processing && (
+              <div className="px-3 pb-3 flex gap-2 pt-2 border-t border-border">
                 <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleAccept}
-                  disabled={isProcessing}
-                  className="flex-1 text-xs h-8 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                  size="sm" variant="outline" onClick={handleAccept} disabled={isProcessing}
+                  className="flex-1 text-xs h-7 bg-olive-soft border-olive/60 text-foreground hover:bg-olive/30"
                 >
-                  <Check className="h-3 w-3 mr-1" />
-                  Accept
+                  <Check className="h-3 w-3 mr-1" /> Accept
                 </Button>
                 <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleReject}
-                  disabled={isProcessing}
-                  className="flex-1 text-xs h-8 bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+                  size="sm" variant="outline" onClick={handleReject} disabled={isProcessing}
+                  className="flex-1 text-xs h-7 bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20"
                 >
-                  <X className="h-3 w-3 mr-1" />
-                  Reject
+                  <X className="h-3 w-3 mr-1" /> Reject
                 </Button>
               </div>
             )}
 
             {bill.llm_processing && (
-              <div className="mt-3 pt-3 border-t border-blue-100 p-4">
-                <div className="flex items-center justify-center text-xs text-blue-600">
-                  <div className="relative">
-                    <Sparkles className="h-3 w-3 mr-1 animate-pulse" />
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
-                  </div>
+              <div className="px-3 pb-3 pt-2 border-t border-border">
+                <div className="flex items-center justify-center text-xs text-primary gap-1">
+                  <Sparkles className="h-3 w-3 animate-pulse" />
                   <span className="animate-pulse">AI Processing...</span>
                 </div>
               </div>
             )}
 
-            {/* Assign Bill Button - Only for admins and supervisors */}
-            {canAssignBills(user) && (
-              <div className="p-3 border-t border-gray-100">
-                <AssignBillDialog
-                  bill={bill}
-                  trigger={
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full text-xs h-8"
-                      onClick={(e) => e.stopPropagation()} // Prevent card click
-                    >
-                      Assign to User
-                    </Button>
-                  }
-                />
+            {vis.showTrackForSelf && (
+              <div className="px-3 pb-3 pt-2 border-t border-border">
+                {isTracked ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground cursor-default"
+                    aria-label={`You already track ${bill.bill_number}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Check className="h-3 w-3" />
+                    Tracked
+                  </button>
+                ) : (
+                  <AlertDialog open={showTrackDialog} onOpenChange={setShowTrackDialog}>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        type="button"
+                        disabled={isTracking}
+                        onClick={(e) => { e.stopPropagation(); setShowTrackDialog(true); }}
+                        className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 disabled:opacity-60"
+                        aria-label={`Track ${bill.bill_number}`}
+                      >
+                        {isTracking ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Tracking…
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-3 w-3" />
+                            Track this bill
+                          </>
+                        )}
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Track this bill?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This adds {bill.bill_number} to your organization&apos;s board so your team can track it too.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isTracking} onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTrackForSelf(); }}
+                          disabled={isTracking}
+                        >
+                          {isTracking ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                              Tracking…
+                            </>
+                          ) : (
+                            'Track bill'
+                          )}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+            )}
+            </div>{/* end grayed-out content layer */}
+
+            {/* Dead info popover — bottom-right, layered on top of grayed content */}
+            {bill.dead && (
+              <div className="absolute top-3 right-2 z-10">
+              <DeadBillInfoPopover
+                  billNumber={bill.bill_number}
+                  billStatus={bill.current_bill_status}
+                  billUrl={bill.bill_url}
+                  committeeAssignment={bill.committee_assignment}
+                  latestUpdate={bill.latest_update}
+                  removeSlot={canRemoveFromBoard ? (
+                    <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full h-8 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={(e) => { e.stopPropagation(); setShowRemoveDialog(true); }}
+                          disabled={isRemoving}
+                          aria-label={`Remove ${bill.bill_number} from the board`}
+                        >
+                          <X className="h-3.5 w-3.5 mr-1.5" />
+                          Remove from board
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remove Bill from Board?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {activeTenant
+                              ? `This bill will be removed from your organization's list, including for anyone else in ${activeTenant.name} tracking it. You can track it again anytime using the Track Bill button.`
+                              : 'This bill will no longer be tracked on your list, and it will be removed for anyone else tracking it. You can track it again anytime using the Track Bill button.'}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={(e) => { e.stopPropagation(); handleRemoveBill(); }}
+                            className="bg-destructive hover:bg-destructive/90"
+                            disabled={isRemoving}
+                          >
+                            {isRemoving ? 'Removing...' : 'Remove'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  ) : undefined}
+                >
+                  <button
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-sm"
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label="Why did this bill fail?"
+                  >
+                    <Info className="h-5 w-5" />
+                  </button>
+                </DeadBillInfoPopover>
               </div>
             )}
       </div>
@@ -342,51 +731,54 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
 });
 KanbanCardComponent.displayName = "KanbanCard";
 
-// Custom comparison function for React.memo
-// Only re-render if the specific props we care about have changed
 const arePropsEqual = (prevProps: KanbanCardProps, nextProps: KanbanCardProps): boolean => {
-  // Quick check: if it's a different bill entirely, re-render
   if (prevProps.bill.id !== nextProps.bill.id) return false;
-
-  // Check UI state props
   if (prevProps.isDragging !== nextProps.isDragging) return false;
   if (prevProps.isHighlighted !== nextProps.isHighlighted) return false;
   if (prevProps.showUnadoptButton !== nextProps.showUnadoptButton) return false;
+  // Active-boards props: the org testimony Set arrives in a second async call
+  // after bills load, flipping orgTestimonyState undefined -> 'submitted' with
+  // no other prop change. Without these comparisons the memo would skip the
+  // re-render and the "Submitted" chip would never appear. In 'own' mode these
+  // props are constant, so the checks are always-equal and harmless.
+  if (prevProps.boardMode !== nextProps.boardMode) return false;
+  if (prevProps.orgTestimonyState !== nextProps.orgTestimonyState) return false;
+  // isTracked flips false -> true after the current user tracks the bill (the
+  // tracked-ids Set updates optimistically); without this the "Tracked" state
+  // would never appear.
+  if (prevProps.isTracked !== nextProps.isTracked) return false;
+  if (prevProps.onTrackForSelf !== nextProps.onTrackForSelf) return false;
 
-  // Check bill properties that affect display
   const prev = prevProps.bill;
   const next = nextProps.bill;
 
   if (prev.bill_number !== next.bill_number) return false;
   if (prev.year !== next.year) return false;
+  if (prev.nickname !== next.nickname) return false;
+  if (prev.bill_title !== next.bill_title) return false;
   if (prev.description !== next.description) return false;
   if (prev.current_bill_status !== next.current_bill_status) return false;
-  // if (prev.user_nickname !== next.user_nickname) return false;
+  if (prev.dead !== next.dead) return false;
+  if (prev.committee_assignment !== next.committee_assignment) return false;
   if (prev.llm_suggested !== next.llm_suggested) return false;
   if (prev.llm_processing !== next.llm_processing) return false;
   if (prev.tracked_count !== next.tracked_count) return false;
 
-  // Check tags array (shallow comparison of IDs)
   const prevTags = prev.tags || [];
   const nextTags = next.tags || [];
   if (prevTags.length !== nextTags.length) return false;
   if (prevTags.some((tag, i) => tag.id !== nextTags[i]?.id)) return false;
 
-  // Check latest update (we only display the first one)
   const prevUpdate = prev.latest_update;
   const nextUpdate = next.latest_update;
   if (prevUpdate?.statustext !== nextUpdate?.statustext) return false;
-  if (prevUpdate?.date !== nextUpdate?.date) return false;  
+  if (prevUpdate?.date !== nextUpdate?.date) return false;
 
-  // Check tracked_by (we only display first 2)
   const prevTracked = prev.tracked_by || [];
   const nextTracked = next.tracked_by || [];
   if (prevTracked.length !== nextTracked.length) return false;
-  if (prevTracked.slice(0, 2).some((t, i) => t.id !== nextTracked[i]?.id)) return false;
 
-  // All checks passed - props are equal, skip re-render
   return true;
 };
 
-// Export memoized component
 export const KanbanCard = React.memo(KanbanCardComponent, arePropsEqual);

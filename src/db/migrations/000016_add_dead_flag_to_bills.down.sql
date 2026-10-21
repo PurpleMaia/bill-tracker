@@ -1,0 +1,2 @@
+ALTER TABLE bills
+DROP COLUMN dead;

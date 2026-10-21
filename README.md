@@ -1,6 +1,6 @@
-# Food+ Frontend
+# Hawaiʻi Bill Tracker (Frontend)
 
-A Next.js application for tracking and managing legislative bills related to food and agriculture in Hawaiʻi. This repository contains the frontend application, developer utilities, and scripts used to run and maintain the project locally and in production.
+A Next.js application for tracking and managing legislative bills related to food and agriculture in Hawaiʻi. This repository contains the frontend application, developer utilities, and scripts used to run and maintain the project. 
 
 ---
 
@@ -24,67 +24,104 @@ A Next.js application for tracking and managing legislative bills related to foo
 
 ## Project overview
 
-Food+ is a Kanban-style bill tracker focused on food- and agriculture-related legislation for Hawaiʻi. The UI shows bills as cards that can be filtered, viewed, and (when authenticated) updated by contributors. The app uses machine learning to classify bill status and an external scraper to fetch legislative updates.
+The Hawaiʻi Bill Tracker is a Kanban-style bill tracker focused on food- and agriculture-related legislation for Hawaiʻi, built by Purple Maiʻa & Food+ Policy. The UI shows bills as cards that can be searched, filtered, tracked, and (when authenticated) updated by contributors — plus plain-language explanations, testimony drafting, and legislator contact. Bill status is classified by an LLM (OpenAI), and an external `bill-scraper` service fetches legislative updates.
 
 ## Architecture & key components
 
-- Frontend: Next.js (app router) + React + TypeScript + Tailwind CSS. UI primitives come from custom components in `src/components/ui` and Radix.
-- Server-side database access: Kysely (Postgres) via `db/kysely/client.ts`.
-- Authentication: lightweight custom session handling plus Lucia-related patterns (see `src/lib/simple-auth.ts` and `src/hooks/contexts/auth-context.tsx`).
-- Server actions / services: `src/services/*` contain server-side functions (database operations, LLM calls, scraping triggers).
-- State & caching: TanStack Query (React Query) + React Context providers in `src/hooks/contexts/*`.
-- AI & scraping: OpenAI (for LLM classification); an external scraping service is used to ingest bill data.
+> For the full architecture — the data-client transport seam, auth guards,
+> multi-tenancy, and derived status — read
+> [`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md).
+> Conventions for contributors (and AI agents) live in
+> [`CLAUDE.md`](CLAUDE.md); the database schema is in
+> [`docs/db/schema.md`](docs/db/schema.md).
+
+- **Frontend:** Next.js 15 (app router) + React 18 + TypeScript + Tailwind CSS.
+  UI primitives come from shadcn/ui components in `src/components/ui` + Radix.
+- **Database access:** Kysely (Postgres) via `src/db/kysely/client.ts`. **All
+  queries live in `src/db/queries/*`** — the single source of truth.
+- **Authentication:** custom, cookie-based sessions (SHA-256 token, bcrypt
+  passwords). Authorization goes through guards in `src/lib/auth/auth-guards.ts`.
+- **Two transports, one client:** every data operation has a Server Action arm
+  (`src/app/actions/*`) and an API-route arm (`src/app/api/*`); client code calls
+  `data.*` from `@/lib/data-client` and the transport is chosen by a flag.
+- **External integrations only** in `src/services/*`: `llm.ts` (OpenAI),
+  `email.ts` (Resend), `scraper.ts` (the external `bill-scraper` service).
+- **State & caching:** React Context (`src/hooks/contexts/*`) + TanStack React Query.
 
 Project layout (important folders):
 
 ```
 src/
-├── ai/                 # genkit/googleAI configuration and prompts (not in use)
-├── app/                # Next.js app router
-├── components/         # UI components (kanban, llm, new-bill, scraper, auth, admin etc.)
-├── contexts/           # React Context providers (auth, bills, kanban state)
-├── hooks/              # Custom hooks (query hooks, toast, adopted bills helpers)
-├── lib/                # Utilities, providers, react-query client
-├── services/           # Server-side actions and API helpers (legislation, llm, scraper)
-└── db/                 # Database typing and Kysely client
+├── app/            # Next.js app router: pages, actions/ (server actions), api/ (routes)
+├── components/     # UI components (kanban, search, testimony, boards, admin, ui, …)
+├── hooks/          # Custom hooks + contexts/ (Auth, Bills, KanbanBoard, …)
+├── services/       # EXTERNAL integrations only (OpenAI, Resend, scraper, Google OAuth)
+├── lib/            # Pure logic, grouped by domain (auth, bills, testimony, versions, core, data-client)
+└── db/             # queries/ (data-access layer), kysely/ (client), migrations/, types.ts (generated)
 ```
 
 ## Prerequisites
 
-- Node.js 18+ (recommended 18 or 20)
-- npm (or yarn)
+- **Node.js 22.x** and **pnpm 10** (this repo pins `packageManager: pnpm@10`).
+  Install pnpm via `corepack enable` or from https://pnpm.io.
 - Git
 - PostgreSQL database for local development (or a hosted Postgres instance)
-- Optional: access keys for OpenAI and Google GenAI if you want LLM features locally
+- The [`golang-migrate`](https://github.com/golang-migrate/migrate) CLI for
+  running migrations (`brew install golang-migrate`)
+- Optional: an OpenAI key (bill classification / summaries) and Resend key (email)
 
 ## Environment variables
 
-Create a `.env` file in the repository root (do not commit secrets). The main variables used by the app and scripts are:
+Create a `.env` file in the repository root (do not commit secrets). There is no
+`.env.example`; the variables the app actually reads are:
 
-- DATABASE_URL - Postgres connection string used by Kysely and setup scripts
-- OPENAI_API_KEY - OpenAI API key (used by server LLM service)
-- OPENAI_BASE_URL - Optional base URL if using a proxy/alternate OpenAI endpoint
-- VLLM - Vllm model name for testing
-- LLM - LLM model name for testing
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | Postgres connection string (Kysely, migrations, codegen) |
+| `OPENAI_API_KEY` | OpenAI key used by `src/services/llm.ts` |
+| `OPENAI_BASE_URL` | Optional: proxy / alternate OpenAI endpoint |
+| `RESEND_API_KEY` | Resend key for transactional email (invites, verification, resets) |
+| `SCRAPER_API_URL` | Base URL of the external `bill-scraper` service |
+| `NEXT_PUBLIC_DATA_TRANSPORT` | `fetch` (default) or `action` — data-client transport |
+| `NEXT_PUBLIC_DEMO_DEADLINES` | Optional: use demo session deadlines instead of the real calendar |
+
+## Local database setup
+
+With `DATABASE_URL` set, apply migrations and generate the Kysely types:
+
+```bash
+pnpm migrate:up dev   # apply all pending migrations (golang-migrate, .sql files)
+pnpm codegen          # regenerate src/db/types.ts from the live DB
+```
+
+Migrations are sequential `.sql` files in `src/db/migrations/`. See
+[`docs/db/migration-guide.md`](docs/db/migration-guide.md) for creating,
+rolling back, and force-fixing migrations.
 
 ## Development (run & build)
 
 Install dependencies and run the dev server:
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 # Open http://localhost:9002
 ```
 
-Available npm scripts (high level):
+Available scripts (high level):
 
-- npm run dev — Start dev server (Next.js, port 9002 by default in package.json)
-- npm run build — Build production app
-- npm run start — Start the built app
-- npm run lint — Run ESLint
-- npm run typecheck — Run TypeScript typecheck
-- npm run kysely:generate — Generate DB types from DATABASE_URL with kysely-codegen
+- `pnpm dev` — Start dev server (Next.js, port 9002)
+- `pnpm build` — Build production app (the real CI/deploy gate)
+- `pnpm start` — Start the built app
+- `pnpm lint` — Run ESLint
+- `pnpm typecheck` — Run TypeScript typecheck
+- `pnpm test` — Run the Vitest suite
+- `pnpm codegen` — Generate DB types from `DATABASE_URL` with kysely-codegen
+- `pnpm migrate:up` / `pnpm migrate:down` — Apply / roll back migrations (note you will need to install golang-migrate to your local machine)
+
+> ⚠️ `next.config.ts` sets `ignoreBuildErrors` and `ignoreDuringBuilds`, so
+> `pnpm build` does **not** fail on type or lint errors. Run `pnpm typecheck`
+> and `pnpm lint` explicitly.
 
 If the app does not pick up `.env`, confirm your terminal has the environment variables exported (zsh profile, direnv, or use a .env loader).
 
@@ -103,7 +140,7 @@ Security note: the frontend never connects directly to the database. Server-side
 1. Public users visit the site and can view bills and statuses (read-only).
 2. Authenticated users (created via scripts or admin flow) can adopt bills, drag-and-drop cards on the Kanban board, edit bill details, and trigger scrapes or LLM reclassification.
 3. When a UI action requires a DB change, the frontend calls a server-side service (server action or API route) in `src/services/*`. Those services validate input, check the session, and use Kysely (or `db` client) to update Postgres.
-4. LLM classification: when the app needs a bill status classification, it calls `src/services/llm.ts`, which sends a minimal prompt to OpenAIx and returns a single canonical status category.
+4. LLM classification: when the app needs a bill status classification, it calls `src/services/llm.ts`, which sends a minimal prompt to OpenAI and returns a single canonical status category.
 5. Background scraping: the scraper can be triggered manually from the UI or run as a scheduled job externally. Scraped updates are written to the `status_updates` table and may trigger reclassification.
 
 ## Contributing
@@ -121,21 +158,20 @@ git checkout -b feature/<short-description>
 4. Run linting and type checking locally:
 
 ```bash
-npm run lint
-npm run typecheck
+pnpm lint
+pnpm typecheck
 ```
 
 5. If your changes touch database types, regenerate Kysely types:
 
 ```bash
-export DATABASE_URL="..."
-npm run kysely:generate
+pnpm codegen
 ```
 
 6. Create a pull request. In the PR description:
    - Summarize the change and motivation
    - Include screenshots or code snippets if UI/UX changed
-   - Provide techincal details on the change
+   - Provide technical details on the change
 
 7. Address code review feedback, re-run tests/lint, and squash or clean commits if requested.
 
@@ -149,22 +185,34 @@ Coding style:
 
 ## Testing & linting
 
-- ESLint (run `npm run lint`) is configured. Fix lint errors before submitting PRs.
-- Type checking: `npm run typecheck`.
-- There are no automated test scripts included by default; add unit/integration tests as needed and document how to run them in PRs.
+- **Tests:** `pnpm test` runs the Vitest suite (~38 files in `src/lib/__tests__/`,
+  covering pure logic — status derivation, kanban columns, filters/search,
+  version diff, testimony eligibility, validators, etc.). `pnpm test:watch` for
+  watch mode. All tests must pass before a PR.
+- **Lint:** `pnpm lint` (ESLint). Fix lint errors before submitting.
+- **Types:** `pnpm typecheck`. Note the production build ignores type/lint
+  errors, so run these two commands explicitly.
 
 ## Deployment notes
 
-- Build for production: `npm run build` then `npm run start`.
-- Ensure production environment has the required env vars (DATABASE_URL, OPENAI_API_KEY).
-- Database migrations: this repo uses DDL setup scripts located in `scripts/`. For production, run your curated migrations or managed schema updates.
-- When deploying to a platform (Vercel, Cloud Run, etc.), set environment variables in the platform settings and ensure Postgres is reachable from the deployed environment.
+- Build for production: `pnpm build` then `pnpm start`.
+- Ensure production has the required env vars (at least `DATABASE_URL`,
+  `OPENAI_API_KEY`, `RESEND_API_KEY`, `SCRAPER_API_URL`).
+- **Database migrations** run via `golang-migrate` against `src/db/migrations/`.
+  `app.json` configures a Dokku `predeploy` hook (`pnpm migrate:up p`) that
+  applies pending migrations on deploy.
+- When deploying to a platform (Dokku, Vercel, Cloud Run, etc.), set environment
+  variables in the platform settings and ensure Postgres is reachable.
 
 ## Useful links
 
-- Authentication docs: `docs/authentication-setup.md`
-- Scripts: `scripts/` (setup/helper/test scripts for DB & users)
-- Kysely types generator config: `.kysely-codegenrc.json`
+- Architecture guide: [`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md)
+- Conventions (for contributors & AI agents): [`CLAUDE.md`](CLAUDE.md)
+- Database schema: [`docs/db/schema.md`](docs/db/schema.md)
+- Migration guide: [`docs/db/migration-guide.md`](docs/db/migration-guide.md)
+- Capitol API reference: [`docs/capitol-api-reference.md`](docs/capitol-api-reference.md)
+- Contributing & branch/PR conventions: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- Kysely codegen config: `.kysely-codegenrc.json`; migration scripts: `scripts/migrations/`
 
 ---
 

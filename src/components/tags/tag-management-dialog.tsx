@@ -12,10 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { X, Plus, Edit2, Trash2 } from 'lucide-react';
-import { getAllTags, createTag, updateTag, deleteTag } from '@/services/data/tags';
+import { getAllTags, createTag, updateTag, deleteTag } from '@/db/queries/tags';
 import type { Tag } from '@/types/legislation';
 import { toast } from '@/hooks/use-toast';
 import { useBills } from '@/hooks/contexts/bills-context';
+import { useAuth } from '@/hooks/contexts/auth-context';
 
 interface TagManagementDialogProps {
   isOpen: boolean;
@@ -29,11 +30,10 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState('#3b82f6');
   const { refreshBills } = useBills();
+  const { activeTenant } = useAuth();
 
-  console.log('TagManagementDialog render, isOpen:', isOpen);
 
   useEffect(() => {
-    console.log('TagManagementDialog isOpen changed:', isOpen);
     if (isOpen) {
       loadTags();
     }
@@ -42,7 +42,8 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
   const loadTags = async () => {
     setLoading(true);
     try {
-      const fetchedTags = await getAllTags();
+      if (!activeTenant) return;
+      const fetchedTags = await getAllTags(activeTenant.tenantId);
       setTags(fetchedTags);
     } catch (error) {
       toast({
@@ -66,7 +67,7 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
     }
 
     try {
-      const newTag = await createTag(newTagName.trim(), newTagColor);
+      const newTag = await createTag(newTagName.trim(), newTagColor, activeTenant!.tenantId);
       setTags([...tags, newTag]);
       setNewTagName('');
       toast({
@@ -93,7 +94,7 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
     }
 
     try {
-      const updatedTag = await updateTag(tag.id, tag.name.trim(), tag.color || undefined);
+      const updatedTag = await updateTag(tag.id, tag.name.trim(), tag.color || undefined, activeTenant!.tenantId);
       setTags(tags.map(t => t.id === tag.id ? updatedTag : t));
       setEditingTag(null);
       toast({
@@ -117,7 +118,7 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
     }
 
     try {
-      await deleteTag(tagId);
+      await deleteTag(tagId, activeTenant!.tenantId);
       setTags(tags.filter(t => t.id !== tagId));
       toast({
         title: 'Success',

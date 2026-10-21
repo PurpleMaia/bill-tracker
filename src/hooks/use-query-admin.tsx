@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from './use-toast';
+import { useAuth } from './contexts/auth-context';
 import {
   getPendingRequests,
   getPendingProposals,
@@ -15,20 +16,22 @@ import {
   getAllAccounts,
 } from '@/app/actions/admin';
 
-// Query keys for cache management
-const queryKeys = {
-  pendingRequests: ['admin', 'pending-requests'] as const,
-  allAccounts: ['admin', 'all-accounts'] as const,
-  pendingProposals: ['admin', 'pending-proposals'] as const,
-  supervisorRequests: ['admin', 'supervisor-requests'] as const,
-  allInterns: ['admin', 'all-interns'] as const,
-  allSupervisors: ['admin', 'all-supervisors'] as const,
-  allInternBills: ['admin', 'all-intern-bills'] as const,
-};
-
 export function useAdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { activeTenant } = useAuth();
+  const tenantId = activeTenant?.tenantId;
+
+  // Query keys for cache management (tenant-aware)
+  const queryKeys = {
+    pendingRequests: ['admin', 'pending-requests', tenantId] as const,
+    allAccounts: ['admin', 'all-accounts', tenantId] as const,
+    pendingProposals: ['admin', 'pending-proposals', tenantId] as const,
+    supervisorRequests: ['admin', 'supervisor-requests', tenantId] as const,
+    allInterns: ['admin', 'all-interns', tenantId] as const,
+    allSupervisors: ['admin', 'all-supervisors', tenantId] as const,
+    allInternBills: ['admin', 'all-intern-bills', tenantId] as const,
+  };
 
   // ============================================
   // QUERIES - Data Fetching with React Query
@@ -37,7 +40,7 @@ export function useAdminDashboard() {
   const pendingRequestsQuery = useQuery({
     queryKey: queryKeys.pendingRequests,
     queryFn: async () => {
-      const result = await getPendingRequests();
+      const result = await getPendingRequests(tenantId);
       if (!result.success) throw new Error(result.error);
       return result.data ?? [];
     },
@@ -47,7 +50,7 @@ export function useAdminDashboard() {
   const allAccountsQuery = useQuery({
     queryKey: queryKeys.allAccounts,
     queryFn: async () => {
-      const result = await getAllAccounts();
+      const result = await getAllAccounts(tenantId);
 
       if (!result.success) throw new Error(result.error);
       return result.data ?? [];
@@ -58,7 +61,7 @@ export function useAdminDashboard() {
   const pendingProposalsQuery = useQuery({
     queryKey: queryKeys.pendingProposals,
     queryFn: async () => {
-      const result = await getPendingProposals();
+      const result = await getPendingProposals(tenantId);
       if (!result.success) throw new Error(result.error);
       return result.data ?? [];
     },
@@ -68,7 +71,7 @@ export function useAdminDashboard() {
   const allInternsQuery = useQuery({
     queryKey: queryKeys.allInterns,
     queryFn: async () => {
-      const result = await getAllInterns();
+      const result = await getAllInterns(tenantId);
       if (!result.success) throw new Error(result.error);
       return result.data ?? [];
     },
@@ -78,7 +81,7 @@ export function useAdminDashboard() {
   const allSupervisorsQuery = useQuery({
     queryKey: queryKeys.allSupervisors,
     queryFn: async () => {
-      const result = await getAllSupervisors();
+      const result = await getAllSupervisors(tenantId);
       if (!result.success) throw new Error(result.error);
       return result.data ?? [];
     },
@@ -88,7 +91,7 @@ export function useAdminDashboard() {
   const allInternBillsQuery = useQuery({
     queryKey: queryKeys.allInternBills,
     queryFn: async () => {
-      const result = await getAllInternBills();
+      const result = await getAllInternBills(tenantId);
       if (!result.success) throw new Error(result.error);
       return result.data ?? [];
     },
@@ -101,7 +104,7 @@ export function useAdminDashboard() {
 
   const approveUserMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
-      const result = await approveUser(userId, role);
+      const result = await approveUser(userId, role, tenantId);
       if (!result.success) throw new Error(result.error);
       return result;
     },
@@ -138,7 +141,7 @@ export function useAdminDashboard() {
 
   const denyUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const result = await denyUser(userId);
+      const result = await denyUser(userId, tenantId);
       if (!result.success) throw new Error(result.error);
       return result;
     },
@@ -172,7 +175,7 @@ export function useAdminDashboard() {
 
   const assignSupervisorMutation = useMutation({
     mutationFn: async ({ supervisorId, internIds }: { supervisorId: string; internIds: string[] }) => {
-      const result = await assignSupervisorToIntern(supervisorId, internIds);
+      const result = await assignSupervisorToIntern(supervisorId, internIds, tenantId);
       if (!result.success) throw new Error(result.error);
       return result;
     },
@@ -198,7 +201,7 @@ export function useAdminDashboard() {
 
   const unassignInternMutation = useMutation({
     mutationFn: async (internId: string) => {
-      const result = await unassignInternFromSupervisor(internId);
+      const result = await unassignInternFromSupervisor(internId, tenantId);
       if (!result.success) throw new Error(result.error);
       return result;
     },

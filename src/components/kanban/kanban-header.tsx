@@ -1,76 +1,295 @@
-'use client'; 
+'use client';
 
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/contexts/auth-context';
-import { Switch } from '../ui/switch';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
-import { Label } from '../ui/label';
-import NewBillButton from './new-bill/new-bill-button';
+// LEGACY: NewBillButton ("Manage Bills") — from when AI was used to bulk-add
+// certain types of bills to an org's liking. We are not implementing this
+// feature further; left commented out rather than deleted.
+// import NewBillButton from './new-bill/new-bill-button';
+import { TrackBillDialog } from './track-bill-dialog';
+import { ExportCsvDialog } from './export-csv-dialog';
+import { ViewScopeToggle } from './view-scope-toggle';
+import { FilterChipsRow } from './filter-chips-row';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { TagFilterList } from '../tags/tag-filter-list';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Download, Globe, Search, UserPlus } from 'lucide-react';
+import { getAllTags } from '@/db/queries/tags';
+import type { Tag } from '@/types/legislation';
 
-export function KanbanHeader() {
-  const { user } = useAuth();
-  const { viewMode, toggleViewMode, showArchived, toggleShowArchived } = useBills();
-  const { selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears } = useKanbanBoard();
+interface KanbanHeaderProps {
+  /**
+   * 'own' (default): the normal board header — ViewScopeToggle + Track / New /
+   * Export cluster, tags loaded for the viewer's active tenant.
+   * 'active-boards': read-only header for viewing another org's board — the
+   * action cluster is replaced by `rightSlot` (the org-switcher dropdown) and
+   * tags are derived from the bills already in context (the viewed org's).
+   */
+  variant?: 'own' | 'active-boards';
+  /** Rendered in the right-hand cluster; used by the active-boards variant for the org switcher. */
+  rightSlot?: React.ReactNode;
+  /**
+   * Rendered at the far left of the header row (where ViewScopeToggle sits on
+   * the normal board). The active-boards variant uses it for the org identity
+   * badge so "whose board am I on" reads first, left-to-right.
+   */
+  leftSlot?: React.ReactNode;
+}
 
-  const isPublic = !user;
-  const canAddRemoveBills = user?.role === 'admin' || user?.role === 'supervisor';
+export function KanbanHeader({ variant = 'own', rightSlot, leftSlot }: KanbanHeaderProps) {
+  const { user, activeTenant } = useAuth();
+  const { showArchived, toggleShowArchived, bills } = useBills();
+  const { view, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter, searchQuery, setSearchQuery } = useKanbanBoard();
+
+  const isActiveBoards = variant === 'active-boards';
+  // Active Boards is a read-only view of another org's board: no public branch,
+  // no Track/New/Export, no archived toggle.
+  const isPublic = !isActiveBoards && !user;
+  // LEGACY: gated the "Manage Bills" button (see the commented-out render below).
+  // const canAddRemoveBills = !isActiveBoards && activeTenant?.orgRole === 'admin';
+
+  // Tag state lives here so both the filter popover and the chips row share it.
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [loadingTags, setLoadingTags] = useState(false);
+
+  const loadTags = useCallback(async () => {
+    if (!activeTenant) {
+      setTags([]);
+      return;
+    }
+    setLoadingTags(true);
+    try {
+      setTags(await getAllTags(activeTenant.tenantId));
+    } catch (error) {
+      console.error('Failed to load tags:', error);
+    } finally {
+      setLoadingTags(false);
+    }
+  }, [activeTenant]);
+
+  // In active-boards mode the tags aren't fetched for the viewer's tenant; the
+  // bills in context already carry the viewed org's tags (scoped by getBoardAction).
+  const activeBoardsTags = useMemo(() => {
+    if (!isActiveBoards) return [];
+    const seen = new Map<string, Tag>();
+    for (const b of bills) for (const t of (b.tags ?? [])) if (!seen.has(t.id)) seen.set(t.id, t);
+    return Array.from(seen.values());
+  }, [isActiveBoards, bills]);
+
+  useEffect(() => {
+    if (isActiveBoards) return; // tags come from bills, not a fetch
+    loadTags();
+  }, [isActiveBoards, loadTags]);
+
+  const effectiveTags = isActiveBoards ? activeBoardsTags : tags;
+
+  // Keyboard shortcut: Cmd/Ctrl+K (anywhere) or "/" (outside a field)
+  // focuses whichever search input is visible at the current breakpoint.
+  const desktopSearchRef = useRef<HTMLInputElement>(null);
+  const mobileSearchRef = useRef<HTMLInputElement>(null);
+  const [shortcutHint, setShortcutHint] = useState('⌘K');
+
+  useEffect(() => {
+    if (!/Mac|iPhone|iPad/.test(navigator.platform)) {
+      setShortcutHint('Ctrl K');
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isCmdK = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
+      const isSlash = event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey;
+      if (!isCmdK && !isSlash) return;
+
+      const target = event.target as HTMLElement | null;
+      const inField =
+        !!target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+      if (isSlash && inField) return;
+
+      const visible = [desktopSearchRef.current, mobileSearchRef.current].find(
+        (el) => el && el.offsetParent !== null
+      );
+      if (visible) {
+        event.preventDefault();
+        visible.focus();
+        visible.select();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+  };
+
+  const handleTagToggle = (tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId)
+        ? prev.filter((id) => id !== tagId)
+        : [...prev, tagId]
+    );
+  };
+
+  const handleYearToggle = (year: number) => {
+    setSelectedYears((prev) =>
+      prev.includes(year)
+        ? prev.filter((y) => y !== year)
+        : [...prev, year]
+    );
+  };
+
+  const clearPopoverFilters = () => {
+    setSelectedTagIds([]);
+    setSelectedYears([]);
+    setDeadFilter('all');
+  };
+
+  // Chips-row variant also resets archived (the popover handles that itself).
+  const clearAllFilters = () => {
+    clearPopoverFilters();
+    if (!isPublic && showArchived) {
+      toggleShowArchived();
+    }
+  };
+
+  const filterControls = (
+    <TagFilterList
+      tags={effectiveTags}
+      loadingTags={isActiveBoards ? false : loadingTags}
+      onTagsChanged={isActiveBoards ? () => {} : loadTags}
+      selectedTagIds={selectedTagIds}
+      onTagToggle={handleTagToggle}
+      selectedYears={selectedYears}
+      onYearToggle={handleYearToggle}
+      deadFilter={deadFilter}
+      onDeadFilterChange={setDeadFilter}
+      showStatusFilter={!isActiveBoards && view === 'spreadsheet'}
+      showArchivedFilter={!isActiveBoards && !isPublic}
+      showArchived={showArchived}
+      onShowArchivedChange={toggleShowArchived}
+      onClearFilters={clearPopoverFilters}
+    />
+  );
+
+  const renderSearchInput = (ref: React.RefObject<HTMLInputElement>, withHint: boolean) => (
+    <div className="relative flex-1 max-w-xl">
+      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+      <Input
+        ref={ref}
+        type="search"
+        placeholder="Search bills by number, title, or keyword..."
+        className={withHint ? 'pl-9 pr-16' : 'pl-9'}
+        value={searchQuery}
+        onChange={handleSearchChange}
+        aria-label="Search bills"
+      />
+      {withHint && (
+        <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+          {shortcutHint}
+        </kbd>
+      )}
+    </div>
+  );
 
   return (
-    <div className='p-2 border-b bg-white flex items-center justify-between shadow-md'>
-      
-        <div className='ml-6'>
-          {isPublic ? (
-            <div className=''>
-              <h2 className="text-md font-semibold">Public View</h2>
-              <p className="text-sm text-muted-foreground">All Food+ Tracked Bills</p>
+    <div className="border-b bg-white shadow-md">
+      {/* Mobile: org identity badge on its own row (active-boards only), then
+          the search + filter + action row. */}
+      {isActiveBoards && leftSlot && (
+        <div className="md:hidden px-4 pt-2">{leftSlot}</div>
+      )}
+      <div className="md:hidden flex items-center gap-2 p-2 px-4">
+        {renderSearchInput(mobileSearchRef, false)}
+        {filterControls}
+        {isActiveBoards ? (
+          <div className="shrink-0">{rightSlot}</div>
+        ) : (
+          !isPublic && (
+            <>
+              <TrackBillDialog>
+                <Button size="icon" className="shrink-0" aria-label="Track a new bill">
+                  <UserPlus className="h-4 w-4" />
+                </Button>
+              </TrackBillDialog>
+              <ExportCsvDialog>
+                <Button variant="outline" size="icon" className="shrink-0" aria-label="Export bills (CSV or Excel)">
+                  <Download className="h-4 w-4" />
+                </Button>
+              </ExportCsvDialog>
+            </>
+          )
+        )}
+      </div>
+
+      {/* Desktop */}
+      <div className="hidden md:flex items-center gap-4 p-2 px-4">
+        {isActiveBoards && leftSlot && <div className="shrink-0">{leftSlot}</div>}
+        {!isActiveBoards &&
+          (isPublic ? (
+            <div className="flex items-center gap-2 shrink-0">
+              <Globe className="h-4 w-4 text-muted-foreground" />
+              <div className="leading-tight">
+                <h2 className="text-sm font-semibold">Public View</h2>
+                <p className="text-xs text-muted-foreground">All Food+ Tracked Bills</p>
+              </div>
             </div>
           ) : (
-            <div className='flex items-center space-x-6'>
-              <div className='flex items-center space-x-2'>
-                <Switch id='my-bills' checked={viewMode === 'all-bills'} onCheckedChange={toggleViewMode}> View All Bills</Switch>
-                <Label htmlFor='my-bills' className='text-md'>All Bills</Label>
-              </div>
-              <div className='flex items-center space-x-2'>
-                <Switch id='show-archived' checked={showArchived} onCheckedChange={toggleShowArchived}> Show Archived</Switch>
-                <Label htmlFor='show-archived' className='text-md'>Show Archived</Label>
-              </div>
-            </div>
+            <ViewScopeToggle className="shrink-0" />
+          ))}
+
+        {/* Find group: search + filters narrow the same result set */}
+        <div className="flex items-center gap-2 flex-1">
+          {renderSearchInput(desktopSearchRef, true)}
+          {filterControls}
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto">
+          {isActiveBoards ? (
+            rightSlot
+          ) : (
+            !isPublic && (
+              <>
+                {/* Track a bill: opens a dialog that sends the user to the search
+                    page, where bills are found and tracked in one click. */}
+                <TrackBillDialog />
+                {/* LEGACY FEATURE — "Manage Bills" button. This dates from when AI
+                    was used to add certain types of bills to an org's liking. We are
+                    not implementing this feature further, so it's hidden for now. */}
+                {/* {canAddRemoveBills && <NewBillButton />} */}
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <ExportCsvDialog>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" aria-label="Export bills (CSV or Excel)">
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                    </ExportCsvDialog>
+                    <TooltipContent>Export bills (CSV / Excel)</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </>
+            )
           )}
         </div>
+      </div>
 
-        <div className='flex items-center space-x-2 mr-4 py-2'>            
-
-            <TagFilterList
-              selectedTagIds={selectedTagIds}
-              onTagToggle={(tagId: string) => {
-                setSelectedTagIds((prev) =>
-                  prev.includes(tagId)
-                    ? prev.filter((id) => id !== tagId)
-                    : [...prev, tagId]
-                );
-              }}
-              selectedYears={selectedYears}
-              onYearToggle={(year: number) => {
-                setSelectedYears((prev) =>
-                  prev.includes(year)
-                    ? prev.filter((y) => y !== year)
-                    : [...prev, year]
-                );
-              }}
-              onClearFilters={() => {
-                setSelectedTagIds([]);
-                setSelectedYears([]);
-              }}
-            />
-
-            {!isPublic && (
-              <>
-                {canAddRemoveBills && <NewBillButton />}
-              </>
-            )}
-        </div>
-
+      <FilterChipsRow
+        tags={effectiveTags}
+        selectedTagIds={selectedTagIds}
+        onTagToggle={handleTagToggle}
+        selectedYears={selectedYears}
+        onYearToggle={handleYearToggle}
+        deadFilter={!isActiveBoards && view === 'spreadsheet' ? deadFilter : 'all'}
+        onDeadFilterChange={setDeadFilter}
+        showArchived={!isActiveBoards && !isPublic && showArchived}
+        onShowArchivedChange={toggleShowArchived}
+        onClearAll={clearAllFilters}
+      />
     </div>
   );
 }

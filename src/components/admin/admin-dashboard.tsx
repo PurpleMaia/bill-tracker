@@ -24,11 +24,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import AdminHeader from './admin-header';
 import { useAdminDashboard } from '@/hooks/use-query-admin';
-import { formatBillStatusName } from '@/lib/utils';
+import { useAuth } from '@/hooks/contexts/auth-context';
+import { formatBillStatusName } from '@/lib/core/utils';
 import { BillWithInterns, InternWithBills, PendingProposal, PendingUser, SupervisorWithInterns } from '@/types/admin';
 import { InternSelector } from './intern-selector';
 import { AssignMultipleBillsDialog } from './assign-multiple-bills-dialog';
 // import { ManageInternDialog } from './manage-intern-dialog';
+import { PendingInvitesSection } from './pending-invites-section';
 
 export function AdminDashboard() {
   const {
@@ -86,7 +88,7 @@ function AccountsTab(
 
   if (isLoading) {
     return (
-      <TabsContent value="pending-requests" className="mx-8 space-y-8 mt-6">
+      <TabsContent value="pending-requests" className="mx-4 sm:mx-8 space-y-8 mt-6">
         <div className="p-8">
           <Skeleton className="h-8 w-1/3 mb-4 rounded-md" />
           <Skeleton className="h-[600px] w-full rounded-md" />
@@ -96,7 +98,7 @@ function AccountsTab(
   }
 
   return (
-    <TabsContent value="pending-requests" className="mx-8 mt-6">
+    <TabsContent value="pending-requests" className="mx-4 sm:mx-8 mt-6">
         <div className="space-y-8">
           {/* All Accounts Section */}
           <AllAccountsSection allAccounts={allAccounts} />
@@ -114,23 +116,23 @@ function AccountsTab(
                 </Card>
               ) : (
                 pendingUsers.map((user) => (
-                  <Card key={user.id} className="p-6 bg-white shadow-md">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2">
+                  <Card key={user.id} className="p-4 sm:p-6 bg-white shadow-md">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                      <div className="space-y-2 min-w-0">
                         <h3 className="font-semibold">{user.username}</h3>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                        <div className="flex gap-2 text-sm text-muted-foreground items-center">
+                        <p className="text-sm text-muted-foreground break-all">{user.email}</p>
+                        <div className="flex flex-wrap gap-2 text-sm text-muted-foreground items-center">
                           Joined: <span className='text-foreground'>{user.created_at ? user.created_at.toLocaleDateString() : 'Unknown'}</span>
 
                           {user.requested_admin
                           ? <Badge variant="secondary" className='bg-red-100 text-red-800'>Admin</Badge>
                           : user.requested_supervisor ? (
                             <Badge variant="secondary" className='bg-yellow-100 text-yellow-800'>Supervisor</Badge>
-                          ) : <Badge variant="secondary">Intern</Badge>
+                          ) : <Badge variant="secondary">User</Badge>
                           }
                         </div>
                       </div>
-                      <div className="space-x-2">
+                      <div className="flex flex-wrap gap-2 shrink-0">
                         {isApproving || isRejecting ? (
                           <Skeleton className="h-8 w-24 rounded-md" />
                         ) : (
@@ -157,12 +159,18 @@ function AccountsTab(
             </div>
           </div>
 
+          {/* Pending Invites */}
+          <PendingInvitesSection />
+
         </div>
     </TabsContent>
   )
 }
 
 function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
+  const { activeTenant } = useAuth();
+  const isTenantScoped = !!activeTenant;
+
   const [activeUsers, setActiveUsers] = useState<PendingUser[]>(allAccounts);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
@@ -193,7 +201,7 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
     setUpdatingUserId(userId);
     try {
       const { updateUserRole } = await import('@/app/actions/admin');
-      const result = await updateUserRole(userId, newRole as 'user' | 'supervisor' | 'admin');
+      const result = await updateUserRole(userId, newRole, activeTenant?.tenantId);
 
       if (result.success) {
         // Update local state
@@ -217,7 +225,7 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
     setArchivingUserId(userId);
     try {
       const { archiveAccount } = await import('@/app/actions/admin');
-      const result = await archiveAccount(userId);
+      const result = await archiveAccount(userId, activeTenant?.tenantId);
 
       if (result.success) {
         // Update local state
@@ -243,6 +251,8 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
         return 'bg-red-100 text-red-800';
       case 'supervisor':
         return 'bg-yellow-100 text-yellow-800';
+      case 'worker':
+        return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-blue-100 text-blue-800';
     }
@@ -254,8 +264,10 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
         return 'Admin';
       case 'supervisor':
         return 'Supervisor';
+      case 'worker':
+        return 'Worker';
       default:
-        return 'Intern';
+        return 'User';
     }
   };
 
@@ -288,7 +300,7 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
 
       {/* Filter Controls */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg space-y-4">
-        <div className="flex items-center gap-6 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 sm:flex-wrap">
           {/* Show Archived Toggle */}
           <div className="flex items-center gap-2">
             <Switch
@@ -311,14 +323,23 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
               className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               <option value="all">All Roles</option>
-              <option value="user">Intern</option>
-              <option value="supervisor">Supervisor</option>
-              <option value="admin">Admin</option>
+              {isTenantScoped ? (
+                <>
+                  <option value="worker">Worker</option>
+                  <option value="admin">Admin</option>
+                </>
+              ) : (
+                <>
+                  <option value="user">User</option>
+                  <option value="supervisor">Supervisor</option>
+                  <option value="admin">Admin</option>
+                </>
+              )}
             </select>
           </div>
 
           {/* Username Search */}
-          <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+          <div className="flex items-center gap-2 w-full sm:flex-1 sm:min-w-[200px]">
             <Label htmlFor="username-search">Search:</Label>
             <Input
               id="username-search"
@@ -352,11 +373,11 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
 
             return (
               <React.Fragment key={user.id}>
-                <Card className={`p-6 shadow-md ${isArchived ? 'bg-gray-100 opacity-75' : 'bg-white'}`}>
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2 flex-1">
+                <Card className={`p-4 sm:p-6 shadow-md ${isArchived ? 'bg-gray-100 opacity-75' : 'bg-white'}`}>
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div className="space-y-2 flex-1 min-w-0">
                       <h3 className="font-semibold">{user.username}</h3>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                      <p className="text-sm text-muted-foreground break-all">{user.email}</p>
                       <div className="flex gap-2 text-sm text-muted-foreground items-center flex-wrap">
                         Joined: <span className='text-foreground'>{user.created_at ? user.created_at.toLocaleDateString() : 'Unknown'}</span>
                         <Badge variant="secondary" className={getRoleBadgeColor(user.role || 'user')}>
@@ -369,7 +390,7 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
                       {!isArchived && (
                         <>
                           <select
@@ -378,9 +399,18 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
                             className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             disabled={updatingUserId === user.id}
                           >
-                            <option value="user">Intern</option>
-                            <option value="supervisor">Supervisor</option>
-                            <option value="admin">Admin</option>
+                            {isTenantScoped ? (
+                              <>
+                                <option value="worker">Worker</option>
+                                <option value="admin">Admin</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="user">User</option>
+                                <option value="supervisor">Supervisor</option>
+                                <option value="admin">Admin</option>
+                              </>
+                            )}
                           </select>
                           {hasChanged && (
                             <Button
@@ -443,6 +473,7 @@ function AllInternsTab(
   }
 ) {
   const { isLoadingInterns } = useAdminDashboard();
+  const { activeTenant } = useAuth();
   const [expandedIntern, setExpandedIntern] = useState<string | null>(null);
   const [removingBill, setRemovingBill] = useState<{ internId: string; billId: string; billNumber: string; internName: string } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -454,7 +485,7 @@ function AllInternsTab(
     setIsRemoving(true);
     try {
       const { removeBillFromIntern } = await import('@/app/actions/admin');
-      const result = await removeBillFromIntern(removingBill.internId, removingBill.billId);
+      const result = await removeBillFromIntern(removingBill.internId, removingBill.billId, activeTenant?.tenantId);
 
       if (result.success) {
         // Refresh the page to show updated data
@@ -473,7 +504,7 @@ function AllInternsTab(
 
   if (isLoadingInterns) {
     return (
-      <TabsContent value="all-interns" className="mx-8 space-y-8 mt-6">
+      <TabsContent value="all-interns" className="mx-4 sm:mx-8 space-y-8 mt-6">
         <div className="p-8">
           <Skeleton className="h-8 w-1/3 mb-4 rounded-md" />
           <Skeleton className="h-[600px] w-full rounded-md" />
@@ -483,27 +514,28 @@ function AllInternsTab(
   }
 
   return (
-    <TabsContent value="all-interns" className="mx-8 space-y-8 mt-6">
+    <TabsContent value="all-interns" className="mx-4 sm:mx-8 space-y-8 mt-6">
           {/* All Interns */}
           <div>
-            <h1 className="text-2xl font-bold mb-1 ">All Interns</h1>
-            <h2 className="text-sm mb-6 text-muted-foreground">View all intern accounts</h2>
+            <h1 className="text-2xl font-bold mb-1 ">All Users</h1>
+            <h2 className="text-sm mb-6 text-muted-foreground">View all user accounts</h2>
               <div className="space-y-4">
                 {interns.length === 0 ? (
                   <Card className="p-6">
                     <p className="text-center text-muted-foreground">
-                      No interns found
+                      No users found
                     </p>
                   </Card>
                 ) : (
-                  <Table className='border bg-white shadow-sm'>
+                  <div className="overflow-x-auto rounded-md border">
+                  <Table className='bg-white shadow-sm min-w-[640px]'>
                     <TableHeader>
                       <TableRow className='bg-gray-100'>
-                        <TableHead className='font-bold'>Intern</TableHead>
+                        <TableHead className='font-bold'>User</TableHead>
                         <TableHead className='font-bold'>Supervisor</TableHead>
                         <TableHead className='font-bold'>Status</TableHead>
                         <TableHead className='font-bold'>Joined</TableHead>
-                        <TableHead className='font-bold'>Tracked Bills</TableHead>                        
+                        <TableHead className='font-bold'>Tracked Bills</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -565,13 +597,14 @@ function AllInternsTab(
                                   {intern.adopted_bills.length === 0 ? (
                                     <p className="text-sm text-muted-foreground">No adopted bills</p>
                                   ) : (
-                                    <Table>
+                                    <div className="overflow-x-auto">
+                                    <Table className="min-w-[560px]">
                                       <TableHeader>
                                         <TableRow className="bg-gray-100">
                                           <TableHead>Bill Number</TableHead>
                                           <TableHead>Title</TableHead>
                                           <TableHead>Status</TableHead>
-                                          <TableHead>Intern Adopted</TableHead>
+                                          <TableHead>Adopted</TableHead>
                                           <TableHead>Actions</TableHead>
                                         </TableRow>
                                       </TableHeader>
@@ -612,15 +645,17 @@ function AllInternsTab(
                                         ))}
                                       </TableBody>
                                     </Table>
+                                    </div>
                                   )}
                                 </div>
                               </TableCell>
                             </TableRow>
                           )}
                         </React.Fragment>
-                      ))}                      
+                      ))}
                     </TableBody>
                   </Table>
+                  </div>
                 )}
                </div>
           </div>
@@ -629,7 +664,7 @@ function AllInternsTab(
           <AlertDialog open={!!removingBill} onOpenChange={(open) => !open && setRemovingBill(null)}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Remove Bill from Intern</AlertDialogTitle>
+                <AlertDialogTitle>Remove Bill from User</AlertDialogTitle>
                 <AlertDialogDescription>
                   Are you sure you want to remove bill <strong>{removingBill?.billNumber}</strong> from <strong>{removingBill?.internName}</strong>&apos;s tracking list? This action cannot be undone.
                 </AlertDialogDescription>
@@ -670,7 +705,7 @@ function AllSupervisorsTab(
 
   if (isLoadingRelationships) {
     return (
-      <TabsContent value="all-supervisors" className="mx-8 space-y-8 mt-6">
+      <TabsContent value="all-supervisors" className="mx-4 sm:mx-8 space-y-8 mt-6">
         <div className="p-8">
           <Skeleton className="h-8 w-1/3 mb-4 rounded-md" />
           <Skeleton className="h-[600px] w-full rounded-md" />
@@ -699,10 +734,10 @@ function AllSupervisorsTab(
   };
 
   return (
-    <TabsContent value="all-supervisors" className="mx-8 space-y-8 mt-6">
+    <TabsContent value="all-supervisors" className="mx-4 sm:mx-8 space-y-8 mt-6">
       <div>
         <h1 className="text-2xl font-bold mb-1 ">All Supervisors</h1>
-        <h2 className="text-sm mb-6 text-muted-foreground">View all supervisor accounts and their interns</h2>
+        <h2 className="text-sm mb-6 text-muted-foreground">View all supervisor accounts and their users</h2>
 
         <div className='bg-white rounded-lg shadow-sm border'>
             <div className="p-4 space-y-6">
@@ -726,10 +761,10 @@ function AllSupervisorsTab(
 
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-foreground">
-                        Assigned Interns ({supervisor.interns.length})
+                        Assigned Users ({supervisor.interns.length})
                       </p>
                       {supervisor.interns.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No interns assigned</p>
+                        <p className="text-sm text-muted-foreground">No users assigned</p>
                       ) : (
                         <div className="flex items-center gap-2 flex-wrap">
                           {supervisor.interns.map((intern) => (
@@ -755,7 +790,7 @@ function AllSupervisorsTab(
 
                     <div className="space-y-2 pt-2 border-t">
                       <p className="text-sm font-medium text-foreground">
-                        Assign New Interns
+                        Assign New Users
                       </p>
                       <div className="flex items-end gap-2">
                         <div className="flex-1">
@@ -797,6 +832,7 @@ function AllInternBillsTab(
   }
 ) {
   const { isLoadingBills } = useAdminDashboard();
+  const { activeTenant } = useAuth();
   const [removingBill, setRemovingBill] = useState<{ internId: string; billId: string; billNumber: string; internName: string } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
@@ -806,7 +842,7 @@ function AllInternBillsTab(
     setIsRemoving(true);
     try {
       const { removeBillFromIntern } = await import('@/app/actions/admin');
-      const result = await removeBillFromIntern(removingBill.internId, removingBill.billId);
+      const result = await removeBillFromIntern(removingBill.internId, removingBill.billId, activeTenant?.tenantId);
 
       if (result.success) {
         // Refresh the page to show updated data
@@ -825,7 +861,7 @@ function AllInternBillsTab(
   
   if (isLoadingBills) {
     return (
-      <TabsContent value="all-tracked-bills" className="mx-8 space-y-8 mt-6">
+      <TabsContent value="all-tracked-bills" className="mx-4 sm:mx-8 space-y-8 mt-6">
         <div className="p-8">
           <Skeleton className="h-8 w-1/3 mb-4 rounded-md" />
           <Skeleton className="h-[600px] w-full rounded-md" />
@@ -835,12 +871,12 @@ function AllInternBillsTab(
   }
 
   return (
-    <TabsContent value="all-tracked-bills" className="mx-8 space-y-8 mt-6">
+    <TabsContent value="all-tracked-bills" className="mx-4 sm:mx-8 space-y-8 mt-6">
       <div>
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold mb-1">All Tracked Bills</h1>
-            <h2 className="text-sm text-muted-foreground">View all bills tracked by interns</h2>
+            <h2 className="text-sm text-muted-foreground">View all bills tracked by users</h2>
           </div>
           <AssignMultipleBillsDialog
             trigger={
@@ -863,19 +899,20 @@ function AllInternBillsTab(
               </Card>
             ) : (
               bills && bills.map((bill) => (
-                <Card key={bill.bill_id} className="p-6 bg-white shadow-md">
-                  <div className="flex items-start justify-between">
-                    <div className="">
+                <Card key={bill.bill_id} className="p-4 sm:p-6 bg-white shadow-md">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div className="min-w-0">
                       <p className="text-md font-semibold text-foreground">{bill.bill_number}</p>
                       <p className="text-sm text-muted-foreground">{bill.bill_title || 'No Title'}</p>
                       <div className='mt-2 flex text-muted-foreground gap-2'>
                         <Badge variant='outline'>{formatBillStatusName(bill.current_status)}</Badge>
                       </div>
                     </div>
-                    <div className="space-x-2">
-                      <p className="text-sm text-muted-foreground mb-2">Tracked by:</p>
+                    <div className="flex flex-col items-start gap-2 shrink-0 sm:max-w-[50%]">
+                      <p className="text-sm text-muted-foreground">Tracked by:</p>
+                      <div className="flex flex-wrap gap-2">
                       {bill.tracked_by.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No interns tracking this bill</p>
+                        <p className="text-sm text-muted-foreground">No users tracking this bill</p>
                       ) : (
                         bill.tracked_by.map((intern) => (
                           <Badge key={intern.id} variant="secondary" className="bg-blue-100 text-blue-800 pr-1 pl-3 py-1 inline-flex items-center gap-1">
@@ -898,6 +935,7 @@ function AllInternBillsTab(
                           </Badge>
                         ))
                       )}
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -910,7 +948,7 @@ function AllInternBillsTab(
       <AlertDialog open={!!removingBill} onOpenChange={(open) => !open && setRemovingBill(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Bill from Intern</AlertDialogTitle>
+            <AlertDialogTitle>Remove Bill from User</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to remove bill <strong>{removingBill?.billNumber}</strong> from <strong>{removingBill?.internName}</strong>&apos;s tracking list? This action cannot be undone.
             </AlertDialogDescription>

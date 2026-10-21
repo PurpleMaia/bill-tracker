@@ -6,8 +6,9 @@ import { Toaster } from "@/components/ui/toaster" // Import Toaster for potentia
 import { BillsProvider } from '@/hooks/contexts/bills-context';
 import { AuthProvider } from '@/hooks/contexts/auth-context';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '@/lib/react-query';
-import { Providers } from '@/lib/providers';
+import { queryClient } from '@/lib/core/react-query';
+import { Providers } from '@/lib/core/providers';
+import { getInitialAuth } from '@/lib/auth/initial-auth';
 
 
 
@@ -26,20 +27,37 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Food+ Bill Tracker',
-  description: 'Track bills through the legislative process',    
+  title: 'Hawaiʻi Bill Tracker',
+  description: 'Track Hawaiʻi\'s bills. Stay informed, stay engaged, and make your voice heard.',
+  manifest: '/manifest.webmanifest',
+  icons: {
+    // Browser tab favicon (the Food+ logo lives in src/app/favicon.ico).
+    icon: '/favicon.ico',
+    // iOS home-screen bookmark tile — white background, no transparency.
+    apple: '/apple-touch-icon.png',
+  },
+  appleWebApp: {
+    capable: true,
+    title: 'Bill Tracker',
+    statusBarStyle: 'default',
+  },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Resolve the session here so the very first paint already knows who the
+  // user is. Otherwise every page renders signed-out, then hydrates, then
+  // fetches the session — the flash of spinner/skeleton before real content.
+  const initialAuth = await getInitialAuth();
+
   return (
     <html lang="en" suppressHydrationWarning={true}>
       {/* Add suppressHydrationWarning to body to ignore extension-injected attributes */}
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning={true}>
-        <Providers>
+        <Providers initialAuth={initialAuth}>
           {children}
         </Providers>
         <Toaster /> {/* Add toaster for notifications */}

@@ -15,8 +15,10 @@ import { useEffect, useState } from "react";
 import { Bill, BillDetails } from "@/types/legislation";
 import { findBill } from "@/services/scraper";
 import { toast } from "@/hooks/use-toast";
-import { findExistingBillByURL, updateFoodStatusOrCreateBill } from "@/services/data/legislation";
+import { findExistingBillByURL } from "@/db/queries/bills-read";
+import { updateFoodStatusOrCreateBill } from "@/db/queries/bills-write";
 import { useBills } from "@/hooks/contexts/bills-context";
+import { useAuth } from "@/hooks/contexts/auth-context";
 
 interface NewBillDialogProps {
     isOpen: boolean;
@@ -24,6 +26,7 @@ interface NewBillDialogProps {
   }
 export function NewBillDialog({ isOpen, onClose }: NewBillDialogProps) {
     const { addBill, removeBill } = useBills()
+    const { activeTenant } = useAuth();
     const [isAlreadyInDB, setIsAlreadyInDB] = useState<boolean>(false)
     const [url, setUrl] = useState<string>('')
     const [error, setError] = useState<string>('');
@@ -100,7 +103,7 @@ export function NewBillDialog({ isOpen, onClose }: NewBillDialogProps) {
     const handleConfirm = async () => {
         setIsUpdating(true)
 
-        const result = await updateFoodStatusOrCreateBill(billPreview, foodRelatedSelection)
+        const result = await updateFoodStatusOrCreateBill(billPreview, foodRelatedSelection, activeTenant?.tenantId)
 
         if (foodRelatedSelection === true) {    
             addBill(result); // add to client bill array 

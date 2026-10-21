@@ -19,6 +19,7 @@ scoop install migrate
 npm i kysely
 npm i --save-dev @types/pg
 npm i --save-dev kysely-codegen
+npm i pnpm
 ```
 
 ---
@@ -29,16 +30,16 @@ The project includes convenient npm scripts that wrap the migration shell script
 
 ### Check Current Migration Version
 ```bash
-npm run migrate:version
+pnpm migrate:version
 ```
 
 ### Create a New Migration
 ```bash
-npm run migrate:create <migration_name>
+pnpm migrate:create <migration_name>
 ```
 Example:
 ```bash
-npm run migrate:create add_user_preferences
+pnpm migrate:create add_user_preferences
 ```
 This creates two files in `db/migrations/`:
 - `000013_add_user_preferences.up.sql`
@@ -46,36 +47,36 @@ This creates two files in `db/migrations/`:
 
 ### Run All Pending Migrations (Up, test Down, then Up)
 ```bash
-npm run migrate:up d
+pnpm migrate:up d
 # or
-npm run migrate:up dev
+pnpm migrate:up dev
 ```
 
 ### Rollback Migrations (Down)
 ```bash
 # Rollback a specific number of migrations
-npm run migrate:down <number>
+pnpm migrate:down <number>
 ```
 Example:
 ```bash
-npm run migrate:down 1   # Rollback 1 migration
-npm run migrate:down 3   # Rollback 3 migrations
+pnpm migrate:down 1   # Rollback 1 migration
+pnpm migrate:down 3   # Rollback 3 migrations
 ```
 
 ### Rollback ALL Migrations
 ```bash
-npm run migrate:down-all
+pnpm migrate:down-all
 ```
 ⚠️ **Warning:** This will drop all tables. Use with caution!
 
 ### Force Migration Version
 Use this when a migration fails partway through and the database is in a dirty state:
 ```bash
-npm run migrate:force <version>
+pnpm  migrate:force <version>
 ```
 Example:
 ```bash
-npm run migrate:force 5   # Force to version 5
+pnpm  migrate:force 5   # Force to version 5
 ```
 
 ---
@@ -132,17 +133,17 @@ migrate -database "${DATABASE_URL}" -path db/migrations force <version>
 1. Fix the SQL in the migration file
 2. Force back to a previous good version:
    ```bash
-   npm run migrate:force <good_version>
+   pnpm migrate:force <good_version>
    ```
 3. Try running migrations again:
    ```bash
-   npm run migrate:up p
+   pnpm migrate:up p
    ```
 
 ### Database is in "Dirty" State
 This happens when a migration fails partway through. Force to the last successful version:
 ```bash
-npm run migrate:force <last_good_version>
+pnpm migrate:force <last_good_version>
 ```
 
 ---
@@ -151,7 +152,7 @@ npm run migrate:force <last_good_version>
 
 After running migrations, regenerate the Kysely types to match your new schema:
 ```bash
-npm run codegen
+pnpm codegen
 ```
 
 This updates `db/types.ts` with the latest table definitions.

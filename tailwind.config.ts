@@ -1,11 +1,13 @@
 import type { Config } from "tailwindcss";
 
 export default {
-    darkMode: ["class"],
+    // darkMode removed — Food+ is light-only
     content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    // Calendar milestone colors are class strings defined in src/lib.
+    "./src/lib/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
   	extend: {
@@ -59,6 +61,17 @@ export default {
   				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
   				border: 'hsl(var(--sidebar-border))',
   				ring: 'hsl(var(--sidebar-ring))'
+  			},
+  			olive: {
+  				DEFAULT: 'hsl(var(--olive))',
+  				dark: 'hsl(var(--olive-dark))',
+  				soft: 'hsl(var(--olive-soft))'
+  			},
+  			'teal-light': 'hsl(var(--teal-light))',
+  			coral: 'hsl(var(--coral))',
+  			ochre: {
+  				DEFAULT: 'hsl(var(--ochre))',
+  				soft: 'hsl(var(--ochre-soft))'
   			}
   		},
   		borderRadius: {

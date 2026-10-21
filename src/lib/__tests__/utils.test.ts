@@ -1,0 +1,203 @@
+import { describe, it, expect } from 'vitest';
+import { toDate, formatBillStatusName, todayHawaii, formatBillHeadline, formatRelativeDate, parseLocalDate } from '../core/utils';
+
+describe('toDate', () => {
+  it('returns null for null/undefined', () => {
+    expect(toDate(null)).toBeNull();
+    expect(toDate(undefined)).toBeNull();
+  });
+
+  it('returns null for empty string', () => {
+    expect(toDate('')).toBeNull();
+  });
+
+  it('returns the same Date if given a Date', () => {
+    const d = new Date('2025-01-15');
+    expect(toDate(d)).toBe(d);
+  });
+
+  it('parses a valid ISO string', () => {
+    const result = toDate('2025-01-15T00:00:00Z');
+    expect(result).toBeInstanceOf(Date);
+    expect(result!.getFullYear()).toBe(2025);
+  });
+
+  it('parses a numeric timestamp', () => {
+    const ts = new Date('2025-06-01').getTime();
+    const result = toDate(ts);
+    expect(result).toBeInstanceOf(Date);
+    expect(result!.getTime()).toBe(ts);
+  });
+
+  it('returns null for invalid date string', () => {
+    expect(toDate('not-a-date')).toBeNull();
+  });
+
+  it('returns null for objects that are not Date', () => {
+    expect(toDate({})).toBeNull();
+    expect(toDate([])).toBeNull();
+  });
+
+  it('returns null for 0 (falsy number)', () => {
+    expect(toDate(0)).toBeNull();
+  });
+});
+
+describe('formatBillStatusName', () => {
+  it('returns "No Assigned Status" for null', () => {
+    expect(formatBillStatusName(null)).toBe('No Assigned Status');
+  });
+
+  it('formats introduced status', () => {
+    expect(formatBillStatusName('introduced')).toBe('Introduced');
+  });
+
+  it('formats waiting status', () => {
+    expect(formatBillStatusName('waiting2')).toBe('Waiting');
+  });
+
+  it('formats scheduled status', () => {
+    expect(formatBillStatusName('scheduled1')).toBe('Scheduled');
+  });
+
+  it('formats passed status', () => {
+    expect(formatBillStatusName('passedCommittees')).toBe('Passed');
+  });
+
+  it('formats unassigned as N/A', () => {
+    expect(formatBillStatusName('unassigned')).toBe('N/A');
+  });
+
+  it('formats transmitted status', () => {
+    expect(formatBillStatusName('transmittedGovernor')).toBe('Transmitted');
+  });
+
+  it('formats veto status', () => {
+    expect(formatBillStatusName('vetoList')).toBe('Vetoed');
+  });
+
+  it('formats governor signs as Became Law', () => {
+    expect(formatBillStatusName('governorSigns')).toBe('Became Law');
+  });
+
+  it('formats law without signature as Became Law', () => {
+    expect(formatBillStatusName('lawWithoutSignature')).toBe('Became Law');
+  });
+
+  it('is case-insensitive', () => {
+    expect(formatBillStatusName('INTRODUCED')).toBe('Introduced');
+  });
+});
+
+describe('formatBillHeadline', () => {
+  it('prefers the nickname when present', () => {
+    expect(formatBillHeadline({ nickname: 'Farm-to-School Grants', bill_title: 'RELATING TO FARM-TO-SCHOOL PROCUREMENT.' }))
+      .toBe('Farm-to-School Grants');
+  });
+
+  it('cleans up the official title when no nickname', () => {
+    expect(formatBillHeadline({ nickname: null, bill_title: 'RELATING TO FARM-TO-SCHOOL PROCUREMENT.' }))
+      .toBe('Farm-To-School Procurement');
+  });
+
+  it('handles titles without the RELATING TO prefix', () => {
+    expect(formatBillHeadline({ bill_title: 'MAKING APPROPRIATIONS.' })).toBe('Making Appropriations');
+  });
+
+  it('ignores whitespace-only nicknames', () => {
+    expect(formatBillHeadline({ nickname: '   ', bill_title: 'RELATING TO TAXATION.' })).toBe('Taxation');
+  });
+
+  it('returns null when nothing is usable', () => {
+    expect(formatBillHeadline({ nickname: null, bill_title: null })).toBeNull();
+    expect(formatBillHeadline({ bill_title: 'RELATING TO ' })).toBeNull();
+  });
+});
+
+describe('parseLocalDate', () => {
+  it('parses a YYYY-MM-DD date-only string as local midnight, not UTC', () => {
+    // The bug: `new Date("2026-09-13")` is UTC midnight, which in any
+    // negative-offset zone (e.g. Hawaii, UTC-10) reads back as Sep 12.
+    // parseLocalDate must keep it on Sep 13 regardless of the runner's zone.
+    const d = parseLocalDate('2026-09-13');
+    expect(d).toBeInstanceOf(Date);
+    expect(d!.getFullYear()).toBe(2026);
+    expect(d!.getMonth()).toBe(8); // September (0-indexed)
+    expect(d!.getDate()).toBe(13);
+  });
+
+  it('parses a M/D/YYYY string (already local) unchanged', () => {
+    const d = parseLocalDate('9/13/2026');
+    expect(d!.getFullYear()).toBe(2026);
+    expect(d!.getMonth()).toBe(8);
+    expect(d!.getDate()).toBe(13);
+  });
+
+  it('returns null for empty or garbage input', () => {
+    expect(parseLocalDate('')).toBeNull();
+    expect(parseLocalDate('not a date')).toBeNull();
+  });
+});
+
+describe('formatRelativeDate', () => {
+  const now = new Date('2026-07-08T12:00:00');
+
+  it('treats a YYYY-MM-DD date as a local date (no UTC off-by-one)', () => {
+    // A DB status-update date "2026-07-05" is 3 days before local now.
+    // The old `new Date(dateStr)` UTC parse shifted it to 07-04 => "4d ago".
+    expect(formatRelativeDate('2026-07-05', now)).toBe('3d ago');
+  });
+
+  it('keeps the fallback short-date on the correct day for YYYY-MM-DD', () => {
+    expect(formatRelativeDate('2026-03-05', now)).toBe('Mar 5');
+  });
+
+  it('says Today and Yesterday', () => {
+    expect(formatRelativeDate('7/8/2026', now)).toBe('Today');
+    expect(formatRelativeDate('7/7/2026', now)).toBe('Yesterday');
+  });
+
+  it('uses days under a week and weeks under ~a month', () => {
+    expect(formatRelativeDate('7/4/2026', now)).toBe('4d ago');
+    expect(formatRelativeDate('6/20/2026', now)).toBe('2w ago');
+  });
+
+  it('falls back to a short date beyond a month', () => {
+    expect(formatRelativeDate('3/5/2026', now)).toBe('Mar 5');
+  });
+
+  it('includes the year when it differs', () => {
+    expect(formatRelativeDate('3/5/2025', now)).toBe('Mar 5, 2025');
+  });
+
+  it('treats future dates as today', () => {
+    expect(formatRelativeDate('7/9/2026', now)).toBe('Today');
+  });
+
+  it('returns empty string for garbage', () => {
+    expect(formatRelativeDate('not a date', now)).toBe('');
+  });
+});
+
+describe('todayHawaii', () => {
+  it('returns YYYY-MM-DD format', () => {
+    expect(todayHawaii()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('matches the UTC date when both are on the same day', () => {
+    // 08:00 UTC = 22:00 HST the previous day — dates differ
+    // 20:00 UTC = 10:00 HST the same day — dates match
+    expect(todayHawaii(new Date('2026-07-07T20:00:00Z'))).toBe('2026-07-07');
+  });
+
+  it('stays on the previous day when UTC has rolled over', () => {
+    // 2026-07-08 02:00 UTC is still 2026-07-07 16:00 in Hawaii.
+    // toISOString() would say 2026-07-08 — the bug this helper fixes.
+    expect(todayHawaii(new Date('2026-07-08T02:00:00Z'))).toBe('2026-07-07');
+  });
+
+  it('rolls to the next Hawaii day at 10:00 UTC', () => {
+    expect(todayHawaii(new Date('2026-07-08T09:59:00Z'))).toBe('2026-07-07');
+    expect(todayHawaii(new Date('2026-07-08T10:00:00Z'))).toBe('2026-07-08');
+  });
+});

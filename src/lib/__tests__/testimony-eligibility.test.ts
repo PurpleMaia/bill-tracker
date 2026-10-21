@@ -1,0 +1,203 @@
+import { describe, it, expect } from 'vitest';
+import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
+import type { SessionDeadlines } from '@/lib/bills/dead-bill';
+
+const DEADLINES: SessionDeadlines = {
+  session: 2026,
+  deadlines: {
+    first_triple_referral_filing: { HB: '2026-02-13', SB: '2026-02-13' },
+    first_lateral_filing: '2026-02-20',
+    first_lateral: '2026-02-20',
+    single_referral_filing: { SB: '2026-03-05', HB: '2026-04-09' },
+    first_decking: '2026-03-03',
+    first_crossover: '2026-03-10',
+    second_triple_referral_filing: '2026-03-20',
+    second_lateral_filing: '2026-03-27',
+    second_lateral: '2026-03-27',
+    second_decking: '2026-04-10',
+    second_crossover: '2026-04-16',
+    final_decking_non_fiscal: '2026-04-29',
+    final_decking_fiscal: '2026-05-01',
+    adjournment_sine_die: '2026-05-07',
+  },
+};
+
+const base = {
+  dead: false,
+  billStatus: 'waiting2' as const,
+  committeeAssignment: 'AGR, CPC',
+  deadlines: DEADLINES,
+  today: '2026-03-15',
+};
+
+describe('getTestimonyEligibility', () => {
+  it('allows testimony for a live bill during the session', () => {
+    expect(getTestimonyEligibility(base)).toEqual({ allowed: true, reason: null });
+  });
+
+  it('closes testimony when the bill is enacted into law', () => {
+    expect(getTestimonyEligibility({ ...base, billStatus: 'governorSigns' })).toEqual({
+      allowed: false,
+      reason: 'This bill has been enacted into law',
+    });
+    expect(getTestimonyEligibility({ ...base, billStatus: 'lawWithoutSignature' })).toEqual({
+      allowed: false,
+      reason: 'This bill has been enacted into law',
+    });
+  });
+
+  it('closes testimony when the bill is dead', () => {
+    expect(getTestimonyEligibility({ ...base, dead: true })).toEqual({
+      allowed: false,
+      reason: 'This bill failed',
+    });
+  });
+
+  it('closes testimony once the bill reaches conference or later', () => {
+    const past = 'This bill has moved past public testimony (in conference or later)';
+    for (const billStatus of [
+      'conferenceAssigned',
+      'conferenceScheduled',
+      'conferenceDeferred',
+      'conferencePassed',
+      'transmittedGovernor',
+    ] as const) {
+      expect(getTestimonyEligibility({ ...base, billStatus })).toEqual({ allowed: false, reason: past });
+    }
+  });
+
+  it('still allows testimony at passedCommittees (before conference)', () => {
+    expect(getTestimonyEligibility({ ...base, billStatus: 'passedCommittees' })).toEqual({
+      allowed: true,
+      reason: null,
+    });
+  });
+
+  it('closes testimony after the final hearing deadline for non-fiscal bills', () => {
+    expect(getTestimonyEligibility({ ...base, today: '2026-04-30' })).toEqual({
+      allowed: false,
+      reason: 'The final hearing deadline has passed',
+    });
+  });
+
+  it('gives fiscal bills until the fiscal final decking date', () => {
+    const fiscal = { ...base, committeeAssignment: 'AGR, FIN' };
+    expect(getTestimonyEligibility({ ...fiscal, today: '2026-04-30' })).toEqual({
+      allowed: true,
+      reason: null,
+    });
+    expect(getTestimonyEligibility({ ...fiscal, today: '2026-05-02' })).toEqual({
+      allowed: false,
+      reason: 'The final hearing deadline has passed',
+    });
+  });
+
+  it('treats a bill with no committee assignment as non-fiscal', () => {
+    expect(getTestimonyEligibility({ ...base, committeeAssignment: null, today: '2026-04-30' })).toEqual({
+      allowed: false,
+      reason: 'The final hearing deadline has passed',
+    });
+    expect(getTestimonyEligibility({ ...base, committeeAssignment: null })).toEqual({
+      allowed: true,
+      reason: null,
+    });
+  });
+
+  it('reports enacted rather than deadline-passed for bills signed after session', () => {
+    expect(
+      getTestimonyEligibility({ ...base, billStatus: 'governorSigns', today: '2026-06-01' }),
+    ).toEqual({ allowed: false, reason: 'This bill has been enacted into law' });
+  });
+
+  it('closes testimony when the scheduled hearing has already passed', () => {
+    // Before the session deadline and alive, but this hearing's window closed.
+    expect(
+      getTestimonyEligibility({ ...base, billStatus: 'scheduled1', hearingPassed: true }),
+    ).toEqual({ allowed: false, reason: 'The hearing has already been held' });
+  });
+
+  it('still allows testimony when a hearing is scheduled but has not passed', () => {
+    expect(
+      getTestimonyEligibility({ ...base, billStatus: 'scheduled1', hearingPassed: false }),
+    ).toEqual({ allowed: true, reason: null });
+  });
+
+  it('closes testimony for a waiting bill whose recommended committee hearing has passed', () => {
+    // Bill moved to waiting2 after a committee recommended PASSED, but its last
+    // hearing (derived via getTestimonyDeadline.hearingPassed) is already over.
+    expect(
+      getTestimonyEligibility({ ...base, billStatus: 'waiting2', hearingPassed: true }),
+    ).toEqual({ allowed: false, reason: 'The hearing has already been held' });
+  });
+
+  it('closes testimony when the latest status text is a committee recommendation (no hearing date)', () => {
+    // Once a committee reports a bill out ("recommend(s) that the measure be PASSED"),
+    // its hearing is over — testimony closes even when the text carries no hearing date.
+    expect(
+      getTestimonyEligibility({
+        ...base,
+        billStatus: 'waiting2',
+        latestStatusText: 'The committee(s) on SIM-JHA recommend(s) that the measure be PASSED, unamended.',
+      }),
+    ).toEqual({ allowed: false, reason: 'The hearing has already been held' });
+  });
+
+  it('closes testimony on a committee DEFERRED recommendation', () => {
+    expect(
+      getTestimonyEligibility({
+        ...base,
+        billStatus: 'deferred2',
+        latestStatusText: 'The committee(s) on WAM recommend(s) that the measure be DEFERRED.',
+      }),
+    ).toEqual({ allowed: false, reason: 'The hearing has already been held' });
+  });
+
+  it('still allows testimony when the latest status text has no recommendation', () => {
+    expect(
+      getTestimonyEligibility({
+        ...base,
+        billStatus: 'waiting2',
+        latestStatusText: 'Passed Second Reading and referred to the committee(s) on WAM.',
+      }),
+    ).toEqual({ allowed: true, reason: null });
+  });
+
+  it('prefers the dead/enacted reason over a passed hearing', () => {
+    expect(
+      getTestimonyEligibility({ ...base, dead: true, hearingPassed: true }),
+    ).toEqual({ allowed: false, reason: 'This bill failed' });
+    expect(
+      getTestimonyEligibility({ ...base, billStatus: 'governorSigns', hearingPassed: true }),
+    ).toEqual({ allowed: false, reason: 'This bill has been enacted into law' });
+  });
+});
+
+describe('isTestimonyUrgent', () => {
+  it('is urgent for every scheduled-hearing status', () => {
+    for (const status of [
+      'scheduled1',
+      'scheduled2',
+      'scheduled3',
+      'crossoverScheduled1',
+      'crossoverScheduled2',
+      'crossoverScheduled3',
+      'conferenceScheduled',
+    ] as const) {
+      expect(isTestimonyUrgent(status)).toBe(true);
+    }
+  });
+
+  it('is not urgent for waiting, deferred, or terminal statuses', () => {
+    for (const status of [
+      'introduced',
+      'waiting2',
+      'deferred1',
+      'crossoverWaiting1',
+      'passedCommittees',
+      'transmittedGovernor',
+      'governorSigns',
+    ] as const) {
+      expect(isTestimonyUrgent(status)).toBe(false);
+    }
+  });
+});

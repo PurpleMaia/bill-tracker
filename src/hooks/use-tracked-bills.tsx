@@ -2,14 +2,15 @@
 
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/contexts/auth-context';
-import { trackBill, untrackBill, assignBill, unassignBillFromUser } from '@/services/data/legislation';
-import { getBillTags } from '@/services/data/tags';
+import { trackBill, untrackBill } from '@/db/queries/bills-write';
+import { assignBill, unassignBillFromUser } from '@/db/queries/bill-assignment';
+import { getBillTags } from '@/db/queries/tags';
 import { useToast } from '@/hooks/use-toast';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { Bill } from '@/types/legislation';
 
 export function useTrackedBills() {
-  const { user } = useAuth();
+  const { user, activeTenant } = useAuth();
   const { setBills, addBill, updateBill } = useBills();
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -22,16 +23,21 @@ export function useTrackedBills() {
   const handleTrackBill = async (billUrl: string) => {
     if (!user) return false;
     try {
-      const trackedBill = await trackBill(user.id, billUrl);
+      const trackedBill = await trackBill(user.id, billUrl, activeTenant?.tenantId);
       if (trackedBill) {
         // Add the bill to the list
         console.log('Bill tracked successfully, adding to list...');
         addBill(trackedBill);
 
-        // Fetch tags for the newly tracked bill
-        console.log('Fetching tags for newly tracked bill...');
-        const tags = await getBillTags(trackedBill.id);
-        updateBill(trackedBill.id, { tags });
+        // Tags are tenant-scoped, so only fetch them when in an org context.
+        // Public users have no tenant — dereferencing activeTenant here used to
+        // throw, which was caught below and misreported the successful track as
+        // a failure ("Bill URL not found or already tracked").
+        if (activeTenant) {
+          console.log('Fetching tags for newly tracked bill...');
+          const tags = await getBillTags(trackedBill.id, activeTenant.tenantId);
+          updateBill(trackedBill.id, { tags });
+        }
 
         toast({
           title: 'Bill tracked',
@@ -54,7 +60,7 @@ export function useTrackedBills() {
   const handleUntrackBill = useCallback(async (billId: string, options?: { suppressToast?: boolean; keepInList?: boolean }) => {
     if (!user) return false;
     try {
-      const success = await untrackBill(user.id, billId);
+      const success = await untrackBill(user.id, billId, activeTenant?.tenantId);
       if (success) {
         if (options?.keepInList) {
           setBills((prev) =>
@@ -97,7 +103,7 @@ export function useTrackedBills() {
   const handleAssignBill = async (targetUserId: string, bill: Bill) => {
     if (!user) return null;
     try {
-      const tracker = await assignBill(user.id, targetUserId, bill);
+      const tracker = await assignBill(user.id, targetUserId, bill, activeTenant?.tenantId);
       if (tracker) {
         console.log('Bill assigned successfully');
         toast({
@@ -133,7 +139,7 @@ export function useTrackedBills() {
   const handleUnassignBill = async (targetUserId: string, bill: Bill) => {
     if (!user) return null;
     try {
-      const success = await unassignBillFromUser(user.id, targetUserId, bill.id);
+      const success = await unassignBillFromUser(user.id, targetUserId, bill.id, activeTenant?.tenantId);
       if (success) {
         toast({
           title: 'Bill unassigned',

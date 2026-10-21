@@ -1,0 +1,3801 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "CapitolWebsiteApi.Api",
+    "version": "1.0"
+  },
+  "servers": [
+    {
+      "url": "/api"
+    }
+  ],
+  "paths": {
+    "/api/v1/access-requests": {
+      "post": {
+        "tags": [
+          "AccessRequests"
+        ],
+        "summary": "Submit organization and contact details for credential review.",
+        "description": "Operators: if configuration `AccessRequestSubmission:Enabled` is `false`, this action returns `404 Not Found` (silent opt-out).\r\nThe effective value after merging JSON, environment variables, and user secrets is logged at startup.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitAccessRequestRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitAccessRequestRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitAccessRequestRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitAccessRequestResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitAccessRequestResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitAccessRequestResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/connect/token": {
+      "post": {
+        "tags": [
+          "Authorization"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "tags": [
+          "CapitolWebsiteApi.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/hearings/upcoming": {
+      "get": {
+        "tags": [
+          "HearingNotices"
+        ],
+        "summary": "Upcoming hearings with optional chamber/committee filters.\r\nResults are ordered by `timedate` ascending.",
+        "parameters": [
+          {
+            "name": "chamber",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "committee",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HearingNoticeFileDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HearingNoticeFileDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HearingNoticeFileDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hearings/by-date/{hearingDate}": {
+      "get": {
+        "tags": [
+          "HearingNotices"
+        ],
+        "summary": "Hearings on a calendar day with optional chamber/committee (legacy `All` when omitted).\r\nhearingDate is `yyyy-MM-dd` or `today`. Ordered by `timedate` ascending.",
+        "parameters": [
+          {
+            "name": "hearingDate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chamber",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "committee",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HearingNoticeFileDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HearingNoticeFileDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HearingNoticeFileDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hearings/measures-by-date/{hearingDate}": {
+      "get": {
+        "tags": [
+          "HearingNotices"
+        ],
+        "summary": "Measures scheduled for hearings on a calendar day.",
+        "parameters": [
+          {
+            "name": "hearingDate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HearingNoticeWithMeasureDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HearingNoticeWithMeasureDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HearingNoticeWithMeasureDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hearings/by-measure/{billType}/{billNumber}": {
+      "get": {
+        "tags": [
+          "HearingNotices"
+        ],
+        "summary": "Hearings linked to a measure.",
+        "parameters": [
+          {
+            "name": "billType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "billNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HearingNoticeByMeasureDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HearingNoticeByMeasureDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HearingNoticeByMeasureDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hearings/committees": {
+      "get": {
+        "tags": [
+          "HearingNotices"
+        ],
+        "summary": "Distinct committee acronyms for filter dropdowns.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommitteeAcronymDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommitteeAcronymDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommitteeAcronymDto"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/catalog": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "summary": "Lists every legacy website report path segment, title, AdvReports-aligned category, required query parameters when applicable,\r\nand CapitolWebsiteApi.Application.Reports.Legacy.AdvLegacySlugListing.Description (AdvReports link text for the route `sessionYear`).",
+        "description": "\r\nOptional query `category` filters by discovery category (case-insensitive), e.g. `deadline`, `conference`,\r\n            `appropriations`, `pending_actions`, `standing_committee`, `hearing_notices`, `carryover`,\r\n            `resolutions_adopted`, `advise_consent`, `committee_referral`, `introducer`, `package`, `subject_search`.\r\n            Distinct ids match the `category` field on each row (see also CapitolWebsiteApi.Application.Reports.Legacy.AdvLegacyReportCatalog.DiscoveryCategories).",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdvLegacySlugListing"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdvLegacySlugListing"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdvLegacySlugListing"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/acts": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Acts",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/adviseconsentallgmsintroducedsenate": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "See All Advise and Consent measures introduced in the Senate",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/allbillsfirstlateraldeadline": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "All bills with no lateral referrals or bills with a lateral referral that passed the first lateral deadline",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/allbillspassedlegislatureordeckedfinalreading": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "All bills that have passed the Legislature or been decked for Final Reading",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/allbillssecondcrossoveramended": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "All bills that have passed Third Reading in the nonoriginating chamber and have been amended by the nonoriginating chamber",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/allbillssecondcrossoverunamended": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "All bills that have passed Third Reading and were unamended by the nonoriginating chamber",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/allbillssecondlateraldeadline": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "All bills with no lateral referrals in the nonoriginating chamber or bills that passed second lateral deadline",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/billspassedlegislature": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Bills that Passed Legislature (Report complete after all bills are sent to the Governor)",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/billspendinggovernorsaction": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Bills Pending Governor's Action",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/billssignedbygovernor": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Bills signed by the Governor",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/billsthatbecamelawwithoutgovernorsignature": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Bills that became law without Governor's signature",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/billsvetoedbygovernor": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Bills vetoed by the Governor",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/carryoverhouse": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "House Carryover Measures for 2026",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/carryoversenate": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Senate Carryover Measures for 2026",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/conferenceactionsheethouse": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Action on House Measures with Senate Drafts",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/conferenceactionsheetsenate": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Action on Senate Measures with House Drafts",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/conferencecommitteereportnumbers": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Listing of All Conference Committee Report Numbers",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/conferencehearingsall": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "All Conference Notices",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/conferencehearingsfuture": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Future Conference Notices",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/conferencehearingspast": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Past Conference Notices",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/conferencehearingstoday": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Today's Conference Notices",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/conferencemeasuresallinconference": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "All Measures in Conference",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/constitutionalamendmentbillspassedfinalform": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Constitutional Amendment bills that passed in final form",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/constitutionalamendmentbillsyettopassfinalform": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Constitutional Amendment bills yet to pass in final form",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/governorsintenttoveto": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Governor's Intent to Veto",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/governorsmessages": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Governor's Messages",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/hearingnoticesinterim": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Interim Hearing Notices",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/hearingnoticespast": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Past Hearing Notices",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/housebillscrossedoversenateincludingpriorbiennium": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "2025 and 2026 House Bills Crossed Over to the Senate",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/housebillscrossedoversenatewithactiontakenonly": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "House Bills Crossed Over to the Senate with Action Taken in 2026 Only",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/housebillsfirstlateraldeadline": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "House bills with no lateral referrals or bills with a lateral referral that passed the first lateral deadline",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/housebillsincludingpriorbiennium": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "2025 and 2026 House Bills",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/housebillspassedlegislatureordeckedfinalreading": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "House bills that have passed the Legislature or been decked for Final Reading",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/housebillssecondcrossoveramended": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "House bills that have passed Third Reading in the nonoriginating chamber and have been amended by the nonoriginating chamber",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/housebillssecondcrossoverunamended": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "House bills that have passed Third Reading and were unamended by the nonoriginating chamber",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/housebillssecondlateraldeadline": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "House bills with no lateral referrals in the nonoriginating chamber or bills that passed second lateral deadline",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/housebillswithactiontakenonly": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "House Bills with Action Taken in 2026 Only",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/houseconcurrentresolutions": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "House Concurrent Resolutions",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/houseconcurrentresolutionscrossedoversenate": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "House Concurrent Resolutions Crossed Over to the Senate",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/houseintroducedandcrossedoverhouse": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "All Measures Introduced in the House and Measures that Crossed Over to the House",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/housemeasureswithsenatedraftdisagreedincludingpriorbiennium": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "2025 and 2026 House Measures with a Senate Draft Disagreed to by the House",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/housemeasureswithsenatedraftdisagreedwithactiontakenonly": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "House Measures with a Senate Draft Disagreed to by the House with Action Taken in 2026 Only",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/houseresolutions": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "House Resolutions",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/judiciarydepartmentalmiscellaneouscommunications": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Judiciary, Departmental, and Miscellaneous Communications",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/listofvetooverrides": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "List of Veto Overrides",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/measurespassedfinalreadinghouse": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures Passed Final Reading in the House",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/measurespassedfinalreadingsenate": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures Passed Final Reading in the Senate",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/pendingconcurrencehouse": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures Pending Concurrence in the House",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/pendingconcurrencesenate": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures Pending Concurrence in the Senate",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/pendingfinalreadinghouse": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures Pending Final Reading in the House",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/pendingfinalreadingsenate": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures Pending Final Reading in the Senate",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/pendingsecondreadinghouse": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures Pending Second Reading in the House",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/pendingsecondreadingsenate": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures Pending Second Reading in the Senate",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/pendingthirdreadinghouse": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures Pending Third Reading in the House",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/pendingthirdreadingsenate": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures Pending Third Reading in the Senate",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/reportstothelegislature": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Reports to the Legislature",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/resolutionsadopted": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Resolutions Adopted",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/senatebillscrossedoverhouseincludingpriorbiennium": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "2025 and 2026 Senate Bills Crossed Over to the House",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/senatebillscrossedoverhousewithactiontakenonly": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Senate Bills Crossed Over to the House with Action Taken in 2026 Only",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/senatebillsfirstlateraldeadline": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Senate bills with no lateral referrals or bills with a lateral referral that passed the first lateral deadline",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/senatebillsincludingpriorbiennium": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "2025 and 2026 Senate Bills",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/senatebillspassedlegislatureordeckedfinalreading": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Senate bills that have passed the Legislature or been decked for Final Reading",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/senatebillssecondcrossoveramended": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Senate bills that have passed Third Reading in the nonoriginating chamber and have been amended by the nonoriginating chamber",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/senatebillssecondcrossoverunamended": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Senate bills that have passed Third Reading and were unamended by the nonoriginating chamber",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/senatebillssecondlateraldeadline": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Senate bills with no lateral referrals in the nonoriginating chamber or bills that passed second lateral deadline",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/senatebillswithactiontakenonly": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Senate Bills with Action Taken in 2026 Only",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/senateconcurrentresolutions": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Senate Concurrent Resolutions",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/senateconcurrentresolutionscrossedoverhouse": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Senate Concurrent Resolutions Crossed Over to the House",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/senateintroducedandcrossedoversenate": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "All Measures Introduced in the Senate and Measures that Crossed Over to the Senate",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/senatemeasureswithhousedraftdisagreedincludingpriorbiennium": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "2025 and 2026 Senate Measures with a House Draft Disagreed to by the Senate",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/senatemeasureswithhousedraftdisagreedwithactiontakenonly": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Senate Measures with a House Draft Disagreed to by the Senate with Action Taken in 2026 Only",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/senateresolutions": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Senate Resolutions",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/standingcommitteereportshousebiennium": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "2025 and 2026 House Standing Committee Reports",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/standingcommitteereportshousesession": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "House Standing Committee Reports for 2026",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/standingcommitteereportssenatesession": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Senate Standing Committee Reports for 2026",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/standingcommitteereportssenbiennium": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "2025 and 2026 Senate Standing Committee Reports",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/committeereferral": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Committee referral reports (AdvReports: choose Senate or House committee, then link text varies by reportType). Examples: All measures with {committee} listed on the latest House or Senate referral (reportType=all); All measures recommitted to {committee} (recom); All measures currently in {committee} (pend); All measures reported from {committee} (reported); All measures currently in, reported from, recommitted to, or re-referred out of {committee} (all_refer); First lateral fref_flat / fref_slat; First/Second decking wait_fdeck / wait_sdeck.",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "reportType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "committee",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "committeeChamber",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/introducerprimary": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures with {legislator} as a primary introducer",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "legislator",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/introducerfirstprimary": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures with {legislator} as the first primary introducer",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "legislator",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/introducerbyrequestprimary": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures with {legislator} as a primary introducer, by request",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "legislator",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/introducercosponsor": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures with {legislator} as a co-sponsor",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "legislator",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/introducerbyrequestcosponsor": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures with {legislator} as a co-sponsor, by request",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "legislator",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/packagereport": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures by Package (select package in AdvReports; API uses packageKey).",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "packageKey",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/subjectsearch": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Subject search (legacy passes search text as strInput).",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/adviseconsentreferredtocommittee": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "See Advise and Consent measures REFERRED to {committee}",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "committee",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/adviseconsentrecommittedtocommittee": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "See Advise and Consent measures RECOMMITTED to {committee}",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "committee",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/adviseconsentpendingincommittee": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "See Advise and Consent measures PENDING in {committee}",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "committee",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/conferenceassignmentslegislator": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Conference Committee Assignments for {legislator}",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "legislator",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/conferencehearingslegislator": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Conference notices for {legislator} (optional timeFrame: all, today, past, future — legacy used separate links).",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "legislator",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeFrame",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/conferencemeasuresincommitteereferred": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Measures in Conference That Have Been Referred to {committee}",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "committee",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/reports/legacy/conferencehearingsforcommittee": {
+      "get": {
+        "tags": [
+          "Legacy Website Reports"
+        ],
+        "description": "Conference Notices for Measures That Have Been Referred to {committee}",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "committee",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/measures/{billType}/{billNumber}": {
+      "get": {
+        "tags": [
+          "MeasureDetail"
+        ],
+        "summary": "Measure detail for a session year (current or historical). \r\nOptional specialSession selects legacy `splsession…` published content (letter suffix rules; see API docs).",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "billType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "billNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "specialSession",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeasureDetailResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeasureDetailResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeasureDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionYear}/special-sessions/{specialSession}/measures": {
+      "get": {
+        "tags": [
+          "SpecialSessionMeasures"
+        ],
+        "summary": "All measures for a special session: looked up in `dbo.Table_SpecialSession_Measure` on the\r\nprimary reporting catalog, keyed by the `ss_year` token (e.g. `2024a`, `2021b`).\r\nFalls back to scanning published PDFs under the `splsession…` folder when SQL returns no rows\r\nor the table is unavailable.",
+        "parameters": [
+          {
+            "name": "sessionYear",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "specialSession",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecialSessionMeasuresResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecialSessionMeasuresResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecialSessionMeasuresResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdvLegacySlugListing": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "requiredQueryParameters": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CommitteeAcronymDto": {
+        "type": "object",
+        "properties": {
+          "commAcro": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CommitteeReportDto": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "linkHtml": {
+            "type": "string",
+            "nullable": true
+          },
+          "linkPdf": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CompanionLinkDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "number": {
+            "type": "string",
+            "nullable": true
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HearingNoticeByMeasureDto": {
+        "type": "object",
+        "properties": {
+          "comm": {
+            "type": "string",
+            "nullable": true
+          },
+          "timedate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "room": {
+            "type": "string",
+            "nullable": true
+          },
+          "streamUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "billType": {
+            "type": "string",
+            "nullable": true
+          },
+          "billNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "measureTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "fullMeasureLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "htmlLink": {
+            "type": "string",
+            "nullable": true
+          },
+          "pdfLink": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HearingNoticeDto": {
+        "type": "object",
+        "properties": {
+          "committee": {
+            "type": "string",
+            "nullable": true
+          },
+          "timeDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "room": {
+            "type": "string",
+            "nullable": true
+          },
+          "noticeYear": {
+            "type": "string",
+            "nullable": true
+          },
+          "filename": {
+            "type": "string",
+            "nullable": true
+          },
+          "agendaUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "streamUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HearingNoticeFileDto": {
+        "type": "object",
+        "properties": {
+          "comm": {
+            "type": "string",
+            "nullable": true
+          },
+          "timedate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "room": {
+            "type": "string",
+            "nullable": true
+          },
+          "streamUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "chamber": {
+            "type": "string",
+            "nullable": true
+          },
+          "htmlLink": {
+            "type": "string",
+            "nullable": true
+          },
+          "pdfLink": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HearingNoticeWithMeasureDto": {
+        "type": "object",
+        "properties": {
+          "comm": {
+            "type": "string",
+            "nullable": true
+          },
+          "timedate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "room": {
+            "type": "string",
+            "nullable": true
+          },
+          "streamUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "billType": {
+            "type": "string",
+            "nullable": true
+          },
+          "billNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "measureTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "fullMeasureLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "sessionType": {
+            "type": "string",
+            "nullable": true
+          },
+          "htmlLink": {
+            "type": "string",
+            "nullable": true
+          },
+          "pdfLink": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MeasureDetailResponse": {
+        "type": "object",
+        "properties": {
+          "measureInfo": {
+            "$ref": "#/components/schemas/MeasureInfoDto"
+          },
+          "statusHistory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusHistoryDto"
+            },
+            "nullable": true
+          },
+          "committeeReports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommitteeReportDto"
+            },
+            "nullable": true
+          },
+          "testimony": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestimonyDto"
+            },
+            "nullable": true
+          },
+          "hearingNotices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HearingNoticeDto"
+            },
+            "nullable": true
+          },
+          "measureVersions": {
+            "$ref": "#/components/schemas/MeasureVersionsDto"
+          },
+          "otherDocuments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OtherDocumentDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MeasureInfoDto": {
+        "type": "object",
+        "properties": {
+          "billType": {
+            "type": "string",
+            "nullable": true
+          },
+          "billNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "string",
+            "nullable": true
+          },
+          "measureTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "reportTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "companion": {
+            "type": "string",
+            "nullable": true
+          },
+          "companionLinks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompanionLinkDto"
+            },
+            "nullable": true
+          },
+          "packageName": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentReferral": {
+            "type": "string",
+            "nullable": true
+          },
+          "introducer": {
+            "type": "string",
+            "nullable": true
+          },
+          "pdfUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "htmlUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "rssUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "actNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "actPdfUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MeasureVersionDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "htmlUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "pdfUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "modified": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MeasureVersionsDto": {
+        "type": "object",
+        "properties": {
+          "filesUnavailable": {
+            "type": "boolean"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeasureVersionDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OtherDocumentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "pdfUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": {}
+      },
+      "SpecialSessionMeasureSummaryDto": {
+        "type": "object",
+        "properties": {
+          "billType": {
+            "type": "string",
+            "nullable": true
+          },
+          "billNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "measureTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "reportTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "companion": {
+            "type": "string",
+            "nullable": true
+          },
+          "packageName": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentReferral": {
+            "type": "string",
+            "nullable": true
+          },
+          "introducer": {
+            "type": "string",
+            "nullable": true
+          },
+          "pdfUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "measureDetailUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SpecialSessionMeasuresResponse": {
+        "type": "object",
+        "properties": {
+          "sessionYear": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "specialSessionOrdinal": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sessionDirectorySegment": {
+            "type": "string",
+            "nullable": true
+          },
+          "measures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpecialSessionMeasureSummaryDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StatusHistoryDto": {
+        "type": "object",
+        "properties": {
+          "statusDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "statusText": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubmitAccessRequestRequestDto": {
+        "required": [
+          "contactEmail",
+          "contactName",
+          "intendedUse",
+          "organizationName"
+        ],
+        "type": "object",
+        "properties": {
+          "organizationName": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "contactName": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "contactEmail": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string",
+            "format": "email"
+          },
+          "intendedUse": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubmitAccessRequestResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TestimonyDto": {
+        "type": "object",
+        "properties": {
+          "testimonyFilename": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "JWT from POST /connect/token (grant_type=client_credentials, scope=api). Paste only the access_token value.",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "#/components/securitySchemes/Bearer": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "AccessRequests",
+      "description": "Public intake for pending API credential requests (`AccessRequests` table, reviewed in the registration portal).\r\nNot tied to an invitation; staff review all submissions."
+    },
+    {
+      "name": "Authorization",
+      "description": "Handles OAuth/OIDC token issuance when token endpoint pass-through is enabled on the OpenIddict server."
+    },
+    {
+      "name": "CapitolWebsiteApi.Api"
+    },
+    {
+      "name": "HearingNotices",
+      "description": "Hearing notice listing and committee filter metadata (`/api/v1/hearings`; previously exposed as `api/hearings`).\r\nParity with legacy `upcominghearingsfiltered.aspx`, `gethearing.aspx`, and `gethearingbybill.aspx`."
+    },
+    {
+      "name": "Legacy Website Reports",
+      "description": "Legacy website reports: one action per AdvReports-aligned report; paths match prior slug segments."
+    },
+    {
+      "name": "MeasureDetail",
+      "description": "Measure status payload aligned with measure_indiv / archives pages."
+    },
+    {
+      "name": "SpecialSessionMeasures",
+      "description": "Listing measures for an extra (special) legislative session."
+    }
+  ]
+}

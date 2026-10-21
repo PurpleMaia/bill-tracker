@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateUser, createSession } from "@/lib/auth";
-import { setSessionCookie } from "@/lib/cookies";
-import { limitFixedWindow, retryAfterMs } from "@/lib/ratelimit-memory";
+import { authenticateUser, createSession } from "@/lib/auth/session";
+import { setSessionCookie } from "@/lib/auth/cookies";
+import { limitFixedWindow, retryAfterMs } from "@/lib/core/ratelimit-memory";
 import type { User } from "@/types/user";
-import { loginSchema } from "@/lib/validators";
-import { ApiError } from "@/lib/errors";
+import { loginSchema } from "@/lib/auth/validators";
+import { ApiError } from "@/lib/core/errors";
+import { getUserMemberships } from "@/db/queries/tenants";
 
 const LOGIN_RATE_LIMIT = { limit: 5, windowMs: 5 * 60_000 };
 
@@ -63,7 +64,8 @@ export async function POST(request: NextRequest) {
     //validates input
     const validation = loginSchema.safeParse({ authString, password });
     if (!validation.success) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
+      const messages = validation.error.issues.map(i => i.message).join(', ');
+      return NextResponse.json({ error: messages }, { status: 400 });
     }
 
     // Authenticate user
@@ -72,11 +74,13 @@ export async function POST(request: NextRequest) {
 
       // Create session token for successfully authenticated user
       const token = await createSession(user.id);
-      console.log("Created session token:", token);
 
-      // Set session token in cookie and return user information
+      // Fetch memberships for the authenticated user
+      const memberships = await getUserMemberships(user.id);
+
+      // Set session token in cookie and return user information with memberships
       return NextResponse.json(
-        { success: true, user: user as User },
+        { success: true, user: user as User, memberships },
         {
           status: 200,
           headers: {
@@ -97,7 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Unknown error
-    console.error("[REGISTER]", error);
+    console.error("[LOGIN]", error);
     return NextResponse.json({ error: "Unknown Error" }, { status: 500 });
   }
 }
