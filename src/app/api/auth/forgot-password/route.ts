@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPasswordResetToken, findUserByEmailForReset } from '@/db/queries/password-reset';
-import { sendPasswordResetEmail } from '@/services/email';
+import { requestPasswordReset } from '@/db/queries/password-reset';
 import { forgotPasswordSchema } from '@/lib/auth/validators';
 import { limitFixedWindow, retryAfterMs } from '@/lib/core/ratelimit-memory';
 import { getClientIp } from '@/lib/core/client-ip';
-
-const FORGOT_PASSWORD_RATE_LIMIT = { limit: 5, windowMs: 15 * 60_000 };
+import { FORGOT_PASSWORD_RATE_LIMIT } from '@/lib/auth/rate-limits';
 
 /**
  * Identical response whether or not the email belongs to an account.
@@ -40,16 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: messages }, { status: 400 });
     }
 
-    const user = await findUserByEmailForReset(validation.data.email);
-
-    if (user) {
-      const rawToken = await createPasswordResetToken(user.id);
-      // Delivery failures are logged inside the service; we never surface them,
-      // since doing so would reveal that the account exists.
-      await sendPasswordResetEmail(validation.data.email, user.username, rawToken);
-    } else {
-      console.log('[FORGOT PASSWORD] No account for requested email; returning neutral response.');
-    }
+    await requestPasswordReset(validation.data.email);
 
     return NextResponse.json(NEUTRAL_RESPONSE, { status: 200 });
   } catch (error) {

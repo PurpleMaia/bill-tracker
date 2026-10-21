@@ -6,10 +6,12 @@
 // (Server Action vs API-route fetch) is chosen per-operation by transport.ts
 // and is invisible to callers. See define-client.ts for the contract.
 
+import { authClient } from './auth.client';
 import { billsClient } from './bills.client';
 import { proposalsClient } from './proposals.client';
 import { accessClient } from './access.client';
 import { preferencesClient } from './preferences.client';
+import { profileClient } from './profile.client';
 import { testimonyClient } from './testimony.client';
 import { boardsClient } from './boards.client';
 import { summariesClient } from './summaries.client';
@@ -18,10 +20,12 @@ import { committeesClient } from './committees.client';
 import { calendarClient } from './calendar.client';
 
 export const data = {
+  auth: authClient,
   bills: billsClient,
   proposals: proposalsClient,
   access: accessClient,
   preferences: preferencesClient,
+  profile: profileClient,
   testimony: testimonyClient,
   boards: boardsClient,
   summaries: summariesClient,

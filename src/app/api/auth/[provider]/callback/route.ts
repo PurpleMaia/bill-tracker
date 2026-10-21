@@ -7,6 +7,7 @@ import { redeemInviteToken, createOrgForNewUser } from '@/db/queries/tenants';
 import { createSession } from '@/lib/auth/session';
 import { setSessionCookie } from '@/lib/auth/cookies';
 import { appUrl } from '@/lib/core/app-url';
+import { loginHref } from '@/lib/auth/return-path';
 
 /** Error codes the login/register UI knows how to render. */
 type AuthErrorCode =
@@ -36,6 +37,8 @@ async function resolveOAuthUser(
     email: identity.email,
     emailVerified: identity.emailVerified,
     name: identity.name,
+    firstName: identity.firstName,
+    lastName: identity.lastName,
     picture: identity.picture,
   });
 }
@@ -59,9 +62,14 @@ export async function GET(
   }
 
   const cookies = oauthCookieNames(providerId);
+  const payload = decodeSignupPayload(request.cookies.get(cookies.payload)?.value);
 
+  // Back to the login page they started from, still carrying where they were
+  // headed, so a cancelled or failed attempt can simply be retried.
   function failureRedirect(code: AuthErrorCode): NextResponse {
-    const response = NextResponse.redirect(appUrl(`/?authError=${code}`));
+    const destination = appUrl(loginHref(payload.returnTo));
+    destination.searchParams.set('authError', code);
+    const response = NextResponse.redirect(destination);
     clearOAuthCookies(response);
     return response;
   }
@@ -115,8 +123,6 @@ export async function GET(
 
     const { user, isNewUser } = result;
 
-    const payload = decodeSignupPayload(request.cookies.get(cookies.payload)?.value);
-
     // An invite applies to new AND returning users: an admin can invite someone
     // who already has an account. It is safe to replay because redemption is
     // bound to the provider-verified email and a token can only be claimed once.
@@ -137,7 +143,8 @@ export async function GET(
 
     const token = await createSession(user.id);
 
-    const destination = appUrl('/');
+    // returnTo was validated as a same-site path when decoded.
+    const destination = appUrl(payload.returnTo ?? '/');
     if (inviteFailed) destination.searchParams.set('authError', 'invite_invalid');
 
     const response = NextResponse.redirect(destination, {

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Check, Loader2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { LoginDialog } from '@/components/auth/login-dialog';
+import { LoginLink } from '@/components/auth/login-link';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useToast } from '@/hooks/use-toast';
@@ -33,8 +33,7 @@ interface TrackButtonProps {
 
 /**
  * Tracks a bill to the user's active org board. For logged-out visitors the
- * same button opens the login dialog in place, so a visitor never loses their
- * search results to a redirect.
+ * same button links to /login, which returns them to these search results.
  */
 export function TrackButton({ billId, billNumber, initialTracked = false }: TrackButtonProps) {
   const { user, activeTenant } = useAuth();
@@ -52,14 +51,12 @@ export function TrackButton({ billId, billNumber, initialTracked = false }: Trac
 
   if (!user) {
     return (
-      <LoginDialog
-        trigger={
-          <Button size="sm" className={COMPACT_ON_MOBILE} aria-label={`Track ${billNumber}`}>
-            <UserPlus className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
-            <span className="hidden sm:inline">Track Bill</span>
-          </Button>
-        }
-      />
+      <Button asChild size="sm" className={COMPACT_ON_MOBILE}>
+        <LoginLink aria-label={`Track ${billNumber}`}>
+          <UserPlus className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
+          <span className="hidden sm:inline">Track Bill</span>
+        </LoginLink>
+      </Button>
     );
   }
 

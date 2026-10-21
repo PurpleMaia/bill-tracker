@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { username, email, password, orgName, inviteToken } = await req.json();
-    const validation = registerSchema.safeParse({ username, email, password });
+    const { username, email, password, firstName, lastName, orgName, inviteToken } = await req.json();
+    const validation = registerSchema.safeParse({ username, email, password, firstName, lastName });
     if (!validation.success) {
       const messages = validation.error.issues.map(i => i.message).join(', ');
       return NextResponse.json({ error: messages }, { status: 400 });
@@ -78,7 +78,10 @@ export async function POST(req: NextRequest) {
     //   }, { status: 403 });
     // }
 
-    const { user } = await registerUser(email, username, password);
+    const { user } = await registerUser(email, username, password, {
+      firstName: validation.data.firstName,
+      lastName: validation.data.lastName,
+    });
     if (!user) {
       return NextResponse.json({ error: 'User already exists or registration failed.' }, { status: 400 });
     }
