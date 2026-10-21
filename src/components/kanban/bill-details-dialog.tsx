@@ -95,15 +95,10 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   const isMobile = useIsMobile();
   const router = useRouter();
   // Hosts may pass billID null the moment the dialog closes; keep showing the
-  // last bill until the close animation (200ms) has played, then drop it so a
-  // closed dialog renders nothing.
+  // last bill until the close animation (200ms) has played — see the reset
+  // effect below — then drop it so a closed dialog renders nothing.
   const [shownId, setShownId] = useState<string | null>(billID);
   if (billID !== null && billID !== shownId) setShownId(billID);
-  useEffect(() => {
-    if (isOpen) return;
-    const timer = setTimeout(() => setShownId(null), 300);
-    return () => clearTimeout(timer);
-  }, [isOpen]);
 
   // Set while leaving for Contact / Testimony: the dialog stays up until the
   // next page renders, so show progress and ignore dismissals meanwhile
@@ -138,6 +133,8 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
 
   useEffect(() => {
     if (isOpen && billID) {
+      // Reopened on a different bill before the close reset ran: don't show the old one's details.
+      setBillDetails((prev) => (prev?.id === billID ? prev : null));
       setLoadingDetails(true);
       setDetailsError(null);
       getBillDetails(billID)
@@ -157,7 +154,19 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   }, [isOpen, billID]);
 
   useEffect(() => {
-    if (!isOpen) { setSelectedStatus(''); setBillDetails(null); setDetailsError(null); setActiveTab('overview'); setNavigatingTo(null); }
+    if (isOpen) return;
+    setNavigatingTo(null);
+    // Clear what the dialog displays only after the close animation, so a
+    // closing dialog keeps its content (fetched details are the only source
+    // for search results that aren't in the bills context).
+    const timer = setTimeout(() => {
+      setShownId(null);
+      setSelectedStatus('');
+      setBillDetails(null);
+      setDetailsError(null);
+      setActiveTab('overview');
+    }, 300);
+    return () => clearTimeout(timer);
   }, [isOpen]);
 
   // 'updates' only exists on mobile. Crossing to desktop while it is selected
