@@ -20,8 +20,19 @@ export function withBillParam(search: string, billId: string | null): string {
 }
 
 /** Link from the dialog to a bill's testimony/contact page that remembers where to come back to. */
-export function billActionHref(billId: string, action: 'testimony' | 'contact', returnTo: string): string {
-  return `/bills/${billId}/${action}?${RETURN_TO_PARAM}=${encodeURIComponent(returnTo)}`;
+export function billActionHref(billId: string, action: 'testimony' | 'contact', returnTo?: string): string {
+  const base = `/bills/${billId}/${action}`;
+  return returnTo ? `${base}?${RETURN_TO_PARAM}=${encodeURIComponent(returnTo)}` : base;
+}
+
+/** A path (`/x?a=1&bill=2#h`) with the open-bill param removed, e.g. to return somewhere without reopening a dialog. */
+export function stripBillParam(path: string): string {
+  const hashAt = path.indexOf('#');
+  const hash = hashAt === -1 ? '' : path.slice(hashAt);
+  const beforeHash = hashAt === -1 ? path : path.slice(0, hashAt);
+  const queryAt = beforeHash.indexOf('?');
+  if (queryAt === -1) return path;
+  return beforeHash.slice(0, queryAt) + withBillParam(beforeHash.slice(queryAt), null) + hash;
 }
 
 /** Whether the query string carries anything besides the open-bill param. */

@@ -8,7 +8,7 @@ import type { TestimonyPosition } from '@/types/testimony';
 import { getBillDetails } from '@/db/queries/bills-read';
 import { data } from '@/lib/data-client';
 import { safeReturnPath } from '@/lib/core/safe-return-path';
-import { RETURN_TO_PARAM } from '@/lib/bills/bill-dialog-url';
+import { RETURN_TO_PARAM, stripBillParam } from '@/lib/bills/bill-dialog-url';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { invalidateTestimonies } from '@/hooks/use-testimonies';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -98,7 +98,8 @@ export default function TestimonyPage() {
       } catch {
         if (!cancelled) {
           toast({ title: 'Error', description: 'Failed to load this bill.', variant: 'destructive' });
-          router.replace(backHref);
+          // Drop `?bill=` so the host doesn't reopen a dialog for the bill that just failed to load.
+          router.replace(stripBillParam(backHref));
         }
       } finally {
         if (!cancelled) setLoading(false);
