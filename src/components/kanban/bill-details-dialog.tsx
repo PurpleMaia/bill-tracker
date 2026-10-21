@@ -21,7 +21,7 @@ import { useMemo, useState } from 'react';
 import RefreshStatusesButton from '../scraper/scrape-updates-button';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
-import { LoginDialog } from '@/components/auth/login-dialog';
+import { LoginLink } from '@/components/auth/login-link';
 import { COLUMN_TITLES, KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
 import {
   Select,
@@ -427,25 +427,20 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
               {!user ? (
                 /* Logged-out (the dialog is reachable from public search): both
                    CTAs lead to authenticated flows, so they become login prompts
-                   rather than dead buttons. The dialog stays open behind the
-                   login dialog, so the reader keeps their place. */
+                   rather than dead buttons, landing on the flow they named. */
                 <>
-                  <LoginDialog
-                    trigger={
-                      <Button size="sm" variant="outline">
-                        <PenLine className="mr-1.5 h-3.5 w-3.5" />
-                        Login to write a testimony
-                      </Button>
-                    }
-                  />
-                  <LoginDialog
-                    trigger={
-                      <Button size="sm" variant="outline">
-                        <Users className="mr-1.5 h-3.5 w-3.5" />
-                        Login to contact a legislator
-                      </Button>
-                    }
-                  />
+                  <Button asChild size="sm" variant="outline">
+                    <LoginLink next={`/bills/${bill.id}/testimony`}>
+                      <PenLine className="mr-1.5 h-3.5 w-3.5" />
+                      Login to write a testimony
+                    </LoginLink>
+                  </Button>
+                  <Button asChild size="sm" variant="outline">
+                    <LoginLink next={`/bills/${bill.id}/contact`}>
+                      <Users className="mr-1.5 h-3.5 w-3.5" />
+                      Login to contact a legislator
+                    </LoginLink>
+                  </Button>
                 </>
               ) : testimonyEligibility.allowed ? (
                 <>
@@ -735,22 +730,18 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                       /* Logged-out: both flows require an account, so the CTAs
                          become login prompts instead of buttons that dead-end. */
                       <div className="grid grid-cols-2 gap-1.5">
-                        <LoginDialog
-                          trigger={
-                            <Button variant="outline" className="h-11 w-full px-2">
-                              <PenLine className="mr-1.5 h-4 w-4 shrink-0" />
-                              <span className="truncate">Login to testify</span>
-                            </Button>
-                          }
-                        />
-                        <LoginDialog
-                          trigger={
-                            <Button variant="outline" className="h-11 w-full px-2">
-                              <Users className="mr-1.5 h-4 w-4 shrink-0" />
-                              <span className="truncate">Login to contact</span>
-                            </Button>
-                          }
-                        />
+                        <Button asChild variant="outline" className="h-11 w-full px-2">
+                          <LoginLink next={`/bills/${bill.id}/testimony`}>
+                            <PenLine className="mr-1.5 h-4 w-4 shrink-0" />
+                            <span className="truncate">Login to testify</span>
+                          </LoginLink>
+                        </Button>
+                        <Button asChild variant="outline" className="h-11 w-full px-2">
+                          <LoginLink next={`/bills/${bill.id}/contact`}>
+                            <Users className="mr-1.5 h-4 w-4 shrink-0" />
+                            <span className="truncate">Login to contact</span>
+                          </LoginLink>
+                        </Button>
                       </div>
                     ) : (
                       <>

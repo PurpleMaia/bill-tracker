@@ -4,6 +4,7 @@ import {
   emailSchema,
   loginSchema,
   registerSchema,
+  profileSchema,
   tagsSchema,
   nicknameSchema,
   proposalSchema,
@@ -72,6 +73,8 @@ describe('registerSchema', () => {
       username: 'testuser',
       email: 'test@example.com',
       password: 'password123',
+      firstName: 'Test',
+      lastName: 'User',
     });
     expect(result.success).toBe(true);
   });
@@ -81,6 +84,8 @@ describe('registerSchema', () => {
       username: 'ab',
       email: 'test@example.com',
       password: 'password123',
+      firstName: 'Test',
+      lastName: 'User',
     });
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -93,6 +98,8 @@ describe('registerSchema', () => {
       username: 'test user!',
       email: 'test@example.com',
       password: 'password123',
+      firstName: 'Test',
+      lastName: 'User',
     });
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -105,6 +112,8 @@ describe('registerSchema', () => {
       username: 'test_user_123',
       email: 'test@example.com',
       password: 'password123',
+      firstName: 'Test',
+      lastName: 'User',
     });
     expect(result.success).toBe(true);
   });
@@ -114,8 +123,38 @@ describe('registerSchema', () => {
       username: 'testuser',
       email: 'notanemail',
       password: 'password123',
+      firstName: 'Test',
+      lastName: 'User',
     });
     expect(result.success).toBe(false);
+  });
+
+  it('requires first and last name', () => {
+    const result = registerSchema.safeParse({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'password123',
+      firstName: '  ',
+      lastName: '',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message);
+      expect(messages).toContain('First name is required.');
+      expect(messages).toContain('Last name is required.');
+    }
+  });
+});
+
+describe('profileSchema', () => {
+  it('trims names', () => {
+    const result = profileSchema.safeParse({ firstName: '  Jane ', lastName: ' Doe ' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toEqual({ firstName: 'Jane', lastName: 'Doe' });
+  });
+
+  it('rejects names over 100 characters', () => {
+    expect(profileSchema.safeParse({ firstName: 'a'.repeat(101), lastName: 'Doe' }).success).toBe(false);
   });
 });
 

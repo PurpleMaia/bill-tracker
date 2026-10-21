@@ -94,8 +94,8 @@ function ResetPasswordForm() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      {/* Mirrors the login dialog's brand band so the emailed link lands on a
-          surface that reads as the same flow the user started. */}
+      {/* A brand band so the emailed link lands on a surface that reads as part
+          of the app's sign-in flow. */}
       <div className="w-full max-w-md overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         <div className="flex items-center gap-3 border-b border-border bg-secondary/60 px-6 py-5">
           <span
@@ -127,8 +127,8 @@ function ResetPasswordForm() {
               This password reset link is invalid, has expired, or has already been used.
               Request a fresh one from the log in screen.
             </p>
-            <Button className="w-full" onClick={() => router.push("/")}>
-              Back to Food+
+            <Button className="w-full" onClick={() => router.push("/login")}>
+              Go to log in
             </Button>
           </div>
         )}

@@ -88,7 +88,7 @@ export async function validateSession(token: string | null): Promise<User> {
   const result = await db
     .selectFrom('sessions as s')
     .innerJoin('user as u', 's.user_id', 'u.id')
-    .select(['u.id', 'u.role', 'u.email', 'u.username', 'u.email_verified', 'u.system_role'])
+    .select(['u.id', 'u.role', 'u.email', 'u.username', 'u.first_name', 'u.last_name', 'u.email_verified', 'u.system_role'])
     .where('s.session_token', '=', hashedToken)
     .where('s.expires_at', '>', new Date())
     .executeTakeFirst();  
@@ -104,6 +104,8 @@ export async function validateSession(token: string | null): Promise<User> {
     id: result.id,
     email: result.email,
     username: result.username,
+    firstName: result.first_name,
+    lastName: result.last_name,
     systemRole: result.system_role as SystemRole,
     role: result.role,
   };
@@ -131,7 +133,7 @@ export async function authenticateUser(identifier: string, password: string): Pr
   //1. Looks up user by email or username in user table
   const userResult = await db
     .selectFrom('user')
-    .select(['id', 'email', 'username', 'role', 'account_status', 'requested_admin', 'email_verified', 'system_role'])
+    .select(['id', 'email', 'username', 'first_name', 'last_name', 'role', 'account_status', 'requested_admin', 'email_verified', 'system_role'])
     .where((eb: any) => eb.or([
       eb('email', '=', identifier),
       eb('username', '=', identifier)  // using email parameter as it could be either email or username
@@ -183,7 +185,7 @@ export async function authenticateUser(identifier: string, password: string): Pr
     throw Errors.INVALID_CREDENTIALS;
   }
 
-  return { id: userResult.id, email: userResult.email, username: userResult.username, systemRole: userResult.system_role as SystemRole, role: userResult.role };  //Success
+  return { id: userResult.id, email: userResult.email, username: userResult.username, firstName: userResult.first_name, lastName: userResult.last_name, systemRole: userResult.system_role as SystemRole, role: userResult.role };  //Success
 } 
 
 // NOTE; will return verificationToken for email sending at a later date
@@ -192,7 +194,12 @@ export async function authenticateUser(identifier: string, password: string): Pr
  * @returns Newly created User object
  * @throws If user already exists or database insert errors occur
  */
-export async function registerUser(email: string, username: string, password: string): Promise<{ user: User }> {  
+export async function registerUser(
+  email: string,
+  username: string,
+  password: string,
+  name: { firstName: string; lastName: string }
+): Promise<{ user: User }> {  
     //1. Check if user already exists
     const existingUser = await db.selectFrom('user')
       .selectAll()
@@ -216,6 +223,8 @@ export async function registerUser(email: string, username: string, password: st
     const userResult = await db.insertInto('user').values({
       username: username,
       email: email, 
+      first_name: name.firstName,
+      last_name: name.lastName,
       role: 'user', // Legacy field; org-level roles are managed via members table
       account_status: 'active', // Public users are active by default; org membership is controlled by invites
       requested_admin: false,      
@@ -242,7 +251,15 @@ export async function registerUser(email: string, username: string, password: st
     }
 
     return {
-      user: { id: userId, email, username, systemRole: 'user', role: 'user' },
+      user: {
+        id: userId,
+        email,
+        username,
+        firstName: name.firstName,
+        lastName: name.lastName,
+        systemRole: 'user',
+        role: 'user',
+      },
       // verificationToken
     };
 }

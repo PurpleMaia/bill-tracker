@@ -5,6 +5,7 @@ import {
   decideGoogleAccountAction,
   deriveUsernameCandidate,
 } from '@/lib/auth/google-oauth';
+import { normalizeName } from '@/lib/auth/profile';
 
 /** The subset of user fields these lookups return. */
 export interface BasicUser {
@@ -69,6 +70,8 @@ export interface GoogleIdentity {
   email: string;
   emailVerified: boolean;
   name?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   picture?: string | null;
 }
 
@@ -81,6 +84,8 @@ function toUser(row: {
   id: string;
   email: string;
   username: string;
+  first_name: string | null;
+  last_name: string | null;
   role: string;
   system_role: string;
 }): User {
@@ -88,6 +93,8 @@ function toUser(row: {
     id: row.id,
     email: row.email,
     username: row.username,
+    firstName: row.first_name,
+    lastName: row.last_name,
     systemRole: row.system_role as SystemRole,
     role: row.role,
   };
@@ -134,17 +141,31 @@ export async function resolveGoogleUser(
   identity: GoogleIdentity
 ): Promise<ResolveGoogleUserResult> {
   const email = identity.email.toLowerCase().trim();
+  const googleFirstName = normalizeName(identity.firstName);
+  const googleLastName = normalizeName(identity.lastName);
+
+  /**
+   * Google's names only fill gaps on an existing account — a name the user
+   * typed at registration or set in Edit Profile is never overwritten. This is
+   * what quietly completes the profile of a pre-names account on next sign-in.
+   */
+  function nameBackfill(row: { first_name: string | null; last_name: string | null }) {
+    return {
+      ...(!normalizeName(row.first_name) && googleFirstName ? { first_name: googleFirstName } : {}),
+      ...(!normalizeName(row.last_name) && googleLastName ? { last_name: googleLastName } : {}),
+    };
+  }
 
   return db.transaction().execute(async (trx) => {
     const [byGoogleId, byEmail] = await Promise.all([
       trx
         .selectFrom('user')
-        .select(['id', 'email', 'username', 'role', 'system_role', 'account_status'])
+        .select(['id', 'email', 'username', 'first_name', 'last_name', 'role', 'system_role', 'account_status'])
         .where('google_id', '=', identity.googleId)
         .executeTakeFirst(),
       trx
         .selectFrom('user')
-        .select(['id', 'email', 'username', 'role', 'system_role', 'account_status'])
+        .select(['id', 'email', 'username', 'first_name', 'last_name', 'role', 'system_role', 'account_status'])
         .where('email', '=', email)
         .executeTakeFirst(),
     ]);
@@ -167,21 +188,27 @@ export async function resolveGoogleUser(
       }
 
       // Keep the avatar fresh; it is the one profile field Google owns.
-      if (identity.picture) {
+      const updates = {
+        ...(identity.picture ? { profile_picture_url: identity.picture } : {}),
+        ...nameBackfill(byGoogleId!),
+      };
+      if (Object.keys(updates).length > 0) {
         await trx
           .updateTable('user')
-          .set({ profile_picture_url: identity.picture })
+          .set(updates)
           .where('id', '=', byGoogleId!.id)
           .execute();
       }
 
-      return { ok: true as const, user: toUser(byGoogleId!), isNewUser: false };
+      return { ok: true as const, user: toUser({ ...byGoogleId!, ...updates }), isNewUser: false };
     }
 
     if (action.type === 'link') {
       if (byEmail!.account_status !== 'active') {
         return { ok: false as const, reason: 'account_inactive' as const };
       }
+
+      const names = nameBackfill(byEmail!);
 
       // Attach the Google identity to the existing account. auth_key is left
       // untouched on purpose: their password keeps working alongside Google.
@@ -194,11 +221,12 @@ export async function resolveGoogleUser(
           // verification email seeks.
           email_verified: true,
           ...(identity.picture ? { profile_picture_url: identity.picture } : {}),
+          ...names,
         })
         .where('id', '=', byEmail!.id)
         .execute();
 
-      return { ok: true as const, user: toUser(byEmail!), isNewUser: false };
+      return { ok: true as const, user: toUser({ ...byEmail!, ...names }), isNewUser: false };
     }
 
     // action.type === 'create'
@@ -212,6 +240,8 @@ export async function resolveGoogleUser(
       .values({
         email,
         username,
+        first_name: googleFirstName,
+        last_name: googleLastName,
         role: 'user',
         // No email round trip needed — Google already verified the address.
         account_status: 'active',
@@ -224,7 +254,7 @@ export async function resolveGoogleUser(
       // A double-clicked sign-in button races itself; the second insert loses
       // on the unique index and is re-read below instead of erroring.
       .onConflict((oc) => oc.doNothing())
-      .returning(['id', 'email', 'username', 'role', 'system_role'])
+      .returning(['id', 'email', 'username', 'first_name', 'last_name', 'role', 'system_role'])
       .executeTakeFirst();
 
     if (inserted) {
@@ -233,7 +263,7 @@ export async function resolveGoogleUser(
 
     const existing = await trx
       .selectFrom('user')
-      .select(['id', 'email', 'username', 'role', 'system_role'])
+      .select(['id', 'email', 'username', 'first_name', 'last_name', 'role', 'system_role'])
       .where('google_id', '=', identity.googleId)
       .executeTakeFirst();
 
@@ -243,4 +273,29 @@ export async function resolveGoogleUser(
 
     return { ok: true as const, user: toUser(existing), isNewUser: false };
   });
+}
+
+/**
+ * Sets the caller's own first and last name. Inputs are expected to be
+ * validated (profileSchema) by the transport; this trims defensively anyway.
+ */
+export async function updateUserProfile(
+  userId: string,
+  profile: { firstName: string; lastName: string }
+): Promise<User> {
+  const row = await db
+    .updateTable('user')
+    .set({
+      first_name: normalizeName(profile.firstName),
+      last_name: normalizeName(profile.lastName),
+    })
+    .where('id', '=', userId)
+    .returning(['id', 'email', 'username', 'first_name', 'last_name', 'role', 'system_role'])
+    .executeTakeFirst();
+
+  if (!row) {
+    throw new Error('[updateUserProfile] User not found');
+  }
+
+  return toUser(row);
 }

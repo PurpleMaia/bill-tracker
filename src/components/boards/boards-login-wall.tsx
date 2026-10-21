@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { Lock } from 'lucide-react';
+import { LogIn, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoginDialog } from '@/components/auth/login-dialog';
+import { LoginLink } from '@/components/auth/login-link';
 
 /**
  * Gate for the View Board tab. Mirrors LoginWall, but sends visitors to
@@ -24,7 +24,12 @@ export function BoardsLoginWall() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-3">
-          <LoginDialog />
+          <Button asChild>
+            <LoginLink>
+              <LogIn className="mr-1" />
+              Login
+            </LoginLink>
+          </Button>
           <Button asChild variant="outline" size="sm">
             <Link href="/boards/browse">Browse organizations</Link>
           </Button>

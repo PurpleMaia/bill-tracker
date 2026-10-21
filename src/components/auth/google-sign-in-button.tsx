@@ -44,10 +44,10 @@ interface GoogleSignInButtonProps {
   inviteToken?: string | null;
   /** Organization to create for the new user, when signing up with an org name. */
   orgName?: string | null;
+  /** Same-site path to land on after sign-in; the server re-validates it. */
+  returnTo?: string | null;
   /** Defaults to the sign-in wording; set for the registration context. */
   label?: string;
-  /** Called before navigating away, e.g. to close the dialog. */
-  onNavigate?: () => void;
 }
 
 /**
@@ -62,12 +62,13 @@ export function GoogleSignInButton({
   provider = 'google',
   inviteToken,
   orgName,
+  returnTo,
   label = 'Continue with Google',
-  onNavigate,
 }: GoogleSignInButtonProps) {
   const params = new URLSearchParams();
   if (inviteToken) params.set('invite', inviteToken);
   if (orgName) params.set('orgName', orgName);
+  if (returnTo) params.set('next', returnTo);
 
   const query = params.toString();
   const base = `/api/auth/${provider}`;
@@ -77,7 +78,7 @@ export function GoogleSignInButton({
     <Button asChild variant="outline" className="w-full">
       {/* Plain <a>, not next/link: this leaves the app entirely, so client-side
           routing has nothing to prefetch or intercept. */}
-      <a href={href} onClick={onNavigate}>
+      <a href={href}>
         <GoogleMark />
         <span className="ml-2">{label}</span>
       </a>

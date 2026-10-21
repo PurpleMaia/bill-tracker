@@ -7,11 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { NameFields } from "@/components/auth/name-fields";
+import { safeReturnPath, loginHref } from "@/lib/auth/return-path";
 
 function RegisterForm() {
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [createOrg, setCreateOrg] = useState(false);
@@ -21,6 +26,9 @@ function RegisterForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Set when the visitor came via a login prompt; they return there afterwards.
+  const next = safeReturnPath(searchParams.get("next"));
 
   // Invite token state
   const [inviteToken, setInviteToken] = useState<string | null>(null);
@@ -59,10 +67,19 @@ function RegisterForm() {
         email,
         username,
         password,
+        { firstName: firstName.trim(), lastName: lastName.trim() },
         isInviteFlow ? undefined : (createOrg ? orgName.trim() : undefined),
         inviteToken || undefined
       );
-      if (result.success) {
+      if (result.success && result.inviteError) {
+        // The account exists and they're signed in; only the invite failed.
+        toast({
+          title: "Account created",
+          description: `Your account was created, but the invite could not be applied: ${result.inviteError}`,
+          variant: "destructive",
+        });
+        router.push(next);
+      } else if (result.success) {
         toast({
           title: "Welcome!",
           description: inviteOrgName
@@ -71,7 +88,7 @@ function RegisterForm() {
               ? `Your account and organization "${orgName.trim()}" have been created.`
               : "Your account has been created.",
         });
-        router.push("/");
+        router.push(next);
       } else {
         toast({
           title: "Registration failed",
@@ -91,11 +108,11 @@ function RegisterForm() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50 p-4">
       <div className="w-full max-w-md rounded-lg bg-white p-8 shadow">
         <h1 className="mb-2 text-2xl font-bold text-center">Create an Account</h1>
         <p className="mb-6 text-sm text-muted-foreground text-center">
-          Register to track bills and collaborate with your organization.
+          Register to start tracking Hawai&apos;i State Legislature bills.
         </p>
 
         {/* Invite context banner */}
@@ -122,10 +139,16 @@ function RegisterForm() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
               required
             />
           </div>
+          <NameFields
+            idPrefix="register"
+            firstName={firstName}
+            lastName={lastName}
+            onFirstNameChange={setFirstName}
+            onLastNameChange={setLastName}
+          />
 
           <div className="space-y-2">
             <Label htmlFor="register-username">Username</Label>
@@ -134,7 +157,6 @@ function RegisterForm() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Choose a username"
               required
             />
           </div>
@@ -146,7 +168,6 @@ function RegisterForm() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Choose a password"
               required
             />
           </div>
@@ -154,6 +175,9 @@ function RegisterForm() {
           {/* Hide create-org section when registering via invite */}
           {!isInviteFlow && (
             <div className="border-t pt-4 mt-4 space-y-3">
+              <p className="text-sm text-muted-foreground">
+                If you&apos;d like to work with a team, you can also create an organization.
+              </p>
               <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="create-org" className="text-sm font-medium cursor-pointer">
@@ -221,17 +245,20 @@ function RegisterForm() {
             <GoogleSignInButton
               inviteToken={inviteToken}
               orgName={!isInviteFlow && createOrg ? orgName.trim() : undefined}
+              returnTo={next}
             />
           </>
         )}
 
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <a href="/" className="text-primary underline-offset-4 hover:underline">
-            Login
-          </a>
-        </p>
       </div>
+
+      {/* Below the card, mirroring the login page's "New to Bill Tracker?" line. */}
+      <p className="text-sm text-muted-foreground">
+        Already have an account?{" "}
+        <Link href={loginHref(next)} className="font-medium text-primary underline-offset-4 hover:underline">
+          Log in
+        </Link>
+      </p>
     </div>
   );
 }

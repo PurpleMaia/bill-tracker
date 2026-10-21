@@ -271,8 +271,10 @@ export interface User {
   created_at: Generated<Timestamp | null>;
   email: string;
   email_verified: Generated<boolean | null>;
+  first_name: string | null;
   google_id: string | null;
   id: Generated<string>;
+  last_name: string | null;
   profile_picture_url: string | null;
   requested_admin: Generated<boolean>;
   requested_supervisor: Generated<boolean | null>;

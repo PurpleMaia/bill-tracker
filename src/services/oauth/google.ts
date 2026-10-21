@@ -33,6 +33,8 @@ export const googleProvider: OAuthProvider = {
       email: claims.email,
       emailVerified: claims.email_verified,
       name: claims.name,
+      firstName: claims.given_name,
+      lastName: claims.family_name,
       picture: claims.picture,
     };
   },
