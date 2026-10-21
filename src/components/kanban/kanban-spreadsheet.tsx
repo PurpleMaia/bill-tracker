@@ -11,6 +11,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
+import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
 import { BillDetailsDialog } from './bill-details-dialog';
 import { cn, formatBillStatusName, todayHawaii } from '@/lib/core/utils';
 import { Term } from '@/components/ui/term';
@@ -134,13 +135,7 @@ export function KanbanSpreadsheet() {
 
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
-
-  const openBillDetails = useCallback((billId: string) => {
-    setSelectedBillId(billId);
-    setIsDialogOpen(true);
-  }, []);
+  const { dialogBillId, isOpen: isDialogOpen, openBill: openBillDetails, closeBill } = useBillDialogParam();
 
   const handleSort = useCallback((key: SortKey) => {
     if (sortKey === key) {
@@ -381,9 +376,9 @@ export function KanbanSpreadsheet() {
 
       {/* Details dialog (portal — renders outside the scroll container) */}
       <BillDetailsDialog
-        billID={selectedBillId}
+        billID={dialogBillId}
         isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
+        onClose={closeBill}
       />
     </div>
   );

@@ -10,6 +10,7 @@ import { filterBills } from '@/lib/bills/bill-filters';
 import { data as dataClient } from '@/lib/data-client';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
+import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
 import { useToast } from '@/hooks/use-toast';
 import { BillDetailsDialog } from './bill-details-dialog';
 import { Button } from '@/components/ui/button';
@@ -48,8 +49,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
 
   const [, setError] = useState<string | null>(null);
   const [draggingBillId, setDraggingBillId] = useState<string | null>(null);
-  const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+  const { dialogBillId, isOpen: isDialogOpen, openBill, closeBill } = useBillDialogParam();
   const filteredBills = useMemo<Bill[] | null>(
     () => (searchQuery.trim() ? searchBillsLocal(bills, searchQuery) : null),
     [bills, searchQuery]
@@ -408,9 +408,8 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
   // ===========================================================
 
   const handleCardClick = useCallback((bill: Bill) => {
-    setSelectedBillId(bill.id);
-    setIsDialogOpen(true);
-  }, []);
+    openBill(bill.id);
+  }, [openBill]);
 
   const handleTempCardClick = useCallback(
     (tempBill: TempBill) => {
@@ -598,9 +597,9 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
 
       {/* Details dialog */}
       <BillDetailsDialog
-        billID={selectedBillId}
+        billID={dialogBillId}
         isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
+        onClose={closeBill}
         boardMode={boardMode}
       />
     </>
