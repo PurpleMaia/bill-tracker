@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { BILL_PARAM, withBillParam } from '@/lib/bills/bill-dialog-url';
 
 /**
@@ -13,9 +13,14 @@ import { BILL_PARAM, withBillParam } from '@/lib/bills/bill-dialog-url';
  * dialog. Closing pops that entry when this mount pushed it; otherwise (the
  * dialog was restored from history or a refresh) it removes the param in
  * place. Either way, back after closing never reopens the dialog.
+ *
+ * Uses the native History API rather than router.push/replace: Next keeps
+ * useSearchParams in sync with it, and it skips the server round trip a
+ * router navigation makes for every query change — so the dialog opens and
+ * closes instantly. Reads the live URL (not render-time params) so a close
+ * fired late, e.g. after a slow save, acts on where the user is now.
  */
 export function useBillDialogParam() {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const openBillId = searchParams.get(BILL_PARAM);
@@ -38,21 +43,23 @@ export function useBillDialogParam() {
   const openBill = useCallback(
     (billId: string) => {
       openedHereRef.current = true;
-      router.push(pathname + withBillParam(searchParams.toString(), billId), { scroll: false });
+      window.history.pushState(null, '', pathname + withBillParam(window.location.search, billId));
     },
-    [router, pathname, searchParams],
+    [pathname],
   );
 
   const closeBill = useCallback(() => {
-    if (!openBillId || closingRef.current) return;
+    const live = window.location;
+    if (live.pathname !== pathname || !new URLSearchParams(live.search).has(BILL_PARAM)) return;
+    if (closingRef.current) return;
     closingRef.current = true;
     if (openedHereRef.current) {
       openedHereRef.current = false;
-      router.back();
+      window.history.back();
     } else {
-      router.replace(pathname + withBillParam(searchParams.toString(), null), { scroll: false });
+      window.history.replaceState(null, '', pathname + withBillParam(live.search, null));
     }
-  }, [openBillId, router, pathname, searchParams]);
+  }, [pathname]);
 
   return { openBillId, dialogBillId, isOpen: openBillId !== null, openBill, closeBill };
 }
