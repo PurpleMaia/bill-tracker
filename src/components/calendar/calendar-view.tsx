@@ -20,6 +20,7 @@ import { cn } from '@/lib/core/utils';
 import { data } from '@/lib/data-client';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
+import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
 import { filterBills } from '@/lib/bills/bill-filters';
 import {
   MILESTONE_META,
@@ -81,7 +82,7 @@ export function CalendarView() {
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [hidden, setHidden] = useState<ReadonlySet<MilestoneType>>(new Set());
-  const [openBillId, setOpenBillId] = useState<string | null>(null);
+  const { dialogBillId, isOpen: isDialogOpen, openBill, closeBill } = useBillDialogParam();
 
   const visibleBills = useMemo(
     () => filterBills(bills, { searchQuery, selectedTagIds, selectedYears, deadFilter: 'all' }),
@@ -232,7 +233,7 @@ export function CalendarView() {
 
           {/* Day detail — below the grid on small screens, right rail on lg */}
           <div className="lg:hidden">
-            <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={setOpenBillId} />
+            <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={openBill} />
           </div>
 
           {/* Month list */}
@@ -242,20 +243,20 @@ export function CalendarView() {
                 {bills.length === 0 ? 'No tracked bills yet.' : 'No milestones this month.'}
               </p>
             ) : (
-              monthMilestones.map((m) => <MilestoneRow key={m.id} m={m} onOpen={setOpenBillId} />)
+              monthMilestones.map((m) => <MilestoneRow key={m.id} m={m} onOpen={openBill} />)
             )}
           </section>
         </div>
 
         <div className="hidden lg:block">
-          <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={setOpenBillId} />
+          <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={openBill} />
         </div>
       </div>
 
       <BillDetailsDialog
-        billID={openBillId}
-        isOpen={openBillId !== null}
-        onClose={() => setOpenBillId(null)}
+        billID={dialogBillId}
+        isOpen={isDialogOpen}
+        onClose={closeBill}
       />
     </div>
   );

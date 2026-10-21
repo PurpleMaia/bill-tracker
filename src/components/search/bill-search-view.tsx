@@ -15,6 +15,8 @@ import { SearchIntro } from './search-intro';
 import { TrackButton } from './track-button';
 import { useBillSearch } from '@/hooks/use-bill-search';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
+import { hasNonBillParams } from '@/lib/bills/bill-dialog-url';
 import {
   DEFAULT_FILTERS,
   parseSearchParams,
@@ -39,7 +41,8 @@ export function BillSearchView() {
   const urlHadParams = useRef(false);
   const [filters, setFilters] = useState<SearchFilters>(() => {
     const raw = new URLSearchParams(searchParams.toString());
-    urlHadParams.current = Array.from(raw.keys()).length > 0;
+    // `bill` only reopens a dialog (see useBillDialogParam); it isn't a filter.
+    urlHadParams.current = hasNonBillParams(raw.toString());
     const parsed = parseSearchParams(raw);
     return { ...parsed, years: parsed.years.length ? parsed.years : DEFAULT_FILTERS.years };
   });
@@ -68,7 +71,7 @@ export function BillSearchView() {
     if (!hydrated) return;
     saveSearchFilters(filters);
   }, [hydrated, filters]);
-  const [openBillId, setOpenBillId] = useState<string | null>(null);
+  const { openBillId, dialogBillId, isOpen: isDialogOpen, openBill, closeBill } = useBillDialogParam();
   const {
     bills,
     totalCount,
@@ -85,7 +88,7 @@ export function BillSearchView() {
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   const handleClear = useCallback(() => setFilters(DEFAULT_FILTERS), []);
-  const handleCardClick = useCallback((billId: string) => setOpenBillId(billId), []);
+  const handleCardClick = useCallback((billId: string) => openBill(billId), [openBill]);
 
   // Auto-load the next page when the sentinel scrolls into view. The visible
   // "Load more" button below stays the keyboard-accessible path — scroll-driven
@@ -134,7 +137,7 @@ export function BillSearchView() {
   const hasQuery = filters.q.trim().length > 0;
   // The dialog takes only a bill id; the Track control needs the bill number for
   // its label and toasts, so resolve the open row from the loaded results.
-  const openBill = openBillId ? bills.find((b) => b.id === openBillId) : undefined;
+  const openBillRow = openBillId ? bills.find((b) => b.id === openBillId) : undefined;
 
   const searchInput = (
     <>
@@ -298,15 +301,15 @@ export function BillSearchView() {
           trackSlot adds the Track control the board's own copy doesn't need:
           a bill opened from search may not be tracked yet. */}
       <BillDetailsDialog
-        billID={openBillId}
-        isOpen={openBillId !== null}
-        onClose={() => setOpenBillId(null)}
+        billID={dialogBillId}
+        isOpen={isDialogOpen}
+        onClose={closeBill}
         trackSlot={
-          openBill ? (
+          openBillRow ? (
             <TrackButton
-              billId={openBill.id}
-              billNumber={openBill.bill_number}
-              initialTracked={openBill.is_tracked}
+              billId={openBillRow.id}
+              billNumber={openBillRow.bill_number}
+              initialTracked={openBillRow.is_tracked}
             />
           ) : undefined
         }
