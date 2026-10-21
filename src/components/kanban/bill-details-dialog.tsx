@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { billActionHref } from '@/lib/bills/bill-dialog-url';
 import type { Bill, BillStatus, BillDetails, StatusUpdate } from '@/types/legislation';
 import {
   Dialog,
@@ -91,6 +92,11 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   const { user, activeTenant } = useAuth();
   const isMobile = useIsMobile();
   const router = useRouter();
+  // Where Contact / Testimony's Back button returns to: this page with the
+  // dialog still open (the host keeps `?bill=` in the URL).
+  const pathname = usePathname();
+  const search = useSearchParams().toString();
+  const returnTo = pathname + (search ? `?${search}` : '');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [, setSaving] = useState<boolean>(false);
   const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
@@ -419,8 +425,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                           variant="outline"
                           className="relative"
                           onClick={() => {
-                            onClose();
-                            router.push(`/bills/${bill.id}/testimony`);
+                            router.push(billActionHref(bill.id, 'testimony', returnTo));
                           }}
                         >
                           {testimonyUrgent && (
@@ -479,8 +484,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    onClose();
-                    router.push(`/bills/${bill.id}/contact`);
+                    router.push(billActionHref(bill.id, 'contact', returnTo));
                   }}
                 >
                   <Users className="mr-1.5 h-3.5 w-3.5" />
@@ -529,8 +533,8 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                     currentStageName={currentStageName}
                     onNextStep={(action) => {
                       if (action === 'diff' || action === 'reports') setActiveTab('versions');
-                      else if (action === 'testimony') { onClose(); router.push(`/bills/${bill.id}/testimony`); }
-                      else if (action === 'contact') { onClose(); router.push(`/bills/${bill.id}/contact`); }
+                      else if (action === 'testimony') { router.push(billActionHref(bill.id, 'testimony', returnTo)); }
+                      else if (action === 'contact') { router.push(billActionHref(bill.id, 'contact', returnTo)); }
                     }}
                   />
 
@@ -721,8 +725,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                             className="h-11 w-full px-2"
                             disabled={!testimonyEligibility.allowed}
                             onClick={() => {
-                              onClose();
-                              router.push(`/bills/${bill.id}/testimony`);
+                              router.push(billActionHref(bill.id, 'testimony', returnTo));
                             }}
                           >
                             <PenLine className="mr-1.5 h-4 w-4 shrink-0" />
@@ -733,8 +736,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                             className="h-11 w-full px-2"
                             disabled={contactDisabled}
                             onClick={() => {
-                              onClose();
-                              router.push(`/bills/${bill.id}/contact`);
+                              router.push(billActionHref(bill.id, 'contact', returnTo));
                             }}
                           >
                             <Users className="mr-1.5 h-4 w-4 shrink-0" />

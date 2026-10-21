@@ -5,6 +5,8 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import type { BillDetails } from '@/types/legislation';
 import { getBillDetails } from '@/db/queries/bills-read';
 import { data } from '@/lib/data-client';
+import { safeReturnPath } from '@/lib/core/safe-return-path';
+import { RETURN_TO_PARAM } from '@/lib/bills/bill-dialog-url';
 import type { CommitteeChair } from '@/db/queries/committee-chairs';
 import type { Conferee } from '@/db/queries/conferees';
 import {
@@ -75,7 +77,10 @@ export default function ContactLegislatorPage() {
   const isMobile = useIsMobile();
   const committeeNames = useCommitteeNames();
 
-  const backHref = searchParams.get('from') === 'testimonies' ? '/testimonies' : '/';
+  // Back returns to where the user came from: the bill dialog's host page
+  // (`returnTo`, validated), else the testimonies list, else home.
+  const backHref = safeReturnPath(searchParams.get(RETURN_TO_PARAM))
+    ?? (searchParams.get('from') === 'testimonies' ? '/testimonies' : '/');
 
   const [bill, setBill] = useState<BillDetails | null>(null);
   const [chairs, setChairs] = useState<CommitteeChair[]>([]);
