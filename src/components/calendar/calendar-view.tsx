@@ -31,7 +31,7 @@ import {
   type BillMilestone,
   type MilestoneType,
 } from '@/lib/calendar/bill-milestones';
-import { BillDetailsDialog } from '@/components/kanban/bill-details-dialog';
+import { UrlBillDetailsDialog } from '@/components/kanban/url-bill-details-dialog';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const dayKey = (d: Date) => format(d, 'yyyy-MM-dd');
@@ -82,7 +82,7 @@ export function CalendarView() {
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [hidden, setHidden] = useState<ReadonlySet<MilestoneType>>(new Set());
-  const { dialogBillId, isOpen: isDialogOpen, openBill, closeBill } = useBillDialogParam();
+  const { open: openBill } = useBillDialogParam();
 
   const visibleBills = useMemo(
     () => filterBills(bills, { searchQuery, selectedTagIds, selectedYears, deadFilter: 'all' }),
@@ -253,10 +253,7 @@ export function CalendarView() {
         </div>
       </div>
 
-      <BillDetailsDialog
-        billID={dialogBillId}
-        isOpen={isDialogOpen}
-        onClose={closeBill}
+      <UrlBillDetailsDialog
       />
     </div>
   );

@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
-import { BillDetailsDialog } from './bill-details-dialog';
+import { UrlBillDetailsDialog } from './url-bill-details-dialog';
 import { cn, formatBillStatusName, todayHawaii } from '@/lib/core/utils';
 import { Term } from '@/components/ui/term';
 import { resolveStatusTerm, resolveCommitteeTerm } from '@/lib/glossary/resolvers';
@@ -135,7 +135,7 @@ export function KanbanSpreadsheet() {
 
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const { dialogBillId, isOpen: isDialogOpen, openBill: openBillDetails, closeBill } = useBillDialogParam();
+  const { open: openBillDetails } = useBillDialogParam();
 
   const handleSort = useCallback((key: SortKey) => {
     if (sortKey === key) {
@@ -375,10 +375,7 @@ export function KanbanSpreadsheet() {
       </div>
 
       {/* Details dialog (portal — renders outside the scroll container) */}
-      <BillDetailsDialog
-        billID={dialogBillId}
-        isOpen={isDialogOpen}
-        onClose={closeBill}
+      <UrlBillDetailsDialog
       />
     </div>
   );

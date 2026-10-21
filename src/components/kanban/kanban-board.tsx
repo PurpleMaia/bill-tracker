@@ -12,7 +12,7 @@ import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-p
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
 import { useToast } from '@/hooks/use-toast';
-import { BillDetailsDialog } from './bill-details-dialog';
+import { UrlBillDetailsDialog } from './url-bill-details-dialog';
 import { Button } from '@/components/ui/button';
 import { useBills } from '@/hooks/contexts/bills-context';
 import KanbanBoardSkeleton from './skeletons/skeleton-board';
@@ -49,7 +49,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
 
   const [, setError] = useState<string | null>(null);
   const [draggingBillId, setDraggingBillId] = useState<string | null>(null);
-  const { dialogBillId, isOpen: isDialogOpen, openBill, closeBill } = useBillDialogParam();
+  const { open: openBill } = useBillDialogParam();
   const filteredBills = useMemo<Bill[] | null>(
     () => (searchQuery.trim() ? searchBillsLocal(bills, searchQuery) : null),
     [bills, searchQuery]
@@ -596,10 +596,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
       </div>
 
       {/* Details dialog */}
-      <BillDetailsDialog
-        billID={dialogBillId}
-        isOpen={isDialogOpen}
-        onClose={closeBill}
+      <UrlBillDetailsDialog
         boardMode={boardMode}
       />
     </>

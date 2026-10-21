@@ -6,7 +6,7 @@ import { ArrowUp, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BillDetailsDialog } from '@/components/kanban/bill-details-dialog';
+import { UrlBillDetailsDialog } from '@/components/kanban/url-bill-details-dialog';
 import { ActiveFilterChips } from './active-filter-chips';
 import { BillSearchCard } from './bill-search-card';
 import { SearchFilterRail } from './search-filter-rail';
@@ -71,7 +71,7 @@ export function BillSearchView() {
     if (!hydrated) return;
     saveSearchFilters(filters);
   }, [hydrated, filters]);
-  const { openBillId, dialogBillId, isOpen: isDialogOpen, openBill, closeBill } = useBillDialogParam();
+  const { billId: openBillId, open: openBillDialog } = useBillDialogParam();
   const {
     bills,
     totalCount,
@@ -88,7 +88,7 @@ export function BillSearchView() {
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   const handleClear = useCallback(() => setFilters(DEFAULT_FILTERS), []);
-  const handleCardClick = useCallback((billId: string) => openBill(billId), [openBill]);
+  const handleCardClick = useCallback((billId: string) => openBillDialog(billId), [openBillDialog]);
 
   // Auto-load the next page when the sentinel scrolls into view. The visible
   // "Load more" button below stays the keyboard-accessible path — scroll-driven
@@ -137,7 +137,7 @@ export function BillSearchView() {
   const hasQuery = filters.q.trim().length > 0;
   // The dialog takes only a bill id; the Track control needs the bill number for
   // its label and toasts, so resolve the open row from the loaded results.
-  const openBillRow = openBillId ? bills.find((b) => b.id === openBillId) : undefined;
+  const openBill = openBillId ? bills.find((b) => b.id === openBillId) : undefined;
 
   const searchInput = (
     <>
@@ -300,16 +300,13 @@ export function BillSearchView() {
           visitors: the testimony and contact CTAs become login prompts.
           trackSlot adds the Track control the board's own copy doesn't need:
           a bill opened from search may not be tracked yet. */}
-      <BillDetailsDialog
-        billID={dialogBillId}
-        isOpen={isDialogOpen}
-        onClose={closeBill}
+      <UrlBillDetailsDialog
         trackSlot={
-          openBillRow ? (
+          openBill ? (
             <TrackButton
-              billId={openBillRow.id}
-              billNumber={openBillRow.bill_number}
-              initialTracked={openBillRow.is_tracked}
+              billId={openBill.id}
+              billNumber={openBill.bill_number}
+              initialTracked={openBill.is_tracked}
             />
           ) : undefined
         }
