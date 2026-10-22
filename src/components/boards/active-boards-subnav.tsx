@@ -2,14 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { KanbanSquareIcon, Building2 } from 'lucide-react';
+import { Star, Building2 } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 
-// Browse leads: it's the entry point to the section (public, and where you
-// find orgs to follow), whereas View Board is only useful once you follow one.
+// Following leads: user testing showed people skipped the tabs entirely, so the
+// section now opens on the boards you follow (with an empty state that points
+// to Browse). "Following" + a star, not "View Board" + the kanban icon, so it
+// can't be mistaken for Your Bills.
 const TABS = [
+  { href: '/boards', label: 'Following', icon: Star },
   { href: '/boards/browse', label: 'Browse', icon: Building2 },
-  { href: '/boards', label: 'View Board', icon: KanbanSquareIcon },
 ] as const;
 
 export function isActiveBoardsTabActive(href: string, pathname: string) {

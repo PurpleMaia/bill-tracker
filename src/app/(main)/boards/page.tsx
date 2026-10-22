@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { ActiveBoardView } from '@/components/boards/active-board-view';
 import { BoardsLoginWall } from '@/components/boards/boards-login-wall';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -22,5 +23,11 @@ export default function BoardsPage() {
   // but browsing the list of public orgs stays open to everyone.
   if (!user) return <BoardsLoginWall />;
 
-  return <ActiveBoardView />;
+  // ActiveBoardView reads ?org= via useSearchParams, which needs a Suspense
+  // boundary to build.
+  return (
+    <Suspense fallback={null}>
+      <ActiveBoardView />
+    </Suspense>
+  );
 }
