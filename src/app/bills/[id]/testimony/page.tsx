@@ -8,6 +8,7 @@ import type { TestimonyPosition } from '@/types/testimony';
 import { getBillDetails } from '@/db/queries/bills-read';
 import { data } from '@/lib/data-client';
 import { safeReturnPath } from '@/lib/core/safe-return-path';
+import { fullNameOrUsername } from '@/lib/auth/profile';
 import { RETURN_TO_PARAM, stripBillParam } from '@/lib/bills/bill-dialog-url';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { invalidateTestimonies } from '@/hooks/use-testimonies';
@@ -90,7 +91,7 @@ export default function TestimonyPage() {
           formRef.current = nextForm;
           contentRef.current = nextContent;
         } else {
-          const nextForm: TestimonyHeaderValue = { ...formRef.current, authorName: user.username || '' };
+          const nextForm: TestimonyHeaderValue = { ...formRef.current, authorName: fullNameOrUsername(user) };
           setForm(nextForm);
           formRef.current = nextForm;
         }
