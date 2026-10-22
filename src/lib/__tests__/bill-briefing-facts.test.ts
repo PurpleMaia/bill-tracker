@@ -19,6 +19,42 @@ const baseBill = (over: Partial<BillDetails> = {}): BillDetails => ({
 });
 
 describe('deriveBriefingFacts', () => {
+  it('leads with a Contact the Governor step (both forms) at the Governor stages', () => {
+    for (const status of ['transmittedGovernor', 'vetoList'] as const) {
+      const f = deriveBriefingFacts(baseBill({ current_bill_status: status }), '2026-05-15');
+      expect(f.nextSteps[0].text).toBe('Contact the Governor by either');
+      expect(f.nextSteps[0].action).toBe('contact');
+      expect(f.nextSteps[0].links?.map((l) => l.href)).toEqual([
+        'https://governor.hawaii.gov/comments-on-legislation/',
+        'https://governor.hawaii.gov/contact-us/contact-the-governor/',
+      ]);
+      // Committee chairs are done with the bill — no hearing-request step.
+      expect(f.nextSteps.some((s) => s.text.includes('committee chairs'))).toBe(false);
+    }
+  });
+
+  it('switches to an override step after a final veto', () => {
+    const f = deriveBriefingFacts(
+      baseBill({
+        current_bill_status: 'vetoList',
+        updates: [{ id: 'u1', chamber: 'S', date: '2026-07-15', statustext: 'Vetoed (Gov. Msg. No. 1369).' }],
+      }),
+      '2026-07-16',
+    );
+    expect(f.nextSteps[0]).toEqual({ text: "Urge legislators to override the Governor's veto.", action: 'contact' });
+    expect(f.nextSteps.some((s) => s.links)).toBe(false);
+    expect(f.nextSteps.some((s) => s.text.includes('committee chairs'))).toBe(false);
+  });
+
+  it('offers no Governor step for a dead or signed bill', () => {
+    const dead = deriveBriefingFacts(baseBill({ current_bill_status: 'vetoList', dead: true }), '2026-05-15');
+    expect(dead.nextSteps.some((s) => s.links)).toBe(false);
+    // …nor a hearing request — the committees are done with it either way.
+    expect(dead.nextSteps.some((s) => s.text.includes('committee chairs'))).toBe(false);
+    const signed = deriveBriefingFacts(baseBill({ current_bill_status: 'governorSigns' }), '2026-05-15');
+    expect(signed.nextSteps.some((s) => s.links)).toBe(false);
+  });
+
   it('marks testimony open early in session and picks the latest version', () => {
     const f = deriveBriefingFacts(baseBill(), '2026-02-01');
     expect(f.testimony.open).toBe(true);

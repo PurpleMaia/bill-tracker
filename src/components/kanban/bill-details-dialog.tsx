@@ -43,6 +43,7 @@ import { Term } from '@/components/ui/term';
 import { resolveDeadlineTerm } from '@/lib/glossary/resolvers';
 import { BillBreakdownButton } from './bill-breakdown';
 import { isBillDead, getNextDeadline, isFiscalBill, isEnacted } from '@/lib/bills/dead-bill';
+import { getGovernorStage } from '@/lib/legislators/governor-contact';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import type { BillStatus as DBBillStatus } from '@/db/types';
@@ -285,8 +286,18 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
 
   // Once a bill is signed into law, legislators can no longer act on it — the
   // same enacted check that closes testimony also closes Contact Legislator.
-  const contactDisabled = isEnacted(currentStatus as DBBillStatus);
-  const contactDisabledReason = 'This bill has become law! Legislators can no longer act on it.';
+  // A failed bill in the governor phase has no one left to ask either (the
+  // briefing drops its Governor/override step for the same reason).
+  const enacted = isEnacted(currentStatus as DBBillStatus);
+  const governorStage = getGovernorStage(currentStatus, billDetails?.updates);
+  const contactDisabled = enacted || (governorStage !== null && bill.dead);
+  const contactDisabledReason = enacted
+    ? 'This bill has become law! Legislators can no longer act on it.'
+    : 'This bill is no longer moving, so there is no one left to contact about it.';
+  // Before a final veto the contact page addresses the Governor's office; after
+  // one it's back to legislators (an override).
+  const contactLabel =
+    governorStage === 'awaitingGovernor' || governorStage === 'intentToVeto' ? 'Contact Governor' : 'Contact Legislator';
 
   const handleSave = async () => {
     try {
@@ -501,7 +512,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                       <span className="inline-block shrink-0 cursor-not-allowed">
                         <Button size="sm" variant="outline" disabled className="pointer-events-none">
                           <Users className="mr-1.5 h-3.5 w-3.5" />
-                          Contact Legislator
+                          {contactLabel}
                         </Button>
                       </span>
                     </TooltipTrigger>
@@ -518,7 +529,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   onClick={() => goTo('contact')}
                 >
                   {navigatingTo === 'contact' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Users className="mr-1.5 h-3.5 w-3.5" />}
-                  Contact Legislator
+                  {contactLabel}
                 </Button>
               ))}
             </div>

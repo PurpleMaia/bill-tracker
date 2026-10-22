@@ -11,10 +11,13 @@ import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { sortVersions } from '@/lib/versions/bill-versions';
 import { parseCommitteeCodes } from '@/lib/testimony/committees';
 import { parseConferees, isConferenceStatus, type ParsedConferee } from '@/lib/testimony/conferees';
+import { GOVERNOR_CONTACT_OPTIONS, getGovernorStage } from '@/lib/legislators/governor-contact';
 
 export interface BriefingStep {
   text: string;
   action: 'testimony' | 'diff' | 'reports' | 'contact';
+  /** External links rendered after `text`, joined with "or" (e.g. the Governor's forms). */
+  links?: ReadonlyArray<{ label: string; href: string }>;
 }
 
 export interface BriefingFacts {
@@ -114,6 +117,17 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   // foreground it. Elsewhere it's the committee chairs, shown after the reading
   // steps. Other steps (diff/reports) still appear when relevant.
   const nextSteps: BriefingStep[] = [];
+  // In the governor phase the committees are done with the bill. Until a final
+  // veto the Governor's office is the contact left; after one, only a
+  // legislative override can save it. Either leads the list.
+  const governorStage = getGovernorStage(status, bill.updates);
+  if (governorStage && !bill.dead) {
+    nextSteps.push(
+      governorStage === 'vetoed'
+        ? { text: "Urge legislators to override the Governor's veto.", action: 'contact' }
+        : { text: 'Contact the Governor by either', action: 'contact', links: GOVERNOR_CONTACT_OPTIONS },
+    );
+  }
   // Only urge the conferees once some have actually been appointed (parsed from
   // the status text). Before that there is no one to contact — the contact page
   // shows an "awaiting appointment" state — so offering it as a next step would
@@ -135,8 +149,9 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   }
   // No point contacting committee chairs to schedule a hearing once the bill is
   // law (the process is over) or in conference (it has cleared its committees —
-  // the actionable ask is urging the conferees, pushed above instead).
-  if (committeeCodes.length > 0 && !isEnacted(status) && !atConference) {
+  // the actionable ask is urging the conferees, pushed above instead) or with
+  // the Governor (the Governor step above replaces it).
+  if (committeeCodes.length > 0 && !isEnacted(status) && !atConference && !governorStage) {
     nextSteps.push({ text: 'Contact the committee chairs to schedule a hearing.', action: 'contact' });
   }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import type { BillDetails } from '@/types/legislation';
 import { getBillDetails } from '@/db/queries/bills-read';
@@ -14,9 +14,20 @@ import {
   buildCallScript,
   buildConferenceBaseScript,
   buildConferenceCallScript,
+  buildOverrideBaseScript,
+  buildOverrideCallScript,
   personalizeScript,
 } from '@/lib/legislators/contact-script';
 import { parseConferees, isConferenceStatus } from '@/lib/testimony/conferees';
+import {
+  buildGovernorBaseScript,
+  buildGovernorCallScript,
+  GOVERNOR_COMMENTS_URL,
+  GOVERNOR_CONTACT_URL,
+  GOVERNOR_PHONE,
+  getGovernorStage,
+  parseIntroducers,
+} from '@/lib/legislators/governor-contact';
 import {
   committeeFullName,
   inferCurrentCommittee,
@@ -41,7 +52,9 @@ import {
   ExternalLink,
   Gavel,
   Info,
+  Landmark,
   Loader2,
+  MessageSquareText,
   Mail,
   PanelLeftClose,
   PanelLeftOpen,
@@ -85,6 +98,9 @@ export default function ContactLegislatorPage() {
   const [bill, setBill] = useState<BillDetails | null>(null);
   const [chairs, setChairs] = useState<CommitteeChair[]>([]);
   const [conferees, setConferees] = useState<Conferee[]>([]);
+  // After a final veto: the bill's introducers, resolved like conferees (surname
+  // match against the legislators table).
+  const [introducers, setIntroducers] = useState<Conferee[]>([]);
   const [loading, setLoading] = useState(true);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
 
@@ -101,6 +117,19 @@ export default function ContactLegislatorPage() {
         const details = await getBillDetails(billId);
         if (cancelled) return;
         setBill(details);
+        const stage = getGovernorStage(details?.current_bill_status, details?.updates);
+        if (stage) {
+          // A failed bill has no one to contact (rendered as a closed state), and
+          // before a final veto the page addresses the Governor's office (static
+          // links + phone) — no lookup either way. After a final veto, look up
+          // the introducers to lead an override.
+          if (stage === 'vetoed' && !details?.dead) {
+            const parsed = parseIntroducers(details?.introducer, details?.bill_number ?? '');
+            const list = parsed.length > 0 ? await data.legislators.getConferees(billId, parsed) : [];
+            if (!cancelled) setIntroducers(list);
+          }
+          return;
+        }
         // At conference the actionable contacts are the appointed conferees
         // (parsed from status text), not the committee chairs.
         if (isConferenceStatus(details?.current_bill_status)) {
@@ -121,6 +150,7 @@ export default function ContactLegislatorPage() {
   }, [billId]);
 
   const atConference = isConferenceStatus(bill?.current_bill_status);
+  const governorStage = getGovernorStage(bill?.current_bill_status, bill?.updates);
   const groups = useMemo(() => groupByCommittee(chairs), [chairs]);
   const hasChairs = chairs.length > 0;
 
@@ -169,20 +199,29 @@ export default function ContactLegislatorPage() {
   // Seed the shared scripts once the bill and its current committee are known.
   useEffect(() => {
     if (!bill) return;
-    const base = buildBaseScript({
-      billNumber: bill.bill_number,
-      billTitle: bill.bill_title ?? null,
-      committeeName: currentCommitteeName,
-    });
+    const input = { billNumber: bill.bill_number, billTitle: bill.bill_title ?? null };
+    // Each stage has its own ask: override (after a final veto), sign/reconsider
+    // (Governor), reach agreement (conference), or schedule a hearing (chairs).
+    const stage = getGovernorStage(bill.current_bill_status, bill.updates);
+    let base: { subject: string; body: string };
+    let call: string;
+    if (stage === 'vetoed') {
+      base = buildOverrideBaseScript(input);
+      call = buildOverrideCallScript(input);
+    } else if (stage) {
+      const intentToVeto = stage === 'intentToVeto';
+      base = buildGovernorBaseScript({ ...input, intentToVeto });
+      call = buildGovernorCallScript({ ...input, intentToVeto });
+    } else if (isConferenceStatus(bill.current_bill_status)) {
+      base = buildConferenceBaseScript(input);
+      call = buildConferenceCallScript(input);
+    } else {
+      base = buildBaseScript({ ...input, committeeName: currentCommitteeName });
+      call = buildCallScript({ ...input, committeeName: currentCommitteeName });
+    }
     setScriptBody(base.body);
     setScriptSubject(base.subject);
-    setCallScript(
-      buildCallScript({
-        billNumber: bill.bill_number,
-        billTitle: bill.bill_title ?? null,
-        committeeName: currentCommitteeName,
-      }),
-    );
+    setCallScript(call);
   }, [bill, currentCommitteeName]);
 
   const referencePanel = bill ? <BillReferencePanel bill={bill} /> : null;
@@ -212,6 +251,35 @@ export default function ContactLegislatorPage() {
     );
   }
 
+  // A failed bill in the governor phase has no one left to ask — matches the
+  // briefing (no Governor/override step) and the dialog's disabled Contact.
+  if (bill && governorStage && bill.dead) {
+    return (
+      <div className="flex h-dvh flex-col items-center justify-center gap-4 p-8 text-center">
+        <Landmark className="h-10 w-10 text-muted-foreground" aria-hidden="true" />
+        <div className="space-y-1">
+          <h1 className="text-lg font-semibold">This bill is no longer moving</h1>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            {bill.bill_number} has been marked failed, so there is no one left to contact about it.
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => router.push(backHref)}>
+          <ArrowLeft className="mr-1.5 h-4 w-4" />
+          Back
+        </Button>
+      </div>
+    );
+  }
+
+  const pageTitle =
+    governorStage === 'vetoed'
+      ? 'Urge a Veto Override'
+      : governorStage
+        ? 'Contact the Governor'
+        : atConference
+          ? 'Contact Conferees'
+          : 'Request a Hearing';
+
   return (
     <div className="flex h-dvh flex-col">
       {/* Top bar */}
@@ -223,7 +291,7 @@ export default function ContactLegislatorPage() {
           </Button>
           <div className="min-w-0">
             <h1 className="truncate text-sm font-semibold">
-              {atConference ? 'Contact Conferees' : 'Request a Hearing'}{bill ? ` — ${bill.bill_number}` : ''}
+              {pageTitle}{bill ? ` — ${bill.bill_number}` : ''}
             </h1>
             {bill?.bill_title && <p className="truncate text-xs text-muted-foreground">{bill.bill_title}</p>}
           </div>
@@ -290,11 +358,33 @@ export default function ContactLegislatorPage() {
               </Sheet>
             )}
 
-            {atConference ? (
+            {governorStage === 'vetoed' ? (
+              <ComposeConference
+                variant="override"
+                conferees={introducers}
+                subject={scriptSubject}
+                body={scriptBody}
+                onChange={setScriptBody}
+                callScript={callScript}
+                onCallChange={setCallScript}
+                panelCollapsed={panelCollapsed}
+              />
+            ) : governorStage ? (
+              <ComposeGovernor
+                intentToVeto={governorStage === 'intentToVeto'}
+                subject={scriptSubject}
+                body={scriptBody}
+                onChange={setScriptBody}
+                callScript={callScript}
+                onCallChange={setCallScript}
+                panelCollapsed={panelCollapsed}
+              />
+            ) : atConference ? (
               conferees.length === 0 ? (
                 <ConfereesAwaitingState />
               ) : (
                 <ComposeConference
+                  variant="conference"
                   conferees={conferees}
                   subject={scriptSubject}
                   body={scriptBody}
@@ -622,7 +712,26 @@ function groupByChamber(conferees: Conferee[]): ConfereeChamberGroup[] {
   return groups;
 }
 
+/** Copy for the two uses of the per-legislator compose layout. */
+const LEGISLATOR_COMPOSE_COPY = {
+  conference: {
+    title: 'Urge the conferees to agree',
+    intro:
+      'This bill passed both chambers but in different forms, so a conference committee of appointed conferees must agree on one final version. Contact them — the more they hear that people are watching, the more likely the bill survives conference.',
+    recipients: 'conferee',
+    groupLabel: (chamber: string) => `${chamber} conferees`,
+  },
+  override: {
+    title: 'Urge a veto override',
+    intro:
+      "The Governor vetoed this bill. The Legislature can still override the veto with a two-thirds vote in each chamber. The bill's introducers are the members most likely to lead an override — urge them to act, and ask your own legislators to vote yes.",
+    recipients: 'legislator',
+    groupLabel: (chamber: string) => `Introducers (${chamber})`,
+  },
+} as const;
+
 function ComposeConference({
+  variant,
   conferees,
   subject,
   body,
@@ -631,6 +740,7 @@ function ComposeConference({
   onCallChange,
   panelCollapsed,
 }: {
+  variant: keyof typeof LEGISLATOR_COMPOSE_COPY;
   conferees: Conferee[];
   subject: string;
   body: string;
@@ -641,6 +751,7 @@ function ComposeConference({
 }) {
   const chamberGroups = useMemo(() => groupByChamber(conferees), [conferees]);
   const unresolved = conferees.filter((c) => !c.matched).length;
+  const copy = LEGISLATOR_COMPOSE_COPY[variant];
 
   const scriptSpan = panelCollapsed ? 'lg:col-span-5' : 'lg:col-span-4';
   const contactSpan = panelCollapsed ? 'lg:col-span-3' : 'lg:col-span-4';
@@ -650,13 +761,23 @@ function ComposeConference({
       <div className="rounded-lg border bg-card p-4">
         <div className="mb-1 flex items-center gap-1.5">
           <Gavel className="h-3.5 w-3.5 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">Urge the conferees to agree</h2>
+          <h2 className="text-sm font-semibold">{copy.title}</h2>
         </div>
-        <p className="text-xs text-muted-foreground">
-          This bill passed both chambers but in different forms, so a conference committee of appointed conferees must
-          agree on one final version. Contact them — the more they hear that people are watching, the more likely the
-          bill survives conference.
-        </p>
+        <p className="text-xs text-muted-foreground">{copy.intro}</p>
+        {variant === 'override' && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Find your own legislators in the{' '}
+            <a
+              href="https://www.capitol.hawaii.gov/members/legislators.aspx"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-foreground"
+            >
+              Capitol member directory
+            </a>
+            .
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-8">
@@ -673,8 +794,8 @@ function ComposeConference({
               <h2 className="text-sm font-semibold">Email script</h2>
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
-              One message goes to every conferee. Edit it freely — the greeting is filled in for each legislator when you
-              send.
+              One message goes to every {copy.recipients}. Edit it freely — the greeting is filled in for each legislator
+              when you send.
             </p>
             <div className="mb-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
               <span className="text-muted-foreground">Subject: </span>
@@ -685,7 +806,7 @@ function ComposeConference({
               onChange={(e) => onChange(e.target.value)}
               rows={12}
               className="min-h-[8rem] flex-1 resize-y font-mono text-sm leading-relaxed"
-              aria-label="Email message to conferees"
+              aria-label={`Email message to ${copy.recipients}s`}
             />
             <p className="mt-2 text-[11px] text-muted-foreground">
               Tip: replace <span className="font-medium">&lt;your-name&gt;</span> and add a sentence about why this bill
@@ -716,22 +837,43 @@ function ComposeConference({
           {chamberGroups.map((group) => (
             <div key={group.chamber}>
               <div className="mb-2 flex items-center gap-2 border-b pb-1.5">
-                <h3 className="truncate text-sm font-semibold">{group.chamber} conferees</h3>
+                <h3 className="truncate text-sm font-semibold">{copy.groupLabel(group.chamber)}</h3>
                 <span className="ml-auto inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                   {group.members.length}
                 </span>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {group.members.map((c) => (
-                  <ConfereeCard key={`${c.chamber}-${c.surname}`} conferee={c} subject={subject} body={body} />
+                  <ConfereeCard
+                    key={`${c.chamber}-${c.surname}`}
+                    conferee={c}
+                    roleLabel={variant === 'override' ? 'Introducer' : undefined}
+                    subject={subject}
+                    body={body}
+                  />
                 ))}
               </div>
             </div>
           ))}
 
+          {conferees.length === 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              No legislators on file for this bill. Look up members on the{' '}
+              <a
+                href="https://www.capitol.hawaii.gov/members/legislators.aspx"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-foreground"
+              >
+                Capitol member directory
+              </a>
+              .
+            </p>
+          )}
+
           {unresolved > 0 && (
             <p className="text-[11px] text-muted-foreground">
-              {unresolved} conferee{unresolved !== 1 ? 's' : ''} couldn&apos;t be matched to a legislator record, so no
+              {unresolved} {copy.recipients}{unresolved !== 1 ? 's' : ''} couldn&apos;t be matched to a legislator record, so no
               email or phone is shown. Look them up on the{' '}
               <a
                 href="https://www.capitol.hawaii.gov/members/legislators.aspx"
@@ -752,15 +894,18 @@ function ComposeConference({
 
 function ConfereeCard({
   conferee,
+  roleLabel: roleLabelOverride,
   subject,
   body,
 }: {
   conferee: Conferee;
+  /** Replaces the conference role label (e.g. "Introducer" for a veto override). */
+  roleLabel?: string;
   subject: string;
   body: string;
 }) {
   const [copied, setCopied] = useState(false);
-  const roleLabel = conferee.isChair ? 'Conference Co-Chair' : 'Conferee';
+  const roleLabel = roleLabelOverride ?? (conferee.isChair ? 'Conference Co-Chair' : 'Conferee');
 
   const personalized = useMemo(
     () => personalizeScript(body, { legislatorName: conferee.legislatorName }),
@@ -864,6 +1009,216 @@ function ConfereesAwaitingState() {
   );
 }
 
+/* ------------------------------ Governor ------------------------------- */
+
+/**
+ * Copy-to-clipboard with a short-lived "copied" flag. The reset timer is
+ * cleared on unmount and on a repeat copy.
+ */
+function useCopy(): { copied: boolean; copy: (text: string, toastDescription: string) => Promise<void> } {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const copy = useCallback(async (text: string, toastDescription: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast({ title: 'Copied', description: toastDescription });
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ title: 'Copy failed', description: 'Select the text and copy manually.', variant: 'destructive' });
+    }
+  }, []);
+  return { copied, copy };
+}
+
+function ComposeGovernor({
+  intentToVeto,
+  subject,
+  body,
+  onChange,
+  callScript,
+  onCallChange,
+  panelCollapsed,
+}: {
+  intentToVeto: boolean;
+  subject: string;
+  body: string;
+  onChange: (v: string) => void;
+  callScript: string;
+  onCallChange: (v: string) => void;
+  panelCollapsed: boolean;
+}) {
+  // The Governor has no public email — both routes are web forms, so the
+  // subject and message are copied and pasted into whichever form the user picks.
+  const messageCopy = useCopy();
+  const subjectCopy = useCopy();
+
+  const scriptSpan = panelCollapsed ? 'lg:col-span-5' : 'lg:col-span-4';
+  const contactSpan = panelCollapsed ? 'lg:col-span-3' : 'lg:col-span-4';
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border bg-card p-4">
+        <div className="mb-1 flex items-center gap-1.5">
+          <Landmark className="h-3.5 w-3.5 text-muted-foreground" />
+          <h2 className="text-sm font-semibold">{intentToVeto ? 'Ask the Governor to reconsider' : 'Ask the Governor to sign'}</h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {intentToVeto
+            ? 'The Governor has placed this bill on the intent-to-veto list. Legislators have finished their work on it, so the Governor is the one to contact now.'
+            : 'This bill passed the Legislature and is with the Governor, who decides whether to sign or veto it. Legislators have finished their work on it, so the Governor is the one to contact now.'}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-8">
+        {/* Left — the editable written + call scripts */}
+        <div
+          className={[
+            'grid grid-cols-1 gap-4 lg:sticky lg:top-0 lg:self-start lg:grid-rows-2',
+            scriptSpan,
+          ].join(' ')}
+        >
+          <div className="flex flex-col rounded-lg border bg-card p-4">
+            <div className="mb-1 flex items-center gap-1.5">
+              <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+              <h2 className="text-sm font-semibold">Message script</h2>
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Edit it freely, then copy it into either of the Governor&apos;s forms.
+            </p>
+            <div className="mb-2 flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
+              <span className="min-w-0 flex-1">
+                <span className="text-muted-foreground">Subject: </span>
+                <span className="font-medium">{subject}</span>
+              </span>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 shrink-0"
+                onClick={() => subjectCopy.copy(subject, 'Paste the subject into the Governor’s form.')}
+                aria-label="Copy subject"
+                title="Copy subject"
+              >
+                {subjectCopy.copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              </Button>
+            </div>
+            <Textarea
+              value={body}
+              onChange={(e) => onChange(e.target.value)}
+              rows={12}
+              className="min-h-[8rem] flex-1 resize-y font-mono text-sm leading-relaxed"
+              aria-label="Message to the Governor"
+            />
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Tip: replace <span className="font-medium">&lt;your-name&gt;</span> and add a sentence about why this bill
+              matters to you.
+            </p>
+          </div>
+
+          <div className="flex flex-col rounded-lg border bg-card p-4">
+            <div className="mb-1 flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+              <h2 className="text-sm font-semibold">Call script</h2>
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              What to say when you call the Governor&apos;s office. Keep it short — staff just note your position.
+            </p>
+            <Textarea
+              value={callScript}
+              onChange={(e) => onCallChange(e.target.value)}
+              rows={7}
+              className="min-h-[8rem] flex-1 resize-y font-mono text-sm leading-relaxed"
+              aria-label="Phone call script"
+            />
+          </div>
+        </div>
+
+        {/* Right — the two contact routes + phone */}
+        <div className={['space-y-2', contactSpan].join(' ')}>
+          <div className="mb-2 flex items-center gap-2 border-b pb-1.5">
+            <h3 className="truncate text-sm font-semibold">Office of the Governor</h3>
+          </div>
+
+          <GovernorOption
+            icon={MessageSquareText}
+            title="Comment on this legislation"
+            description="Share your position on this bill through the Governor's comments-on-legislation form."
+            href={GOVERNOR_COMMENTS_URL}
+            cta="Open comment form"
+          />
+          <GovernorOption
+            icon={Mail}
+            title="Contact the Governor directly"
+            description="Send a personal message to the Governor through the official contact form."
+            href={GOVERNOR_CONTACT_URL}
+            cta="Open contact form"
+          />
+
+          <div className="flex flex-col rounded-md border bg-card p-2.5">
+            <div className="flex items-center gap-1.5">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted">
+                <Phone className="h-3 w-3" />
+              </span>
+              <p className="text-xs font-semibold">Call the Governor&apos;s office</p>
+            </div>
+            <a
+              href={`tel:${GOVERNOR_PHONE.replace(/[^\d+]/g, '')}`}
+              className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+            >
+              <Phone className="h-3 w-3 shrink-0" /> {GOVERNOR_PHONE}
+            </a>
+          </div>
+
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 w-full text-[11px]"
+            onClick={() => messageCopy.copy(body, 'Paste the message into the Governor’s form.')}
+          >
+            {messageCopy.copied ? <Check className="mr-1 h-3.5 w-3.5" /> : <Copy className="mr-1 h-3.5 w-3.5" />}
+            Copy message
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GovernorOption({
+  icon: Icon,
+  title,
+  description,
+  href,
+  cta,
+}: {
+  icon: typeof Mail;
+  title: string;
+  description: string;
+  href: string;
+  cta: string;
+}) {
+  return (
+    <div className="flex flex-col rounded-md border bg-card p-2.5">
+      <div className="flex items-center gap-1.5">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted">
+          <Icon className="h-3 w-3" />
+        </span>
+        <p className="text-xs font-semibold">{title}</p>
+      </div>
+      <p className="mt-1.5 text-[11px] text-muted-foreground">{description}</p>
+      <div className="mt-auto pt-2">
+        <Button asChild size="sm" className="h-7 w-full px-2 text-[11px]">
+          <a href={href} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="mr-1 h-3 w-3" /> {cta}
+          </a>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------- Shared -------------------------------- */
 
 function EmptyState() {
@@ -887,7 +1242,9 @@ function ContactSkeleton({ onBack }: { onBack: () => void }) {
           <ArrowLeft className="h-4 w-4" />
           <span className="ml-1 hidden sm:inline">Back</span>
         </Button>
-        <h1 className="truncate text-sm font-semibold">Request a Hearing</h1>
+        {/* The stage (hearing / conference / Governor / override) isn't known
+            until the bill loads, so the loading title stays neutral. */}
+        <h1 className="truncate text-sm font-semibold">Loading contacts…</h1>
       </header>
       <div className="flex flex-1 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
