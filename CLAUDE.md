@@ -29,6 +29,14 @@ pnpm migrate:up   # Run DB migrations
 pnpm migrate:down # Roll back last migration
 ```
 
+## Navigating the Codebase
+
+**Always use the graphify skill (`/graphify`) to navigate this codebase.** A knowledge graph is
+built in `graphify-out/` (`graph.json`, `GRAPH_REPORT.md`). Before exploring with grep/find or
+reading files to answer "where is X / what calls Y / how does Z connect", query the graph first
+(graphify query/path/explain), then open the specific files it points to. If the graph is
+missing or stale after significant changes, rebuild it with the graphify skill.
+
 ## Architecture
 
 ### Directory Structure
