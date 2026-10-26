@@ -65,6 +65,28 @@ describe('signup payload round trip', () => {
     const encoded = encodeSignupPayload({ orgName: '  Hui  ', inviteToken: ' tok ' });
     expect(decodeSignupPayload(encoded)).toEqual({ orgName: 'Hui', inviteToken: 'tok' });
   });
+
+  it('round-trips a return path on its own', () => {
+    const encoded = encodeSignupPayload({ returnTo: '/discover?q=food' });
+    expect(decodeSignupPayload(encoded)).toEqual({ returnTo: '/discover?q=food' });
+  });
+
+  it('drops the return path, not the invite/org, when the cookie would be too big', () => {
+    // Non-ASCII is up to 3 bytes in UTF-8, so a max-length path overflows.
+    const returnTo = '/discover?q=' + 'ʻō'.repeat(240);
+    const encoded = encodeSignupPayload({ orgName: 'x'.repeat(100), inviteToken: 'tok', returnTo });
+    expect(encoded!.length).toBeLessThanOrEqual(MAX_PAYLOAD_COOKIE_LENGTH);
+    expect(decodeSignupPayload(encoded)).toEqual({ orgName: 'x'.repeat(100), inviteToken: 'tok' });
+  });
+
+  it('returns null when only an oversized return path was carried', () => {
+    expect(encodeSignupPayload({ returnTo: '/discover?q=' + 'ʻō'.repeat(240) })).toBeNull();
+  });
+
+  it('drops an unsafe or home return path on the way in', () => {
+    expect(encodeSignupPayload({ returnTo: 'https://evil.com' })).toBeNull();
+    expect(encodeSignupPayload({ returnTo: '/' })).toBeNull();
+  });
 });
 
 describe('decodeSignupPayload hostile input', () => {
@@ -113,6 +135,14 @@ describe('decodeSignupPayload hostile input', () => {
       'utf8'
     ).toString('base64url');
     // The invite still survives; only the invalid field is dropped.
+    expect(decodeSignupPayload(encoded)).toEqual({ inviteToken: 'tok' });
+  });
+
+  it('drops a tampered off-site return path', () => {
+    const encoded = Buffer.from(
+      JSON.stringify({ returnTo: '//evil.com', inviteToken: 'tok' }),
+      'utf8'
+    ).toString('base64url');
     expect(decodeSignupPayload(encoded)).toEqual({ inviteToken: 'tok' });
   });
 

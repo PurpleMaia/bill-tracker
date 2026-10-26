@@ -170,7 +170,18 @@ export function BillBriefing({
               return (
                 <div key={i} className="flex items-start gap-2">
                   <Icon className="mt-0.5 h-3.5 w-3.5 flex-none text-primary" />
-                  <span className="flex-1 text-[12.5px]">{step.text}</span>
+                  <span className="flex-1 text-[12.5px]">
+                    {step.text}
+                    {step.links?.map((link, j) => (
+                      <span key={link.href}>
+                        {j > 0 ? ' or ' : ' '}
+                        <a href={link.href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          {link.label}
+                        </a>
+                      </span>
+                    ))}
+                    {step.links && step.links.length > 0 && '.'}
+                  </span>
                   <Button variant="ghost" size="sm" className="h-6 flex-none px-2 text-[11px] text-primary" onClick={() => onNextStep(step.action)}>
                     Go
                   </Button>

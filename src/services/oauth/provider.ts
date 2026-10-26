@@ -32,6 +32,8 @@ export interface OAuthIdentity {
   email: string;
   emailVerified: boolean;
   name?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   picture?: string | null;
 }
 

@@ -20,6 +20,7 @@ import { cn } from '@/lib/core/utils';
 import { data } from '@/lib/data-client';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
+import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
 import { filterBills } from '@/lib/bills/bill-filters';
 import {
   MILESTONE_META,
@@ -30,7 +31,7 @@ import {
   type BillMilestone,
   type MilestoneType,
 } from '@/lib/calendar/bill-milestones';
-import { BillDetailsDialog } from '@/components/kanban/bill-details-dialog';
+import { UrlBillDetailsDialog } from '@/components/kanban/url-bill-details-dialog';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const dayKey = (d: Date) => format(d, 'yyyy-MM-dd');
@@ -92,6 +93,7 @@ export function CalendarView() {
   const [hidden, setHidden] = useState<ReadonlySet<MilestoneType>>(new Set());
   const [openBillId, setOpenBillId] = useState<string | null>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const { open: openBill } = useBillDialogParam();
 
   const visibleBills = useMemo(
     () => filterBills(bills, { searchQuery, selectedTagIds, selectedYears, deadFilter: 'all' }),
@@ -282,6 +284,9 @@ export function CalendarView() {
               <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={setOpenBillId} />
             </div>
           )}
+          <div className="lg:hidden">
+            <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={openBill} />
+          </div>
 
           {/* Month list */}
           <section aria-label={`Milestones in ${format(month, 'MMMM yyyy')}`} className="space-y-2">
@@ -290,20 +295,17 @@ export function CalendarView() {
                 {bills.length === 0 ? 'No tracked bills yet.' : 'No milestones this month.'}
               </p>
             ) : (
-              monthMilestones.map((m) => <MilestoneRow key={m.id} m={m} onOpen={setOpenBillId} />)
+              monthMilestones.map((m) => <MilestoneRow key={m.id} m={m} onOpen={openBill} />)
             )}
           </section>
         </div>
 
         <div className="hidden lg:block">
-          <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={setOpenBillId} />
+          <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={openBill} />
         </div>
       </div>
 
-      <BillDetailsDialog
-        billID={openBillId}
-        isOpen={openBillId !== null}
-        onClose={() => setOpenBillId(null)}
+      <UrlBillDetailsDialog
       />
     </div>
   );

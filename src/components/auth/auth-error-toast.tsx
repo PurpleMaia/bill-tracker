@@ -66,8 +66,7 @@ export function AuthErrorToast() {
   useEffect(() => {
     const code = searchParams.get('authError');
     if (!code) return;
-
-    // React 18 runs effects twice in dev; without this the toast doubles.
+    
     if (shown.current === code) return;
     shown.current = code;
 

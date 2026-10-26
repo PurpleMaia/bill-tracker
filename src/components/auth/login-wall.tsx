@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { KanbanSquareIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoginDialog } from './login-dialog';
+import { LoginLink } from './login-link';
 
 interface LoginWallProps {
   /** Headline for the card. Defaults to the "start tracking" invitation. */
@@ -35,10 +35,11 @@ export function LoginWall({
           <Button asChild className="w-full sm:w-auto">
             <Link href={ctaHref}>{ctaLabel}</Link>
           </Button>
-          {/* Signing in is still available — the dialog carries the route to
-              registration, so the wall needs only the one trigger. */}
+          {/* Signing in is still available — the login page carries the route
+              to registration, so the wall needs only the one link. */}
           <p className="text-sm text-muted-foreground">
-            Already have an account? <LoginDialog trigger={<button type="button" className="font-medium text-primary underline-offset-4 hover:underline">Log in</button>} />
+            Already have an account?{' '}
+            <LoginLink className="font-medium text-primary underline-offset-4 hover:underline">Log in</LoginLink>
           </p>
         </CardContent>
       </Card>

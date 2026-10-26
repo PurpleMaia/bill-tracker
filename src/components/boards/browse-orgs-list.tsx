@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building2, Check, Eye, FileText, Globe, Lock, LogIn, Plus, Search, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
-import { LoginDialog } from '@/components/auth/login-dialog';
+import { LoginLink } from '@/components/auth/login-link';
 
 // Skeleton mirroring one OrgCard's shape while the list loads.
 function OrgCardSkeleton() {
@@ -305,14 +305,12 @@ function OrgCard({
         {/* Following is per-user state, so logged-out visitors get a prompt to
             sign in rather than a button whose request the API would reject. */}
         {isLoggedOut ? (
-          <LoginDialog
-            trigger={
-              <Button variant="outline" size="sm" className="mt-4 w-full">
-                <LogIn className="mr-1.5 h-4 w-4" />
-                Login to follow
-              </Button>
-            }
-          />
+          <Button asChild variant="outline" size="sm" className="mt-4 w-full">
+            <LoginLink>
+              <LogIn className="mr-1.5 h-4 w-4" />
+              Login to follow
+            </LoginLink>
+          </Button>
         ) : (
           <Button
             variant={org.isFollowing ? 'outline' : 'default'}

@@ -6,7 +6,7 @@ import { ArrowUp, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BillDetailsDialog } from '@/components/kanban/bill-details-dialog';
+import { UrlBillDetailsDialog } from '@/components/kanban/url-bill-details-dialog';
 import { ActiveFilterChips } from './active-filter-chips';
 import { BillSearchCard } from './bill-search-card';
 import { SearchFilterRail } from './search-filter-rail';
@@ -15,6 +15,8 @@ import { SearchIntro } from './search-intro';
 import { TrackButton } from './track-button';
 import { useBillSearch } from '@/hooks/use-bill-search';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
+import { hasNonBillParams } from '@/lib/bills/bill-dialog-url';
 import {
   DEFAULT_FILTERS,
   parseSearchParams,
@@ -23,7 +25,7 @@ import {
 import { loadSearchFilters, saveSearchFilters } from '@/lib/bills/search-filter-storage';
 
 /** Sessions the corpus covers, newest first. Mirrors the rail's YEARS list. */
-const SESSION_YEARS = [2027, 2026];
+const SESSION_YEARS = [2026];
 
 export function BillSearchView() {
   const { user, activeTenant } = useAuth();
@@ -39,7 +41,8 @@ export function BillSearchView() {
   const urlHadParams = useRef(false);
   const [filters, setFilters] = useState<SearchFilters>(() => {
     const raw = new URLSearchParams(searchParams.toString());
-    urlHadParams.current = Array.from(raw.keys()).length > 0;
+    // `bill` only reopens a dialog (see useBillDialogParam); it isn't a filter.
+    urlHadParams.current = hasNonBillParams(raw.toString());
     const parsed = parseSearchParams(raw);
     return { ...parsed, years: parsed.years.length ? parsed.years : DEFAULT_FILTERS.years };
   });
@@ -68,7 +71,7 @@ export function BillSearchView() {
     if (!hydrated) return;
     saveSearchFilters(filters);
   }, [hydrated, filters]);
-  const [openBillId, setOpenBillId] = useState<string | null>(null);
+  const { billId: openBillId, open: openBillDialog } = useBillDialogParam();
   const {
     bills,
     totalCount,
@@ -85,7 +88,7 @@ export function BillSearchView() {
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   const handleClear = useCallback(() => setFilters(DEFAULT_FILTERS), []);
-  const handleCardClick = useCallback((billId: string) => setOpenBillId(billId), []);
+  const handleCardClick = useCallback((billId: string) => openBillDialog(billId), [openBillDialog]);
 
   // Auto-load the next page when the sentinel scrolls into view. The visible
   // "Load more" button below stays the keyboard-accessible path — scroll-driven
@@ -145,12 +148,7 @@ export function BillSearchView() {
         <Search
           className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
           aria-hidden="true"
-        />
-        {/*
-          type="text", not type="search": WebKit renders its own clear affordance
-          inside a search input, which sat right next to ours and showed two X
-          buttons. We keep our own so it's styled and labeled consistently.
-        */}
+        />        
         <Input
           id="bill-search"
           type="text"
@@ -175,10 +173,6 @@ export function BillSearchView() {
   );
 
   return (
-    // h-full + min-h-0 makes this a fixed-height shell inside the (main) layout's
-    // scrollable <main>. Without it the whole page scrolled as one unit, which
-    // dragged the search header away and made the tail of the filter rail
-    // unreachable. The rail and the results below each own their scrolling.
     <div className="mx-auto flex h-full w-full min-h-0 max-w-6xl gap-6 p-4 md:p-6">
       <aside className="hidden w-60 shrink-0 lg:block">
         <div className="h-full min-h-0 overflow-y-auto pr-2">
@@ -306,10 +300,7 @@ export function BillSearchView() {
           visitors: the testimony and contact CTAs become login prompts.
           trackSlot adds the Track control the board's own copy doesn't need:
           a bill opened from search may not be tracked yet. */}
-      <BillDetailsDialog
-        billID={openBillId}
-        isOpen={openBillId !== null}
-        onClose={() => setOpenBillId(null)}
+      <UrlBillDetailsDialog
         trackSlot={
           openBill ? (
             <TrackButton

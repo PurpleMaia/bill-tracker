@@ -3,9 +3,9 @@ import { registerUser, createSession } from '@/lib/auth/session';
 import { registerSchema } from '@/lib/auth/validators';
 import { setSessionCookie } from '@/lib/auth/cookies';
 import {
-  addMember,
   getUserMemberships,
-  claimInviteToken,
+  checkInviteToken,
+  redeemInviteToken,
   createOrgForNewUser,
   tenantNameExists,
 } from '@/db/queries/tenants';
@@ -35,22 +35,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { username, email, password, orgName, inviteToken } = await req.json();
-    const validation = registerSchema.safeParse({ username, email, password });
+    const { username, email, password, firstName, lastName, orgName, inviteToken } = await req.json();
+    const validation = registerSchema.safeParse({ username, email, password, firstName, lastName });
     if (!validation.success) {
       const messages = validation.error.issues.map(i => i.message).join(', ');
       return NextResponse.json({ error: messages }, { status: 400 });
     }
 
-    // If inviteToken is provided, atomically claim it before creating the user.
-    // Shared with the Google OAuth callback via db/queries/tenants.
-    let validatedInvite: { tenant_id: string } | null = null;
+    // Reject a bad invite before creating the user, but don't consume it yet:
+    // if account creation fails below, the invitee must still be able to retry.
     if (inviteToken) {
-      const claimed = await claimInviteToken(inviteToken, email);
-      if (!claimed.ok) {
-        return NextResponse.json({ error: claimed.reason }, { status: 400 });
+      const check = await checkInviteToken(inviteToken, email);
+      if (!check.ok) {
+        return NextResponse.json({ error: check.reason }, { status: 400 });
       }
-      validatedInvite = { tenant_id: claimed.tenantId };
     }
 
     // Validate orgName if provided
@@ -80,7 +78,10 @@ export async function POST(req: NextRequest) {
     //   }, { status: 403 });
     // }
 
-    const { user } = await registerUser(email, username, password);
+    const { user } = await registerUser(email, username, password, {
+      firstName: validation.data.firstName,
+      lastName: validation.data.lastName,
+    });
     if (!user) {
       return NextResponse.json({ error: 'User already exists or registration failed.' }, { status: 400 });
     }
@@ -91,9 +92,17 @@ export async function POST(req: NextRequest) {
       tenant = await createOrgForNewUser(orgName, user.id);
     }
 
-    // If registering via invite, add user to the org (invite already marked accepted atomically above)
-    if (validatedInvite) {
-      await addMember(validatedInvite.tenant_id, user.id, 'worker', { skipAuth: true });
+    // Claim the invite and add the membership atomically, now that the user
+    // exists. This can only fail if another request redeemed the token since
+    // the check above; the account is already valid, so sign them in anyway
+    // and surface the invite failure alongside.
+    let inviteError: string | undefined;
+    if (inviteToken) {
+      const redeemed = await redeemInviteToken(inviteToken, email, user.id);
+      if (!redeemed.ok) {
+        console.warn('[register] Invite redemption failed after user creation:', redeemed.reason);
+        inviteError = redeemed.reason;
+      }
     }
 
     // Auto-login: create session and return cookie + memberships
@@ -105,6 +114,7 @@ export async function POST(req: NextRequest) {
         success: true,
         user,
         memberships,
+        ...(inviteError && { inviteError }),
       },
       {
         status: 200,

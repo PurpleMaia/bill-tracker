@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'crypto';
 import { db } from '../kysely/client';
+import { sendPasswordResetEmail } from '@/services/email';
 
 /** Reset links are short-lived: a password reset is a high-value credential. */
 const TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -110,13 +111,55 @@ export async function findUserByEmailForReset(
   return user ?? null;
 }
 
-/** Updates the user's password. Passwords live in auth_key, not on user. */
+/**
+ * The whole forgot-password request: if the email has an account, mint a token
+ * and email the link; otherwise do nothing. Returns nothing either way — both
+ * transports must answer identically whether or not the account exists, so
+ * there is nothing to return. Shared by the API route and the server action.
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  const user = await findUserByEmailForReset(email);
+
+  if (user) {
+    const rawToken = await createPasswordResetToken(user.id);
+    // Delivery failures are logged inside the service; we never surface them,
+    // since doing so would reveal that the account exists.
+    await sendPasswordResetEmail(email, user.username, rawToken);
+  } else {
+    console.log('[FORGOT PASSWORD] No account for requested email; returning neutral response.');
+  }
+}
+
+/**
+ * Sets the user's password. Passwords live in auth_key, not on user.
+ *
+ * A Google-only account has no auth_key row, so a plain UPDATE would match
+ * nothing while the reset reports success. Such accounts get a credential
+ * inserted instead, and are promoted from 'google' to 'both' — the same state
+ * linking Google to a password account produces.
+ */
 export async function updateUserPassword(userId: string, hashedPassword: string): Promise<void> {
-  await db
-    .updateTable('auth_key')
-    .set({ hashed_password: hashedPassword })
-    .where('user_id', '=', userId)
-    .execute();
+  await db.transaction().execute(async (trx) => {
+    const updated = await trx
+      .updateTable('auth_key')
+      .set({ hashed_password: hashedPassword })
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    if (Number(updated.numUpdatedRows) > 0) return;
+
+    await trx
+      .insertInto('auth_key')
+      .values({ id: randomUUID(), user_id: userId, hashed_password: hashedPassword })
+      .execute();
+
+    await trx
+      .updateTable('user')
+      .set({ auth_provider: 'both' })
+      .where('id', '=', userId)
+      .where('auth_provider', '=', 'google')
+      .execute();
+  });
 }
 
 /**

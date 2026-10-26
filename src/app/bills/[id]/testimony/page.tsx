@@ -7,6 +7,9 @@ import type { BillDetails } from '@/types/legislation';
 import type { TestimonyPosition } from '@/types/testimony';
 import { getBillDetails } from '@/db/queries/bills-read';
 import { data } from '@/lib/data-client';
+import { safeReturnPath } from '@/lib/core/safe-return-path';
+import { fullNameOrUsername } from '@/lib/auth/profile';
+import { RETURN_TO_PARAM, stripBillParam } from '@/lib/bills/bill-dialog-url';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { invalidateTestimonies } from '@/hooks/use-testimonies';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -33,8 +36,10 @@ export default function TestimonyPage() {
   const isMobile = useIsMobile();
 
   // Where the user came from — back navigation returns there, not always the board.
-  const fromTestimonies = searchParams.get('from') === 'testimonies';
-  const backHref = fromTestimonies ? '/testimonies' : '/';
+  // Back returns to where the user came from: the bill dialog's host page
+  // (`returnTo`, validated), else the testimonies list, else home.
+  const backHref = safeReturnPath(searchParams.get(RETURN_TO_PARAM))
+    ?? (searchParams.get('from') === 'testimonies' ? '/testimonies' : '/');
 
   const [bill, setBill] = useState<BillDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -86,7 +91,7 @@ export default function TestimonyPage() {
           formRef.current = nextForm;
           contentRef.current = nextContent;
         } else {
-          const nextForm: TestimonyHeaderValue = { ...formRef.current, authorName: user.username || '' };
+          const nextForm: TestimonyHeaderValue = { ...formRef.current, authorName: fullNameOrUsername(user) };
           setForm(nextForm);
           formRef.current = nextForm;
         }
@@ -94,7 +99,8 @@ export default function TestimonyPage() {
       } catch {
         if (!cancelled) {
           toast({ title: 'Error', description: 'Failed to load this bill.', variant: 'destructive' });
-          router.replace('/');
+          // Drop `?bill=` so the host doesn't reopen a dialog for the bill that just failed to load.
+          router.replace(stripBillParam(backHref));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -103,7 +109,7 @@ export default function TestimonyPage() {
     return () => {
       cancelled = true;
     };
-  }, [billId, authLoading, user, router]);
+  }, [billId, authLoading, user, router, backHref]);
 
   // Serialized save: only one saveDraft request runs at a time, so slow responses
   // can never complete out of order and overwrite newer content. Edits that arrive

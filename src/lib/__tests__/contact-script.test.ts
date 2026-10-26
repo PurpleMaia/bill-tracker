@@ -3,6 +3,9 @@ import {
   buildContactScript,
   buildBaseScript,
   buildCallScript,
+  buildOverrideBaseScript,
+  buildOverrideCallScript,
+  measurePhrase,
   personalizeScript,
   NEUTRAL_GREETING,
 } from '@/lib/legislators/contact-script';
@@ -126,5 +129,29 @@ describe('personalizeScript', () => {
     const personalized = personalizeScript('I am writing about HB9950.', CHAIR);
     expect(personalized.startsWith('Dear Rep. Kirstin Kahaloa,')).toBe(true);
     expect(personalized).toContain('I am writing about HB9950.');
+  });
+});
+
+describe('measurePhrase', () => {
+  it('drops a Capitol title\'s trailing period so it reads mid-sentence', () => {
+    expect(measurePhrase('HB1', 'RELATING TO FOOD.')).toBe('HB1, RELATING TO FOOD,');
+    expect(measurePhrase('HB1', 'RELATING TO FOOD.', { trailingComma: false })).toBe('HB1, RELATING TO FOOD');
+    expect(measurePhrase('HB1', null)).toBe('HB1');
+    expect(measurePhrase('HB1', '  ')).toBe('HB1');
+  });
+});
+
+describe('veto override scripts', () => {
+  it('asks a legislator to vote to override, with a neutral greeting', () => {
+    const s = buildOverrideBaseScript({ billNumber: 'SB3262', billTitle: 'RELATING TO EDUCATION.' });
+    expect(s.subject).toBe('Please vote to override the veto of SB3262');
+    expect(s.body.split('\n')[0]).toBe(NEUTRAL_GREETING);
+    expect(s.body).toContain('veto override of SB3262, RELATING TO EDUCATION, which the Governor has vetoed');
+    expect(personalizeScript(s.body, { legislatorName: 'Donna Kim' }).split('\n')[0]).toBe('Dear Donna Kim,');
+  });
+
+  it('builds a matching call script', () => {
+    expect(buildOverrideCallScript({ billNumber: 'SB3262', billTitle: null }))
+      .toContain("vote to override the Governor's veto of SB3262.");
   });
 });

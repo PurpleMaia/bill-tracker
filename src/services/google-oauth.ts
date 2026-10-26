@@ -12,6 +12,7 @@
  */
 
 import { createHash, randomBytes } from 'crypto';
+import { getAppUrl } from '@/lib/core/app-url';
 
 const GOOGLE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
@@ -42,13 +43,10 @@ export function getGoogleOAuthConfig(): GoogleOAuthConfig {
     );
   }
 
-  // Same base-URL convention as services/email.ts.
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
-
   return {
     clientId,
     clientSecret,
-    redirectUri: `${appUrl.replace(/\/$/, '')}/api/auth/google/callback`,
+    redirectUri: `${getAppUrl()}/api/auth/google/callback`,
   };
 }
 
@@ -99,6 +97,9 @@ export interface GoogleIdTokenClaims {
   email: string;
   email_verified: boolean;
   name?: string;
+  /** Present with the `profile` scope; either may be absent for some accounts. */
+  given_name?: string;
+  family_name?: string;
   picture?: string;
   aud: string;
   iss: string;
@@ -154,6 +155,8 @@ export function parseGoogleIdToken(idToken: string, expectedClientId: string): G
     // string "true"; anything else is treated as unverified.
     email_verified: claims.email_verified === true || (claims.email_verified as unknown) === 'true',
     name: claims.name,
+    given_name: claims.given_name,
+    family_name: claims.family_name,
     picture: claims.picture,
     aud: claims.aud,
     iss: claims.iss,

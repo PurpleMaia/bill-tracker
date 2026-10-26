@@ -7,6 +7,12 @@ const isProduction = process.env.NODE_ENV === "production";
 const usernameSchema = z.string()
     .min(3, { message: "Username must be at least 3 characters long" })
     .regex(/^[a-zA-Z0-9_]+$/, { message: "Username can only contain letters, numbers, and underscores" });
+/** Longest first/last name accepted; forms use it for maxLength too. */
+export const PERSON_NAME_MAX_LENGTH = 100;
+const personNameSchema = (label: string) => z.string()
+    .trim()
+    .min(1, { message: `${label} is required.` })
+    .max(PERSON_NAME_MAX_LENGTH, { message: `${label} cannot exceed ${PERSON_NAME_MAX_LENGTH} characters.` });
 const identifierSchema = z.string().min(1, { message: "Email or Username is required." });
 const newPasswordSchema = isProduction
     ? z.string()
@@ -26,6 +32,13 @@ export const registerSchema = z.object({
   username: usernameSchema,
   email: emailSchema,
   password: newPasswordSchema,
+  firstName: personNameSchema("First name"),
+  lastName: personNameSchema("Last name"),
+});
+
+export const profileSchema = z.object({
+  firstName: personNameSchema("First name"),
+  lastName: personNameSchema("Last name"),
 });
 
 export const forgotPasswordSchema = z.object({

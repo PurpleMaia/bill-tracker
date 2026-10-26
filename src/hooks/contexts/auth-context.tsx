@@ -18,15 +18,19 @@ interface AuthContextType {
   setActiveTenant: (tenantId: string) => void;
 
   // Auth actions
-  login: (authString: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (authString: string, password: string) => Promise<{ success: boolean; error?: string; status?: number }>;
   logout: () => Promise<void>;
-  register: (email: string, username: string, password: string, orgName?: string, inviteToken?: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, username: string, password: string, name: ProfileName, orgName?: string, inviteToken?: string) => Promise<{ success: boolean; error?: string; inviteError?: string }>;
   checkSession: () => Promise<void>;
+  /** Saves the caller's first/last name and updates `user` in place. Throws on failure. */
+  updateProfile: (name: ProfileName) => Promise<void>;
 
   // User preferences
   preferences: UserPreferences | null;
   updatePreferences: (patch: Partial<UserPreferences>) => Promise<void>;
 }
+
+type ProfileName = { firstName: string; lastName: string };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -142,7 +146,7 @@ export function AuthProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialAuth.resolved]);
 
-  const login = async (authString: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (authString: string, password: string): Promise<{ success: boolean; error?: string; status?: number }> => {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -169,7 +173,9 @@ export function AuthProvider({
         const errorMsg = typeof errorData.error === 'string'
           ? errorData.error
           : 'Login failed. Please check your credentials.';
-        return { success: false, error: errorMsg };
+        // The status lets the login page tell "wrong credentials" (401) apart
+        // from lockouts and inactive accounts without matching on message text.
+        return { success: false, error: errorMsg, status: response.status };
       }
     } catch (error) {
       return { success: false, error: 'Login error' };
@@ -190,7 +196,7 @@ export function AuthProvider({
     }
   };
 
-  const register = async (email: string, username: string, password: string, orgName?: string, inviteToken?: string): Promise<{ success: boolean; error?: string }> => {
+  const register = async (email: string, username: string, password: string, name: ProfileName, orgName?: string, inviteToken?: string): Promise<{ success: boolean; error?: string; inviteError?: string }> => {
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -199,6 +205,8 @@ export function AuthProvider({
           email,
           username,
           password,
+          firstName: name.firstName,
+          lastName: name.lastName,
           orgName: orgName || undefined,
           inviteToken: inviteToken || undefined,
         }),
@@ -220,7 +228,8 @@ export function AuthProvider({
             setPreferences(null);
           }
         }
-        return { success: true };
+        // Set when the account was created but the invite could not be applied.
+        return { success: true, inviteError: typeof data.inviteError === 'string' ? data.inviteError : undefined };
       } else {
         const errorData = await response.json();
         const errorMsg = typeof errorData.error === 'string'
@@ -233,6 +242,11 @@ export function AuthProvider({
       return { success: false, error: 'An unexpected error occurred' };
     }
   };
+
+  const updateProfile = useCallback(async (name: ProfileName) => {
+    const updated = await dataClient.profile.update(name);
+    setUser(updated);
+  }, []);
 
   const updatePreferences = useCallback(async (patch: Partial<UserPreferences>) => {
     const updated = await dataClient.preferences.update(patch);
@@ -251,6 +265,7 @@ export function AuthProvider({
       logout,
       register,
       checkSession,
+      updateProfile,
       preferences,
       updatePreferences,
     }}>

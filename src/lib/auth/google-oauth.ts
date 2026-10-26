@@ -9,6 +9,7 @@
  */
 
 import { timingSafeEqual } from 'crypto';
+import { safeReturnPath } from './return-path';
 
 /**
  * The signup side-payload that has to survive the redirect to Google and back.
@@ -22,6 +23,8 @@ export interface GoogleSignupPayload {
   orgName?: string;
   /** Invite token to claim, joining the new user to an existing org. */
   inviteToken?: string;
+  /** Same-site path to land on after sign-in (see return-path.ts). */
+  returnTo?: string;
 }
 
 /** Cookie names for the values that must outlive the redirect to Google. */
@@ -64,6 +67,11 @@ export function isValidOAuthState(received: string | null, stored: string | null
  *
  * Returns null when there is nothing to carry, so the caller can skip setting
  * a cookie at all rather than storing an empty object.
+ *
+ * The result always fits MAX_PAYLOAD_COOKIE_LENGTH, which the decoder enforces
+ * by discarding everything. returnTo is the only field that can get that big
+ * (a long, non-ASCII search query), and it is the least important — losing the
+ * invite or org because of it would be far worse — so it is dropped first.
  */
 export function encodeSignupPayload(payload: GoogleSignupPayload): string | null {
   const cleaned: GoogleSignupPayload = {};
@@ -74,9 +82,20 @@ export function encodeSignupPayload(payload: GoogleSignupPayload): string | null
   const inviteToken = payload.inviteToken?.trim();
   if (inviteToken) cleaned.inviteToken = inviteToken;
 
-  if (!cleaned.orgName && !cleaned.inviteToken) return null;
+  // Home is the default destination, so carrying it would be a no-op.
+  const returnTo = safeReturnPath(payload.returnTo, '/');
+  if (returnTo !== '/') cleaned.returnTo = returnTo;
 
-  return Buffer.from(JSON.stringify(cleaned), 'utf8').toString('base64url');
+  if (!cleaned.orgName && !cleaned.inviteToken && !cleaned.returnTo) return null;
+
+  const encode = (p: GoogleSignupPayload) =>
+    Buffer.from(JSON.stringify(p), 'utf8').toString('base64url');
+
+  const encoded = encode(cleaned);
+  if (encoded.length <= MAX_PAYLOAD_COOKIE_LENGTH || !cleaned.returnTo) return encoded;
+
+  delete cleaned.returnTo;
+  return cleaned.orgName || cleaned.inviteToken ? encode(cleaned) : null;
 }
 
 /**
@@ -95,7 +114,7 @@ export function decodeSignupPayload(encoded: string | null | undefined): GoogleS
     const parsed: unknown = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {};
 
-    const { orgName, inviteToken } = parsed as Record<string, unknown>;
+    const { orgName, inviteToken, returnTo } = parsed as Record<string, unknown>;
     const payload: GoogleSignupPayload = {};
 
     if (typeof orgName === 'string') {
@@ -109,6 +128,11 @@ export function decodeSignupPayload(encoded: string | null | undefined): GoogleS
     if (typeof inviteToken === 'string' && inviteToken.trim().length > 0) {
       payload.inviteToken = inviteToken.trim();
     }
+
+    // Re-validated, like orgName: the redirect target must never be trusted
+    // just because it made the round trip.
+    const safeReturn = safeReturnPath(returnTo, '/');
+    if (safeReturn !== '/') payload.returnTo = safeReturn;
 
     return payload;
   } catch {

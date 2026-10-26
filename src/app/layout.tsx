@@ -1,4 +1,5 @@
 import type {Metadata} from 'next';
+import { Suspense } from 'react';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { KanbanBoardProvider } from '@/hooks/contexts/kanban-board-context'; // Import the provider
@@ -9,6 +10,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/core/react-query';
 import { Providers } from '@/lib/core/providers';
 import { getInitialAuth } from '@/lib/auth/initial-auth';
+import { AuthErrorToast } from '@/components/auth/auth-error-toast';
 
 
 
@@ -59,6 +61,13 @@ export default async function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning={true}>
         <Providers initialAuth={initialAuth}>
           {children}
+          {/* App-wide, not in the header: OAuth redirects land on /login or on
+              whatever page the user was returning to, including pages outside
+              the (main) layout. Suspense because useSearchParams suspends
+              during prerender. */}
+          <Suspense fallback={null}>
+            <AuthErrorToast />
+          </Suspense>
         </Providers>
         <Toaster /> {/* Add toaster for notifications */}
       </body>

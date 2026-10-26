@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { getAppUrl } from '@/lib/core/app-url';
 
 export function escapeHtml(str: string): string {
   return str
@@ -10,6 +11,11 @@ export function escapeHtml(str: string): string {
 }
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
+// Must be an address on a domain verified in Resend (purplemaia.org). The
+// onboarding@resend.dev fallback can only deliver to the Resend account
+// owner's own inbox, so invites/resets to anyone else fail with a 403.
+const FROM_EMAIL = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 
 /**
  * Logs a URL containing a live token, but only in local development.
@@ -156,7 +162,7 @@ function footnote(html: string): string {
 export async function sendVerificationEmail(email: string, username: string, verificationToken: string) {
   // Check if Resend is configured
   if (!resend) {
-    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/verify-email?token=${verificationToken}`;
+    const verificationUrl = `${getAppUrl()}/verify-email?token=${verificationToken}`;
     console.warn('⚠️  RESEND_API_KEY not configured. Email sending disabled.');
     logTokenUrlInDevOnly('Verification URL (manual testing)', verificationUrl);
     // In development, allow registration without email
@@ -166,19 +172,18 @@ export async function sendVerificationEmail(email: string, username: string, ver
     return { success: false, error: 'Email service not configured' };
   }
 
-  const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/verify-email?token=${verificationToken}`;
+  const verificationUrl = `${getAppUrl()}/verify-email?token=${verificationToken}`;
 
   logTokenUrlInDevOnly('Verification URL (pre-send)', verificationUrl);
   
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
   console.log('📧 Attempting to send email:');
-  console.log('   From:', fromEmail);
+  console.log('   From:', FROM_EMAIL);
   console.log('   To:', email);
   console.log('   Subject: Verify your email address');
 
   try {
     const { data, error } = await resend.emails.send({
-      from: fromEmail,
+      from: FROM_EMAIL,
       to: email,
       subject: `Verify your email address for ${BRAND_NAME}`,
       html: renderEmailShell({
@@ -235,7 +240,7 @@ export async function sendVerificationEmail(email: string, username: string, ver
 }
 
 export async function sendPasswordResetEmail(email: string, username: string, resetToken: string) {
-  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/reset-password?token=${resetToken}`;
+  const resetUrl = `${getAppUrl()}/reset-password?token=${resetToken}`;
 
   if (!resend) {
     console.warn('⚠️  RESEND_API_KEY not configured. Email sending disabled.');
@@ -248,11 +253,10 @@ export async function sendPasswordResetEmail(email: string, username: string, re
 
   logTokenUrlInDevOnly('Password reset URL (pre-send)', resetUrl);
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
   try {
     const { data, error } = await resend.emails.send({
-      from: fromEmail,
+      from: FROM_EMAIL,
       to: email,
       subject: `Reset your ${BRAND_NAME} password`,
       html: renderEmailShell({
@@ -287,7 +291,7 @@ export async function sendPasswordResetEmail(email: string, username: string, re
 }
 
 export async function sendInviteEmail(email: string, orgName: string, inviteToken: string) {
-  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/register?invite=${inviteToken}`;
+  const inviteUrl = `${getAppUrl()}/register?invite=${inviteToken}`;
 
   if (!resend) {
     console.warn('⚠️  RESEND_API_KEY not configured. Email sending disabled.');
@@ -300,11 +304,10 @@ export async function sendInviteEmail(email: string, orgName: string, inviteToke
 
   logTokenUrlInDevOnly('Invite URL (pre-send)', inviteUrl);
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
   try {
     const { data, error } = await resend.emails.send({
-      from: fromEmail,
+      from: FROM_EMAIL,
       to: email,
       // Subject lines are plain text, not HTML — escaping here would surface
       // literal &amp; in the inbox. The HTML body still escapes orgName.
