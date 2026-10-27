@@ -9,17 +9,16 @@ export const NAV_ITEMS = [
   { href: '/discover', label: 'Discover', icon: Search },
   { href: '/your-bills', label: 'Your Bills', icon: KanbanSquareIcon },
   { href: '/testimonies', label: 'Testimonies', icon: FileText },
-  // Lands on Browse, the section's public entry point — View Board is only
-  // meaningful once you already follow an org.
-  { href: '/boards/browse', label: 'Active Boards', icon: LayoutGrid },
+  // Lands on Following; its empty state and login wall both point to Browse.
+  { href: '/boards', label: 'Active Boards', icon: LayoutGrid },
 ] as const;
 
 export function isNavItemActive(href: string, pathname: string) {
   // '/' is Discover (the landing page), so the bare root highlights that tab.
   if (href === '/discover') return pathname === '/' || pathname.startsWith('/discover');
-  // Active Boards owns the whole /boards tree, not just its own href, so the
-  // tab stays highlighted on /boards (View Board) too.
-  if (href === '/boards/browse') return pathname.startsWith('/boards');
+  // Active Boards owns the whole /boards tree, so the tab stays highlighted on
+  // /boards/browse too.
+  if (href === '/boards') return pathname.startsWith('/boards');
   return pathname.startsWith(href);
 }
 
