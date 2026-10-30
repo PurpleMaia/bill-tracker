@@ -1,0 +1,165 @@
+# Auto-merges Dependabot security updates (patch or minor) into dev, then deploys dev.
+# dev -> main promotion stays manual, same as any other change.
+#
+# Flow:
+#   1. test    : install, lint, typecheck, build, unit tests (read-only token)
+#   2. decide  : wait for the Codex review
+#                  clean (👍 / "no major issues") -> merge if patch/minor, else needs-human
+#                  suggestions                     -> stop; dependabot-cc-codex.yml fixes,
+#                                                     tests and merges the PR itself
+#                  no review in time               -> needs-human
+#                a "needs-human" label on the PR always blocks the merge
+#   3. flag-failure : tests failed -> needs-human
+#
+# No extra secrets: everything runs on GITHUB_TOKEN. A merge made with GITHUB_TOKEN does
+# not fire push-triggered workflows, so this workflow starts deploy-dev.yml explicitly.
+#
+# Every Dependabot PR is a security update because the repo has no .github/dependabot.yml
+# (version updates are off). If you ever add one, routine bumps would auto-merge too.
+#
+# This file must live on dev (the default branch), since Dependabot PRs target dev.
+
+name: Dependabot auto-merge
+
+on:
+  pull_request:
+    branches: [dev]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # ── 1. Install, lint, typecheck, build, test ────────────────────────
+  test:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4          # version from "packageManager" in package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json   # uses "engines.node"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm lint
+      - run: pnpm typecheck                 # next build ignores type errors, so check here
+      - run: pnpm build
+      - run: pnpm test
+
+  # ── 2a. Tests passed: wait for Codex, then merge or hand to a human ─
+  decide:
+    needs: [test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+      PR_URL: ${{ github.event.pull_request.html_url }}
+      CODEX: chatgpt-codex-connector[bot]
+    steps:
+      # Skip PRs already flagged for a human, or ones the Claude workflow has touched
+      # (that workflow tests and merges its own fixes).
+      - name: Check PR state
+        id: state
+        run: |
+          foreign=$(gh api "repos/$GH_REPO/pulls/$PR/commits" \
+            --jq '[.[] | select(.author.login != "dependabot[bot]")] | length')
+          flagged=$(gh pr view "$PR_URL" --json labels --jq '[.labels[].name] | index("needs-human") != null')
+
+          if [ "$flagged" = "true" ]; then
+            echo "PR is labeled needs-human -> not merging"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          elif [ "$foreign" -gt 0 ]; then
+            echo "PR has non-Dependabot commits -> handled by dependabot-cc-codex.yml or a human"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # 👍 reaction or "no major issues"  -> clean, continue
+      # review with suggestions           -> stop; the Claude workflow takes over
+      # no answer in time                 -> needs-human
+      - name: Wait for Codex review
+        id: codex
+        if: steps.state.outputs.proceed == 'true'
+        run: |
+          deadline=$(( $(date +%s) + ${{ vars.CODEX_WAIT_MINUTES || 20 }} * 60 ))
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            thumbs=$(gh api "repos/$GH_REPO/issues/$PR/reactions" \
+              --jq "[.[] | select(.user.login == \"$CODEX\" and .content == \"+1\")] | length")
+            texts=$( { gh api "repos/$GH_REPO/issues/$PR/comments" --jq ".[] | select(.user.login == \"$CODEX\") | .body";
+                       gh api "repos/$GH_REPO/pulls/$PR/reviews"   --jq ".[] | select(.user.login == \"$CODEX\") | .body"; } )
+            reviews=$(gh api "repos/$GH_REPO/pulls/$PR/reviews" \
+              --jq "[.[] | select(.user.login == \"$CODEX\")] | length")
+
+            if [ "$thumbs" -gt 0 ] || echo "$texts" | grep -qi "didn't find any major issues"; then
+              echo "Codex: clean"; echo "result=clean" >> "$GITHUB_OUTPUT"; exit 0
+            elif [ "$reviews" -gt 0 ]; then
+              echo "Codex left suggestions; Claude will address them"; echo "result=findings" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            sleep 30
+          done
+          echo "Codex never reviewed"; echo "result=timeout" >> "$GITHUB_OUTPUT"
+          gh label create needs-human --color D93F0B --force
+          gh pr edit "$PR_URL" --add-label needs-human
+
+      - name: Fetch Dependabot metadata
+        id: meta
+        if: steps.codex.outputs.result == 'clean'
+        uses: dependabot/fetch-metadata@v2
+
+      - name: Merge or flag
+        if: steps.meta.outcome == 'success'
+        env:
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          case "$UPDATE_TYPE" in
+            version-update:semver-patch|version-update:semver-minor)
+              echo "Merging ($UPDATE_TYPE)"
+              # Tests passed for exactly this commit; refuse if the branch moved since.
+              gh pr merge "$PR_URL" --squash --delete-branch --match-head-commit "$HEAD_SHA"
+              gh workflow run deploy-dev.yml --ref dev
+              ;;
+            *)
+              echo "Needs a human ($UPDATE_TYPE)"
+              gh label create needs-human --color D93F0B --force
+              gh pr edit "$PR_URL" --add-label needs-human
+              ;;
+          esac
+
+      - name: Flag if this job itself broke
+        if: failure()
+        run: |
+          gh label create needs-human --color D93F0B --force
+          gh pr edit "$PR_URL" --add-label needs-human
+
+  # ── 2b. Tests failed: flag it ───────────────────────────────────────
+  flag-failure:
+    needs: [test]
+    if: failure() && github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh label create needs-human --color D93F0B --force
+          gh pr edit "$PR_URL" --add-label needs-human
