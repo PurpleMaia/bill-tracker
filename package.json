@@ -66,7 +66,7 @@
     "hawaii-bill-diff": "^1.0.1",
     "kysely": "^0.28.8",
     "lucide-react": "^0.475.0",
-    "next": "15.2.6",
+    "next": "15.5.28",
     "openai": "^5.10.2",
     "pdf-parse": "^2.4.5",
     "pdfmake": "^0.2.23",
