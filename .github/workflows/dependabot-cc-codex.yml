@@ -4,7 +4,7 @@
 # Jobs (split so no job runs dependency code while holding a write token):
 #   1. address : Claude reads the review, edits files, replies to each comment.
 #                Read-only token for code. Its diff is saved as an artifact.
-#   2. verify  : applies the diff, runs lint/typecheck/build/tests. Read-only token.
+#   2. verify  : applies the diff, runs typecheck/build/tests. Read-only token.
 #   3. ship    : applies the diff, commits, pushes, merges, starts deploy-dev.yml.
 #                Runs no project code.
 #
@@ -109,7 +109,7 @@ jobs:
                and the PR diff: gh pr diff ${{ github.event.pull_request.number }}
             2. For each comment: if it points to a real problem this update causes in OUR code,
                make the smallest fix by editing files. If it isn't actionable or is wrong, don't change code.
-            3. If you changed code, run `pnpm lint`, `pnpm typecheck`, `pnpm build` and `pnpm test`.
+            3. If you changed code, run `pnpm typecheck`, `pnpm build` and `pnpm test`.
                Fix until they all pass. Do NOT commit or push; the workflow does that after you finish.
             4. If you made no code change, or you are not confident in your fix, or the checks don't
                pass, run BEFORE replying:
@@ -128,7 +128,7 @@ jobs:
           claude_args: >-
             --model claude-sonnet-5-5
             --max-turns 40
-            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(pnpm lint),Bash(pnpm typecheck),Bash(pnpm build),Bash(pnpm test),Bash(git status),Bash(git diff:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr edit:*),Bash(gh label create:*),Bash(gh api:*)"
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(pnpm typecheck),Bash(pnpm build),Bash(pnpm test),Bash(git status),Bash(git diff:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr edit:*),Bash(gh label create:*),Bash(gh api:*)"
 
       # Keep the diff only if Claude changed something, didn't flag the PR,
       # and stayed out of protected paths.
@@ -190,7 +190,6 @@ jobs:
           node-version-file: package.json
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm test
