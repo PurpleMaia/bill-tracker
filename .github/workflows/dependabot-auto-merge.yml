@@ -50,7 +50,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm typecheck                 # next build ignores type errors, so check here
+      # src/services/llm.ts builds the OpenAI client at import time; next build needs a
+      # value (never a real key, and never called during the build).
       - run: pnpm build
+        env:
+          OPENAI_API_KEY: ci-build-placeholder
       - run: pnpm test
 
   # ── 2a. Tests passed: wait for Codex, then merge or hand to a human ─
