@@ -24,14 +24,14 @@ export function TagSelector({ billId, onTagsChange, readOnly = false }: TagSelec
   const { user, activeTenant } = useAuth();
   const { updateBill } = useBills();
 
+  useEffect(() => {
+    if (activeTenant) loadData();
+  }, [billId, activeTenant]);
+
   if (!activeTenant) return null;
 
   // Determine if user can manage tags (admin/supervisor only, unless explicitly read-only)
   const canManageTags = !readOnly && activeTenant?.orgRole === 'admin';
-
-  useEffect(() => {
-    loadData();
-  }, [billId, activeTenant]);
 
   const loadData = async () => {
     setLoading(true);

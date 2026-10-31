@@ -29,6 +29,14 @@ pnpm migrate:up   # Run DB migrations
 pnpm migrate:down # Roll back last migration
 ```
 
+## Navigating the Codebase
+
+**Always use the graphify skill (`/graphify`) to navigate this codebase.** A knowledge graph is
+built in `graphify-out/` (`graph.json`, `GRAPH_REPORT.md`). Before exploring with grep/find or
+reading files to answer "where is X / what calls Y / how does Z connect", query the graph first
+(graphify query/path/explain), then open the specific files it points to. If the graph is
+missing or stale after significant changes, rebuild it with the graphify skill.
+
 ## Architecture
 
 ### Directory Structure
@@ -90,7 +98,7 @@ Every data operation has TWO interchangeable implementations over the SAME `db/q
 
 A flag picks which one runs, invisibly to callers. This exists because Server Actions are idiomatic but were observed to perform worse, so we keep both and can flip between them.
 
-- **Client components/hooks call `data.*`**, never raw `fetch`. e.g. `import { data } from '@/lib/data-client'; await data.bills.getBills({ viewMode, showArchived, tenantId })`. Domains (see `data-client/index.ts`): `data.bills`, `data.proposals`, `data.access`, `data.preferences`, `data.testimony`, `data.boards`, `data.summaries`, `data.legislators`, `data.committees`.
+- **Client components/hooks call `data.*`**, never raw `fetch`. e.g. `import { data } from '@/lib/data-client'; await data.bills.getBills({ viewMode, showArchived, tenantId })`. Domains (see `data-client/index.ts`): `data.auth`, `data.bills`, `data.proposals`, `data.access`, `data.preferences`, `data.profile`, `data.testimony`, `data.boards`, `data.summaries`, `data.legislators`, `data.committees`.
 - **Transport selection** lives in `src/lib/data-client/transport.ts`: global default `NEXT_PUBLIC_DATA_TRANSPORT` (`'fetch'` | `'action'`, defaults to `'fetch'`) plus a per-operation `OVERRIDES` map keyed `'domain.op'`. `NEXT_PUBLIC_*` is build-time inlined, so the global default is a per-deploy choice; `OVERRIDES` gives code-level per-op control.
 - **The contract** (what makes the flag flip with zero caller edits): for every operation, the `action` and `fetch` arms take identical params and return the SAME already-unwrapped value (throw on error). The data-client is the ONE place `ActionResult<T>` and the HTTP envelope get unwrapped. `defineClient` (in `define-client.ts`) structurally requires the fetch arm's signature to match the action arm.
 - **Adding an operation:** write the `db/queries` function (the source of truth), add an action wrapper in `actions/<domain>.ts`, add a fetch wrapper hitting the route in `lib/data-client/<domain>.client.ts`, and register the `{ action, fetch }` pair in that domain's `defineClient`.

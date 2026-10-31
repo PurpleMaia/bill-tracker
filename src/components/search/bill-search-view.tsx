@@ -6,7 +6,7 @@ import { ArrowUp, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BillDetailsDialog } from '@/components/kanban/bill-details-dialog';
+import { UrlBillDetailsDialog } from '@/components/kanban/url-bill-details-dialog';
 import { ActiveFilterChips } from './active-filter-chips';
 import { BillSearchCard } from './bill-search-card';
 import { SearchFilterRail } from './search-filter-rail';
@@ -15,6 +15,8 @@ import { SearchIntro } from './search-intro';
 import { TrackButton } from './track-button';
 import { useBillSearch } from '@/hooks/use-bill-search';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
+import { hasNonBillParams } from '@/lib/bills/bill-dialog-url';
 import {
   DEFAULT_FILTERS,
   parseSearchParams,
@@ -39,7 +41,8 @@ export function BillSearchView() {
   const urlHadParams = useRef(false);
   const [filters, setFilters] = useState<SearchFilters>(() => {
     const raw = new URLSearchParams(searchParams.toString());
-    urlHadParams.current = Array.from(raw.keys()).length > 0;
+    // `bill` only reopens a dialog (see useBillDialogParam); it isn't a filter.
+    urlHadParams.current = hasNonBillParams(raw.toString());
     const parsed = parseSearchParams(raw);
     return { ...parsed, years: parsed.years.length ? parsed.years : DEFAULT_FILTERS.years };
   });
@@ -68,7 +71,7 @@ export function BillSearchView() {
     if (!hydrated) return;
     saveSearchFilters(filters);
   }, [hydrated, filters]);
-  const [openBillId, setOpenBillId] = useState<string | null>(null);
+  const { billId: openBillId, open: openBillDialog } = useBillDialogParam();
   const {
     bills,
     totalCount,
@@ -85,7 +88,7 @@ export function BillSearchView() {
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   const handleClear = useCallback(() => setFilters(DEFAULT_FILTERS), []);
-  const handleCardClick = useCallback((billId: string) => setOpenBillId(billId), []);
+  const handleCardClick = useCallback((billId: string) => openBillDialog(billId), [openBillDialog]);
 
   // Auto-load the next page when the sentinel scrolls into view. The visible
   // "Load more" button below stays the keyboard-accessible path — scroll-driven
@@ -297,10 +300,7 @@ export function BillSearchView() {
           visitors: the testimony and contact CTAs become login prompts.
           trackSlot adds the Track control the board's own copy doesn't need:
           a bill opened from search may not be tracked yet. */}
-      <BillDetailsDialog
-        billID={openBillId}
-        isOpen={openBillId !== null}
-        onClose={() => setOpenBillId(null)}
+      <UrlBillDetailsDialog
         trackSlot={
           openBill ? (
             <TrackButton

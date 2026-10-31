@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'crypto';
 import { db } from '../kysely/client';
+import { sendPasswordResetEmail } from '@/services/email';
 
 /** Reset links are short-lived: a password reset is a high-value credential. */
 const TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -108,6 +109,25 @@ export async function findUserByEmailForReset(
     .executeTakeFirst();
 
   return user ?? null;
+}
+
+/**
+ * The whole forgot-password request: if the email has an account, mint a token
+ * and email the link; otherwise do nothing. Returns nothing either way — both
+ * transports must answer identically whether or not the account exists, so
+ * there is nothing to return. Shared by the API route and the server action.
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  const user = await findUserByEmailForReset(email);
+
+  if (user) {
+    const rawToken = await createPasswordResetToken(user.id);
+    // Delivery failures are logged inside the service; we never surface them,
+    // since doing so would reveal that the account exists.
+    await sendPasswordResetEmail(email, user.username, rawToken);
+  } else {
+    console.log('[FORGOT PASSWORD] No account for requested email; returning neutral response.');
+  }
 }
 
 /**

@@ -97,6 +97,9 @@ export interface GoogleIdTokenClaims {
   email: string;
   email_verified: boolean;
   name?: string;
+  /** Present with the `profile` scope; either may be absent for some accounts. */
+  given_name?: string;
+  family_name?: string;
   picture?: string;
   aud: string;
   iss: string;
@@ -152,6 +155,8 @@ export function parseGoogleIdToken(idToken: string, expectedClientId: string): G
     // string "true"; anything else is treated as unverified.
     email_verified: claims.email_verified === true || (claims.email_verified as unknown) === 'true',
     name: claims.name,
+    given_name: claims.given_name,
+    family_name: claims.family_name,
     picture: claims.picture,
     aud: claims.aud,
     iss: claims.iss,

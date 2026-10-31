@@ -12,6 +12,7 @@ import {
 import { limitFixedWindow } from '@/lib/core/ratelimit-memory';
 import { getClientIp } from '@/lib/core/client-ip';
 import { appUrl } from '@/lib/core/app-url';
+import { loginHref } from '@/lib/auth/return-path';
 
 const OAUTH_START_RATE_LIMIT = { limit: 10, windowMs: 5 * 60_000 };
 
@@ -35,13 +36,20 @@ export async function GET(
     return new NextResponse('Unknown OAuth provider', { status: 404 });
   }
 
+  // Failures go back to the login page, keeping where the user was headed.
+  const failureRedirect = (code: string) => {
+    const destination = appUrl(loginHref(request.nextUrl.searchParams.get('next')));
+    destination.searchParams.set('authError', code);
+    return NextResponse.redirect(destination);
+  };
+
   const rl = limitFixedWindow(
     `oauth-start:${providerId}:${getClientIp(request)}`,
     OAUTH_START_RATE_LIMIT.limit,
     OAUTH_START_RATE_LIMIT.windowMs
   );
   if (!rl.ok) {
-    return NextResponse.redirect(appUrl('/?authError=rate_limited'));
+    return failureRedirect('rate_limited');
   }
 
   const provider = resolveOAuthProvider(providerId);
@@ -54,17 +62,19 @@ export async function GET(
     config = provider.configFromEnv();
   } catch (error) {
     console.error(`[oauth/${providerId}/start]`, error);
-    return NextResponse.redirect(appUrl('/?authError=not_configured'));
+    return failureRedirect('not_configured');
   }
 
   const state = generateRandomToken();
   const codeVerifier = generateRandomToken();
 
   // Carried through the round trip so an OAuth signup can still create an org or
-  // accept an invite, exactly as password registration does.
+  // accept an invite, exactly as password registration does — and so the user
+  // lands back where they started, as password login does.
   const payload = encodeSignupPayload({
     orgName: request.nextUrl.searchParams.get('orgName') ?? undefined,
     inviteToken: request.nextUrl.searchParams.get('invite') ?? undefined,
+    returnTo: request.nextUrl.searchParams.get('next') ?? undefined,
   });
 
   const response = NextResponse.redirect(
@@ -89,8 +99,12 @@ export async function GET(
 
   response.cookies.set(cookies.state, state, cookieOptions);
   response.cookies.set(cookies.codeVerifier, codeVerifier, cookieOptions);
+  // With nothing to carry, clear any payload left by an abandoned attempt —
+  // otherwise the callback would apply its stale invite/org/return path.
   if (payload) {
     response.cookies.set(cookies.payload, payload, cookieOptions);
+  } else {
+    response.cookies.set(cookies.payload, '', { path: '/', maxAge: 0 });
   }
 
   return response;

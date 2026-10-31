@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   addMonths,
@@ -20,6 +20,7 @@ import { cn } from '@/lib/core/utils';
 import { data } from '@/lib/data-client';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
+import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
 import { filterBills } from '@/lib/bills/bill-filters';
 import {
   MILESTONE_META,
@@ -30,7 +31,7 @@ import {
   type BillMilestone,
   type MilestoneType,
 } from '@/lib/calendar/bill-milestones';
-import { BillDetailsDialog } from '@/components/kanban/bill-details-dialog';
+import { UrlBillDetailsDialog } from '@/components/kanban/url-bill-details-dialog';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const dayKey = (d: Date) => format(d, 'yyyy-MM-dd');
@@ -50,21 +51,30 @@ function MilestoneRow({
       type="button"
       onClick={() => onOpen(m.billId)}
       className={cn(
-        'grid w-full grid-cols-[auto_1fr] items-center gap-x-3 rounded-full px-4 py-2 text-left text-sm',
+        // Phone: bill + type + date on line one, title on line two (44px+ tap target).
+        'grid w-full grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-0.5 rounded-2xl px-4 py-2.5 text-left text-sm',
         'hover:brightness-95 focus-visible:outline focus-visible:outline-2',
-        !compact && 'sm:grid-cols-[5rem_5.5rem_4rem_1fr]',
+        // sm+: single-line pill, like the mockup.
+        !compact && 'sm:grid-cols-[5rem_5.5rem_4rem_1fr] sm:rounded-full sm:py-2',
         meta.rowClass,
       )}
     >
       <span className="font-semibold">{m.billNumber}</span>
       <span className="flex items-center gap-2">
-        <span className={cn('h-2.5 w-2.5 rounded-full', meta.dotClass)} aria-hidden />
+        <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', meta.dotClass)} aria-hidden />
         {meta.label}
       </span>
-      <span className={cn('hidden tabular-nums text-muted-foreground', !compact && 'sm:block')}>
+      <span className={cn('tabular-nums text-muted-foreground', compact && 'hidden')}>
         {format(new Date(`${m.date}T00:00:00`), 'M/d')}
       </span>
-      <span className={cn('col-span-2 truncate', !compact && 'sm:col-span-1')}>{m.billTitle}</span>
+      <span
+        className={cn(
+          'col-span-3 line-clamp-2 text-foreground/80',
+          !compact && 'sm:col-span-1 sm:line-clamp-none sm:truncate sm:text-foreground',
+        )}
+      >
+        {m.billTitle}
+      </span>
     </button>
   );
 }
@@ -81,7 +91,8 @@ export function CalendarView() {
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [hidden, setHidden] = useState<ReadonlySet<MilestoneType>>(new Set());
-  const [openBillId, setOpenBillId] = useState<string | null>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const { open: openBill } = useBillDialogParam();
 
   const visibleBills = useMemo(
     () => filterBills(bills, { searchQuery, selectedTagIds, selectedYears, deadFilter: 'all' }),
@@ -114,6 +125,25 @@ export function CalendarView() {
 
   const selectedMilestones = selectedDay ? (byDay.get(selectedDay) ?? []) : [];
 
+  const isCurrentMonth = isSameMonth(month, new Date());
+
+  // Horizontal swipe on the grid changes month; mostly-vertical drags are scrolls.
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      setMonth((m) => addMonths(m, dx < 0 ? 1 : -1));
+    }
+  };
+
   const toggleType = (t: MilestoneType) =>
     setHidden((prev) => {
       const next = new Set(prev);
@@ -131,20 +161,26 @@ export function CalendarView() {
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-auto p-4 md:p-6">
+    <div className="min-h-0 flex-1 overflow-auto p-4 pb-8 md:p-6">
       <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-[10rem_minmax(0,1fr)] lg:grid-cols-[10rem_minmax(0,36rem)_18rem]">
         {/* Legend (doubles as a per-type visibility filter) */}
-        <ul className="flex flex-wrap gap-x-4 gap-y-2 md:flex-col md:gap-3" aria-label="Milestone legend">
+        <ul
+          className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-col md:gap-3 md:overflow-visible md:px-0 md:pb-0"
+          aria-label="Milestone legend"
+        >
           {MILESTONE_TYPES.map((t) => {
             const meta = MILESTONE_META[t];
             const off = hidden.has(t);
             return (
-              <li key={t}>
+              <li key={t} className="shrink-0">
                 <button
                   type="button"
                   onClick={() => toggleType(t)}
                   aria-pressed={!off}
-                  className={cn('flex items-center gap-2 text-sm', off && 'opacity-40 line-through')}
+                  className={cn(
+                    'flex min-h-9 items-center gap-2 rounded-full border bg-background px-3 text-sm md:min-h-0 md:border-0 md:bg-transparent md:px-0',
+                    off && 'opacity-40 line-through',
+                  )}
                 >
                   <span className={cn('h-3.5 w-3.5 rounded-full', meta.dotClass)} aria-hidden />
                   {meta.label}
@@ -170,17 +206,28 @@ export function CalendarView() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 hover:bg-white/20 hover:text-primary-foreground"
+                className="h-10 w-10 hover:bg-white/20 hover:text-primary-foreground md:h-8 md:w-8"
                 onClick={() => setMonth((m) => addMonths(m, -1))}
                 aria-label="Previous month"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <h2 className="font-semibold uppercase tracking-wide">{format(month, 'MMMM yyyy')}</h2>
+              <div className="text-center">
+                <h2 className="font-semibold uppercase tracking-wide">{format(month, 'MMMM yyyy')}</h2>
+                {!isCurrentMonth && (
+                  <button
+                    type="button"
+                    onClick={() => setMonth(startOfMonth(new Date()))}
+                    className="text-xs underline underline-offset-2 opacity-90 hover:opacity-100"
+                  >
+                    Today
+                  </button>
+                )}
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 hover:bg-white/20 hover:text-primary-foreground"
+                className="h-10 w-10 hover:bg-white/20 hover:text-primary-foreground md:h-8 md:w-8"
                 onClick={() => setMonth((m) => addMonths(m, 1))}
                 aria-label="Next month"
               >
@@ -192,7 +239,7 @@ export function CalendarView() {
                 <div key={i} className="py-1">{w}</div>
               ))}
             </div>
-            <div className="grid grid-cols-7">
+            <div className="grid grid-cols-7" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
               {days.map((d) => {
                 const key = dayKey(d);
                 const dayMilestones = byDay.get(key) ?? [];
@@ -206,7 +253,7 @@ export function CalendarView() {
                     aria-label={`${format(d, 'MMMM d')}${dayMilestones.length ? `, ${dayMilestones.length} milestone${dayMilestones.length === 1 ? '' : 's'}` : ''}`}
                     aria-pressed={key === selectedDay}
                     className={cn(
-                      'flex h-14 flex-col items-center justify-start gap-1 border-b border-r pt-1.5 text-sm hover:bg-muted/60',
+                      'flex h-12 flex-col items-center justify-start gap-0.5 border-b border-r pt-1 text-sm hover:bg-muted/60 sm:h-14 sm:gap-1 sm:pt-1.5',
                       !inMonth && 'text-muted-foreground/40',
                       key === selectedDay && 'bg-accent/15 ring-2 ring-inset ring-primary',
                     )}
@@ -231,9 +278,11 @@ export function CalendarView() {
           </div>
 
           {/* Day detail — below the grid on small screens, right rail on lg */}
-          <div className="lg:hidden">
-            <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={setOpenBillId} />
-          </div>
+          {selectedDay && (
+            <div className="lg:hidden">
+              <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={openBill} />
+            </div>
+          )}
 
           {/* Month list */}
           <section aria-label={`Milestones in ${format(month, 'MMMM yyyy')}`} className="space-y-2">
@@ -242,20 +291,17 @@ export function CalendarView() {
                 {bills.length === 0 ? 'No tracked bills yet.' : 'No milestones this month.'}
               </p>
             ) : (
-              monthMilestones.map((m) => <MilestoneRow key={m.id} m={m} onOpen={setOpenBillId} />)
+              monthMilestones.map((m) => <MilestoneRow key={m.id} m={m} onOpen={openBill} />)
             )}
           </section>
         </div>
 
         <div className="hidden lg:block">
-          <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={setOpenBillId} />
+          <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={openBill} />
         </div>
       </div>
 
-      <BillDetailsDialog
-        billID={openBillId}
-        isOpen={openBillId !== null}
-        onClose={() => setOpenBillId(null)}
+      <UrlBillDetailsDialog
       />
     </div>
   );

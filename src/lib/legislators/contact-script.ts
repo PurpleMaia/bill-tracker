@@ -9,9 +9,17 @@ export const NAME_PLACEHOLDER = '<your-name>';
 /**
  * The measure phrase for a bill: "HB1572, Relating to Aquaculture," when a title
  * is present, otherwise just the number. Null-safe (never prints "null").
+ * Capitol titles end in a period ("RELATING TO FOOD.") — it's dropped so the
+ * title can sit mid-sentence. Spoken scripts pass `trailingComma: false`.
  */
-function measurePhrase(billNumber: string, billTitle: string | null): string {
-  return billTitle ? `${billNumber}, ${billTitle},` : billNumber;
+export function measurePhrase(
+  billNumber: string,
+  billTitle: string | null,
+  { trailingComma = true }: { trailingComma?: boolean } = {},
+): string {
+  const title = billTitle?.trim().replace(/\.+$/, '');
+  if (!title) return billNumber;
+  return trailingComma ? `${billNumber}, ${title},` : `${billNumber}, ${title}`;
 }
 
 /**
@@ -112,7 +120,7 @@ export function buildCallScript(input: {
   committeeName?: string;
 }): string {
   const { billNumber, billTitle, userName, committeeName } = input;
-  const measure = billTitle ? `${billNumber}, ${billTitle}` : billNumber;
+  const measure = measurePhrase(billNumber, billTitle, { trailingComma: false });
   const before = committeeName ? `the ${committeeName}` : 'this committee';
 
   return [
@@ -164,13 +172,62 @@ export function buildConferenceCallScript(input: {
   userName?: string;
 }): string {
   const { billNumber, billTitle, userName } = input;
-  const measure = billTitle ? `${billNumber}, ${billTitle}` : billNumber;
+  const measure = measurePhrase(billNumber, billTitle, { trailingComma: false });
   return [
     `Hi, my name is ${userName ?? NAME_PLACEHOLDER} and I'm a Hawaii resident.`,
     ``,
     `I'm calling to respectfully ask the conferee to help reach agreement on ${measure} in conference.`,
     ``,
     `This measure has passed both chambers, and I'd hate to see it die over unresolved differences. Thank you for your time.`,
+  ].join('\n');
+}
+
+/**
+ * The ONE shared, editable script asking a legislator to vote to OVERRIDE the
+ * Governor's final veto (two-thirds of each chamber). Neutral greeting;
+ * personalize per-recipient at send time with {@link personalizeScript}.
+ */
+export function buildOverrideBaseScript(input: {
+  billNumber: string;
+  billTitle: string | null;
+  userName?: string;
+}): { subject: string; body: string } {
+  const { billNumber, billTitle, userName } = input;
+  const measure = measurePhrase(billNumber, billTitle);
+  return {
+    subject: `Please vote to override the veto of ${billNumber}`,
+    body: [
+      NEUTRAL_GREETING,
+      ``,
+      `I am writing as a Hawaii resident to respectfully urge you to support a veto override of ${measure} which the Governor has vetoed.`,
+      ``,
+      `This measure passed both chambers of the Legislature, and I believe it deserves to become law. Please vote to override the veto and encourage your colleagues to do the same.`,
+      ``,
+      `Thank you for your time and consideration.`,
+      ``,
+      `Mahalo nui loa,`,
+      `${userName ?? NAME_PLACEHOLDER}`,
+    ].join('\n'),
+  };
+}
+
+/**
+ * Spoken phone script asking a legislator's office to support a veto override.
+ * First-person, no greeting/signature. Pure.
+ */
+export function buildOverrideCallScript(input: {
+  billNumber: string;
+  billTitle: string | null;
+  userName?: string;
+}): string {
+  const { billNumber, billTitle, userName } = input;
+  const measure = measurePhrase(billNumber, billTitle, { trailingComma: false });
+  return [
+    `Hi, my name is ${userName ?? NAME_PLACEHOLDER} and I'm a Hawaii resident.`,
+    ``,
+    `I'm calling to respectfully ask the legislator to vote to override the Governor's veto of ${measure}.`,
+    ``,
+    `This measure passed both chambers, and I'd like to see it become law. Thank you for your time.`,
   ].join('\n');
 }
 

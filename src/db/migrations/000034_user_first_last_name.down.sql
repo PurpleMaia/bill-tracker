@@ -1,0 +1,2 @@
+ALTER TABLE "user" DROP COLUMN IF EXISTS last_name;
+ALTER TABLE "user" DROP COLUMN IF EXISTS first_name;

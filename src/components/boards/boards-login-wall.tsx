@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { Lock } from 'lucide-react';
+import { LogIn, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoginDialog } from '@/components/auth/login-dialog';
+import { LoginLink } from '@/components/auth/login-link';
 
 /**
- * Gate for the View Board tab. Mirrors LoginWall, but sends visitors to
+ * Gate for the Following tab. Mirrors LoginWall, but sends visitors to
  * /boards/browse — the organization list stays public, only the boards
  * themselves require an account.
  */
@@ -17,14 +17,19 @@ export function BoardsLoginWall() {
       <Card className="w-full max-w-md text-center">
         <CardHeader>
           <Lock className="mx-auto h-10 w-10 text-muted-foreground" />
-          <CardTitle>Login to view active boards</CardTitle>
+          <CardTitle>Login to see boards you follow</CardTitle>
           <CardDescription>
-            Boards you follow appear here once you log in. You can still browse every public
-            organization without an account.
+            Boards from organizations you follow appear here once you log in. You can still
+            browse every public organization without an account.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-3">
-          <LoginDialog />
+          <Button asChild>
+            <LoginLink>
+              <LogIn className="mr-1" />
+              Login
+            </LoginLink>
+          </Button>
           <Button asChild variant="outline" size="sm">
             <Link href="/boards/browse">Browse organizations</Link>
           </Button>

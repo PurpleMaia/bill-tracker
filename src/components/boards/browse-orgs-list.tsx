@@ -1,16 +1,20 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { PublicOrg, MyOrg } from '@/types/tenant';
 import { data } from '@/lib/data-client';
 import { useActiveBoards } from '@/hooks/contexts/active-boards-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { Button } from '@/components/ui/button';
+import { ToastAction } from '@/components/ui/toast';
+import { toast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building2, Check, Eye, FileText, Globe, Lock, LogIn, Plus, Search, Star, Users } from 'lucide-react';
+import { ArrowRight, Building2, Check, Eye, FileText, Globe, Lock, LogIn, Plus, Search, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
-import { LoginDialog } from '@/components/auth/login-dialog';
+import { LoginLink } from '@/components/auth/login-link';
 
 // Skeleton mirroring one OrgCard's shape while the list loads.
 function OrgCardSkeleton() {
@@ -85,7 +89,7 @@ function BrowseSkeleton() {
 // the page reads as purposeful even when only a handful of orgs are listed.
 function BrowseIntro({ orgCount }: { orgCount: number }) {
   const steps = [
-    { icon: Star, title: 'Follow an org', text: 'Its board shows up in your switcher on the View Board tab.' },
+    { icon: Star, title: 'Follow an org', text: 'Its board shows up under the Following tab.' },
     { icon: Eye, title: 'See what they track', text: 'Open their board to view the bills they’re following. You can’t edit it.' },
     { icon: Plus, title: 'Track this bill', text: 'Track any of their bills onto your own board with one click.' },
   ];
@@ -239,6 +243,10 @@ function MyOrgCard() {
   );
 }
 
+function boardHref(tenantId: string) {
+  return `/boards?org=${encodeURIComponent(tenantId)}`;
+}
+
 function OrgCard({
   org,
   busy,
@@ -305,31 +313,43 @@ function OrgCard({
         {/* Following is per-user state, so logged-out visitors get a prompt to
             sign in rather than a button whose request the API would reject. */}
         {isLoggedOut ? (
-          <LoginDialog
-            trigger={
-              <Button variant="outline" size="sm" className="mt-4 w-full">
-                <LogIn className="mr-1.5 h-4 w-4" />
-                Login to follow
-              </Button>
-            }
-          />
-        ) : (
-          <Button
-            variant={org.isFollowing ? 'outline' : 'default'}
-            size="sm"
-            className="mt-4 w-full"
-            disabled={busy}
-            onClick={onToggle}
-            aria-pressed={org.isFollowing}
-          >
-            {org.isFollowing ? (
-              <>
-                <Check className="mr-1.5 h-4 w-4" /> Following
-              </>
-            ) : (
-              'Follow'
-            )}
+          <Button asChild variant="outline" size="sm" className="mt-4 w-full">
+            <LoginLink>
+              <LogIn className="mr-1.5 h-4 w-4" />
+              Login to follow
+            </LoginLink>
           </Button>
+        ) : (
+          <div className="mt-4 flex gap-2">
+            <Button
+              variant={org.isFollowing ? 'outline' : 'default'}
+              size="sm"
+              className="flex-1"
+              disabled={busy}
+              onClick={onToggle}
+              aria-pressed={org.isFollowing}
+            >
+              {org.isFollowing ? (
+                <>
+                  <Check className="mr-1.5 h-4 w-4" /> Following
+                </>
+              ) : (
+                <>
+                  <Star className="mr-1.5 h-4 w-4" /> Follow
+                </>
+              )}
+            </Button>
+            {/* The Following tab only lists orgs you follow, so the link
+                appears once you do. */}
+            {org.isFollowing && (
+              <Button asChild size="sm" className="flex-1">
+                <Link href={boardHref(org.tenantId)}>
+                  View board
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Link>
+              </Button>
+            )}
+          </div>
         )}
       </div>
     </li>
@@ -371,13 +391,15 @@ function FollowedOrgs({ orgs }: { orgs: PublicOrg[] }) {
       </h3>
       {following.length === 0 ? (
         <p className="mt-2 text-xs text-muted-foreground">
-          You’re not following any orgs yet. Follow one to pin it to your board switcher.
+          You’re not following any orgs yet. Follow one to see its board under the Following tab.
         </p>
       ) : (
         <ul className="mt-3 space-y-2">
           {following.map((o) => (
             <li key={o.tenantId} className="truncate text-sm">
-              {o.name}
+              <Link href={boardHref(o.tenantId)} className="hover:text-primary hover:underline">
+                {o.name}
+              </Link>
             </li>
           ))}
         </ul>
@@ -390,6 +412,7 @@ export function BrowseOrgsList() {
   const [orgs, setOrgs] = useState<PublicOrg[] | null>(null);
   const { follow, unfollow } = useActiveBoards();
   const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
 
@@ -417,8 +440,23 @@ export function BrowseOrgsList() {
       // follow/unfollow already refresh the followed-orgs set internally; we
       // only need to reload the public list here so this card's isFollowing
       // flag (and the follower count) reflect the change.
-      if (org.isFollowing) await unfollow(org.tenantId);
-      else await follow(org.tenantId);
+      if (org.isFollowing) {
+        await unfollow(org.tenantId);
+      } else {
+        await follow(org.tenantId);
+        // Point at where the board went — the moment someone is most likely to
+        // notice the Following tab.
+        toast({
+          title: `Following ${org.name}`,
+          description: 'Their board is now under the Following tab.',
+          duration: 6000,
+          action: (
+            <ToastAction altText="View their board" onClick={() => router.push(boardHref(org.tenantId))}>
+              View their board
+            </ToastAction>
+          ),
+        });
+      }
       await load();
     } finally {
       setBusyId(null);

@@ -77,7 +77,7 @@ function VerifyEmailContent() {
               </div>
               <p className="text-center text-sm">{message}</p>
               <Button
-                onClick={() => router.push('/')}
+                onClick={() => router.push('/login')}
                 className="w-full"
               >
                 Go to Login
