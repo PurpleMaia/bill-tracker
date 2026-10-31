@@ -1,11 +1,13 @@
 # When Codex leaves review suggestions on a Dependabot PR, Claude fixes them, then this
-# workflow tests the fix, pushes it, merges the PR into dev and deploys dev.
+# workflow tests the fix, pushes it and merges the PR into dev (no deploy; it ships with
+# the next normal merge to dev).
 #
 # Jobs (split so no job runs dependency code while holding a write token):
 #   1. address : Claude reads the review, edits files, replies to each comment.
 #                Read-only token for code. Its diff is saved as an artifact.
-#   2. verify  : applies the diff, runs typecheck/build/tests. Read-only token.
-#   3. ship    : applies the diff, commits, pushes, merges, starts deploy-dev.yml.
+#   2. verify  : applies the diff, runs typecheck/build/tests and a production-start
+#                smoke test. Read-only token.
+#   3. ship    : applies the diff, commits, pushes, merges.
 #                Runs no project code.
 #
 # Safety rails:
@@ -200,6 +202,34 @@ jobs:
           OPENAI_API_KEY: ci-build-placeholder
       - run: pnpm test
 
+      # Start the app the way Dokku runs it: devDependencies pruned, NODE_ENV=production.
+      # Catches runtime-only breakage that build + unit tests miss (e.g. Next 15.5 needing
+      # typescript at runtime to load next.config.ts). Any HTTP response counts as up;
+      # there is no database here, so pages may legitimately return 500.
+      - name: Smoke test production start
+        env:
+          NODE_ENV: production
+          PORT: 3999
+          OPENAI_API_KEY: ci-build-placeholder
+        run: |
+          pnpm prune --prod
+          pnpm start > start.log 2>&1 &
+          pid=$!
+          up=0
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/" || true)
+            if [ "$code" != "000" ]; then up=1; break; fi
+            kill -0 "$pid" 2>/dev/null || break
+            sleep 2
+          done
+          kill "$pid" 2>/dev/null || true
+          cat start.log
+          if grep -qE "Installing TypeScript|Failed to load next.config|⨯" start.log; then
+            echo "::error::next start reported a startup error"; exit 1
+          fi
+          [ "$up" = 1 ] || { echo "::error::app never responded on :$PORT"; exit 1; }
+          echo "App responded (HTTP $code)"
+
   # ── 3. Push, merge, deploy (no project code runs here) ──────────────
   ship:
     needs: [address, verify]
@@ -209,7 +239,6 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
-      actions: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       BRANCH: ${{ github.event.pull_request.head.ref }}
@@ -260,7 +289,6 @@ jobs:
           if [ "$ok" = 1 ] && [ "$flagged" != "true" ] && [ "${{ vars.AGENT_FIX_AUTOMERGE }}" != "false" ]; then
             echo "Merging ($UPDATE_TYPE) with Claude's fix"
             gh pr merge "$PR" --squash --delete-branch --match-head-commit "$HEAD_SHA"
-            gh workflow run deploy-dev.yml --ref dev
           else
             echo "Needs a human ($UPDATE_TYPE, flagged: $flagged)"
             gh label create needs-human --color D93F0B --force
