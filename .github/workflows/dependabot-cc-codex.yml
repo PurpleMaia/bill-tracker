@@ -205,7 +205,8 @@ jobs:
       # Start the app the way Dokku runs it: devDependencies pruned, NODE_ENV=production.
       # Catches runtime-only breakage that build + unit tests miss (e.g. Next 15.5 needing
       # typescript at runtime to load next.config.ts). Any HTTP response counts as up;
-      # there is no database here, so pages may legitimately return 500.
+      # there is no database here, so pages may legitimately return 500. Like Dokku's
+      # uptime healthcheck, the app must also still be running and answering 10s later.
       - name: Smoke test production start
         env:
           NODE_ENV: production
@@ -222,13 +223,23 @@ jobs:
             kill -0 "$pid" 2>/dev/null || break
             sleep 2
           done
+
+          alive=0
+          if [ "$up" = 1 ]; then
+            sleep 10
+            code2=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/" || true)
+            kill -0 "$pid" 2>/dev/null && [ "$code2" != "000" ] && alive=1
+          fi
+
           kill "$pid" 2>/dev/null || true
+          pkill -f "next start" 2>/dev/null || true
           cat start.log
           if grep -qE "Installing TypeScript|Failed to load next.config|⨯" start.log; then
             echo "::error::next start reported a startup error"; exit 1
           fi
           [ "$up" = 1 ] || { echo "::error::app never responded on :$PORT"; exit 1; }
-          echo "App responded (HTTP $code)"
+          [ "$alive" = 1 ] || { echo "::error::app stopped running or responding within 10s"; exit 1; }
+          echo "App responded (HTTP $code) and was still up 10s later (HTTP $code2)"
 
   # ── 3. Push, merge, deploy (no project code runs here) ──────────────
   ship:
