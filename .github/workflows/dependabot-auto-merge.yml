@@ -1,8 +1,11 @@
-# Auto-merges Dependabot security updates (patch or minor) into dev, then deploys dev.
+# Auto-merges Dependabot security updates (patch or minor) into dev. It does NOT deploy:
+# the merge lands quietly and ships with the next normal merge to dev (or a manual
+# "Run workflow" on deploy-dev.yml).
 # dev -> main promotion stays manual, same as any other change.
 #
 # Flow:
-#   1. test    : install, typecheck, build, unit tests (read-only token).
+#   1. test    : install, typecheck, build, unit tests, production-start smoke test
+#                (read-only token).
 #                No lint: lint drift on dev would otherwise block every security update.
 #   2. decide  : wait for the Codex review
 #                  clean (👍 / "no major issues") -> merge if patch/minor, else needs-human
@@ -13,7 +16,7 @@
 #   3. flag-failure : tests failed -> needs-human
 #
 # No extra secrets: everything runs on GITHUB_TOKEN. A merge made with GITHUB_TOKEN does
-# not fire push-triggered workflows, so this workflow starts deploy-dev.yml explicitly.
+# not fire push-triggered workflows, which is why these merges don't deploy.
 #
 # Every Dependabot PR is a security update because the repo has no .github/dependabot.yml
 # (version updates are off). If you ever add one, routine bumps would auto-merge too.
@@ -57,6 +60,45 @@ jobs:
           OPENAI_API_KEY: ci-build-placeholder
       - run: pnpm test
 
+      # Start the app the way Dokku runs it: devDependencies pruned, NODE_ENV=production.
+      # Catches runtime-only breakage that build + unit tests miss (e.g. Next 15.5 needing
+      # typescript at runtime to load next.config.ts). Any HTTP response counts as up;
+      # there is no database here, so pages may legitimately return 500. Like Dokku's
+      # uptime healthcheck, the app must also still be running and answering 10s later.
+      - name: Smoke test production start
+        env:
+          NODE_ENV: production
+          PORT: 3999
+          OPENAI_API_KEY: ci-build-placeholder
+        run: |
+          pnpm prune --prod
+          pnpm start > start.log 2>&1 &
+          pid=$!
+          up=0
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/" || true)
+            if [ "$code" != "000" ]; then up=1; break; fi
+            kill -0 "$pid" 2>/dev/null || break
+            sleep 2
+          done
+
+          alive=0
+          if [ "$up" = 1 ]; then
+            sleep 10
+            code2=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/" || true)
+            kill -0 "$pid" 2>/dev/null && [ "$code2" != "000" ] && alive=1
+          fi
+
+          kill "$pid" 2>/dev/null || true
+          pkill -f "next start" 2>/dev/null || true
+          cat start.log
+          if grep -qE "Installing TypeScript|Failed to load next.config|⨯" start.log; then
+            echo "::error::next start reported a startup error"; exit 1
+          fi
+          [ "$up" = 1 ] || { echo "::error::app never responded on :$PORT"; exit 1; }
+          [ "$alive" = 1 ] || { echo "::error::app stopped running or responding within 10s"; exit 1; }
+          echo "App responded (HTTP $code) and was still up 10s later (HTTP $code2)"
+
   # ── 2a. Tests passed: wait for Codex, then merge or hand to a human ─
   decide:
     needs: [test]
@@ -66,7 +108,6 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
-      actions: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_REPO: ${{ github.repository }}
@@ -136,7 +177,6 @@ jobs:
               echo "Merging ($UPDATE_TYPE)"
               # Tests passed for exactly this commit; refuse if the branch moved since.
               gh pr merge "$PR_URL" --squash --delete-branch --match-head-commit "$HEAD_SHA"
-              gh workflow run deploy-dev.yml --ref dev
               ;;
             *)
               echo "Needs a human ($UPDATE_TYPE)"
