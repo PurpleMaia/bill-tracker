@@ -90,6 +90,8 @@ jobs:
       - name: Claude fixes the review
         if: steps.rounds.outputs.go == 'true'
         uses: anthropics/claude-code-action@v1
+        env:
+          OPENAI_API_KEY: ci-build-placeholder   # lets `pnpm build` run; see verify job
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -191,7 +193,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm typecheck
+      # src/services/llm.ts builds the OpenAI client at import time; next build needs a
+      # value (never a real key, and never called during the build).
       - run: pnpm build
+        env:
+          OPENAI_API_KEY: ci-build-placeholder
       - run: pnpm test
 
   # ── 3. Push, merge, deploy (no project code runs here) ──────────────
