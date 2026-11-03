@@ -348,7 +348,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   badges beside it — text-lg's default line-height made them sit
                   visually low against it. */}
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <DialogTitle className="text-lg font-semibold leading-none tracking-tight">
+                <DialogTitle data-bill-tour="number" className="text-lg font-semibold leading-none tracking-tight">
                   {bill.bill_number}
                 </DialogTitle>
                 {bill.dead && (
@@ -372,7 +372,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   deadlineName={nextDeadline?.name ?? null}
                 />
               </div>
-              <DialogDescription className="text-sm text-muted-foreground line-clamp-2 sm:line-clamp-1">
+              <DialogDescription data-bill-tour="title" className="text-sm text-muted-foreground line-clamp-2 sm:line-clamp-1">
                 {bill.bill_title}
               </DialogDescription>
             </div>
@@ -433,7 +433,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                 desktop only. On mobile they live in the sticky bottom action bar.
                 Contact Legislator is always enabled, so it sits in this shared
                 wrapper alongside whichever Write Testimony variant renders. */}
-            <div className="hidden sm:flex shrink-0 items-center gap-2">
+            <div data-bill-tour="actions" className="hidden sm:flex shrink-0 items-center gap-2">
               {trackSlot}
               {!user ? (
                 /* Logged-out (the dialog is reachable from public search): both
@@ -586,7 +586,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                       <p className="text-sm leading-relaxed">{billDetails?.description || bill.description}</p>
                     </div>
 
-                    <div>
+                    <div data-bill-tour="introducers">
                       <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Introducers</h3>
                       <p className="text-sm">{billDetails?.introducer || 'N/A'}</p>
                     </div>
@@ -650,7 +650,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
             );
 
             const activityPanel = (
-            <div className="flex flex-col min-h-0 h-full">
+            <div data-bill-tour="updates" className="flex flex-col min-h-0 h-full">
               <div className="px-4 sm:px-5 pt-4 sm:pt-5 pb-3 border-b shrink-0 flex items-center justify-between">
                 <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Status Updates
@@ -733,7 +733,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
 
                   {/* Sticky action bar — the testimony CTA in thumb reach; the
                       disabled reason is visible text (tooltips don't work on touch) */}
-                  <div className="shrink-0 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-1.5">
+                  <div data-bill-tour="actions" className="shrink-0 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-1.5">
                     {/* Two CTAs share a half-width row; Track Bill sits full
                         width beneath them. The labels are shortened here because
                         at half of a 375px screen the full verbiage wraps. */}
