@@ -41,6 +41,12 @@ export function LoginWall({
             Already have an account?{' '}
             <LoginLink className="font-medium text-primary underline-offset-4 hover:underline">Log in</LoginLink>
           </p>
+          <p className="text-sm text-muted-foreground">
+            New to bill tracking?{' '}
+            <Link href="/guide" className="font-medium text-primary underline-offset-4 hover:underline">
+              Read the quick guide
+            </Link>
+          </p>
         </CardContent>
       </Card>
     </div>

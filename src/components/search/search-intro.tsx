@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 /**
  * Front-door hero for the search page.
  *
@@ -55,7 +57,13 @@ export function SearchIntro({
           Search Hawai&#699;i legislation
         </h1>
         <p className="mx-auto mt-1.5 max-w-lg text-sm text-primary-foreground/80">
-          Search by bill number, title, or what the bill actually says, then track the ones you care about to your kanban board.
+          Search by bill number, title, or what the bill actually says, then track the ones you care about to your kanban board.{' '}
+          <Link
+            href="/guide"
+            className="whitespace-nowrap font-medium text-primary-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/60"
+          >
+            New here? Quick guide
+          </Link>
         </p>
       </div>
 
