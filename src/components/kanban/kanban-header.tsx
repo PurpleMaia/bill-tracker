@@ -24,22 +24,14 @@ interface KanbanHeaderProps {
   /**
    * 'own' (default): the normal board header — ViewScopeToggle + Track / New /
    * Export cluster, tags loaded for the viewer's active tenant.
-   * 'active-boards': read-only header for viewing another org's board — the
-   * action cluster is replaced by `rightSlot` (the org-switcher dropdown) and
-   * tags are derived from the bills already in context (the viewed org's).
+   * 'active-boards': read-only header for viewing another org's board — no
+   * action cluster (the org identity + switcher live in ActiveBoardBanner
+   * above), and tags are derived from the bills already in context.
    */
   variant?: 'own' | 'active-boards';
-  /** Rendered in the right-hand cluster; used by the active-boards variant for the org switcher. */
-  rightSlot?: React.ReactNode;
-  /**
-   * Rendered at the far left of the header row (where ViewScopeToggle sits on
-   * the normal board). The active-boards variant uses it for the org identity
-   * badge so "whose board am I on" reads first, left-to-right.
-   */
-  leftSlot?: React.ReactNode;
 }
 
-export function KanbanHeader({ variant = 'own', rightSlot, leftSlot }: KanbanHeaderProps) {
+export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
   const { user, activeTenant } = useAuth();
   const { showArchived, toggleShowArchived, bills } = useBills();
   const { view, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter, searchQuery, setSearchQuery } = useKanbanBoard();
@@ -197,37 +189,28 @@ export function KanbanHeader({ variant = 'own', rightSlot, leftSlot }: KanbanHea
 
   return (
     <div className="border-b bg-white shadow-md">
-      {/* Mobile: org identity badge on its own row (active-boards only), then
-          the search + filter + action row. */}
-      {isActiveBoards && leftSlot && (
-        <div className="md:hidden px-4 pt-2">{leftSlot}</div>
-      )}
+      {/* Mobile: search + filter + action row. */}
       <div className="md:hidden flex items-center gap-2 p-2 px-4">
         {renderSearchInput(mobileSearchRef, false)}
         {filterControls}
-        {isActiveBoards ? (
-          <div className="shrink-0">{rightSlot}</div>
-        ) : (
-          !isPublic && (
-            <>
-              <TrackBillDialog>
-                <Button size="icon" className="shrink-0" aria-label="Track a new bill">
-                  <UserPlus className="h-4 w-4" />
-                </Button>
-              </TrackBillDialog>
-              <ExportCsvDialog>
-                <Button variant="outline" size="icon" className="shrink-0" aria-label="Export bills (CSV or Excel)">
-                  <Download className="h-4 w-4" />
-                </Button>
-              </ExportCsvDialog>
-            </>
-          )
+        {!isActiveBoards && !isPublic && (
+          <>
+            <TrackBillDialog>
+              <Button size="icon" className="shrink-0" aria-label="Track a new bill">
+                <UserPlus className="h-4 w-4" />
+              </Button>
+            </TrackBillDialog>
+            <ExportCsvDialog>
+              <Button variant="outline" size="icon" className="shrink-0" aria-label="Export bills (CSV or Excel)">
+                <Download className="h-4 w-4" />
+              </Button>
+            </ExportCsvDialog>
+          </>
         )}
       </div>
 
       {/* Desktop */}
       <div className="hidden md:flex items-center gap-4 p-2 px-4">
-        {isActiveBoards && leftSlot && <div className="shrink-0">{leftSlot}</div>}
         {!isActiveBoards &&
           (isPublic ? (
             <div className="flex items-center gap-2 shrink-0">
@@ -248,32 +231,28 @@ export function KanbanHeader({ variant = 'own', rightSlot, leftSlot }: KanbanHea
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
-          {isActiveBoards ? (
-            rightSlot
-          ) : (
-            !isPublic && (
-              <>
-                {/* Track a bill: opens a dialog that sends the user to the search
-                    page, where bills are found and tracked in one click. */}
-                <TrackBillDialog />
-                {/* LEGACY FEATURE — "Manage Bills" button. This dates from when AI
-                    was used to add certain types of bills to an org's liking. We are
-                    not implementing this feature further, so it's hidden for now. */}
-                {/* {canAddRemoveBills && <NewBillButton />} */}
-                <TooltipProvider delayDuration={300}>
-                  <Tooltip>
-                    <ExportCsvDialog>
-                      <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" aria-label="Export bills (CSV or Excel)">
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                    </ExportCsvDialog>
-                    <TooltipContent>Export bills (CSV / Excel)</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </>
-            )
+          {!isActiveBoards && !isPublic && (
+            <>
+              {/* Track a bill: opens a dialog that sends the user to the search
+                  page, where bills are found and tracked in one click. */}
+              <TrackBillDialog />
+              {/* LEGACY FEATURE — "Manage Bills" button. This dates from when AI
+                  was used to add certain types of bills to an org's liking. We are
+                  not implementing this feature further, so it's hidden for now. */}
+              {/* {canAddRemoveBills && <NewBillButton />} */}
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <ExportCsvDialog>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="icon" aria-label="Export bills (CSV or Excel)">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                  </ExportCsvDialog>
+                  <TooltipContent>Export bills (CSV / Excel)</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </>
           )}
         </div>
       </div>

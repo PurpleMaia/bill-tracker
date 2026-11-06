@@ -14,14 +14,16 @@ export const NAV_ITEMS = [
   { href: '/boards/browse', label: 'Active Boards', mobileLabel: 'Boards', icon: LayoutGrid },
   // Always-available quick reference; the welcome tour also spotlights this tab.
   { href: '/guide', label: 'Guide', icon: BookOpen },
+  // Lands on Following; its empty state and login wall both point to Browse.
+  { href: '/boards', label: 'Active Boards', icon: LayoutGrid },
 ] as const;
 
 export function isNavItemActive(href: string, pathname: string) {
   // '/' is Discover (the landing page), so the bare root highlights that tab.
   if (href === '/discover') return pathname === '/' || pathname.startsWith('/discover');
-  // Active Boards owns the whole /boards tree, not just its own href, so the
-  // tab stays highlighted on /boards (View Board) too.
-  if (href === '/boards/browse') return pathname.startsWith('/boards');
+  // Active Boards owns the whole /boards tree, so the tab stays highlighted on
+  // /boards/browse too.
+  if (href === '/boards') return pathname.startsWith('/boards');
   return pathname.startsWith(href);
 }
 
