@@ -70,7 +70,7 @@ const STEPS: Step[] = [
     tips: [
       'Kanban: one column per stage, so you can see at a glance where each bill stands.',
       'Spreadsheet: the same bills as a table you can sort, filter, and export.',
-      'Calendar: the dates that matter. Colored dots mark when a bill was introduced, crossed over, went to conference, reached the Governor, or failed. Tap a day to see its bills.',
+      'Calendar: the dates that matter. Colored dots mark when a bill has a hearing scheduled, crossed over, went to conference, reached the Governor, or failed. Tap a day to see its bills.',
       'Search, tags, and years narrow whichever view you are in.',
     ],
   },
