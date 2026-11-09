@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { LoginLink } from '@/components/auth/login-link';
 
 /**
- * Gate for the View Board tab. Mirrors LoginWall, but sends visitors to
+ * Gate for the Following tab. Mirrors LoginWall, but sends visitors to
  * /boards/browse — the organization list stays public, only the boards
  * themselves require an account.
  */
@@ -17,10 +17,10 @@ export function BoardsLoginWall() {
       <Card className="w-full max-w-md text-center">
         <CardHeader>
           <Lock className="mx-auto h-10 w-10 text-muted-foreground" />
-          <CardTitle>Login to view active boards</CardTitle>
+          <CardTitle>Login to see boards you follow</CardTitle>
           <CardDescription>
-            Boards you follow appear here once you log in. You can still browse every public
-            organization without an account.
+            Boards from organizations you follow appear here once you log in. You can still
+            browse every public organization without an account.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-3">

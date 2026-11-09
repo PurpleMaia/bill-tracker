@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - dev
+  # Lets dependabot-auto-merge.yml / dependabot-cc-codex.yml deploy after merging:
+  # merges made with GITHUB_TOKEN don't fire the push trigger above.
+  workflow_dispatch:
 
 jobs:
   deploy-dev:

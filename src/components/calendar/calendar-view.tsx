@@ -91,7 +91,6 @@ export function CalendarView() {
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [hidden, setHidden] = useState<ReadonlySet<MilestoneType>>(new Set());
-  const [openBillId, setOpenBillId] = useState<string | null>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const { open: openBill } = useBillDialogParam();
 
@@ -281,12 +280,9 @@ export function CalendarView() {
           {/* Day detail — below the grid on small screens, right rail on lg */}
           {selectedDay && (
             <div className="lg:hidden">
-              <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={setOpenBillId} />
+              <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={openBill} />
             </div>
           )}
-          <div className="lg:hidden">
-            <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={openBill} />
-          </div>
 
           {/* Month list */}
           <section aria-label={`Milestones in ${format(month, 'MMMM yyyy')}`} className="space-y-2">

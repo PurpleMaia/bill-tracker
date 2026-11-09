@@ -66,7 +66,7 @@
     "hawaii-bill-diff": "^1.0.1",
     "kysely": "^0.28.8",
     "lucide-react": "^0.475.0",
-    "next": "15.2.6",
+    "next": "15.5.28",
     "openai": "^5.10.2",
     "pdf-parse": "^2.4.5",
     "pdfmake": "^0.2.23",
@@ -79,6 +79,7 @@
     "resend": "^6.3.0",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5",
     "xlsx": "^0.18.5",
     "zod": "^3.24.2"
   },
@@ -98,7 +99,12 @@
     "kysely-codegen": "^0.19.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5",
+    "vite": "^8.1.6",
     "vitest": "^4.1.6"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss@<8.5.23": "^8.5.23"
+    }
   }
 }

@@ -489,7 +489,7 @@ function Compose({
               <h2 className="text-sm font-semibold">Email script</h2>
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
-              One message goes to every chair. You may edit it freely. The greeting ("Dear Chair") is filled in for each legislator when you
+              One message goes to every chair. You may edit it freely. The greeting (&ldquo;Dear Chair&rdquo;) is filled in for each legislator when you
               send.
             </p>
             <div className="mb-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
