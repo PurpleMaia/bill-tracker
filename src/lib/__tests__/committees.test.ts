@@ -5,8 +5,10 @@ import {
   inferCurrentCommittee,
   hasJointReferral,
   jointReferralPartners,
+  currentCommitteeStep,
   type CommitteeNameMap,
 } from '../testimony/committees';
+import fixture from './fixtures/legislator-links.json';
 
 // Committee names are DB-backed now, so tests inject their own fixture map
 // rather than asserting against a hardcoded production table.
@@ -161,14 +163,16 @@ describe('inferCurrentCommittee', () => {
     expect(inferCurrentCommittee('AEN, WAM', reversed)).toBe('WAM');
   });
 
-  it('falls back to the last referral code when no update names a committee', () => {
-    const updates = [{ statustext: 'Introduced and passed First Reading.' }];
-    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('WAM');
+  // Referral order: the FIRST committee must be cleared first, so with no
+  // evidence the bill is still waiting in the first one.
+  it('falls back to the first referral code when no update names a committee', () => {
+    const updates = [{ statustext: 'Introduced.' }];
+    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('AEN');
   });
 
-  it('falls back to the last referral code with no updates at all', () => {
-    expect(inferCurrentCommittee('AEN, WAM', [])).toBe('WAM');
-    expect(inferCurrentCommittee('AEN, WAM', null)).toBe('WAM');
+  it('falls back to the first referral code with no updates at all', () => {
+    expect(inferCurrentCommittee('AEN, WAM', [])).toBe('AEN');
+    expect(inferCurrentCommittee('AEN, WAM', null)).toBe('AEN');
   });
 
   it('returns null when there is no committee assignment', () => {
@@ -178,7 +182,15 @@ describe('inferCurrentCommittee', () => {
 
   it('ignores codes in status text that are not part of the referral', () => {
     const updates = [{ statustext: 'The committee(s) on FIN scheduled a hearing.' }];
-    // FIN is not in this bill's referral list, so it's ignored; fall back to last.
-    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('WAM');
+    // FIN is not in this bill's referral list, so it's ignored; fall back to first.
+    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('AEN');
   });
+});
+
+describe('currentCommitteeStep (fixture contract)', () => {
+  for (const c of fixture.currentCommittee) {
+    it(c.name, () => {
+      expect(currentCommitteeStep(c.input)).toEqual(c.expected);
+    });
+  }
 });

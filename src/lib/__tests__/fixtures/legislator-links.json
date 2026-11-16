@@ -314,5 +314,152 @@
         ]
       }
     }
+  ],
+  "currentCommittee": [
+    {
+      "name": "waiting in second committee",
+      "input": {
+        "committeeAssignment": "AEN, WAM",
+        "updates": [
+          {
+            "statustext": "Passed Second Reading and referred to the committee(s) on WAM."
+          }
+        ],
+        "billStatus": "waiting2",
+        "dead": false
+      },
+      "expected": [
+        "WAM"
+      ]
+    },
+    {
+      "name": "joint step returns both",
+      "input": {
+        "committeeAssignment": "WLA/EIG, FIN",
+        "updates": [
+          {
+            "statustext": "Referred to the committee(s) on WLA/EIG."
+          }
+        ],
+        "billStatus": "introduced",
+        "dead": false
+      },
+      "expected": [
+        "WLA",
+        "EIG"
+      ]
+    },
+    {
+      "name": "deferral does not clear",
+      "input": {
+        "committeeAssignment": "AGR, FIN",
+        "updates": [
+          {
+            "statustext": "The committee(s) on AGR recommend(s) that the measure be deferred."
+          }
+        ],
+        "billStatus": "deferred1",
+        "dead": false
+      },
+      "expected": [
+        "AGR"
+      ]
+    },
+    {
+      "name": "out of committee is null (passedCommittees)",
+      "input": {
+        "committeeAssignment": "AEN, WAM",
+        "updates": [
+          {
+            "statustext": "Referred to the committee(s) on WAM."
+          }
+        ],
+        "billStatus": "passedCommittees",
+        "dead": false
+      },
+      "expected": null
+    },
+    {
+      "name": "out of committee is null (conferenceAssigned)",
+      "input": {
+        "committeeAssignment": "AEN, WAM",
+        "updates": [
+          {
+            "statustext": "Referred to the committee(s) on WAM."
+          }
+        ],
+        "billStatus": "conferenceAssigned",
+        "dead": false
+      },
+      "expected": null
+    },
+    {
+      "name": "out of committee is null (transmittedGovernor)",
+      "input": {
+        "committeeAssignment": "AEN, WAM",
+        "updates": [
+          {
+            "statustext": "Referred to the committee(s) on WAM."
+          }
+        ],
+        "billStatus": "transmittedGovernor",
+        "dead": false
+      },
+      "expected": null
+    },
+    {
+      "name": "out of committee is null (governorSigns)",
+      "input": {
+        "committeeAssignment": "AEN, WAM",
+        "updates": [
+          {
+            "statustext": "Referred to the committee(s) on WAM."
+          }
+        ],
+        "billStatus": "governorSigns",
+        "dead": false
+      },
+      "expected": null
+    },
+    {
+      "name": "dead is null",
+      "input": {
+        "committeeAssignment": "AEN, WAM",
+        "updates": [
+          {
+            "statustext": "Referred to the committee(s) on WAM."
+          }
+        ],
+        "billStatus": "waiting2",
+        "dead": true
+      },
+      "expected": null
+    },
+    {
+      "name": "no referral is null",
+      "input": {
+        "committeeAssignment": null,
+        "updates": [
+          {
+            "statustext": "Introduced."
+          }
+        ],
+        "billStatus": "introduced",
+        "dead": false
+      },
+      "expected": null
+    },
+    {
+      "name": "null status still computes",
+      "input": {
+        "committeeAssignment": "AGR, FIN",
+        "updates": null,
+        "billStatus": null,
+        "dead": false
+      },
+      "expected": [
+        "AGR"
+      ]
+    }
   ]
 }
