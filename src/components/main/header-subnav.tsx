@@ -26,7 +26,7 @@ export function HeaderSubNav() {
         <div className="hidden md:block">
           <ViewToggle />
         </div>
-        <div className="md:hidden">
+        <div className="md:hidden flex justify-center">
           <ViewToggle compact />
         </div>
       </>

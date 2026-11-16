@@ -75,6 +75,8 @@ export function WelcomeTour() {
   const [step, setStep] = useState<number | null>(null);
   const [target, setTarget] = useState<Rect | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  // Whether this run of the tour has navigated yet (see the navigation effect).
+  const navigatedRef = useRef(false);
   const nextRef = useRef<HTMLButtonElement>(null);
 
   const open = step !== null;
@@ -82,6 +84,7 @@ export function WelcomeTour() {
 
   const close = useCallback(() => {
     markTourSeen();
+    navigatedRef.current = false;
     setStep(null);
     setTarget(null);
   }, []);
@@ -104,11 +107,19 @@ export function WelcomeTour() {
   }, []);
 
   // Walk the user to the page each step describes. The tour is mounted in the
-  // main layout, so it survives the navigation.
+  // main layout, so it survives the navigation. Push once to leave the starting
+  // page, then replace, so after the tour the browser's Back returns to where
+  // the user started instead of replaying every tour page.
   useEffect(() => {
     if (!current) return;
     const path = tourStepPath(current, pathname);
-    if (path) router.push(path);
+    if (!path) return;
+    if (navigatedRef.current) {
+      router.replace(path);
+    } else {
+      navigatedRef.current = true;
+      router.push(path);
+    }
   }, [current, pathname, router]);
 
   // Measure the spotlight target, and keep it fresh on resize/scroll. Re-run on
@@ -161,22 +172,29 @@ export function WelcomeTour() {
 
   // Card placement: next to the spotlight (below it for the header, above it
   // for the mobile bottom bar), clamped to the viewport. No target = centered.
+  // maxHeight is the space actually left on that side, so on short viewports
+  // the card scrolls internally instead of running off-screen.
   let cardStyle: React.CSSProperties;
+  const vh = window.innerHeight;
   if (target) {
     const vw = window.innerWidth;
-    const vh = window.innerHeight;
     const width = cardWidth(vw);
     const centerX = target.left + target.width / 2;
     const left = Math.max(GUTTER, Math.min(centerX - width / 2, vw - width - GUTTER));
     const below = target.top + target.height / 2 < vh / 2;
-    cardStyle = below
-      ? { top: target.top + target.height + SPOT_PAD + GUTTER, left, width }
-      : { bottom: vh - target.top + SPOT_PAD + GUTTER, left, width };
+    if (below) {
+      const top = target.top + target.height + SPOT_PAD + GUTTER;
+      cardStyle = { top, left, width, maxHeight: vh - top - GUTTER };
+    } else {
+      const bottom = vh - target.top + SPOT_PAD + GUTTER;
+      cardStyle = { bottom, left, width, maxHeight: vh - bottom - GUTTER };
+    }
   } else {
     cardStyle = {
       top: '50%',
       left: '50%',
       width: cardWidth(window.innerWidth),
+      maxHeight: vh - GUTTER * 2,
       transform: 'translate(-50%, -50%)',
     };
   }
@@ -206,7 +224,7 @@ export function WelcomeTour() {
         aria-modal="true"
         aria-labelledby="welcome-tour-title"
         aria-describedby="welcome-tour-body"
-        className="absolute max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-lg border bg-background p-4 text-foreground shadow-xl"
+        className="absolute overflow-y-auto rounded-lg border bg-background p-4 text-foreground shadow-xl"
         style={cardStyle}
       >
         {current.target && (
