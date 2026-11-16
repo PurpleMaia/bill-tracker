@@ -77,19 +77,21 @@ const STEPS: Step[] = [
   {
     icon: FileText,
     video: 'testimonies',
-    title: 'Speak up with testimony',
+    title: 'Speak up on a bill',
     where: 'Testimonies',
     href: '/testimonies',
     body: (
       <>
         Testimony is your chance to tell a committee what you think of a bill. The guided editor
         walks you through three steps: <strong>Write</strong>, <strong>Review</strong>, and{' '}
-        <strong>Submit</strong>.
+        <strong>Submit</strong>. You can also reach out to your legislators directly with{' '}
+        <strong>Contact Legislator</strong>.
       </>
     ),
     tips: [
       'Testimony is generally due 24 hours before the hearing, so check the hearing date first.',
       'Your drafts are saved here, and so are the ones you have submitted.',
+      'Open any bill and press Contact Legislator to write to the lawmakers who can act on it. Once a bill reaches the Governor, the button becomes Contact Governor.',
     ],
   },
   {
@@ -117,7 +119,9 @@ const TERMS: { term: string; meaning: string }[] = [
 
 export default function GuidePage() {
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:py-12">
+    // Widens on larger screens so the step videos (16:9 screen recordings) stay
+    // readable instead of shrinking to a thumbnail.
+    <div className="mx-auto max-w-2xl px-4 py-8 sm:py-12 lg:max-w-3xl 2xl:max-w-4xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Getting started</h1>
         <ReplayTourButton />
@@ -147,22 +151,20 @@ export default function GuidePage() {
                 </p>
                 <h2 className="mt-0.5 text-lg font-semibold">{step.title}</h2>
                 <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
-                {step.video && (
-                  <StepVideo
-                    name={step.video}
-                    label={`${step.title} demo`}
-                    className="mt-3 max-w-md"
-                  />
-                )}
-                {step.tips.length > 0 && (
-                  <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-muted-foreground marker:text-olive-dark">
-                    {step.tips.map((tip) => (
-                      <li key={tip}>{tip}</li>
-                    ))}
-                  </ul>
-                )}
               </div>
             </div>
+            {/* Full card width (not indented under the icon) so the clip gets
+                as much room as the screen allows. */}
+            {step.video && (
+              <StepVideo name={step.video} label={`${step.title} demo`} className="mt-4" />
+            )}
+            {step.tips.length > 0 && (
+              <ul className="ml-12 mt-3 list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-muted-foreground marker:text-olive-dark">
+                {step.tips.map((tip) => (
+                  <li key={tip}>{tip}</li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
       </ol>

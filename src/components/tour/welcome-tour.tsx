@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/core/utils';
 import { StepVideo } from './step-video';
@@ -10,9 +10,9 @@ import {
   TOUR_STEPS,
   TOUR_STORAGE_KEY,
   shouldAutoStartTour,
+  tourStepPath,
 } from '@/lib/tour/welcome-tour';
 
-const CARD_WIDTH = 320;
 const GUTTER = 12;
 const SPOT_PAD = 6;
 
@@ -21,6 +21,15 @@ interface Rect {
   left: number;
   width: number;
   height: number;
+}
+
+/**
+ * Card width per viewport, sized so the 16:9 screen recordings stay legible:
+ * full-bleed on phones, then stepping up for tablets, laptops, and big screens.
+ */
+function cardWidth(vw: number): number {
+  const width = vw >= 1536 ? 720 : vw >= 1024 ? 560 : vw >= 640 ? 480 : vw;
+  return Math.min(width, vw - GUTTER * 2);
 }
 
 function hasSeenTour(): boolean {
@@ -57,10 +66,12 @@ function findVisibleTarget(href: string): Rect | null {
 
 /**
  * First-visit tour: dims the page and spotlights each main navigation tab in
- * turn. Auto-starts once on the landing pages; replayable via TOUR_START_EVENT.
+ * turn, navigating to that tab's page so the feature shows behind the card.
+ * Auto-starts once on the landing pages; replayable via TOUR_START_EVENT.
  */
 export function WelcomeTour() {
   const pathname = usePathname();
+  const router = useRouter();
   const [step, setStep] = useState<number | null>(null);
   const [target, setTarget] = useState<Rect | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -79,7 +90,9 @@ export function WelcomeTour() {
   // the header has laid out before we measure it.
   useEffect(() => {
     if (!shouldAutoStartTour(pathname, hasSeenTour())) return;
-    const t = window.setTimeout(() => setStep(0), 600);
+    // Functional update: the tour itself navigates back to /discover on "Back",
+    // which must not restart a tour that's already running.
+    const t = window.setTimeout(() => setStep((s) => s ?? 0), 600);
     return () => window.clearTimeout(t);
   }, [pathname]);
 
@@ -90,7 +103,16 @@ export function WelcomeTour() {
     return () => window.removeEventListener(TOUR_START_EVENT, start);
   }, []);
 
-  // Measure the spotlight target, and keep it fresh on resize/scroll.
+  // Walk the user to the page each step describes. The tour is mounted in the
+  // main layout, so it survives the navigation.
+  useEffect(() => {
+    if (!current) return;
+    const path = tourStepPath(current, pathname);
+    if (path) router.push(path);
+  }, [current, pathname, router]);
+
+  // Measure the spotlight target, and keep it fresh on resize/scroll. Re-run on
+  // navigation too, since the new page can shift layout.
   useLayoutEffect(() => {
     if (!current?.target) {
       setTarget(null);
@@ -104,7 +126,7 @@ export function WelcomeTour() {
       window.removeEventListener('resize', measure);
       window.removeEventListener('scroll', measure, true);
     };
-  }, [current]);
+  }, [current, pathname]);
 
   // Move focus to the primary action on each step; Escape skips; Tab stays inside.
   useEffect(() => {
@@ -143,7 +165,7 @@ export function WelcomeTour() {
   if (target) {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const width = Math.min(CARD_WIDTH, vw - GUTTER * 2);
+    const width = cardWidth(vw);
     const centerX = target.left + target.width / 2;
     const left = Math.max(GUTTER, Math.min(centerX - width / 2, vw - width - GUTTER));
     const below = target.top + target.height / 2 < vh / 2;
@@ -154,7 +176,7 @@ export function WelcomeTour() {
     cardStyle = {
       top: '50%',
       left: '50%',
-      width: Math.min(CARD_WIDTH + 40, window.innerWidth - GUTTER * 2),
+      width: cardWidth(window.innerWidth),
       transform: 'translate(-50%, -50%)',
     };
   }
@@ -184,11 +206,18 @@ export function WelcomeTour() {
         aria-modal="true"
         aria-labelledby="welcome-tour-title"
         aria-describedby="welcome-tour-body"
-        className="absolute rounded-lg border bg-background p-4 text-foreground shadow-xl"
+        className="absolute max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-lg border bg-background p-4 text-foreground shadow-xl"
         style={cardStyle}
       >
         {current.target && (
-          <StepVideo key={current.id} name={current.id} label={`${current.title} demo`} className="mb-3" />
+          <StepVideo
+            key={current.id}
+            name={current.id}
+            label={`${current.title} demo`}
+            // Cap the height so the card's text and buttons stay on screen on
+            // short or landscape viewports; object-contain keeps the whole frame.
+            className="mb-3 max-h-[45dvh] object-contain"
+          />
         )}
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {isFirst ? 'Quick tour' : `${step} of ${TOUR_STEPS.length - 1}`}
