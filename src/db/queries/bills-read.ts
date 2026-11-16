@@ -757,7 +757,8 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
     .orderBy('id', 'desc')
     .limit(limit + 1); // one extra row tells us whether another page exists
 
-  const decoded = cursor ? decodeCursor(cursor) : null;
+  const decodedCursor = cursor ? decodeCursor(cursor, 'relevance') : null;
+  const decoded = decodedCursor?.mode === 'relevance' ? decodedCursor : null;
   if (decoded) {
     // Keyset: continue strictly after the last row's (rank, sort_stamp, id).
     // Row-comparison mirrors the ORDER BY exactly, so it can't skip or repeat.
@@ -817,6 +818,7 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
   const nextCursor =
     hasMore && last
       ? encodeCursor({
+          mode: 'relevance',
           rank: Number(last.rank),
           // sort_stamp, not updated_at — the cursor must carry the same value
           // the ORDER BY used, or the next page starts from the wrong place.

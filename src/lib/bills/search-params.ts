@@ -10,6 +10,13 @@ export type Chamber = 'house' | 'senate';
 /** 'tracked'/'untracked' are user-scoped and only meaningful when logged in. */
 export type TrackedFilter = 'all' | 'tracked' | 'untracked';
 
+/** Sessions treated as live. Single source for DEFAULT_FILTERS.years and current_committee. */
+export const LIVE_SESSION_YEARS: number[] = [2027, 2026];
+
+/** What the user picked; 'auto' is resolved to a SortMode by resolveSortMode. */
+export type SortChoice = 'auto' | 'relevance' | 'title';
+export type SortMode = 'relevance' | 'title';
+
 export interface SearchFilters {
   q: string;
   years: number[];
@@ -17,6 +24,11 @@ export interface SearchFilters {
   stages: string[];
   deadFilter: DeadFilter;
   trackedFilter: TrackedFilter;
+  /** Legislator id (uuid) of a bill introducer, or null. */
+  introducerId: string | null;
+  /** Legislator id (uuid) of a committee chair/vice chair the bill awaits, or null. */
+  chairId: string | null;
+  sort: SortChoice;
 }
 
 /**
@@ -27,12 +39,45 @@ export interface SearchFilters {
  */
 export const DEFAULT_FILTERS: SearchFilters = {
   q: '',
-  years: [2027, 2026],
+  years: [...LIVE_SESSION_YEARS],
   chambers: [],
   stages: [],
   deadFilter: 'all',
   trackedFilter: 'all',
+  introducerId: null,
+  chairId: null,
+  sort: 'auto',
 };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Canonical 8-4-4-4-12 hex uuid, any case. */
+export function isUuid(s: string): boolean {
+  return UUID_RE.test(s);
+}
+
+function asUuidOrNull(v: unknown): string | null {
+  return typeof v === 'string' && isUuid(v) ? v : null;
+}
+
+/**
+ * Explicit sort wins. 'auto' browses alphabetically when a legislator filter is
+ * active and there is no text query (no relevance to rank by); otherwise relevance.
+ */
+export function resolveSortMode(
+  f: Pick<SearchFilters, 'q' | 'introducerId' | 'chairId' | 'sort'>,
+): SortMode {
+  if (f.sort === 'title' || f.sort === 'relevance') return f.sort;
+  const hasLegislator = f.introducerId !== null || f.chairId !== null;
+  return hasLegislator && f.q.trim() === '' ? 'title' : 'relevance';
+}
+
+/** Title sort key: lowercased trimmed title, else trimmed bill number, else ''. */
+export function titleSortKey(title: string | null, billNumber: string | null): string {
+  const t = (title ?? '').trim();
+  if (t) return t.toLowerCase();
+  return (billNumber ?? '').trim().toLowerCase();
+}
 
 export const SEARCH_PAGE_SIZE = 40;
 
@@ -83,6 +128,9 @@ export function normalizeFilters(filters: SearchFilters): SearchFilters {
     stages: [...filters.stages].sort(),
     deadFilter: filters.deadFilter,
     trackedFilter: filters.trackedFilter,
+    introducerId: filters.introducerId,
+    chairId: filters.chairId,
+    sort: filters.sort,
   };
 }
 
@@ -96,31 +144,42 @@ export function activeFilterCount(filters: SearchFilters): number {
   if (filters.stages.length > 0) count++;
   if (filters.deadFilter !== DEFAULT_FILTERS.deadFilter) count++;
   if (filters.trackedFilter !== DEFAULT_FILTERS.trackedFilter) count++;
+  if (filters.introducerId) count++;
+  if (filters.chairId) count++;
   return count;
 }
 
-export interface SearchCursor {
-  rank: number;
-  updatedAt: string;
-  id: string;
-}
+export type SearchCursor =
+  | { mode: 'relevance'; rank: number; updatedAt: string; id: string }
+  | { mode: 'title'; key: string; id: string };
 
-/** Keyset cursor. Base64 keeps it opaque and URL-safe. */
+/**
+ * Keyset cursor. Base64 keeps it opaque and URL-safe. Relevance keeps the
+ * original [rank, updatedAt, id] tuple so old bookmarked cursors still decode;
+ * title is ['t', key, id].
+ */
 export function encodeCursor(cursor: SearchCursor): string {
-  const json = JSON.stringify([cursor.rank, cursor.updatedAt, cursor.id]);
+  const json =
+    cursor.mode === 'title'
+      ? JSON.stringify(['t', cursor.key, cursor.id])
+      : JSON.stringify([cursor.rank, cursor.updatedAt, cursor.id]);
   return Buffer.from(json, 'utf8').toString('base64url');
 }
 
-export function decodeCursor(raw: string): SearchCursor | null {
+/** Returns null when the cursor is malformed or belongs to the other sort mode. */
+export function decodeCursor(raw: string, mode: SortMode): SearchCursor | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
     if (!Array.isArray(parsed) || parsed.length !== 3) return null;
-    const [rank, updatedAt, id] = parsed;
-    if (typeof rank !== 'number' || typeof updatedAt !== 'string' || typeof id !== 'string') {
-      return null;
+    const [a, b, id] = parsed;
+    if (typeof id !== 'string') return null;
+    if (mode === 'title') {
+      if (a !== 't' || typeof b !== 'string') return null;
+      return { mode: 'title', key: b, id };
     }
-    return { rank, updatedAt, id };
+    if (typeof a !== 'number' || typeof b !== 'string') return null;
+    return { mode: 'relevance', rank: a, updatedAt: b, id };
   } catch {
     return null;
   }
@@ -139,6 +198,9 @@ export function filtersToQueryString(
   if (n.stages.length) qs.set('stages', n.stages.join(','));
   if (n.deadFilter !== 'all') qs.set('dead', n.deadFilter);
   if (n.trackedFilter !== 'all') qs.set('tracked', n.trackedFilter);
+  if (n.introducerId) qs.set('introducer', n.introducerId);
+  if (n.chairId) qs.set('chair', n.chairId);
+  if (n.sort !== 'auto') qs.set('sort', n.sort);
   if (cursor) qs.set('cursor', cursor);
   return qs.toString();
 }
@@ -155,6 +217,7 @@ export function parseSearchParams(params: URLSearchParams): SearchFilters {
   const stages = (params.get('stages') ?? '').split(',').filter(Boolean);
   const dead = params.get('dead');
   const tracked = params.get('tracked');
+  const sort = params.get('sort');
 
   return {
     q: params.get('q') ?? '',
@@ -163,5 +226,8 @@ export function parseSearchParams(params: URLSearchParams): SearchFilters {
     stages,
     deadFilter: dead === 'alive' || dead === 'dead' ? dead : 'all',
     trackedFilter: tracked === 'tracked' || tracked === 'untracked' ? tracked : 'all',
+    introducerId: asUuidOrNull(params.get('introducer')),
+    chairId: asUuidOrNull(params.get('chair')),
+    sort: sort === 'relevance' || sort === 'title' ? sort : 'auto',
   };
 }

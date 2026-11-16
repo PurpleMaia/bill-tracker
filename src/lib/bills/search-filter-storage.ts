@@ -12,11 +12,13 @@
  * No DB access — safe for src/lib. Mirrors board-filter-storage.ts.
  */
 
+import { isUuid } from '@/lib/bills/search-params';
 import type {
   SearchFilters,
   Chamber,
   DeadFilter,
   TrackedFilter,
+  SortChoice,
 } from '@/lib/bills/search-params';
 
 const STORAGE_KEY = 'billSearchFilters';
@@ -53,7 +55,22 @@ export function loadSearchFilters(): SearchFilters | null {
       ? (value.trackedFilter as TrackedFilter)
       : 'all';
 
-    return { q, years, chambers, stages, deadFilter, trackedFilter };
+    const idOrNull = (v: unknown): string | null =>
+      typeof v === 'string' && isUuid(v) ? v : null;
+    const sort: SortChoice =
+      value.sort === 'relevance' || value.sort === 'title' ? value.sort : 'auto';
+
+    return {
+      q,
+      years,
+      chambers,
+      stages,
+      deadFilter,
+      trackedFilter,
+      introducerId: idOrNull(value.introducerId),
+      chairId: idOrNull(value.chairId),
+      sort,
+    };
   } catch {
     return null;
   }

@@ -31,6 +31,9 @@ const FULL: SearchFilters = {
   stages: ['introduced', 'passed'],
   deadFilter: 'alive',
   trackedFilter: 'tracked',
+  introducerId: '123e4567-e89b-12d3-a456-426614174000',
+  chairId: 'abcdef01-2345-6789-abcd-ef0123456789',
+  sort: 'title',
 };
 
 const DEFAULTS_SHAPE: SearchFilters = {
@@ -40,6 +43,9 @@ const DEFAULTS_SHAPE: SearchFilters = {
   stages: [],
   deadFilter: 'all',
   trackedFilter: 'all',
+  introducerId: null,
+  chairId: null,
+  sort: 'auto',
 };
 
 describe('search-filter-storage', () => {
@@ -115,7 +121,31 @@ describe('search-filter-storage', () => {
         stages: ['ok', 'ok2'],
         deadFilter: 'dead',
         trackedFilter: 'untracked',
+        introducerId: null,
+        chairId: null,
+        sort: 'auto',
       });
+    });
+
+    it('loads a legacy blob missing the new fields with defaults', () => {
+      const store = installMockStorage();
+      store.set('billSearchFilters', JSON.stringify({ q: 'x', years: [2026] }));
+      const loaded = loadSearchFilters();
+      expect(loaded?.introducerId).toBeNull();
+      expect(loaded?.chairId).toBeNull();
+      expect(loaded?.sort).toBe('auto');
+    });
+
+    it('loads a non-uuid id as null', () => {
+      const store = installMockStorage();
+      store.set(
+        'billSearchFilters',
+        JSON.stringify({ introducerId: 'abc', chairId: '1;drop', sort: 'bogus' }),
+      );
+      const loaded = loadSearchFilters();
+      expect(loaded?.introducerId).toBeNull();
+      expect(loaded?.chairId).toBeNull();
+      expect(loaded?.sort).toBe('auto');
     });
   });
 
