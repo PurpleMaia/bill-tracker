@@ -1,6 +1,7 @@
 'use client';
 
-import { LogIn, MessageSquareText } from 'lucide-react';
+import Link from 'next/link';
+import { CircleHelp, LogIn, MessageSquareText } from 'lucide-react';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -35,13 +36,30 @@ export function AuthHeader() {
         // reads as secondary and never crowds the centered sub-nav. The label is
         // carried by the tooltip + aria-label. The login page offers sign-up.
         // Tighter gap keeps the login/feedback pair reading as one cluster.
+        // The Guide gets the same compact treatment, since it too lives in the
+        // account menu for signed-in users.
         <div className="flex items-center gap-1">
           <Button asChild variant="outline" className="h-10 shadow-sm text-primary bg-white">
             <LoginLink>
               <LogIn className="mr-1" />
               Login
             </LoginLink>
-          </Button>
+          </Button>          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                asChild
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 shadow-sm text-primary bg-white"
+              >
+                <Link href="/guide" aria-label="Guide">
+                  <CircleHelp className="h-4 w-4" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Guide</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
