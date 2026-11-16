@@ -10,9 +10,18 @@ import { useAuth } from './auth-context';
 
 const LAST_ORG_KEY = 'activeBoardsLastOrgId';
 
+export type FollowedStatus = 'loading' | 'ready' | 'error';
+
 interface ActiveBoardsContextType {
   followedOrgs: PublicOrg[];
+  /**
+   * Whether followedOrgs has loaded. An empty list only means "follows no one"
+   * once this is 'ready'; before that it's just not fetched yet.
+   */
+  followedStatus: FollowedStatus;
   refreshFollowed: () => Promise<void>;
+  /** Reload the followed list after a failure, flipping followedStatus back. */
+  retryFollowed: () => Promise<void>;
   selectedOrgId: string | null;
   selectOrg: (tenantId: string) => void;
   bills: Bill[];
@@ -30,6 +39,7 @@ const ActiveBoardsContext = createContext<ActiveBoardsContextType | undefined>(u
 
 export function ActiveBoardsProvider({ children }: { children: ReactNode }) {
   const [followedOrgs, setFollowedOrgs] = useState<PublicOrg[]>([]);
+  const [followedStatus, setFollowedStatus] = useState<FollowedStatus>('loading');
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
   const [bills, setBills] = useState<Bill[]>([]);
   const [loadingBills, setLoadingBills] = useState(false);
@@ -79,6 +89,9 @@ export function ActiveBoardsProvider({ children }: { children: ReactNode }) {
     }
     const orgs = await data.boards.listFollowed();
     setFollowedOrgs(orgs);
+    // Set here, not just in loadFollowed, so a follow() after a failed load
+    // also clears the error.
+    setFollowedStatus('ready');
     // Reconcile selection: keep current if still followed, else restore
     // localStorage, else fall back to the first followed org.
     setSelectedOrgId((prev) => {
@@ -89,9 +102,21 @@ export function ActiveBoardsProvider({ children }: { children: ReactNode }) {
     });
   }, [isSignedIn, user?.id]);
 
+  // refreshFollowed throws so follow/unfollow callers see failures; the
+  // mount-time load catches instead, surfacing it via followedStatus.
+  const loadFollowed = useCallback(async () => {
+    if (isSignedIn) setFollowedStatus('loading');
+    try {
+      await refreshFollowed();
+    } catch (e) {
+      console.error('Failed to load followed orgs:', e);
+      setFollowedStatus('error');
+    }
+  }, [refreshFollowed, isSignedIn]);
+
   useEffect(() => {
-    refreshFollowed();
-  }, [refreshFollowed]);
+    loadFollowed();
+  }, [loadFollowed]);
 
   const selectOrg = useCallback((tenantId: string) => {
     setSelectedOrgId(tenantId);
@@ -144,7 +169,8 @@ export function ActiveBoardsProvider({ children }: { children: ReactNode }) {
   return (
     <ActiveBoardsContext.Provider
       value={{
-        followedOrgs, refreshFollowed, selectedOrgId, selectOrg,
+        followedOrgs, followedStatus, refreshFollowed, retryFollowed: loadFollowed,
+        selectedOrgId, selectOrg,
         bills, loadingBills, testimonyBillIds, trackedBillIds, markBillTracked,
         follow, unfollow,
       }}

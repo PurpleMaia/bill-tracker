@@ -1,5 +1,6 @@
 import { Header } from '@/components/main/header';
 import { BottomTabBar } from '@/components/main/bottom-tab-bar';
+import { WelcomeTour } from '@/components/tour/welcome-tour';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <Header />
       <main id="main-content" className="min-h-0 flex-1 overflow-auto pb-14 md:pb-0">{children}</main>
       <BottomTabBar />
+      <WelcomeTour />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { findPermanentDeferral } from '@/lib/bills/dead-bill';
+import { parseHearingDatetime } from '@/lib/testimony/hearing-schedule';
 
 /**
  * Calendar milestones — the dated moments in a bill's life that the Calendar
@@ -6,11 +7,11 @@ import { findPermanentDeferral } from '@/lib/bills/dead-bill';
  * no DB access.
  */
 
-export type MilestoneType = 'introduced' | 'crossover' | 'conference' | 'governor' | 'failed';
+export type MilestoneType = 'testimony' | 'crossover' | 'conference' | 'governor' | 'failed';
 
 /** Display order, matching the legend in the calendar mockup. */
 export const MILESTONE_TYPES: readonly MilestoneType[] = [
-  'introduced',
+  'testimony',
   'crossover',
   'conference',
   'governor',
@@ -21,7 +22,7 @@ export const MILESTONE_META: Record<
   MilestoneType,
   { label: string; dotClass: string; rowClass: string }
 > = {
-  introduced: { label: 'Introduced', dotClass: 'bg-yellow-400', rowClass: 'bg-yellow-100' },
+  testimony: { label: 'Bill Hearing', dotClass: 'bg-yellow-400', rowClass: 'bg-yellow-100' },
   crossover: { label: 'Crossover', dotClass: 'bg-orange-400', rowClass: 'bg-orange-100' },
   conference: { label: 'Conference', dotClass: 'bg-cyan-400', rowClass: 'bg-cyan-100' },
   governor: { label: 'Governor', dotClass: 'bg-green-500', rowClass: 'bg-green-100' },
@@ -54,6 +55,8 @@ export interface BillMilestone {
   date: string;
   /** The action text that produced this milestone. */
   detail: string;
+  /** Time of day, e.g. "9:00 AM". Only testimony hearings have one. */
+  time: string | null;
 }
 
 /**
@@ -72,8 +75,27 @@ export function toIsoDay(raw: string | null | undefined): string | null {
   return `${parsed.getFullYear()}-${mm}-${dd}`;
 }
 
-const PATTERNS: ReadonlyArray<readonly [Exclude<MilestoneType, 'failed'>, RegExp]> = [
-  ['introduced', /^\s*introduced\b/],
+/** Types found by matching the action's text; testimony and failed are derived differently. */
+type TextMilestoneType = Exclude<MilestoneType, 'testimony' | 'failed'>;
+
+/** 12-hour clock label for a Date, e.g. "9:00 AM" or "12:30 PM". */
+export function formatClockTime(d: Date): string {
+  const hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${hours % 12 || 12}:${minutes} ${hours < 12 ? 'AM' : 'PM'}`;
+}
+
+/** Local YYYY-MM-DD for a Date. */
+function dayOf(d: Date): string {
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+/** A notice that schedules a hearing, as opposed to any other action that happens to mention a time. */
+const HEARING_NOTICE = /\b(scheduled|hearing|heard)\b/i;
+
+const PATTERNS: ReadonlyArray<readonly [TextMilestoneType, RegExp]> = [
   ['crossover', /transmitted to (the )?(senate|house)\b/],
   ['conference', /\bconferees?\b|\bconference committee\b/],
   [
@@ -83,7 +105,7 @@ const PATTERNS: ReadonlyArray<readonly [Exclude<MilestoneType, 'failed'>, RegExp
 ];
 
 /** Classify one action's text into a milestone, or null if it isn't one. */
-export function classifyUpdate(statustext: string): Exclude<MilestoneType, 'failed'> | null {
+export function classifyUpdate(statustext: string): TextMilestoneType | null {
   const text = statustext.toLowerCase();
   for (const [type, pattern] of PATTERNS) {
     if (pattern.test(text)) return type;
@@ -92,9 +114,12 @@ export function classifyUpdate(statustext: string): Exclude<MilestoneType, 'fail
 }
 
 /**
- * Derive a bill's milestones. Each non-failure type is reported once, at its
- * earliest matching action. `failed` is reported only for dead bills, dated at
- * the permanent deferral when there is one, otherwise the last recorded action.
+ * Derive a bill's milestones. Crossover, conference and governor are each
+ * reported once, at their earliest matching action. `testimony` is the hearing
+ * the bill is scheduled for: the date inside its most recent hearing notice (a
+ * later notice supersedes an earlier or rescheduled one), not the date the
+ * notice was posted. `failed` is reported only for dead bills, dated at the
+ * permanent deferral when there is one, otherwise the last recorded action.
  */
 export function extractMilestones(
   bill: MilestoneBill,
@@ -105,7 +130,12 @@ export function extractMilestones(
     .filter((u): u is { day: string; text: string } => u.day !== null && !!u.text)
     .sort((a, b) => a.day.localeCompare(b.day));
 
-  const make = (type: MilestoneType, date: string, detail: string): BillMilestone => ({
+  const make = (
+    type: MilestoneType,
+    date: string,
+    detail: string,
+    time: string | null = null,
+  ): BillMilestone => ({
     id: `${bill.id}:${type}`,
     billId: bill.id,
     billNumber: bill.bill_number,
@@ -113,12 +143,26 @@ export function extractMilestones(
     type,
     date,
     detail,
+    time,
   });
 
   const found = new Map<MilestoneType, BillMilestone>();
   for (const u of dated) {
     const type = classifyUpdate(u.text);
     if (type && !found.has(type)) found.set(type, make(type, u.day, u.text));
+  }
+
+  // The latest scheduling notice wins: `dated` is oldest-first, so scan from the end.
+  for (let i = dated.length - 1; i >= 0; i--) {
+    if (!HEARING_NOTICE.test(dated[i].text)) continue;
+    const hearingAt = parseHearingDatetime(dated[i].text);
+    if (hearingAt) {
+      found.set(
+        'testimony',
+        make('testimony', dayOf(hearingAt), dated[i].text, formatClockTime(hearingAt)),
+      );
+      break;
+    }
   }
 
   if (bill.dead) {

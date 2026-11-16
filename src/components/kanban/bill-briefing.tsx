@@ -48,7 +48,7 @@ export function BillBriefing({
       </div>
 
       {/* Progress through the legislative pipeline */}
-      <div>
+      <div data-bill-tour="stage">
         <TooltipProvider delayDuration={100}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -80,6 +80,7 @@ export function BillBriefing({
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <div
+          data-bill-tour="standing"
           className={cn(
             'rounded-md border p-2.5',
             dead && 'border-red-300 bg-red-50',
@@ -98,7 +99,7 @@ export function BillBriefing({
             {dead ? (deadReason ?? 'This bill is no longer moving.') : facts.standing}
           </p>
         </div>
-        <div className="rounded-md border p-2.5">
+        <div data-bill-tour="version" className="rounded-md border p-2.5">
           <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Latest version</h4>
           <p className="inline-flex items-center gap-1 text-[12px] text-foreground/80">
             {facts.latestVersionLabel ? (
@@ -119,7 +120,7 @@ export function BillBriefing({
             ) : 'No versions on file.'}
           </p>
         </div>
-        <div className="rounded-md border p-2.5">
+        <div data-bill-tour="committees" className="rounded-md border p-2.5">
           {facts.atConference ? (
             <>
               <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Conference committee</h4>

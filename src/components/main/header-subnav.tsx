@@ -12,8 +12,8 @@ import { ViewToggle } from './view-toggle';
  * the login wall); compact icon-only variant on mobile. It lives in the global header
  * rather than the board header so it stays reachable from the admin view.
  * /testimonies renders its All/Drafts/Submitted tabs (both logged-in only
- * — hidden over the login wall). /boards renders its View Board/Browse tabs
- * for everyone, since browsing public orgs needs no account; the View Board
+ * — hidden over the login wall). /boards renders its Following/Browse tabs
+ * for everyone, since browsing public orgs needs no account; the Following
  * tab itself gates. '/' and /discover render nothing yet; their sub-nav lands here later.
  */
 export function HeaderSubNav() {
@@ -47,7 +47,7 @@ export function HeaderSubNav() {
   }
 
   // Shown logged out too: Browse is public, so the tabs must stay reachable.
-  // View Board is still gated — it renders BoardsLoginWall for signed-out users.
+  // Following is still gated — it renders BoardsLoginWall for signed-out users.
   if (pathname.startsWith('/boards')) {
     return (
       <>

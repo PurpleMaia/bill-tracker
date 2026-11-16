@@ -13,8 +13,8 @@ import { Button } from '@/components/ui/button';
 
 export function OrgSwitcherDropdown() {
   const { followedOrgs, selectedOrgId, selectOrg } = useActiveBoards();
-  const current = followedOrgs.find((o) => o.tenantId === selectedOrgId);
-  if (followedOrgs.length === 0) return null;
+  // With one followed org there's nothing to switch to.
+  if (followedOrgs.length < 2) return null;
 
   return (
     <DropdownMenu>
@@ -22,9 +22,9 @@ export function OrgSwitcherDropdown() {
         <Button
           variant="outline"
           size="sm"
-          className="gap-1 border-transparent bg-olive-dark text-white hover:bg-olive-dark/90 hover:text-white"
+          className="shrink-0 gap-1 border-transparent bg-olive-dark text-white hover:bg-olive-dark/90 hover:text-white"
         >
-          <span className="max-w-[12rem] truncate">Viewing: {current?.name ?? 'Select org'}</span>
+          Switch org
           <ChevronDown className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
