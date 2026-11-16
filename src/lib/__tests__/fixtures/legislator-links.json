@@ -1,0 +1,128 @@
+{
+  "legislators": [
+    { "id": "00000000-0000-4000-8000-000000000001", "firstName": "Jarrett", "lastName": "Keohokalole", "chamber": "Senate" },
+    { "id": "00000000-0000-4000-8000-000000000002", "firstName": "Sharon", "lastName": "Moriwaki", "chamber": "Senate" },
+    { "id": "00000000-0000-4000-8000-000000000003", "firstName": "Mike", "lastName": "Lee", "chamber": "House" },
+    { "id": "00000000-0000-4000-8000-000000000004", "firstName": "Nicole", "lastName": "Lee", "chamber": "House" },
+    { "id": "00000000-0000-4000-8000-000000000005", "firstName": "Chris", "lastName": "Lee", "chamber": "Senate" },
+    { "id": "00000000-0000-4000-8000-000000000006", "firstName": "Adrian", "lastName": "Tam", "chamber": "House" },
+    { "id": "00000000-0000-4000-8000-000000000007", "firstName": "Darius", "lastName": "Kila", "chamber": "House" },
+    { "id": "00000000-0000-4000-8000-000000000008", "firstName": "Lisa", "lastName": "Kaʻāpuni", "chamber": "House" },
+    { "id": "00000000-0000-4000-8000-000000000009", "firstName": "Rachele", "lastName": "Kapela", "chamber": "House" },
+    { "id": "00000000-0000-4000-8000-000000000010", "firstName": "Maria", "lastName": "San Buenaventura", "chamber": "House" },
+    { "id": "00000000-0000-4000-8000-000000000011", "firstName": "Former", "lastName": "Ohana", "chamber": "House" }
+  ],
+  "introducers": [
+    {
+      "name": "primary and co-introducers keep source order",
+      "introducer": "KEOHOKALOLE, MORIWAKI",
+      "billNumber": "SB100",
+      "expected": {
+        "links": [
+          { "legislatorId": "00000000-0000-4000-8000-000000000001", "position": 0 },
+          { "legislatorId": "00000000-0000-4000-8000-000000000002", "position": 1 }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "name": "initial disambiguates same surname",
+      "introducer": "LEE, M.",
+      "billNumber": "HB1",
+      "expected": {
+        "links": [{ "legislatorId": "00000000-0000-4000-8000-000000000003", "position": 0 }],
+        "unresolved": []
+      }
+    },
+    {
+      "name": "bare ambiguous surname is unresolved",
+      "introducer": "LEE",
+      "billNumber": "HB1",
+      "expected": { "links": [], "unresolved": ["LEE"] }
+    },
+    {
+      "name": "chamber filters matches: Senate Lee resolves on an SB",
+      "introducer": "LEE, C.",
+      "billNumber": "SB1",
+      "expected": {
+        "links": [{ "legislatorId": "00000000-0000-4000-8000-000000000005", "position": 0 }],
+        "unresolved": []
+      }
+    },
+    {
+      "name": "chamber filters matches: Senate Lee is ignored on an HB",
+      "introducer": "LEE, C.",
+      "billNumber": "HB1",
+      "expected": { "links": [], "unresolved": ["LEE, C."] }
+    },
+    {
+      "name": "normalizes okina, macrons and case",
+      "introducer": "KAAPUNI, KAPELA",
+      "billNumber": "HB200",
+      "expected": {
+        "links": [
+          { "legislatorId": "00000000-0000-4000-8000-000000000008", "position": 0 },
+          { "legislatorId": "00000000-0000-4000-8000-000000000009", "position": 1 }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "name": "matches a multi-word surname",
+      "introducer": "SAN BUENAVENTURA",
+      "billNumber": "HB1",
+      "expected": {
+        "links": [{ "legislatorId": "00000000-0000-4000-8000-000000000010", "position": 0 }],
+        "unresolved": []
+      }
+    },
+    {
+      "name": "returns nothing for note-only strings",
+      "introducer": "(Introduced by request of another party)",
+      "billNumber": "HB1",
+      "expected": { "links": [], "unresolved": [] }
+    },
+    {
+      "name": "returns nothing for an empty string",
+      "introducer": "",
+      "billNumber": "HB1",
+      "expected": { "links": [], "unresolved": [] }
+    },
+    {
+      "name": "returns nothing for null",
+      "introducer": null,
+      "billNumber": "HB1",
+      "expected": { "links": [], "unresolved": [] }
+    },
+    {
+      "name": "same legislator listed twice keeps first position",
+      "introducer": "TAM, KILA, TAM",
+      "billNumber": "HB1",
+      "expected": {
+        "links": [
+          { "legislatorId": "00000000-0000-4000-8000-000000000006", "position": 0 },
+          { "legislatorId": "00000000-0000-4000-8000-000000000007", "position": 1 }
+        ],
+        "unresolved": []
+      }
+    },
+    {
+      "name": "former members still match",
+      "introducer": "OHANA",
+      "billNumber": "HB1",
+      "expected": {
+        "links": [{ "legislatorId": "00000000-0000-4000-8000-000000000011", "position": 0 }],
+        "unresolved": []
+      }
+    },
+    {
+      "name": "an unresolved token still consumes its source position",
+      "introducer": "NOBODY, KAPELA",
+      "billNumber": "HB1",
+      "expected": {
+        "links": [{ "legislatorId": "00000000-0000-4000-8000-000000000009", "position": 1 }],
+        "unresolved": ["NOBODY"]
+      }
+    }
+  ]
+}
