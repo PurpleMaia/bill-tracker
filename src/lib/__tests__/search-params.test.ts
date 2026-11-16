@@ -118,7 +118,7 @@ describe('cursor codec', () => {
       mode: 'relevance' as const,
       rank: 0.30879,
       updatedAt: '2026-06-29T20:25:47.016Z',
-      id: 'abc-123',
+      id: '11111111-1111-1111-1111-111111111111',
     };
     expect(decodeCursor(encodeCursor(cursor), 'relevance')).toEqual(cursor);
   });
@@ -129,7 +129,7 @@ describe('cursor codec', () => {
     expect(decodeCursor('', 'title')).toBeNull();
   });
 
-  const legacy = Buffer.from(JSON.stringify([0.5, '2026-01-01T00:00:00.000Z', 'id-1'])).toString(
+  const legacy = Buffer.from(JSON.stringify([0.5, '2026-01-01T00:00:00.000Z', '11111111-1111-1111-1111-111111111111'])).toString(
     'base64url',
   );
 
@@ -138,7 +138,7 @@ describe('cursor codec', () => {
       mode: 'relevance',
       rank: 0.5,
       updatedAt: '2026-01-01T00:00:00.000Z',
-      id: 'id-1',
+      id: '11111111-1111-1111-1111-111111111111',
     });
   });
 
@@ -147,15 +147,27 @@ describe('cursor codec', () => {
   });
 
   it('rejects a relevance cursor in title mode', () => {
-    const c = encodeCursor({ mode: 'relevance', rank: 1, updatedAt: 'x', id: 'y' });
+    const c = encodeCursor({ mode: 'relevance', rank: 1, updatedAt: '2026-01-01T00:00:00.000Z', id: '11111111-1111-1111-1111-111111111111' });
     expect(decodeCursor(c, 'title')).toBeNull();
   });
 
   it('round-trips a title cursor and rejects it in relevance mode', () => {
-    const c = { mode: 'title' as const, key: 'farm bill', id: 'abc' };
+    const c = { mode: 'title' as const, key: 'farm bill', id: '11111111-1111-1111-1111-111111111111' };
     const enc = encodeCursor(c);
     expect(decodeCursor(enc, 'title')).toEqual(c);
     expect(decodeCursor(enc, 'relevance')).toBeNull();
+  });
+
+  it('rejects a cursor whose id is not a uuid', () => {
+    const t = encodeCursor({ mode: 'title', key: 'k', id: 'not-a-uuid' });
+    expect(decodeCursor(t, 'title')).toBeNull();
+    const r = encodeCursor({ mode: 'relevance', rank: 1, updatedAt: '2026-01-01T00:00:00.000Z', id: 'not-a-uuid' });
+    expect(decodeCursor(r, 'relevance')).toBeNull();
+  });
+
+  it('rejects a relevance cursor with an invalid updatedAt', () => {
+    const r = encodeCursor({ mode: 'relevance', rank: 1, updatedAt: 'garbage', id: '11111111-1111-1111-1111-111111111111' });
+    expect(decodeCursor(r, 'relevance')).toBeNull();
   });
 });
 

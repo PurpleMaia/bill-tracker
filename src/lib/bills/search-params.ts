@@ -173,12 +173,13 @@ export function decodeCursor(raw: string, mode: SortMode): SearchCursor | null {
     const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
     if (!Array.isArray(parsed) || parsed.length !== 3) return null;
     const [a, b, id] = parsed;
-    if (typeof id !== 'string') return null;
+    if (typeof id !== 'string' || !isUuid(id)) return null;
     if (mode === 'title') {
       if (a !== 't' || typeof b !== 'string') return null;
       return { mode: 'title', key: b, id };
     }
     if (typeof a !== 'number' || typeof b !== 'string') return null;
+    if (Number.isNaN(new Date(b).getTime())) return null;
     return { mode: 'relevance', rank: a, updatedAt: b, id };
   } catch {
     return null;

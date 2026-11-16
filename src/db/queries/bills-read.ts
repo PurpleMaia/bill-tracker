@@ -8,6 +8,7 @@ import {
   encodeCursor,
   decodeCursor,
   resolveSortMode,
+  isUuid,
   SEARCH_PAGE_SIZE,
 } from '@/lib/bills/search-params';
 import { expandStagesToStatuses } from '@/lib/bills/detailed-stages';
@@ -595,14 +596,17 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
     stages,
     deadFilter,
     trackedFilter,
-    introducerId,
-    chairId,
     cursor,
     limit = SEARCH_PAGE_SIZE,
     userId,
     tenantId,
   } = params;
   const trimmed = (q ?? '').trim();
+  // The server-action arm passes these straight from the client; the route
+  // validates upstream. Treat a non-uuid as absent so both transports agree
+  // and the ::uuid casts below can never throw.
+  const introducerId = params.introducerId && isUuid(params.introducerId) ? params.introducerId : null;
+  const chairId = params.chairId && isUuid(params.chairId) ? params.chairId : null;
 
   // Per-user "does this user track this bill" flag. EXISTS keeps searchBills's
   // no-join contract intact (no rows are added or duplicated) while letting the
@@ -727,9 +731,10 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
   // coalesced stamp instead and use the identical expression in the cursor.
   const sortStamp = sql<Date>`coalesce(updated_at, 'epoch'::timestamptz)`;
 
-  const sortMode = resolveSortMode({ q: trimmed, introducerId: introducerId ?? null, chairId: chairId ?? null, sort: params.sort });
+  const sortMode = resolveSortMode({ q: trimmed, introducerId, chairId, sort: params.sort });
 
-  // Must equal titleSortKey() in search-params.ts for every row. COLLATE "C"
+  // The SQL key is the source of truth for paging (the cursor carries its value);
+  // it mirrors titleSortKey() in search-params.ts for display purposes. COLLATE "C"
   // makes ORDER BY and the keyset `>` byte-order and deterministic, independent
   // of the database's default collation. Same expression in SELECT/ORDER BY/keyset.
   const titleKey = sql<string>`(lower(coalesce(nullif(trim(bill_title), ''), nullif(trim(bill_number), ''), '')) collate "C")`;
