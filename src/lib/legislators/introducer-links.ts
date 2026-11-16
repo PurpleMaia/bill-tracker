@@ -45,11 +45,23 @@ export function resolveIntroducers(
   const unresolved: string[] = [];
   const seen = new Set<string>();
 
+  // Chamber comes from the bill number's first letter (SB/SR/SCR → Senate,
+  // HB/HR/HCR → House). parseIntroducers only distinguishes SB, so its chamber
+  // is ignored here. Any other prefix resolves nothing.
+  const first = billNumber.trim().charAt(0).toUpperCase();
+  const chamber = first === 'S' ? 'senate' : first === 'H' ? 'house' : null;
+  const markUnresolved = (text: string) => {
+    if (!unresolved.includes(text)) unresolved.push(text);
+  };
+
   parseIntroducers(introducer, billNumber).forEach((token, position) => {
+    if (!chamber) {
+      markUnresolved(token.surname);
+      return;
+    }
     const [rawSurname, rawInitial] = token.surname.split(', ');
     const surname = normalizeName(rawSurname);
     const initial = rawInitial ? normalizeName(rawInitial.replace(/\./g, '')) : '';
-    const chamber = token.chamber.toLowerCase();
 
     const candidates = legislators.filter(
       (l) =>
@@ -60,7 +72,7 @@ export function resolveIntroducers(
     );
 
     if (candidates.length !== 1) {
-      unresolved.push(token.surname);
+      markUnresolved(token.surname);
       return;
     }
     const { id } = candidates[0];
