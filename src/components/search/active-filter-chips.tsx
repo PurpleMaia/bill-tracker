@@ -2,12 +2,17 @@
 
 import { X } from 'lucide-react';
 import { stageLabel } from '@/lib/bills/stage-labels';
+import { cn } from '@/lib/core/utils';
+import { formatRoles } from '@/lib/legislators/legislator-labels';
+import { useLegislatorOptions } from '@/hooks/use-legislator-options';
 import { DEFAULT_FILTERS, type SearchFilters } from '@/lib/bills/search-params';
 
 interface Chip {
   key: string;
   label: string;
   onRemove: () => void;
+  /** Keep the label's own casing (names, committee codes) instead of capitalizing. */
+  keepCase?: boolean;
 }
 
 interface ActiveFilterChipsProps {
@@ -25,6 +30,7 @@ interface ActiveFilterChipsProps {
  * the user is already looking.
  */
 export function ActiveFilterChips({ filters, onChange, onClear }: ActiveFilterChipsProps) {
+  const { data: legislators } = useLegislatorOptions();
   const chips: Chip[] = [];
 
   // Year is the one filter with a non-empty default ([2026]), so a chip appears
@@ -84,6 +90,31 @@ export function ActiveFilterChips({ filters, onChange, onClear }: ActiveFilterCh
     });
   }
 
+  // Until options load (or if the id isn't in them) fall back to a generic
+  // label so the chip is still visible and removable.
+  if (filters.introducerId) {
+    const o = legislators?.find((l) => l.id === filters.introducerId);
+    chips.push({
+      key: 'introducer',
+      label: o ? `Introduced by ${o.lastName}` : 'Introduced by legislator',
+      onRemove: () => onChange({ ...filters, introducerId: null }),
+      keepCase: true,
+    });
+  }
+
+  if (filters.chairId) {
+    const o = legislators?.find((l) => l.id === filters.chairId);
+    const roles = o ? formatRoles(o) : '';
+    chips.push({
+      key: 'chair',
+      label: o
+        ? `Waiting on ${o.lastName}${roles ? ` (${roles})` : ''}`
+        : 'Waiting on legislator',
+      onRemove: () => onChange({ ...filters, chairId: null }),
+      keepCase: true,
+    });
+  }
+
   if (chips.length === 0) return null;
 
   return (
@@ -94,7 +125,10 @@ export function ActiveFilterChips({ filters, onChange, onClear }: ActiveFilterCh
           type="button"
           onClick={chip.onRemove}
           aria-label={`Remove ${chip.label} filter`}
-          className="inline-flex items-center gap-1 rounded-full border bg-muted/60 px-2.5 py-1 text-xs capitalize text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={cn(
+            'inline-flex items-center gap-1 rounded-full border bg-muted/60 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            !chip.keepCase && 'capitalize',
+          )}
         >
           {chip.label}
           <X className="h-3 w-3" aria-hidden="true" />
