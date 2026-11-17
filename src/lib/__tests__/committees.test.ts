@@ -6,7 +6,9 @@ import {
   hasJointReferral,
   jointReferralPartners,
   currentCommitteeStep,
+  resolveContactCommitteeStep,
   type CommitteeNameMap,
+  type StatusLine,
 } from '../testimony/committees';
 import fixture from './fixtures/legislator-links.json';
 
@@ -193,4 +195,38 @@ describe('currentCommitteeStep (fixture contract)', () => {
       expect(currentCommitteeStep(c.input)).toEqual(c.expected);
     });
   }
+});
+
+describe('resolveContactCommitteeStep', () => {
+  const base = {
+    committee_assignment: 'AGR',
+    updates: [] as StatusLine[],
+    current_bill_status: 'Introduced',
+    dead: false,
+  };
+
+  it('prefers the stored array', () => {
+    expect(resolveContactCommitteeStep({ ...base, current_committee: ['HHS', 'WAE'] })).toEqual(['HHS', 'WAE']);
+  });
+
+  it('falls back to live computation for null or empty stored values', () => {
+    const live = currentCommitteeStep({
+      committeeAssignment: 'AGR',
+      updates: base.updates,
+      billStatus: 'Introduced',
+      dead: false,
+    });
+    expect(resolveContactCommitteeStep({ ...base, current_committee: null })).toEqual(live);
+    expect(resolveContactCommitteeStep({ ...base, current_committee: [] })).toEqual(live);
+    expect(resolveContactCommitteeStep(base)).toEqual(live);
+  });
+
+  it('returns null when dead and nothing is stored', () => {
+    expect(resolveContactCommitteeStep({ ...base, dead: true })).toBeNull();
+  });
+
+  it('joint step: primary code (last) is the furthest-along committee', () => {
+    const step = resolveContactCommitteeStep({ ...base, current_committee: ['HHS', 'WAE'] })!;
+    expect(step[step.length - 1]).toBe('WAE');
+  });
 });

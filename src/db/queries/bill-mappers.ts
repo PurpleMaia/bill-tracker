@@ -159,6 +159,7 @@ export async function convertDataToBillShape(
     archived: bill.archived ?? false,
     dead: bill.dead ?? false,
     committee_assignment: bill.committee_assignment ?? null,
+    current_committee: bill.current_committee ?? null,
     introducer: bill.introducer ?? '',
     year: bill.year ?? null,
 

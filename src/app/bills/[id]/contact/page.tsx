@@ -30,9 +30,8 @@ import {
 } from '@/lib/legislators/governor-contact';
 import {
   committeeFullName,
-  inferCurrentCommittee,
   hasJointReferral,
-  jointReferralPartners,
+  resolveContactCommitteeStep,
   JOINT_REFERRAL_NOTE,
 } from '@/lib/testimony/committees';
 import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
@@ -154,26 +153,14 @@ export default function ContactLegislatorPage() {
   const groups = useMemo(() => groupByCommittee(chairs), [chairs]);
   const hasChairs = chairs.length > 0;
 
-  // The committee the bill is currently awaiting a hearing before — inferred
-  // once, then reused to both foreground its chairs and word the script.
-  const currentCode = useMemo(
-    () => inferCurrentCommittee(bill?.committee_assignment ?? null, bill?.updates),
-    [bill],
-  );
+  // The committee step the bill is currently in: the stored value when present,
+  // else computed live. For a JOINT referral (HHS/WAE) both committees hear it
+  // together, so BOTH are foregrounded; null when out of committee.
+  const step = useMemo(() => (bill ? resolveContactCommitteeStep(bill) : null), [bill]);
 
-  // The committee(s) currently holding the bill. For a JOINT referral (HHS/WAE)
-  // both committees hear it together, so BOTH are foregrounded — neither drops
-  // into the collapsed "other committees" list. For a normal referral this is
-  // just the one inferred group.
-  const currentCodes = useMemo(
-    () =>
-      new Set(
-        currentCode
-          ? jointReferralPartners(bill?.committee_assignment ?? null, currentCode)
-          : [],
-      ),
-    [bill?.committee_assignment, currentCode],
-  );
+  // Primary code for the script wording: the furthest-along committee of a joint step.
+  const currentCode = step ? step[step.length - 1] : null;
+  const currentCodes = useMemo(() => new Set(step ?? []), [step]);
   const currentGroups = useMemo(() => {
     const matched = groups.filter((g) => currentCodes.has(g.code));
     // Fall back to the first group so a bill whose inference misses still shows

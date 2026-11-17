@@ -188,3 +188,26 @@ export function currentCommitteeStep(input: {
   if (current === null) return null;
   return jointReferralPartners(input.committeeAssignment, current);
 }
+
+/**
+ * The committee step the contact page should foreground: the stored
+ * `current_committee` when it is a non-empty array, otherwise computed live
+ * (non-live years and rows not yet backfilled have no stored value).
+ */
+export function resolveContactCommitteeStep(bill: {
+  current_committee?: string[] | null;
+  committee_assignment: string | null;
+  updates: StatusLine[] | null | undefined;
+  current_bill_status: string | null;
+  dead: boolean;
+}): string[] | null {
+  if (Array.isArray(bill.current_committee) && bill.current_committee.length > 0) {
+    return bill.current_committee;
+  }
+  return currentCommitteeStep({
+    committeeAssignment: bill.committee_assignment,
+    updates: bill.updates,
+    billStatus: bill.current_bill_status || null,
+    dead: bill.dead,
+  });
+}

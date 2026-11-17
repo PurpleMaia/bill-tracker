@@ -76,6 +76,8 @@ export interface Bill {
   archived: boolean;
   dead: boolean;
   committee_assignment: string | null;
+  /** Stored current committee step (upper-cased codes; joint = two); null when none. */
+  current_committee?: string[] | null;
   introducer?: string;
 
   // client side attributes
