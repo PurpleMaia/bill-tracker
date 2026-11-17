@@ -45,9 +45,11 @@ export async function getPendingProposals(params: {
       .select([...PROPOSER_AND_BILL_SELECT])
       .where('pending_proposals.approval_status', '=', 'pending');
 
-    if (tenantId) {
-      query = query.where('pending_proposals.tenant_id', '=', tenantId);
-    }
+    // No tenant: only legacy NULL-tenant proposals, matching what
+    // findPendingProposalById lets the no-org path decide.
+    query = tenantId
+      ? query.where('pending_proposals.tenant_id', '=', tenantId)
+      : query.where('pending_proposals.tenant_id', 'is', null);
 
     return query.execute();
   } else if (userRole === 'supervisor') {
@@ -66,9 +68,9 @@ export async function getPendingProposals(params: {
       .where('supervisor_users.supervisor_id', '=', userId)
       .where('pending_proposals.approval_status', '=', 'pending');
 
-    if (tenantId) {
-      query = query.where('pending_proposals.tenant_id', '=', tenantId);
-    }
+    query = tenantId
+      ? query.where('pending_proposals.tenant_id', '=', tenantId)
+      : query.where('pending_proposals.tenant_id', 'is', null);
 
     return query.execute();
   } else {
@@ -186,7 +188,9 @@ export async function upsertProposal(params: {
  * When `tenantId` is provided, the proposal MUST belong to that tenant — this
  * prevents a tenant admin from approving/rejecting another org's proposal by id
  * (the caller only proved they are an admin of *their* tenant). When `tenantId`
- * is omitted (the legacy no-tenant path), no tenant filter is applied.
+ * is omitted (the legacy no-tenant path), only NULL-tenant proposals match, so a
+ * global admin/supervisor can't decide an org's proposal (and approving one
+ * would write the public bills.bill_status).
  */
 export async function findPendingProposalById(proposalId: string, tenantId?: string) {
   let query = db
@@ -195,9 +199,9 @@ export async function findPendingProposalById(proposalId: string, tenantId?: str
     .where('id', '=', proposalId)
     .where('approval_status', '=', 'pending');
 
-  if (tenantId) {
-    query = query.where('tenant_id', '=', tenantId);
-  }
+  query = tenantId
+    ? query.where('tenant_id', '=', tenantId)
+    : query.where('tenant_id', 'is', null);
 
   return query.executeTakeFirst();
 }

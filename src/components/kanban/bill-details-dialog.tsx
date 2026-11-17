@@ -311,7 +311,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
         onClose();
         return;
       }
-      await data.bills.updateStatus({ billId: bill.id, newStatus: selectedStatus });
+      await data.bills.updateStatus({ billId: bill.id, newStatus: selectedStatus, tenantId: activeTenant?.tenantId });
       setBills(prev => prev.map(b => b.id === bill.id
         ? { ...b, llm_suggested: false, llm_processing: false, previous_status: b.current_bill_status, current_bill_status: selectedStatus }
         : b

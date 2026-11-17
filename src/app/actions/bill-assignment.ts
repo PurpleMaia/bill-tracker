@@ -1,11 +1,9 @@
 'use server';
 
 import type { Bill } from '@/types/legislation';
-import type { User } from '@/db/types';
-import type { Selectable } from 'kysely';
 import { requireMembership, requireSession } from '@/lib/auth/auth-guards';
 import { validateMembership } from '@/db/queries/tenants';
-import { assignBill, unassignBillFromUser, getAssignableUsers } from '@/db/queries/bill-assignment';
+import { assignBill, unassignBillFromUser, getAssignableUsers, type AssignableUser } from '@/db/queries/bill-assignment';
 
 // ==============================================
 // BILL ASSIGNMENT — SERVER ACTIONS
@@ -21,7 +19,7 @@ async function resolveAssigner(tenantId?: string) {
 
 export async function getAssignableUsersAction(params: {
   tenantId?: string;
-}): Promise<Selectable<User>[]> {
+}): Promise<AssignableUser[]> {
   const user = await resolveAssigner(params.tenantId);
   return getAssignableUsers(user.id, params.tenantId);
 }

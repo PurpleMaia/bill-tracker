@@ -35,6 +35,8 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
   const { searchQuery, selectedTagIds, selectedYears, columnView } = useKanbanBoard();
   const { toast } = useToast();
   const { user, activeTenant } = useAuth();
+  // Status changes are org-scoped; users with no org can't move cards.
+  const isReadOnly = readOnly || !activeTenant;
 
   const {
     loadingBills: loading,
@@ -327,7 +329,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
   const onDragEnd = useCallback(
     async (result: DropResult) => {
       stopAutoPan();
-      if (readOnly) return;
+      if (isReadOnly) return;
 
       setDraggingBillId(null);
       const { source, destination, draggableId } = result;
@@ -400,7 +402,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
         });
       }
     },
-    [bills, readOnly, user, activeTenant, proposeStatusChange, toast, setBills, stopAutoPan]
+    [bills, isReadOnly, user, activeTenant, proposeStatusChange, toast, setBills, stopAutoPan]
   );
 
   // ===========================================================
@@ -463,7 +465,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
         onScrollToGovernor={scrollToGovernor}
       />
 
-      {(readOnly || isSimplified) ? (
+      {(isReadOnly || isSimplified) ? (
         <ScrollAreaPrimitive.Root className="relative min-h-0 w-full flex-1 overflow-hidden p-2 md:p-4">
           <ScrollAreaPrimitive.Viewport
             ref={viewportRef}

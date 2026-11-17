@@ -17,9 +17,9 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 import { useTrackedBills } from '@/hooks/use-tracked-bills';
 import { UserPlus } from 'lucide-react';
 import { getAssignableUsersAction } from '@/app/actions/bill-assignment';
-import { User } from '@/db/types';
-import { Selectable } from 'kysely';
 import { Bill } from '@/types/legislation';
+
+type AssignableUser = Awaited<ReturnType<typeof getAssignableUsersAction>>[number];
 
 interface AssignBillDialogProps {
   bill: Bill
@@ -28,7 +28,7 @@ interface AssignBillDialogProps {
 
 export function AssignBillDialog({ bill, trigger }: AssignBillDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [assignableUsers, setAssignableUsers] = useState<Selectable<User>[]>([]);
+  const [assignableUsers, setAssignableUsers] = useState<AssignableUser[]>([]);
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
   const [pendingUserIds, setPendingUserIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();

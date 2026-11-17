@@ -71,12 +71,13 @@ export interface UpdateBillStatusParams {
 /** Mirrors PATCH /api/bills/[id] { action: 'updateStatus' }. */
 export async function updateBillStatusAction(params: UpdateBillStatusParams): Promise<void> {
   const { billId, newStatus, tenantId } = params;
-  const { user } = await requireSession.fromAction();
-  if (tenantId) {
-    await requireMembership.fromAction(tenantId);
+  // Status changes are org-scoped only. Without a tenant, updateBillStatus would
+  // write the public bills.bill_status directly, which users with no org must
+  // not be able to do (public status comes from the AI + org consensus).
+  if (!tenantId) {
+    throw new Error('tenantId is required to update a bill status');
   }
-  // user is required for the mutation path (matches the route's auth requirement)
-  void user;
+  await requireMembership.fromAction(tenantId);
   await updateBillStatus(billId, newStatus, tenantId);
 }
 

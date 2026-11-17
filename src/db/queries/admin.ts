@@ -65,9 +65,11 @@ export async function selectPendingProposals(tenantId?: string): Promise<Pending
     ])
     .where('pending_proposals.approval_status', '=', 'pending');
 
-  if (tenantId) {
-    query = query.where('pending_proposals.tenant_id', '=', tenantId);
-  }
+  // No tenant: only legacy NULL-tenant proposals — the only ones the no-org
+  // decide path accepts (see findPendingProposalById).
+  query = tenantId
+    ? query.where('pending_proposals.tenant_id', '=', tenantId)
+    : query.where('pending_proposals.tenant_id', 'is', null);
 
   const proposals = await query.execute();
 

@@ -94,6 +94,11 @@ export async function PATCH(
 
     switch (action) {
       case 'updateStatus': {
+        // Org-scoped only: without a tenant this would write the public
+        // bills.bill_status directly (public status = AI + org consensus).
+        if (!tenantId) {
+          return NextResponse.json({ error: 'tenantId is required for status updates' }, { status: 400 });
+        }
         const { newStatus } = body;
         const bill = await updateBillStatus(billId, newStatus, tenantId);
         return NextResponse.json({ bill }, { status: 200 });
