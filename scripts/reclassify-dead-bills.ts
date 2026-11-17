@@ -31,6 +31,8 @@ async function main() {
       .set({
         bill_status: scheduledStatus,
         dead: true,
+        // A dead bill waits in no committee (see currentCommitteeStep).
+        current_committee: null,
       })
       .where('bill_status', '=', deferredStatus as BillStatus)
       .executeTakeFirst();
