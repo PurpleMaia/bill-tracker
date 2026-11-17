@@ -47,13 +47,23 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Active Boards',
     body: 'Browse the bills other organizations are tracking (view only).',
   },
-  {
-    id: 'guide',
-    target: '/guide',
-    title: 'Guide',
-    body: 'Come back to the Guide any time for a quick reference. You can replay this tour from there too.',
-  },
 ];
+
+/**
+ * The page a step walks the user to, so the tour shows each feature in place:
+ * a step's target doubles as its page. Null when the step has no page or the
+ * user is already on it (including a sub-page, or '/' for Discover), so we
+ * never navigate needlessly.
+ */
+export function tourStepPath(step: TourStep, pathname: string): string | null {
+  const page = step.target;
+  if (!page) return null;
+  const onPage =
+    pathname === page ||
+    pathname.startsWith(`${page}/`) ||
+    (page === '/discover' && pathname === '/');
+  return onPage ? null : page;
+}
 
 /** Paths that count as "initial landing" for auto-starting the tour. */
 const LANDING_PATHS: ReadonlySet<string> = new Set(['/', '/discover']);
@@ -66,7 +76,7 @@ export function shouldAutoStartTour(pathname: string, seen: boolean): boolean {
 /**
  * Optional short screen recordings, one per tour step, served from
  * public/tutorial/<step id>.mp4 (and .webm). A step whose file is missing simply
- * shows no video. Expected files: discover, your-bills, testimonies, boards, guide.
+ * shows no video. Expected files: discover, your-bills, testimonies, boards.
  */
 export const TUTORIAL_VIDEO_DIR = '/tutorial';
 

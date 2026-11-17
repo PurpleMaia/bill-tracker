@@ -284,18 +284,18 @@ export function BillBreakdownButton({
 
   return (
     <>
-      {/* The ripple sits in a wrapper BEHIND the button: a ping inside the
-          button would be painted over by the button's own fill. */}
+      {/* The halo sits in a wrapper BEHIND the button so it doesn't fight the
+          button's own shadow-sm; it pulses a few px out, then rests. */}
       <span className="relative inline-flex">
         <span
-          className="pointer-events-none absolute inset-0 rounded-full bg-yellow-400 opacity-70 motion-safe:animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"
+          className="pointer-events-none absolute inset-0 rounded-full motion-safe:animate-soft-ping"
           aria-hidden="true"
         />
         <Button
           size="sm"
           onClick={() => setTourOpen(true)}
           /* The one control that teaches the rest, so it must not read as just
-             another chip: a solid yellow pill with a radiating ripple and a guide
+             another chip: a solid yellow pill with a pulsing halo and a guide
              icon, where the surrounding badges (Failed, Fiscal) are muted. */
           className="relative h-7 gap-1.5 rounded-full border border-yellow-500/70 bg-yellow-400 px-2.5 text-xs font-semibold text-yellow-950 shadow-sm hover:bg-yellow-300 hover:text-yellow-950"
           aria-label="How to read this bill"

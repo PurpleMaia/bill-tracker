@@ -13,7 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Building2, LogOut, MessageSquareText, Settings, Shield, UserPen, UserPlus } from 'lucide-react';
+import Link from 'next/link';
+import { Building2, CircleHelp, LogOut, MessageSquareText, Settings, Shield, UserPen, UserPlus } from 'lucide-react';
 import { FEEDBACK_FORM_URL } from '@/lib/core/feedback';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useState, useCallback } from 'react';
@@ -169,6 +170,12 @@ export function UserMenu() {
           <DropdownMenuItem onSelect={openSettingsDialog} className='cursor-pointer'>
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild className='cursor-pointer'>
+            <Link href="/guide">
+              <CircleHelp className="mr-2 h-4 w-4" />
+              <span>Guide</span>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className='cursor-pointer'>
             <a href={FEEDBACK_FORM_URL} target="_blank" rel="noopener noreferrer">

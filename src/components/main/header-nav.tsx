@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, FileText, KanbanSquareIcon, LayoutGrid, Search } from 'lucide-react';
+import { FileText, KanbanSquareIcon, LayoutGrid, Search } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 
 export const NAV_ITEMS = [
@@ -11,8 +11,6 @@ export const NAV_ITEMS = [
   { href: '/testimonies', label: 'Testimonies', icon: FileText },
   // Lands on Following; its empty state and login wall both point to Browse.
   { href: '/boards', label: 'Active Boards', mobileLabel: 'Boards', icon: LayoutGrid },
-  // Always-available quick reference; the welcome tour also spotlights this tab.
-  { href: '/guide', label: 'Guide', icon: BookOpen },
 ] as const;
 
 export function isNavItemActive(href: string, pathname: string) {
