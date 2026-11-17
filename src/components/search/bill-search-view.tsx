@@ -36,6 +36,8 @@ import { loadSearchFilters, saveSearchFilters } from '@/lib/bills/search-filter-
 /** Sessions the corpus covers, newest first. Mirrors the rail's YEARS list. */
 const SESSION_YEARS = [2026];
 
+const SORT_LABELS: Record<SortMode, string> = { relevance: 'Relevance', title: 'Title A–Z' };
+
 export function BillSearchView() {
   const { user, activeTenant } = useAuth();
   const isLoggedIn = Boolean(user);
@@ -226,24 +228,25 @@ export function BillSearchView() {
                   )}
                 </p>
                 {/* Shows the effective order ('auto' resolved); picking one
-                    pins it explicitly so it no longer follows the auto rule. */}
+                    pins it explicitly so it no longer follows the auto rule.
+                    While 'auto', the value is a key no item has, so picking
+                    the option already shown still fires onValueChange and pins it. */}
                 <Select
-                  value={resolveSortMode(filters)}
+                  value={filters.sort === 'auto' ? `auto:${resolveSortMode(filters)}` : filters.sort}
                   onValueChange={(sort) => setFilters({ ...filters, sort: sort as SortMode })}
                 >
                   <SelectTrigger
                     aria-label="Sort results"
                     className="h-8 w-auto gap-1.5 border-none bg-transparent px-2 text-xs text-muted-foreground shadow-none hover:text-foreground"
                   >
-                    <SelectValue />
+                    <SelectValue>{SORT_LABELS[resolveSortMode(filters)]}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="relevance" className="text-xs">
-                      Relevance
-                    </SelectItem>
-                    <SelectItem value="title" className="text-xs">
-                      Title A–Z
-                    </SelectItem>
+                    {(['relevance', 'title'] as const).map((mode) => (
+                      <SelectItem key={mode} value={mode} className="text-xs">
+                        {SORT_LABELS[mode]}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
