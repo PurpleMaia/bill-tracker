@@ -1,4 +1,3 @@
-'use server'
 import { limitFixedWindow, retryAfterMs } from '@/lib/core/ratelimit-memory';
 // NOTE: due to the archive of 2025, bill URLS have changed
 // - when going to that link it appends the 'Archives' segment and redirects, so we need to handle both cases

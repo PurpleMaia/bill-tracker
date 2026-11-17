@@ -1,5 +1,3 @@
-'use server';
-
 import type { Bill } from '@/types/legislation';
 import { db } from '@/db/kysely/client';
 import { BillStatus, User } from '@/db/types';

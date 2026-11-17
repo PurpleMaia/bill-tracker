@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { X, Plus, Edit2, Trash2 } from 'lucide-react';
-import { getAllTags, createTag, updateTag, deleteTag } from '@/db/queries/tags';
+import { getTagsAction, createTagAction, updateTagAction, deleteTagAction } from '@/app/actions/tags';
 import type { Tag } from '@/types/legislation';
 import { toast } from '@/hooks/use-toast';
 import { useBills } from '@/hooks/contexts/bills-context';
@@ -43,7 +43,7 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
     setLoading(true);
     try {
       if (!activeTenant) return;
-      const fetchedTags = await getAllTags(activeTenant.tenantId);
+      const fetchedTags = await getTagsAction({ tenantId: activeTenant.tenantId });
       setTags(fetchedTags);
     } catch (error) {
       toast({
@@ -67,7 +67,7 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
     }
 
     try {
-      const newTag = await createTag(newTagName.trim(), newTagColor, activeTenant!.tenantId);
+      const newTag = await createTagAction({ name: newTagName.trim(), color: newTagColor, tenantId: activeTenant!.tenantId });
       setTags([...tags, newTag]);
       setNewTagName('');
       toast({
@@ -94,7 +94,7 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
     }
 
     try {
-      const updatedTag = await updateTag(tag.id, tag.name.trim(), tag.color || undefined, activeTenant!.tenantId);
+      const updatedTag = await updateTagAction({ id: tag.id, name: tag.name.trim(), color: tag.color || undefined, tenantId: activeTenant!.tenantId });
       setTags(tags.map(t => t.id === tag.id ? updatedTag : t));
       setEditingTag(null);
       toast({
@@ -118,7 +118,7 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
     }
 
     try {
-      await deleteTag(tagId, activeTenant!.tenantId);
+      await deleteTagAction({ id: tagId, tenantId: activeTenant!.tenantId });
       setTags(tags.filter(t => t.id !== tagId));
       toast({
         title: 'Success',

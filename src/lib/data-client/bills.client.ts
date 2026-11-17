@@ -1,4 +1,4 @@
-import type { Bill, CompareVersionsParams, SearchBillsParams, BillSearchResponse } from '@/types/legislation';
+import type { Bill, BillDetails, CompareVersionsParams, SearchBillsParams, BillSearchResponse } from '@/types/legislation';
 import type { VersionComparison } from '@/lib/versions/version-diff';
 import { defineClient } from './define-client';
 import {
@@ -10,6 +10,7 @@ import {
   trackBillByUrlAction,
   untrackBillAction,
   removeBillFromOrgAction,
+  getBillDetailsAction,
   type GetBillsParams,
   type UpdateBillStatusParams,
 } from '@/app/actions/bills';
@@ -140,6 +141,16 @@ async function removeBillFromOrgFetch(params: { billId: string; tenantId: string
   return data.removed as number;
 }
 
+async function getBillDetailsFetch(params: { billId: string }): Promise<BillDetails> {
+  const res = await fetch(`/api/bills/${params.billId}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch bill details');
+  }
+  const data = await res.json();
+  return data.bill as BillDetails;
+}
+
 export const billsClient = defineClient('bills', {
   getBills: { action: getBillsAction, fetch: getBillsFetch },
   updateStatus: { action: updateBillStatusAction, fetch: updateBillStatusFetch },
@@ -148,5 +159,6 @@ export const billsClient = defineClient('bills', {
   trackBillById: { action: trackBillByIdAction, fetch: trackBillByIdFetch },
   trackBillByUrl: { action: trackBillByUrlAction, fetch: trackBillByUrlFetch },
   untrack: { action: untrackBillAction, fetch: untrackBillFetch },
+  getBillDetails: { action: getBillDetailsAction, fetch: getBillDetailsFetch },
   removeFromOrg: { action: removeBillFromOrgAction, fetch: removeBillFromOrgFetch },
 });

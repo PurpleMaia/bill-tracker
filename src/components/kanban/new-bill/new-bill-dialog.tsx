@@ -13,10 +13,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, ExternalLink, AlertCircle, CheckCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Bill, BillDetails } from "@/types/legislation";
-import { findBill } from "@/services/scraper";
+import { findBillAction } from "@/app/actions/scraper";
 import { toast } from "@/hooks/use-toast";
-import { findExistingBillByURL } from "@/db/queries/bills-read";
-import { setFoodStatusAction } from "@/app/actions/bills";
+import { setFoodStatusAction, findExistingBillByUrlAction } from "@/app/actions/bills";
 import { useBills } from "@/hooks/contexts/bills-context";
 import { useAuth } from "@/hooks/contexts/auth-context";
 
@@ -71,7 +70,7 @@ export function NewBillDialog({ isOpen, onClose }: NewBillDialogProps) {
         setIsAlreadyInDB(false);
 
         // check for this url already in db
-        const existing = await findExistingBillByURL(url)
+        const existing = await findExistingBillByUrlAction({ billUrl: url, tenantId: activeTenant?.tenantId })
         if (existing) {
             console.log('found existing bill: ', existing)
             setIsAlreadyInDB(true)
@@ -82,7 +81,7 @@ export function NewBillDialog({ isOpen, onClose }: NewBillDialogProps) {
             setError('Could not find bill in database, scraping for preview now...')
         }
 
-        const result = await findBill(url) // result is the full json
+        const result = await findBillAction({ billUrl: url, tenantId: activeTenant?.tenantId }) // result is the full json
         setBillPreview(result.individualBill)
 
         if (!result) {

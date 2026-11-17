@@ -8,6 +8,8 @@ import {
   getAllFoodRelatedBills,
   getUserTrackedBills,
   getVersionHtmlLinks,
+  getBillDetails,
+  findExistingBillByURL,
   searchBills,
 } from '@/db/queries/bills-read';
 import {
@@ -76,6 +78,11 @@ export async function updateBillStatusAction(params: UpdateBillStatusParams): Pr
   // user is required for the mutation path (matches the route's auth requirement)
   void user;
   await updateBillStatus(billId, newStatus, tenantId);
+}
+
+/** Mirrors GET /api/bills/[id]. Public record, so no session required (as the route). */
+export async function getBillDetailsAction(params: { billId: string }): Promise<BillDetails> {
+  return getBillDetails(params.billId);
 }
 
 /**
@@ -173,4 +180,13 @@ export async function setFoodStatusAction(params: {
 }): Promise<Bill> {
   await requireAdmin.fromAction(params.tenantId);
   return updateFoodStatusOrCreateBill(params.bill, params.foodState, params.tenantId);
+}
+
+/** Legacy "Manage Bills" dialog: look up a stored bill by its capitol URL. Admin only. */
+export async function findExistingBillByUrlAction(params: {
+  billUrl: string;
+  tenantId?: string;
+}): Promise<BillDetails | null> {
+  await requireAdmin.fromAction(params.tenantId);
+  return findExistingBillByURL(params.billUrl);
 }

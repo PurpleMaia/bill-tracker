@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from '@/hooks/use-toast';
 import { data } from '@/lib/data-client';
-import { getBillDetails } from '@/db/queries/bills-read';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
@@ -138,7 +137,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
       setBillDetails((prev) => (prev?.id === billID ? prev : null));
       setLoadingDetails(true);
       setDetailsError(null);
-      getBillDetails(billID)
+      data.bills.getBillDetails({ billId: billID })
         .then((details) => {
           if (details.updates) {
             details.updates = [...details.updates].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -553,7 +552,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
               <Button variant="outline" size="sm" className="mt-4" onClick={() => {
                 if (shownId) {
                   setLoadingDetails(true); setDetailsError(null);
-                  getBillDetails(shownId).then(setBillDetails).catch(() => setDetailsError('Failed to load')).finally(() => setLoadingDetails(false));
+                  data.bills.getBillDetails({ billId: shownId }).then(setBillDetails).catch(() => setDetailsError('Failed to load')).finally(() => setLoadingDetails(false));
                 }
               }}>Try Again</Button>
             </div>

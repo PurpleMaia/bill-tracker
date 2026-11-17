@@ -1,5 +1,3 @@
-'use server';
-
 import { db } from '@/db/kysely/client';
 import type { Tag } from '@/types/legislation';
 

@@ -1,4 +1,3 @@
-'use server'
 import { KANBAN_COLUMNS, COLUMN_INDEX } from '@/lib/bills/kanban-columns';
 import { limitFixedWindow, retryAfterMs } from '@/lib/core/ratelimit-memory';
 import { OpenAI } from 'openai';

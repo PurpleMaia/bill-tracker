@@ -5,7 +5,6 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { BillDetails } from '@/types/legislation';
 import type { TestimonyPosition } from '@/types/testimony';
-import { getBillDetails } from '@/db/queries/bills-read';
 import { data } from '@/lib/data-client';
 import { safeReturnPath } from '@/lib/core/safe-return-path';
 import { fullNameOrUsername } from '@/lib/auth/profile';
@@ -67,7 +66,7 @@ export default function TestimonyPage() {
     (async () => {
       try {
         const [details, draft] = await Promise.all([
-          getBillDetails(billId),
+          data.bills.getBillDetails({ billId }),
           data.testimony.getDraft(billId),
         ]);
         if (cancelled) return;

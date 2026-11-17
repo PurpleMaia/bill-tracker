@@ -103,7 +103,8 @@ A flag picks which one runs, invisibly to callers. This exists because Server Ac
 - **The contract** (what makes the flag flip with zero caller edits): for every operation, the `action` and `fetch` arms take identical params and return the SAME already-unwrapped value (throw on error). The data-client is the ONE place `ActionResult<T>` and the HTTP envelope get unwrapped. `defineClient` (in `define-client.ts`) structurally requires the fetch arm's signature to match the action arm.
 - **Adding an operation:** write the `db/queries` function (the source of truth), add an action wrapper in `actions/<domain>.ts`, add a fetch wrapper hitting the route in `lib/data-client/<domain>.client.ts`, and register the `{ action, fetch }` pair in that domain's `defineClient`.
 - The **fetch arm uses relative URLs** → it only runs client-side (all current callers qualify).
-- Not everything is flag-switched: `use-tracked-bills` / `assign-bill-dialog` call some `'use server'` query functions directly (valid server actions); the **admin** domain runs exclusively through server actions (`actions/admin.ts`).
+- Not everything is flag-switched: tags (`actions/tags.ts`), bill assignment (`actions/bill-assignment.ts`), scraper/LLM triggers (`actions/scraper.ts`) and the **admin** domain (`actions/admin.ts`) run only as guarded server actions.
+- **`db/queries/*`, `services/*` and `lib/auth/session.ts` must NOT be `'use server'`.** Their functions take caller-supplied ids (userId, tenantId) and do no auth, so as server actions any browser could call them. Clients reach them only through a guarded action/route. A client import of `db/queries` now fails `pnpm build` (pg can't bundle for the browser) — that's the safety net.
 
 ### Auth Flow
 

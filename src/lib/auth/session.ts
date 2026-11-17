@@ -1,5 +1,3 @@
-'use server';
-
 import bcrypt from 'bcryptjs';
 import { db } from '../../db/kysely/client';
 import { createHash, randomUUID } from 'crypto';

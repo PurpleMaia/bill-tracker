@@ -4,8 +4,8 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { data } from '@/lib/data-client';
-import { assignBill, unassignBillFromUser } from '@/db/queries/bill-assignment';
-import { getBillTags } from '@/db/queries/tags';
+import { assignBillAction, unassignBillAction } from '@/app/actions/bill-assignment';
+import { getBillTagsAction } from '@/app/actions/tags';
 import { useToast } from '@/hooks/use-toast';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { Bill } from '@/types/legislation';
@@ -37,7 +37,7 @@ export function useTrackedBills() {
         // a failure ("Bill URL not found or already tracked").
         if (activeTenant) {
           console.log('Fetching tags for newly tracked bill...');
-          const tags = await getBillTags(trackedBill.id, activeTenant.tenantId);
+          const tags = await getBillTagsAction({ billId: trackedBill.id, tenantId: activeTenant.tenantId });
           updateBill(trackedBill.id, { tags });
         }
 
@@ -105,7 +105,7 @@ export function useTrackedBills() {
   const handleAssignBill = async (targetUserId: string, bill: Bill) => {
     if (!user) return null;
     try {
-      const tracker = await assignBill(user.id, targetUserId, bill, activeTenant?.tenantId);
+      const tracker = await assignBillAction({ targetUserId, bill, tenantId: activeTenant?.tenantId });
       if (tracker) {
         console.log('Bill assigned successfully');
         toast({
@@ -141,7 +141,7 @@ export function useTrackedBills() {
   const handleUnassignBill = async (targetUserId: string, bill: Bill) => {
     if (!user) return null;
     try {
-      const success = await unassignBillFromUser(user.id, targetUserId, bill.id, activeTenant?.tenantId);
+      const success = await unassignBillAction({ targetUserId, billId: bill.id, tenantId: activeTenant?.tenantId });
       if (success) {
         toast({
           title: 'Bill unassigned',

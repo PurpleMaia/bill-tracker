@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useTrackedBills } from '@/hooks/use-tracked-bills';
 import { UserPlus } from 'lucide-react';
-import { getAssignableUsers } from '@/db/queries/bill-assignment';
+import { getAssignableUsersAction } from '@/app/actions/bill-assignment';
 import { User } from '@/db/types';
 import { Selectable } from 'kysely';
 import { Bill } from '@/types/legislation';
@@ -42,7 +42,7 @@ export function AssignBillDialog({ bill, trigger }: AssignBillDialogProps) {
 
       setIsFetchingUsers(true);
       try {
-        const users = await getAssignableUsers(user.id, activeTenant?.tenantId);
+        const users = await getAssignableUsersAction({ tenantId: activeTenant?.tenantId });
         setAssignableUsers(users);
       } catch (error: any) {
         toast({
