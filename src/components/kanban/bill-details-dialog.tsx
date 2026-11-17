@@ -372,7 +372,10 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   deadlineName={nextDeadline?.name ?? null}
                 />
               </div>
-              <DialogDescription data-bill-tour="title" className="text-sm text-muted-foreground line-clamp-2 sm:line-clamp-1">
+              {/* w-fit so the spotlight tour's highlight hugs the title text
+                  instead of the full header width; max-w-full keeps a long
+                  title wrapping/clamping as before. */}
+              <DialogDescription data-bill-tour="title" className="w-fit max-w-full text-sm text-muted-foreground line-clamp-2 sm:line-clamp-1">
                 {bill.bill_title}
               </DialogDescription>
             </div>

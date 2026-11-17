@@ -95,11 +95,23 @@ export default {
   				to: {
   					height: '0'
   				}
+  			},
+  			// A fixed-width halo (box-shadow spread) instead of `ping`'s scale(2):
+  			// scaling a wide pill doubles its width, while a spread grows the
+  			// same few px on every side. The 40–100% hold is a rest between pulses.
+  			'soft-ping': {
+  				'0%': {
+  					boxShadow: '0 0 0 0 rgb(250 204 21 / 0.6)'
+  				},
+  				'40%, 100%': {
+  					boxShadow: '0 0 0 6px rgb(250 204 21 / 0)'
+  				}
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'soft-ping': 'soft-ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite'
   		}
   	}
   },
