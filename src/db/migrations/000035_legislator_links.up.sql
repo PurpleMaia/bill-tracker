@@ -1,7 +1,7 @@
 -- Migration 000035: Legislator links for bills.
 --
 -- bill_introducers: the legislators who introduced a bill, in the order the
--- bill lists them. position 1 is the primary introducer. Rows cascade with the
+-- bill lists them. position is 0-based (0 = primary introducer). Rows cascade with the
 -- bill; the legislator FK is left as the default (no cascade), matching
 -- committee_chairs, so a legislator with introduced bills cannot be deleted
 -- silently.

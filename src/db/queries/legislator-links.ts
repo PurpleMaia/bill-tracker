@@ -2,6 +2,8 @@
 // for the backfill script (and later the scraper), never called from a client;
 // marking them 'use server' would expose an unauthenticated write endpoint.
 import { db } from '@/db/kysely/client';
+import { currentCommitteeStep } from '@/lib/testimony/committees';
+import { currentCommitteeForYear } from '@/lib/bills/current-committee-for-year';
 import type { IntroducerLink, LegislatorRef } from '@/lib/legislators/introducer-links';
 
 /**
@@ -49,4 +51,38 @@ export async function getLegislatorRefs(): Promise<LegislatorRef[]> {
     lastName: r.last_name,
     chamber: r.chamber,
   }));
+}
+
+/**
+ * Recomputes bills.current_committee from the bill's referral, dead flag, year,
+ * CURRENT bill_status and status history. Call after anything in this app
+ * writes bills.bill_status so the stored array never goes stale. Does not touch
+ * bill_introducers.
+ */
+export async function recomputeCurrentCommittee(billId: string): Promise<void> {
+  const bill = await db
+    .selectFrom('bills')
+    .select(['committee_assignment', 'dead', 'year', 'bill_status'])
+    .where('id', '=', billId)
+    .executeTakeFirst();
+  if (!bill) return;
+
+  const updates = await db
+    .selectFrom('status_updates')
+    .select('statustext')
+    .where('bill_id', '=', billId)
+    .execute();
+
+  const step = currentCommitteeStep({
+    committeeAssignment: bill.committee_assignment,
+    updates: updates.map((u) => ({ statustext: u.statustext ?? '' })),
+    billStatus: bill.bill_status ?? null,
+    dead: bill.dead,
+  });
+
+  await db
+    .updateTable('bills')
+    .set({ current_committee: currentCommitteeForYear(bill.year, step) })
+    .where('id', '=', billId)
+    .execute();
 }

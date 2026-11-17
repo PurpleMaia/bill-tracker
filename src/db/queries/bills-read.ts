@@ -652,7 +652,7 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
     // acronyms. A legislator with no active roles matches no rows (correct).
     if (chairId) {
       out = out.where(
-        sql<boolean>`exists (select 1 from committee_chairs cc join committees c on c.id = cc.committee_id where cc.legislator_id = ${chairId}::uuid and cc.is_active and upper(c.acronym) = any(bills.current_committee))`,
+        sql<boolean>`bills.current_committee && array(select upper(c.acronym) from committee_chairs cc join committees c on c.id = cc.committee_id where cc.legislator_id = ${chairId}::uuid and cc.is_active and c.is_active)`,
       );
     }
     return out as T;

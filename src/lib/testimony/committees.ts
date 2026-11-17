@@ -172,7 +172,7 @@ export const IN_COMMITTEE_STATUSES: ReadonlySet<string> = new Set([
 /**
  * The committee step (one code, or the parts of a joint referral) a bill is
  * waiting in right now; null when dead, out of committee, or never referred.
- * A null `billStatus` is treated as unknown and still computes. This is the
+ * A null or 'unassigned' `billStatus` (no classification yet) is treated as unknown and still computes. This is the
  * reference implementation the scraper ports; fixtures in
  * __tests__/fixtures/legislator-links.json are the cross-repo contract.
  */
@@ -183,7 +183,10 @@ export function currentCommitteeStep(input: {
   dead: boolean;
 }): string[] | null {
   if (input.dead) return null;
-  if (input.billStatus !== null && !IN_COMMITTEE_STATUSES.has(input.billStatus)) return null;
+  if (
+    input.billStatus !== null &&
+    input.billStatus !== 'unassigned' &&
+    !IN_COMMITTEE_STATUSES.has(input.billStatus)) return null;
   const current = inferCurrentCommittee(input.committeeAssignment, input.updates);
   if (current === null) return null;
   return jointReferralPartners(input.committeeAssignment, current);

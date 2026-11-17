@@ -356,9 +356,24 @@
         "updates": [
           {
             "statustext": "The committee(s) on AGR recommend(s) that the measure be deferred."
+          },
+          {
+            "statustext": "Measure carried over; FIN will review the fiscal note after the deferral."
           }
         ],
         "billStatus": "deferred1",
+        "dead": false
+      },
+      "expected": [
+        "AGR"
+      ]
+    },
+    {
+      "name": "unassigned still computes",
+      "input": {
+        "committeeAssignment": "AGR, FIN",
+        "updates": [],
+        "billStatus": "unassigned",
         "dead": false
       },
       "expected": [

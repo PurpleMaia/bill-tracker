@@ -1,5 +1,6 @@
 import { db } from '@/db/kysely/client';
 import type { BillStatus } from '@/db/types';
+import { recomputeCurrentCommittee } from '@/db/queries/legislator-links';
 import { deriveBillStatus } from '@/lib/bills/derived-status';
 
 /**
@@ -41,4 +42,7 @@ export async function recomputeDerivedStatus(billId: string): Promise<void> {
     .set({ bill_status: derived, updated_at: new Date() })
     .where('id', '=', billId)
     .execute();
+
+  // bills.current_committee is gated on bill_status; keep it in step.
+  await recomputeCurrentCommittee(billId);
 }

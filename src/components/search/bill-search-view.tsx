@@ -272,7 +272,7 @@ export function BillSearchView() {
                 <Skeleton key={i} className="h-28 w-full" />
               ))}
             </div>
-          ) : filters.chairId && totalCount === 0 ? (
+          ) : !error && filters.chairId && totalCount === 0 ? (
             <div className="py-16 text-center">
               <p className="text-sm font-medium">
                 Nothing is waiting on this legislator&apos;s committees right now.
