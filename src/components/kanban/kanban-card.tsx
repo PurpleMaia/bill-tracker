@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { cn, formatBillHeadline, formatBillStatusName, formatRelativeDate, parseLocalDate, todayHawaii } from '@/lib/core/utils';
 import { canAssignBills } from '@/lib/auth/permissions';
 import { parseCommittees } from '@/lib/bills/dead-bill';
@@ -45,7 +46,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { removeBillFromOrg } from '@/db/queries/bills-write';
+import { data } from '@/lib/data-client';
 import { toast } from '@/hooks/use-toast';
 import { cardVisibility } from '@/lib/bills/board-display';
 
@@ -88,6 +89,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const [isProcessing, setIsProcessing] = useState(false);
     const [isRemoving, setIsRemoving] = useState(false);
     const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+    const queryClient = useQueryClient();
     const [isTracking, setIsTracking] = useState(false);
     const [showTrackDialog, setShowTrackDialog] = useState(false);
     const { acceptLLMChange, rejectLLMChange, removeBill, testimonyStatuses, showArchived } = useBills();
@@ -184,11 +186,14 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
       }
       setIsRemoving(true);
       try {
-        // Pass the acting user's id so their own NULL-tenant tracking row for
-        // this bill is cleared too — otherwise a bill tracked before joining the
-        // org survives the tenant-scoped delete and reappears on reload.
-        await removeBillFromOrg(bill.id, activeTenant.tenantId, user?.id);
+        // The server checks org-admin and also clears the acting admin's own
+        // NULL-tenant row (from the session), so a bill tracked before joining
+        // the org doesn't survive the tenant-scoped delete and reappear.
+        await data.bills.removeFromOrg({ billId: bill.id, tenantId: activeTenant.tenantId });
         removeBill(bill.id);
+        // Search caches is_tracked per bill; drop it so Search stops showing
+        // this bill as Tracked.
+        queryClient.invalidateQueries({ queryKey: ['bills', 'search'] });
         toast({ title: 'Bill Removed', description: `${bill.bill_number} removed from the board.`, duration: 5000 });
         setShowRemoveDialog(false);
       } catch (error) {

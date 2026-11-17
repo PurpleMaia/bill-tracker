@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/contexts/auth-context';
-import { trackBill, untrackBill } from '@/db/queries/bills-write';
+import { data } from '@/lib/data-client';
 import { assignBill, unassignBillFromUser } from '@/db/queries/bill-assignment';
 import { getBillTags } from '@/db/queries/tags';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +15,7 @@ export function useTrackedBills() {
   const { setBills, addBill, updateBill } = useBills();
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   /**
    * Handles the tracking of a bill by the current user. Calls trackBill service and adds the bill to the list on success.
@@ -23,7 +25,7 @@ export function useTrackedBills() {
   const handleTrackBill = async (billUrl: string) => {
     if (!user) return false;
     try {
-      const trackedBill = await trackBill(user.id, billUrl, activeTenant?.tenantId);
+      const trackedBill = await data.bills.trackBillByUrl({ billUrl, tenantId: activeTenant?.tenantId });
       if (trackedBill) {
         // Add the bill to the list
         console.log('Bill tracked successfully, adding to list...');
@@ -60,39 +62,39 @@ export function useTrackedBills() {
   const handleUntrackBill = useCallback(async (billId: string, options?: { suppressToast?: boolean; keepInList?: boolean }) => {
     if (!user) return false;
     try {
-      const success = await untrackBill(user.id, billId, activeTenant?.tenantId);
-      if (success) {
-        if (options?.keepInList) {
-          setBills((prev) =>
-            prev.map((bill) => {
-              if (bill.id !== billId) return bill;
-              const trackedBy = bill.tracked_by?.filter((tracker) => tracker.id !== user.id) ?? [];
-              const trackedCount = Math.max(0, (bill.tracked_count ?? trackedBy.length + 1) - 1);
-              return {
-                ...bill,
-                tracked_by: trackedBy,
-                tracked_count: trackedCount,
-              };
-            })
-          );
-        } else {
-          // Remove the bill from the local state
-          setBills(prev => prev.filter(bill => bill.id !== billId));
-        }
-        if (!options?.suppressToast) {
-          toast({
-            title: 'Bill removed',
-            description: 'The bill was successfully removed from your tracked list.',
-          });
-        }
-        return true;
+      await data.bills.untrack({ billId, tenantId: activeTenant?.tenantId });
+      if (options?.keepInList) {
+        setBills((prev) =>
+          prev.map((bill) => {
+            if (bill.id !== billId) return bill;
+            const trackedBy = bill.tracked_by?.filter((tracker) => tracker.id !== user.id) ?? [];
+            const trackedCount = Math.max(0, (bill.tracked_count ?? trackedBy.length + 1) - 1);
+            return {
+              ...bill,
+              tracked_by: trackedBy,
+              tracked_count: trackedCount,
+            };
+          })
+        );
+      } else {
+        // Remove the bill from the local state
+        setBills(prev => prev.filter(bill => bill.id !== billId));
       }
-      return false;
+      // Search results are cached with is_tracked:true for this bill; without
+      // this, Search keeps showing it as Tracked until the cache goes stale.
+      queryClient.invalidateQueries({ queryKey: ['bills', 'search'] });
+      if (!options?.suppressToast) {
+        toast({
+          title: 'Bill removed',
+          description: 'The bill was successfully removed from your tracked list.',
+        });
+      }
+      return true;
     } catch (err) {
       console.error('Error untracking bill:', err);
       return false;
     }
-  }, [setBills, toast, user]);
+  }, [setBills, toast, user, activeTenant?.tenantId, queryClient]);
 
   /**
    * Handles assigning a bill to another user. Only admins and supervisors can use this.

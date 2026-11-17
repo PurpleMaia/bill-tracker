@@ -1,4 +1,8 @@
-'use server';
+// NOT 'use server': every export here takes caller-supplied ids (userId,
+// tenantId) and does no authorization, so exposing them as server actions let
+// any browser call them directly (e.g. untrack another user's bill, or remove a
+// bill from any org's board). Clients go through the guarded wrappers in
+// app/actions/bills.ts / app/api/bills/* via the data-client instead.
 
 import type { Bill, BillDetails } from '@/types/legislation';
 import { KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/lib/auth/session';
 import { getSessionCookie } from '@/lib/auth/cookies';
 import { validateMembership } from '@/db/queries/tenants';
-import { updateBillStatus, untrackBill } from '@/db/queries/bills-write';
+import { updateBillStatus, untrackBill, removeBillFromOrg } from '@/db/queries/bills-write';
+import { requireAdmin, requireMembership, requireSession } from '@/lib/auth/auth-guards';
 import { getBillDetails, getVersionHtmlLinks } from '@/db/queries/bills-read';
 import { updateBillTags } from '@/db/queries/tags';
 import { compareVersionHtml } from '@/services/bill-diff';
@@ -122,20 +123,28 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const sessionToken = getSessionCookie(request);
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const user = await validateSession(sessionToken);
     const { id: billId } = await params;
-    const body = await request.json();
-    const { tenantId } = body;
+    const body = await request.json().catch(() => ({}));
+    const { tenantId, scope } = body as { tenantId?: string; scope?: 'self' | 'org' };
 
-    if (tenantId) {
-      await validateMembership(user.id, tenantId);
+    // scope 'org': remove the bill from the org board for every member — org
+    // admins only. Default: untrack for the caller only.
+    if (scope === 'org') {
+      if (!tenantId) {
+        return NextResponse.json({ error: 'tenantId is required' }, { status: 400 });
+      }
+      const { user } = await requireAdmin.fromRequest(request, tenantId);
+      const removed = await removeBillFromOrg(billId, tenantId, user.id);
+      return NextResponse.json({ removed }, { status: 200 });
     }
 
-    await untrackBill(user.id, billId, tenantId);
+    const { user } = tenantId
+      ? await requireMembership.fromRequest(request, tenantId)
+      : await requireSession.fromRequest(request);
+    const ok = await untrackBill(user.id, billId, tenantId);
+    if (!ok) {
+      return NextResponse.json({ error: 'Failed to untrack bill' }, { status: 500 });
+    }
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error: any) {
     if (error?.statusCode) {

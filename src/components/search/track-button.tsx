@@ -43,10 +43,12 @@ export function TrackButton({ billId, billNumber, initialTracked = false }: Trac
   const [isTracking, setIsTracking] = useState(false);
   const [isTracked, setIsTracked] = useState(initialTracked);
 
-  // A card can outlive a refetch (login, org switch) that resolves is_tracked to
-  // true after mount. Adopt that, but never walk back a local optimistic track.
+  // A card can outlive a refetch that changes is_tracked after mount: login or
+  // org switch (-> true), or the bill being removed on the board (-> false).
+  // Follow it both ways. This only fires when the prop changes, so a local
+  // optimistic track is not walked back before its own invalidation refetches.
   useEffect(() => {
-    if (initialTracked) setIsTracked(true);
+    setIsTracked(initialTracked);
   }, [initialTracked]);
 
   if (!user) {

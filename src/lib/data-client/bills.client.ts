@@ -7,6 +7,9 @@ import {
   compareVersionsAction,
   searchBillsAction,
   trackBillByIdAction,
+  trackBillByUrlAction,
+  untrackBillAction,
+  removeBillFromOrgAction,
   type GetBillsParams,
   type UpdateBillStatusParams,
 } from '@/app/actions/bills';
@@ -94,10 +97,56 @@ async function trackBillByIdFetch(params: {
   return (await res.json()) as { tracked: boolean };
 }
 
+async function trackBillByUrlFetch(params: {
+  billUrl: string;
+  tenantId?: string;
+}): Promise<Bill> {
+  const res = await fetch('/api/bills', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to track bill');
+  }
+  const data = await res.json();
+  return data.bill as Bill;
+}
+
+async function untrackBillFetch(params: { billId: string; tenantId?: string }): Promise<void> {
+  const res = await fetch(`/api/bills/${params.billId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tenantId: params.tenantId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to untrack bill');
+  }
+}
+
+async function removeBillFromOrgFetch(params: { billId: string; tenantId: string }): Promise<number> {
+  const res = await fetch(`/api/bills/${params.billId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tenantId: params.tenantId, scope: 'org' }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to remove bill from board');
+  }
+  const data = await res.json();
+  return data.removed as number;
+}
+
 export const billsClient = defineClient('bills', {
   getBills: { action: getBillsAction, fetch: getBillsFetch },
   updateStatus: { action: updateBillStatusAction, fetch: updateBillStatusFetch },
   compareVersions: { action: compareVersionsAction, fetch: compareVersionsFetch },
   searchBills: { action: searchBillsAction, fetch: searchBillsFetch },
   trackBillById: { action: trackBillByIdAction, fetch: trackBillByIdFetch },
+  trackBillByUrl: { action: trackBillByUrlAction, fetch: trackBillByUrlFetch },
+  untrack: { action: untrackBillAction, fetch: untrackBillFetch },
+  removeFromOrg: { action: removeBillFromOrgAction, fetch: removeBillFromOrgFetch },
 });

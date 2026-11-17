@@ -16,7 +16,7 @@ import { Bill, BillDetails } from "@/types/legislation";
 import { findBill } from "@/services/scraper";
 import { toast } from "@/hooks/use-toast";
 import { findExistingBillByURL } from "@/db/queries/bills-read";
-import { updateFoodStatusOrCreateBill } from "@/db/queries/bills-write";
+import { setFoodStatusAction } from "@/app/actions/bills";
 import { useBills } from "@/hooks/contexts/bills-context";
 import { useAuth } from "@/hooks/contexts/auth-context";
 
@@ -103,7 +103,7 @@ export function NewBillDialog({ isOpen, onClose }: NewBillDialogProps) {
     const handleConfirm = async () => {
         setIsUpdating(true)
 
-        const result = await updateFoodStatusOrCreateBill(billPreview, foodRelatedSelection, activeTenant?.tenantId)
+        const result = await setFoodStatusAction({ bill: billPreview, foodState: foodRelatedSelection, tenantId: activeTenant?.tenantId })
 
         if (foodRelatedSelection === true) {    
             addBill(result); // add to client bill array 

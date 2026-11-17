@@ -1,8 +1,8 @@
 'use server';
 
-import type { Bill, CompareVersionsParams, SearchBillsParams, BillSearchResponse } from '@/types/legislation';
+import type { Bill, BillDetails, CompareVersionsParams, SearchBillsParams, BillSearchResponse } from '@/types/legislation';
 import type { VersionComparison } from '@/lib/versions/version-diff';
-import { optionalSession, requireMembership, requireSession } from '@/lib/auth/auth-guards';
+import { optionalSession, requireAdmin, requireMembership, requireSession } from '@/lib/auth/auth-guards';
 import {
   getAllTrackedBills,
   getAllFoodRelatedBills,
@@ -10,7 +10,14 @@ import {
   getVersionHtmlLinks,
   searchBills,
 } from '@/db/queries/bills-read';
-import { updateBillStatus, trackBillById } from '@/db/queries/bills-write';
+import {
+  updateBillStatus,
+  trackBill,
+  trackBillById,
+  untrackBill,
+  removeBillFromOrg,
+  updateFoodStatusOrCreateBill,
+} from '@/db/queries/bills-write';
 import { compareVersionHtml } from '@/services/bill-diff';
 
 // ==============================================
@@ -112,4 +119,58 @@ export async function trackBillByIdAction(params: {
     await requireMembership.fromAction(params.tenantId);
   }
   return trackBillById(user.id, params.billId, params.tenantId);
+}
+
+/** Mirrors POST /api/bills. Requires a session; validates org membership. */
+export async function trackBillByUrlAction(params: {
+  billUrl: string;
+  tenantId?: string;
+}): Promise<Bill> {
+  const { user } = await requireSession.fromAction();
+  if (params.tenantId) {
+    await requireMembership.fromAction(params.tenantId);
+  }
+  return trackBill(user.id, params.billUrl, params.tenantId);
+}
+
+/**
+ * Mirrors DELETE /api/bills/[id]. Untracks the bill for the CALLER only — the
+ * user id comes from the session, never from params.
+ */
+export async function untrackBillAction(params: {
+  billId: string;
+  tenantId?: string;
+}): Promise<void> {
+  const { user } = await requireSession.fromAction();
+  if (params.tenantId) {
+    await requireMembership.fromAction(params.tenantId);
+  }
+  const ok = await untrackBill(user.id, params.billId, params.tenantId);
+  if (!ok) throw new Error('Failed to untrack bill');
+}
+
+/**
+ * Mirrors DELETE /api/bills/[id] { scope: 'org' }. Removes the bill from the
+ * org's board for every member, so it requires an org admin of that tenant.
+ */
+export async function removeBillFromOrgAction(params: {
+  billId: string;
+  tenantId: string;
+}): Promise<number> {
+  const { user } = await requireAdmin.fromAction(params.tenantId);
+  return removeBillFromOrg(params.billId, params.tenantId, user.id);
+}
+
+/**
+ * Sets a bill's global food_related flag (creating the bill if needed). Used
+ * only by the legacy "Manage Bills" dialog; it changes what every user sees,
+ * so it requires an admin (org admin when tenant-scoped, else global admin).
+ */
+export async function setFoodStatusAction(params: {
+  bill: Bill | BillDetails | null;
+  foodState: boolean | null;
+  tenantId?: string;
+}): Promise<Bill> {
+  await requireAdmin.fromAction(params.tenantId);
+  return updateFoodStatusOrCreateBill(params.bill, params.foodState, params.tenantId);
 }

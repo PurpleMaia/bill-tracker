@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from '@/hooks/use-toast';
-import { updateBillStatus } from '@/db/queries/bills-write';
+import { data } from '@/lib/data-client';
 import { getBillDetails } from '@/db/queries/bills-read';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -312,8 +312,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
         onClose();
         return;
       }
-      const updatedBillFromServer = await updateBillStatus(bill.id, selectedStatus);
-      if (!updatedBillFromServer) throw new Error('Failed to update');
+      await data.bills.updateStatus({ billId: bill.id, newStatus: selectedStatus });
       setBills(prev => prev.map(b => b.id === bill.id
         ? { ...b, llm_suggested: false, llm_processing: false, previous_status: b.current_bill_status, current_bill_status: selectedStatus }
         : b
