@@ -5,8 +5,12 @@ import {
   inferCurrentCommittee,
   hasJointReferral,
   jointReferralPartners,
+  currentCommitteeStep,
+  resolveContactCommitteeStep,
   type CommitteeNameMap,
+  type StatusLine,
 } from '../testimony/committees';
+import fixture from './fixtures/legislator-links.json';
 
 // Committee names are DB-backed now, so tests inject their own fixture map
 // rather than asserting against a hardcoded production table.
@@ -161,14 +165,16 @@ describe('inferCurrentCommittee', () => {
     expect(inferCurrentCommittee('AEN, WAM', reversed)).toBe('WAM');
   });
 
-  it('falls back to the last referral code when no update names a committee', () => {
-    const updates = [{ statustext: 'Introduced and passed First Reading.' }];
-    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('WAM');
+  // Referral order: the FIRST committee must be cleared first, so with no
+  // evidence the bill is still waiting in the first one.
+  it('falls back to the first referral code when no update names a committee', () => {
+    const updates = [{ statustext: 'Introduced.' }];
+    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('AEN');
   });
 
-  it('falls back to the last referral code with no updates at all', () => {
-    expect(inferCurrentCommittee('AEN, WAM', [])).toBe('WAM');
-    expect(inferCurrentCommittee('AEN, WAM', null)).toBe('WAM');
+  it('falls back to the first referral code with no updates at all', () => {
+    expect(inferCurrentCommittee('AEN, WAM', [])).toBe('AEN');
+    expect(inferCurrentCommittee('AEN, WAM', null)).toBe('AEN');
   });
 
   it('returns null when there is no committee assignment', () => {
@@ -178,7 +184,49 @@ describe('inferCurrentCommittee', () => {
 
   it('ignores codes in status text that are not part of the referral', () => {
     const updates = [{ statustext: 'The committee(s) on FIN scheduled a hearing.' }];
-    // FIN is not in this bill's referral list, so it's ignored; fall back to last.
-    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('WAM');
+    // FIN is not in this bill's referral list, so it's ignored; fall back to first.
+    expect(inferCurrentCommittee('AEN, WAM', updates)).toBe('AEN');
+  });
+});
+
+describe('currentCommitteeStep (fixture contract)', () => {
+  for (const c of fixture.currentCommittee) {
+    it(c.name, () => {
+      expect(currentCommitteeStep(c.input)).toEqual(c.expected);
+    });
+  }
+});
+
+describe('resolveContactCommitteeStep', () => {
+  const base = {
+    committee_assignment: 'AGR',
+    updates: [] as StatusLine[],
+    current_bill_status: 'Introduced',
+    dead: false,
+  };
+
+  it('prefers the stored array', () => {
+    expect(resolveContactCommitteeStep({ ...base, current_committee: ['HHS', 'WAE'] })).toEqual(['HHS', 'WAE']);
+  });
+
+  it('falls back to live computation for null or empty stored values', () => {
+    const live = currentCommitteeStep({
+      committeeAssignment: 'AGR',
+      updates: base.updates,
+      billStatus: 'Introduced',
+      dead: false,
+    });
+    expect(resolveContactCommitteeStep({ ...base, current_committee: null })).toEqual(live);
+    expect(resolveContactCommitteeStep({ ...base, current_committee: [] })).toEqual(live);
+    expect(resolveContactCommitteeStep(base)).toEqual(live);
+  });
+
+  it('returns null when dead and nothing is stored', () => {
+    expect(resolveContactCommitteeStep({ ...base, dead: true })).toBeNull();
+  });
+
+  it('joint step: primary code (last) is the furthest-along committee', () => {
+    const step = resolveContactCommitteeStep({ ...base, current_committee: ['HHS', 'WAE'] })!;
+    expect(step[step.length - 1]).toBe('WAE');
   });
 });

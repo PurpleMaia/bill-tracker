@@ -1,7 +1,12 @@
 import { defineClient } from './define-client';
-import { getCommitteeChairsAction, getConfereesAction } from '@/app/actions/legislators';
+import {
+  getCommitteeChairsAction,
+  getConfereesAction,
+  getLegislatorOptionsAction,
+} from '@/app/actions/legislators';
 import type { CommitteeChair } from '@/db/queries/committee-chairs';
 import type { Conferee } from '@/db/queries/conferees';
+import type { LegislatorOption } from '@/types/legislation';
 import type { ParsedConferee } from '@/lib/testimony/conferees';
 
 async function getCommitteeChairsFetch(
@@ -33,7 +38,17 @@ async function getConfereesFetch(
   return res.json();
 }
 
+async function getLegislatorOptionsFetch(): Promise<LegislatorOption[]> {
+  const res = await fetch('/api/legislators');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to load legislators');
+  }
+  return res.json();
+}
+
 export const legislatorsClient = defineClient('legislators', {
   getChairs: { action: getCommitteeChairsAction, fetch: getCommitteeChairsFetch },
   getConferees: { action: getConfereesAction, fetch: getConfereesFetch },
+  getOptions: { action: getLegislatorOptionsAction, fetch: getLegislatorOptionsFetch },
 });

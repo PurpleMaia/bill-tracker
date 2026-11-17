@@ -41,6 +41,12 @@ export interface AuthKey {
   user_id: string | null;
 }
 
+export interface BillIntroducers {
+  bill_id: string;
+  legislator_id: string;
+  position: number;
+}
+
 export interface Bills {
   ai_misclassification_type: AiMisclassification | null;
   ai_status: BillStatus | null;
@@ -51,6 +57,7 @@ export interface Bills {
   bill_url: string;
   committee_assignment: string | null;
   created_at: Generated<Timestamp | null>;
+  current_committee: string[] | null;
   current_status_string: string;
   dead: Generated<boolean>;
   description: string;
@@ -311,6 +318,7 @@ export interface UserPreferences {
 
 export interface DB {
   auth_key: AuthKey;
+  bill_introducers: BillIntroducers;
   bill_tags: BillTags;
   bill_versions: BillVersions;
   bills: Bills;

@@ -126,8 +126,8 @@ function bareCodes(text: string, referralCodes: Set<string>): string[] {
  * guarantee) can't flip the result.
  *
  * When no update names a referral committee via a phrase, we fall back to codes
- * mentioned as bare words, and finally to the LAST code in the referral list
- * (referrals are appended as a bill advances). Pure — no DB, no network.
+ * mentioned as bare words, and finally to the FIRST code in the referral list
+ * (the first committee must be cleared first, and a deferral does not clear one). Pure — no DB, no network.
  */
 export function inferCurrentCommittee(
   committeeAssignment: string | null,
@@ -154,6 +154,63 @@ export function inferCurrentCommittee(
   return (
     collect((t) => phraseCodes(t, referralSet)) ??
     collect((t) => bareCodes(t, referralSet)) ??
-    referral[referral.length - 1]
+    referral[0]
   );
+}
+
+/** Bill statuses in which a bill is still sitting in committee. */
+export const IN_COMMITTEE_STATUSES: ReadonlySet<string> = new Set([
+  'introduced',
+  'scheduled1', 'scheduled2', 'scheduled3',
+  'waiting2', 'waiting3',
+  'deferred1', 'deferred2', 'deferred3',
+  'crossoverWaiting1', 'crossoverWaiting2', 'crossoverWaiting3',
+  'crossoverScheduled1', 'crossoverScheduled2', 'crossoverScheduled3',
+  'crossoverDeferred1', 'crossoverDeferred2', 'crossoverDeferred3',
+]);
+
+/**
+ * The committee step (one code, or the parts of a joint referral) a bill is
+ * waiting in right now; null when dead, out of committee, or never referred.
+ * A null or 'unassigned' `billStatus` (no classification yet) is treated as unknown and still computes. This is the
+ * reference implementation the scraper ports; fixtures in
+ * __tests__/fixtures/legislator-links.json are the cross-repo contract.
+ */
+export function currentCommitteeStep(input: {
+  committeeAssignment: string | null;
+  updates: StatusLine[] | null | undefined;
+  billStatus: string | null;
+  dead: boolean;
+}): string[] | null {
+  if (input.dead) return null;
+  if (
+    input.billStatus !== null &&
+    input.billStatus !== 'unassigned' &&
+    !IN_COMMITTEE_STATUSES.has(input.billStatus)) return null;
+  const current = inferCurrentCommittee(input.committeeAssignment, input.updates);
+  if (current === null) return null;
+  return jointReferralPartners(input.committeeAssignment, current);
+}
+
+/**
+ * The committee step the contact page should foreground: the stored
+ * `current_committee` when it is a non-empty array, otherwise computed live
+ * (non-live years and rows not yet backfilled have no stored value).
+ */
+export function resolveContactCommitteeStep(bill: {
+  current_committee?: string[] | null;
+  committee_assignment: string | null;
+  updates: StatusLine[] | null | undefined;
+  current_bill_status: string | null;
+  dead: boolean;
+}): string[] | null {
+  if (Array.isArray(bill.current_committee) && bill.current_committee.length > 0) {
+    return bill.current_committee;
+  }
+  return currentCommitteeStep({
+    committeeAssignment: bill.committee_assignment,
+    updates: bill.updates,
+    billStatus: bill.current_bill_status || null,
+    dead: bill.dead,
+  });
 }

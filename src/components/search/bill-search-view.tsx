@@ -5,6 +5,13 @@ import { useSearchParams } from 'next/navigation';
 import { ArrowUp, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UrlBillDetailsDialog } from '@/components/kanban/url-bill-details-dialog';
 import { ActiveFilterChips } from './active-filter-chips';
@@ -20,12 +27,16 @@ import { hasNonBillParams } from '@/lib/bills/bill-dialog-url';
 import {
   DEFAULT_FILTERS,
   parseSearchParams,
+  resolveSortMode,
   type SearchFilters,
+  type SortMode,
 } from '@/lib/bills/search-params';
 import { loadSearchFilters, saveSearchFilters } from '@/lib/bills/search-filter-storage';
 
 /** Sessions the corpus covers, newest first. Mirrors the rail's YEARS list. */
 const SESSION_YEARS = [2026];
+
+const SORT_LABELS: Record<SortMode, string> = { relevance: 'Relevance', title: 'Title A–Z' };
 
 export function BillSearchView() {
   const { user, activeTenant } = useAuth();
@@ -121,6 +132,9 @@ export function BillSearchView() {
     filters.stages,
     filters.deadFilter,
     filters.trackedFilter,
+    filters.introducerId,
+    filters.chairId,
+    filters.sort,
   ]);
 
   // Reveal the scroll-to-top button once the hero (and its search bar) has
@@ -200,19 +214,42 @@ export function BillSearchView() {
             </SearchIntro>
 
             <div className="mt-3 flex items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground" aria-live="polite">
-                {isLoading ? (
-                  'Searching…'
-                ) : (
-                  <>
-                    <span className="font-medium text-foreground">
-                      {totalCount.toLocaleString()}
-                    </span>{' '}
-                    {totalCount === 1 ? 'bill' : 'bills'}
-                    {hasQuery && ' · sorted by relevance'}
-                  </>
-                )}
-              </p>
+              <div className="flex min-w-0 items-center gap-2">
+                <p className="text-sm text-muted-foreground" aria-live="polite">
+                  {isLoading ? (
+                    'Searching…'
+                  ) : (
+                    <>
+                      <span className="font-medium text-foreground">
+                        {totalCount.toLocaleString()}
+                      </span>{' '}
+                      {totalCount === 1 ? 'bill' : 'bills'}
+                    </>
+                  )}
+                </p>
+                {/* Shows the effective order ('auto' resolved); picking one
+                    pins it explicitly so it no longer follows the auto rule.
+                    While 'auto', the value is a key no item has, so picking
+                    the option already shown still fires onValueChange and pins it. */}
+                <Select
+                  value={filters.sort === 'auto' ? `auto:${resolveSortMode(filters)}` : filters.sort}
+                  onValueChange={(sort) => setFilters({ ...filters, sort: sort as SortMode })}
+                >
+                  <SelectTrigger
+                    aria-label="Sort results"
+                    className="h-8 w-auto gap-1.5 border-none bg-transparent px-2 text-xs text-muted-foreground shadow-none hover:text-foreground"
+                  >
+                    <SelectValue>{SORT_LABELS[resolveSortMode(filters)]}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(['relevance', 'title'] as const).map((mode) => (
+                      <SelectItem key={mode} value={mode} className="text-xs">
+                        {SORT_LABELS[mode]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <SearchFiltersSheet
                 filters={filters}
                 onChange={setFilters}
@@ -237,6 +274,15 @@ export function BillSearchView() {
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-28 w-full" />
               ))}
+            </div>
+          ) : !error && filters.chairId && totalCount === 0 ? (
+            <div className="py-16 text-center">
+              <p className="text-sm font-medium">
+                Nothing is waiting on this legislator&apos;s committees right now.
+              </p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={handleClear}>
+                Clear filters
+              </Button>
             </div>
           ) : bills.length === 0 ? (
             <div className="py-16 text-center">

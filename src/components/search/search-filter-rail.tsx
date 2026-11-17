@@ -16,6 +16,8 @@ import {
   hasDetailedChildren,
 } from '@/lib/bills/detailed-stages';
 import { stageLabel } from '@/lib/bills/stage-labels';
+import { useLegislatorOptions } from '@/hooks/use-legislator-options';
+import { LegislatorCombobox } from './legislator-combobox';
 import {
   activeFilterCount,
   type Chamber,
@@ -93,6 +95,12 @@ export function SearchFilterRail({ filters, onChange, onClear, loggedIn }: Searc
       return next;
     });
   };
+
+  // Fetch failures stay local to these two sections: the comboboxes show a
+  // notice and the rest of the rail (and Discover) keeps working.
+  const legislators = useLegislatorOptions();
+  const allLegislators = legislators.data ?? [];
+  const chairLegislators = allLegislators.filter((o) => o.committees.length > 0);
 
   return (
     <div className="space-y-6">
@@ -226,6 +234,36 @@ export function SearchFilterRail({ filters, onChange, onClear, loggedIn }: Searc
             </div>
           </PopoverContent>
         </Popover>
+      </fieldset>
+
+      <fieldset className="space-y-2">
+        <legend className="mb-2 text-sm font-medium">Introduced by</legend>
+        <LegislatorCombobox
+          label="Introduced by"
+          options={allLegislators}
+          value={filters.introducerId}
+          onChange={(introducerId) => onChange({ ...filters, introducerId })}
+          emptyText="No legislator found."
+          loading={legislators.isPending}
+          error={legislators.isError}
+        />
+      </fieldset>
+
+      <fieldset className="space-y-2">
+        <legend className="mb-2 text-sm font-medium">Waiting on chair</legend>
+        <LegislatorCombobox
+          label="Waiting on chair"
+          options={chairLegislators}
+          value={filters.chairId}
+          onChange={(chairId) => onChange({ ...filters, chairId })}
+          showRoles
+          emptyText="No committee chair found."
+          loading={legislators.isPending}
+          error={legislators.isError}
+        />
+        <p className="text-xs text-muted-foreground">
+          Bills currently in a committee this legislator chairs or vice-chairs.
+        </p>
       </fieldset>
     </div>
   );

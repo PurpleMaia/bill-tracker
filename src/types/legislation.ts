@@ -76,6 +76,8 @@ export interface Bill {
   archived: boolean;
   dead: boolean;
   committee_assignment: string | null;
+  /** Stored current committee step (upper-cased codes; joint = two); null when none. */
+  current_committee?: string[] | null;
   introducer?: string;
 
   // client side attributes
@@ -212,4 +214,22 @@ export interface SearchBillsParams extends SearchFilters {
    */
   userId?: string | null;
   tenantId?: string | null;
+}
+
+/** An active committee leadership role held by a legislator. */
+export interface LegislatorCommitteeRole {
+  code: string;
+  role: 'chair' | 'vice-chair';
+}
+
+/** One entry in the Discover legislator picker. */
+export interface LegislatorOption {
+  id: string;
+  firstName: string;
+  lastName: string;
+  chamber: 'House' | 'Senate';
+  district: number | null;
+  inOffice: boolean;
+  /** Active roles only; empty for non-chairs. Chair before vice-chair, then by code. */
+  committees: LegislatorCommitteeRole[];
 }

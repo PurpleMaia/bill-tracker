@@ -56,6 +56,9 @@ export async function updateBillStatus(billId: string, newStatus: string, tenant
                 .set({ bill_status: newStatus as BillStatus, updated_at: new Date() })
                 .where('id', '=', billId)
                 .execute();
+
+            const { recomputeCurrentCommittee } = await import('@/db/queries/legislator-links');
+            await recomputeCurrentCommittee(billId);
         }
 
         const updatedBill = await db.selectFrom('bills')

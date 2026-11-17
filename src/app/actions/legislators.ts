@@ -3,6 +3,8 @@
 import { optionalSession } from '@/lib/auth/auth-guards';
 import { getCommitteeChairs } from '@/db/queries/committee-chairs';
 import { getConferees } from '@/db/queries/conferees';
+import { getLegislatorOptions } from '@/db/queries/legislators';
+import type { LegislatorOption } from '@/types/legislation';
 import { parseCommitteeCodes } from '@/lib/testimony/committees';
 import type { CommitteeChair } from '@/db/queries/committee-chairs';
 import type { Conferee } from '@/db/queries/conferees';
@@ -24,4 +26,10 @@ export async function getConfereesAction(
 ): Promise<Conferee[]> {
   await optionalSession.fromAction();
   return getConferees(conferees);
+}
+
+/** Server-action arm for data.legislators.getOptions. Legislators are public record. */
+export async function getLegislatorOptionsAction(): Promise<LegislatorOption[]> {
+  await optionalSession.fromAction();
+  return getLegislatorOptions();
 }

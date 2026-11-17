@@ -7,6 +7,8 @@ import {
   chamberPrefixes,
   encodeCursor,
   decodeCursor,
+  resolveSortMode,
+  isUuid,
   SEARCH_PAGE_SIZE,
 } from '@/lib/bills/search-params';
 import { expandStagesToStatuses } from '@/lib/bills/detailed-stages';
@@ -600,6 +602,11 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
     tenantId,
   } = params;
   const trimmed = (q ?? '').trim();
+  // The server-action arm passes these straight from the client; the route
+  // validates upstream. Treat a non-uuid as absent so both transports agree
+  // and the ::uuid casts below can never throw.
+  const introducerId = params.introducerId && isUuid(params.introducerId) ? params.introducerId : null;
+  const chairId = params.chairId && isUuid(params.chairId) ? params.chairId : null;
 
   // Per-user "does this user track this bill" flag. EXISTS keeps searchBills's
   // no-join contract intact (no rows are added or duplicated) while letting the
@@ -635,6 +642,19 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
     // logged-out request can never accidentally hide every bill.
     if (userId && trackedFilter === 'tracked') out = out.where(isTrackedExpr);
     if (userId && trackedFilter === 'untracked') out = out.where(sql<boolean>`not ${isTrackedExpr}`);
+    if (introducerId) {
+      out = out.where(
+        sql<boolean>`exists (select 1 from bill_introducers bi where bi.bill_id = bills.id and bi.legislator_id = ${introducerId}::uuid)`,
+      );
+    }
+    // "Waiting on chair": the bill's current committee is one this legislator
+    // actively chairs or vice-chairs. current_committee holds upper-cased
+    // acronyms. A legislator with no active roles matches no rows (correct).
+    if (chairId) {
+      out = out.where(
+        sql<boolean>`bills.current_committee && array(select upper(c.acronym) from committee_chairs cc join committees c on c.id = cc.committee_id where cc.legislator_id = ${chairId}::uuid and cc.is_active and c.is_active)`,
+      );
+    }
     return out as T;
   };
 
@@ -711,6 +731,14 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
   // coalesced stamp instead and use the identical expression in the cursor.
   const sortStamp = sql<Date>`coalesce(updated_at, 'epoch'::timestamptz)`;
 
+  const sortMode = resolveSortMode({ q: trimmed, introducerId, chairId, sort: params.sort });
+
+  // The SQL key is the source of truth for paging (the cursor carries its value);
+  // it mirrors titleSortKey() in search-params.ts for display purposes. COLLATE "C"
+  // makes ORDER BY and the keyset `>` byte-order and deterministic, independent
+  // of the database's default collation. Same expression in SELECT/ORDER BY/keyset.
+  const titleKey = sql<string>`(lower(coalesce(nullif(trim(bill_title), ''), nullif(trim(bill_number), ''), '')) collate "C")`;
+
   let base = db.selectFrom('bills');
 
   if (trimmed) {
@@ -752,12 +780,26 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
     .select(rankExpr.as('rank'))
     .select(sortStamp.as('sort_stamp'))
     .select(isTrackedExpr.as('is_tracked'))
-    .orderBy(sql`rank`, 'desc')
-    .orderBy(sql`sort_stamp`, 'desc')
-    .orderBy('id', 'desc')
+    .select(titleKey.as('title_key'))
     .limit(limit + 1); // one extra row tells us whether another page exists
 
-  const decoded = cursor ? decodeCursor(cursor) : null;
+  rowsQuery =
+    sortMode === 'title'
+      ? rowsQuery.orderBy(titleKey, 'asc').orderBy('id', 'asc')
+      : rowsQuery
+          .orderBy(sql`rank`, 'desc')
+          .orderBy(sql`sort_stamp`, 'desc')
+          .orderBy('id', 'desc');
+
+  // A cursor for the other mode (or malformed) decodes to null: start at page 1.
+  const decodedCursor = cursor ? decodeCursor(cursor, sortMode) : null;
+  const decoded = decodedCursor?.mode === 'relevance' ? decodedCursor : null;
+  const decodedTitle = decodedCursor?.mode === 'title' ? decodedCursor : null;
+  if (decodedTitle) {
+    rowsQuery = rowsQuery.where(
+      sql<boolean>`(${titleKey}, id) > (${decodedTitle.key}::text collate "C", ${decodedTitle.id}::uuid)`,
+    );
+  }
   if (decoded) {
     // Keyset: continue strictly after the last row's (rank, sort_stamp, id).
     // Row-comparison mirrors the ORDER BY exactly, so it can't skip or repeat.
@@ -816,13 +858,16 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
   const last: any = page[page.length - 1];
   const nextCursor =
     hasMore && last
-      ? encodeCursor({
-          rank: Number(last.rank),
-          // sort_stamp, not updated_at — the cursor must carry the same value
-          // the ORDER BY used, or the next page starts from the wrong place.
-          updatedAt: new Date(last.sort_stamp).toISOString(),
-          id: last.id,
-        })
+      ? sortMode === 'title'
+        ? encodeCursor({ mode: 'title', key: String(last.title_key), id: last.id })
+        : encodeCursor({
+            mode: 'relevance',
+            rank: Number(last.rank),
+            // sort_stamp, not updated_at — the cursor must carry the same value
+            // the ORDER BY used, or the next page starts from the wrong place.
+            updatedAt: new Date(last.sort_stamp).toISOString(),
+            id: last.id,
+          })
       : null;
 
   return { items, nextCursor, totalCount };

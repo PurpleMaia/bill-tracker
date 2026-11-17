@@ -1,4 +1,5 @@
 import { db } from '@/db/kysely/client';
+import { recomputeCurrentCommittee } from '@/db/queries/legislator-links';
 import { isBillDead } from '@/lib/bills/dead-bill';
 import type { SessionDeadlines, StatusUpdate } from '@/lib/bills/dead-bill';
 import type { BillStatus } from '@/db/types';
@@ -55,6 +56,8 @@ async function main() {
           .set({ dead: result.dead })
           .where('id', '=', bill.id)
           .execute();
+        // current_committee is derived from `dead`, so refresh it with the flag.
+        await recomputeCurrentCommittee(bill.id);
 
         const action = result.dead ? 'DEAD' : 'ALIVE';
         console.log(`  ${bill.bill_number}: ${action} — ${result.reason}`);
