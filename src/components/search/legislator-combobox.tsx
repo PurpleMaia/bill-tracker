@@ -101,7 +101,8 @@ export function LegislatorCombobox({
                       onChange(o.id === value ? null : o.id);
                       setOpen(false);
                     }}
-                    className="items-start gap-2 text-xs"
+                    // Same light hover as the Bill Status rows (hover:bg-muted), not the teal accent.
+                    className="cursor-pointer items-start gap-2 text-xs data-[selected=true]:bg-muted data-[selected=true]:text-foreground"
                   >
                     <Check
                       className={cn(
