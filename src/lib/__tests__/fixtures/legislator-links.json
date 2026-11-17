@@ -71,6 +71,12 @@
       "firstName": "Brenda",
       "lastName": "Tam",
       "chamber": "Senate"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000013",
+      "firstName": "David",
+      "lastName": "Alcos III",
+      "chamber": "House"
     }
   ],
   "introducers": [
@@ -312,6 +318,24 @@
         "unresolved": [
           "NOBODY"
         ]
+      }
+    },
+    {
+      "name": "generational suffix on the stored surname is ignored",
+      "introducer": "ALCOS, Lee, M.",
+      "billNumber": "HB2",
+      "expected": {
+        "links": [
+          {
+            "legislatorId": "00000000-0000-4000-8000-000000000013",
+            "position": 0
+          },
+          {
+            "legislatorId": "00000000-0000-4000-8000-000000000003",
+            "position": 1
+          }
+        ],
+        "unresolved": []
       }
     }
   ],

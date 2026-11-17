@@ -36,6 +36,11 @@ export function normalizeName(s: string): string {
     .toLowerCase();
 }
 
+/** {@link normalizeName} minus a trailing generational suffix ("Alcos III" → "alcos"). */
+function normalizeSurname(s: string): string {
+  return normalizeName(s).replace(/,?\s+(jr|sr|ii|iii|iv)\.?$/, '');
+}
+
 export function resolveIntroducers(
   introducer: string | null | undefined,
   billNumber: string,
@@ -60,14 +65,14 @@ export function resolveIntroducers(
       return;
     }
     const [rawSurname, rawInitial] = token.surname.split(', ');
-    const surname = normalizeName(rawSurname);
+    const surname = normalizeSurname(rawSurname);
     const initial = rawInitial ? normalizeName(rawInitial.replace(/\./g, '')) : '';
 
     const candidates = legislators.filter(
       (l) =>
         l.lastName != null &&
         l.chamber?.toLowerCase() === chamber &&
-        normalizeName(l.lastName) === surname &&
+        normalizeSurname(l.lastName) === surname &&
         (!initial || normalizeName(l.firstName ?? '').startsWith(initial)),
     );
 
