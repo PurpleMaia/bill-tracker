@@ -420,9 +420,14 @@ export function isBillDead(
 
   // No committee referral yet: the bill is only dead once First Lateral has
   // passed (not on the day itself — it can still be referred then).
-  // Skipped after crossover, where a missing assignment is a data gap, not a
-  // bill that was never referred.
-  if (committees.length === 0 && preCrossover) {
+  // Only applies while the bill is still at the first column: one already
+  // scheduled for (or past) a hearing with no assignment is a data gap, not a
+  // bill that was never referred, so it falls through to the deadline walk.
+  if (
+    committees.length === 0 &&
+    preCrossover &&
+    (COLUMN_INDEX[bill.bill_status] ?? 0) < COLUMN_INDEX['scheduled1']
+  ) {
     const firstDeadline: DeadlineEntry = {
       name: 'First Lateral',
       date: deadlines.deadlines.first_lateral,

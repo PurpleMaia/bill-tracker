@@ -16,6 +16,7 @@ async function main() {
     .select(['id', 'bill_number', 'bill_status', 'committee_assignment', 'dead'])
     .where('bill_number', 'is not', null)
     .where('bill_status', 'is not', null)
+    .where('year', '=', deadlines.session)
     .orderBy('bill_number')
     .execute();
 

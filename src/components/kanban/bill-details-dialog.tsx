@@ -107,8 +107,8 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   // Set while leaving for Contact / Testimony: the dialog stays up until the
   // next page renders, so show progress and ignore dismissals meanwhile
   // (closing would pop the history entry the user is about to come back to).
-  const [isUntracking, setIsUntracking] = useState(false);
   const [navigatingTo, setNavigatingTo] = useState<'testimony' | 'contact' | null>(null);
+  const [isUntracking, setIsUntracking] = useState(false);
   useEffect(() => {
     if (!navigatingTo) return;
     // Browser back/forward mid-navigation abandons it.

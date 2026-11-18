@@ -536,6 +536,16 @@ describe('isBillDead', () => {
       expect(result.failedDeadline?.date).toBe('2025-02-27');
     });
 
+    it('does not apply the no-referral rule once the bill is scheduled for a hearing', () => {
+      const result = isBillDead(
+        { bill_number: 'HB9', bill_status: 'scheduled1' as BillStatus, committee_assignment: null },
+        [],
+        MOCK_DEADLINES,
+        '2025-02-28'
+      );
+      expect(result.reason).not.toMatch(/^No committee referral/);
+    });
+
     it('treats an empty string like null', () => {
       const result = isBillDead(
         { bill_number: 'SB9', bill_status: 'introduced' as BillStatus, committee_assignment: '  ' },

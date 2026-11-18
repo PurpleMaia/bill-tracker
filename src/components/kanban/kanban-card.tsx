@@ -83,7 +83,7 @@ function FailedWhyPill(props: Omit<React.ComponentProps<typeof DeadBillInfoPopov
           pulse && 'motion-safe:animate-why-ring'
         )}
         onClick={(e) => e.stopPropagation()}
-        aria-label="Why did this bill fail?"
+        aria-label="Failed. Why did this bill fail?"
       >
         <span className="flex items-center bg-destructive px-2 text-white">Failed</span>
         <span className="flex items-center bg-white px-2 text-destructive">Why? ›</span>
@@ -140,13 +140,13 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const trackedBy = bill.tracked_by ?? [];
     const trackedCount = bill.tracked_count ?? trackedBy.length;
 
-    const canAssign = canAssignBills(user, activeTenant?.orgRole);
+    const canAssign = vis.showRemoveAssign && canAssignBills(user, activeTenant?.orgRole);
     // Removing a bill takes it off the board for EVERYONE in the org, so it is
     // restricted to org admins (not merely anyone who can assign bills).
-    const canRemoveFromBoard = activeTenant?.orgRole === 'admin';
+    const canRemoveFromBoard = vis.showRemoveAssign && activeTenant?.orgRole === 'admin';
     // Anyone who can't remove the bill org-wide can still stop tracking it
     // themselves (org workers, and default/no-org users removing their own list).
-    const canUntrack = !canRemoveFromBoard && showUnadoptButton && !!onUnadopt;
+    const canUntrack = vis.showRemoveAssign && !canRemoveFromBoard && showUnadoptButton && !!onUnadopt;
 
     const headline = formatBillHeadline(bill);
     const committeeReferrals = bill.committee_assignment ? parseCommittees(bill.committee_assignment) : [];
@@ -310,6 +310,8 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
             onPointerUp={(e) => {
                 (restProps.onPointerUp as React.PointerEventHandler<HTMLDivElement> | undefined)?.(e);
                 if (e.pointerType !== 'touch') return;
+                // Portaled popover/dialog content bubbles here through React.
+                if (!e.currentTarget.contains(e.target as Node)) return;
                 const start = tapStart.current;
                 tapStart.current = null;
                 if (!start) return;
@@ -340,6 +342,8 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
             onKeyDown={(e) => {
                 dragHandleKeyDown?.(e);
                 if (e.defaultPrevented) return;
+                // Let inner buttons (pill, corner X, ...) handle their own keys.
+                if (e.target !== e.currentTarget) return;
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     handleCardClick(e as unknown as React.MouseEvent<HTMLDivElement>);
