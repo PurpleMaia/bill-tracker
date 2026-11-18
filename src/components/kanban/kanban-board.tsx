@@ -600,6 +600,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
       {/* Details dialog */}
       <UrlBillDetailsDialog
         boardMode={boardMode}
+        allowBoardRemoval
       />
     </>
   );
