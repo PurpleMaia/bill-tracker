@@ -42,7 +42,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { BillReferencePanel } from '@/components/bills/bill-reference-panel';
 import { FlowWalkthrough } from '@/components/tour/flow-walkthrough';
-import { CONTACT_WALKTHROUGH_KEY, contactWalkthrough, type ContactStage } from '@/lib/tour/flow-walkthroughs';
+import { CONTACT_WALKTHROUGH_KEY, REQUESTS_MATTER, contactWalkthrough, type ContactStage } from '@/lib/tour/flow-walkthroughs';
 import { isEnacted } from '@/lib/bills/dead-bill';
 import {
   ArrowLeft,
@@ -57,6 +57,7 @@ import {
   Loader2,
   MessageSquareText,
   Mail,
+  Megaphone,
   PanelLeftClose,
   PanelLeftOpen,
   Phone,
@@ -471,9 +472,12 @@ function Compose({
         </div>
         <p className="text-xs text-muted-foreground">
           The goal is to get legislators to act. This bill is waiting on a committee to schedule a hearing, so ask
-          that committee&apos;s chair and vice-chair to put it on the agenda, or to meet with you about it. The more
-          requests they get, the more likely they are to hear it.
+          that committee&apos;s chair and vice-chair to put it on the agenda, or to meet with you about it.
         </p>
+        <div className="mt-2 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2">
+          <Megaphone className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+          <p className="text-sm font-semibold">{REQUESTS_MATTER}</p>
+        </div>
         {isJointReferral && (
           <div className="mt-2 flex items-start gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />

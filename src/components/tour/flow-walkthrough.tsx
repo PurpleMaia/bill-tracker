@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ArrowRight, CircleHelp, TriangleAlert } from 'lucide-react';
+import { ArrowRight, CircleHelp, Megaphone, TriangleAlert } from 'lucide-react';
 
 function hasSeen(key: string): boolean {
   try {
@@ -66,6 +66,13 @@ export function FlowWalkthrough({ walkthrough, storageKey }: FlowWalkthroughProp
             <DialogTitle>{walkthrough.title}</DialogTitle>
             <DialogDescription>{walkthrough.goal}</DialogDescription>
           </DialogHeader>
+
+          {walkthrough.emphasis && (
+            <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2">
+              <Megaphone className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+              <p className="text-sm font-semibold">{walkthrough.emphasis}</p>
+            </div>
+          )}
 
           <div className="space-y-3">
             <p className="text-sm font-medium">{walkthrough.example}</p>

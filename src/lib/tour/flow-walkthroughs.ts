@@ -21,6 +21,8 @@ export interface Walkthrough {
   title: string;
   /** What the flow is for, in one or two sentences. */
   goal: string;
+  /** The one line the reader should take away, shown highlighted under the goal. */
+  emphasis?: string;
   /** Sets up the worked example the steps follow. */
   example: string;
   steps: WalkthroughStep[];
@@ -64,6 +66,9 @@ export function testimonyWalkthrough({ billNumber }: { billNumber: string }): Wa
   };
 }
 
+/** Why one more email matters — highlighted on the hearing-request page and its walkthrough. */
+export const REQUESTS_MATTER = 'The more requests a legislator gets, the more likely the bill gets heard.';
+
 /** Which ask the contact page is making — mirrors the page's own stage branches. */
 export type ContactStage = 'hearing' | 'conference' | 'governor' | 'intentToVeto' | 'override';
 
@@ -102,6 +107,7 @@ export function contactWalkthrough({
       return {
         title: 'How requesting a hearing works',
         goal: `The goal is to get legislators to act. Here that means asking the chair of ${committee} to schedule a hearing for ${billNumber}, or to meet with you about it. A bill that never gets a hearing can't move forward this session.`,
+        emphasis: REQUESTS_MATTER,
         example: `Example: ${PERSON} wants ${billNumber} to get a hearing.`,
         steps: [
           ...emailSteps(billNumber, 'chair and vice-chair'),
@@ -115,7 +121,7 @@ export function contactWalkthrough({
           },
         ],
         caveat: EMAIL_CAVEAT,
-        next: 'Chairs decide what goes on their agenda, so there is no guarantee. The more requests a chair gets, the more likely the bill gets heard.',
+        next: 'Chairs decide what goes on their agenda, so there is no guarantee of a hearing. Adding your voice still raises the odds.',
       };
     }
     case 'conference':

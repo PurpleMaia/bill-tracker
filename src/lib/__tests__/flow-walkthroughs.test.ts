@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   CONTACT_WALKTHROUGH_KEY,
+  REQUESTS_MATTER,
   TESTIMONY_WALKTHROUGH_KEY,
   contactWalkthrough,
   testimonyWalkthrough,
@@ -42,6 +43,11 @@ describe('contactWalkthrough', () => {
     expect(w.goal).toContain('Committee on Agriculture');
     expect(w.goal).toMatch(/hearing/);
     expect(w.goal).toMatch(/meet/);
+  });
+
+  it('hearing: highlights that more requests make a hearing more likely', () => {
+    const w = contactWalkthrough({ stage: 'hearing', billNumber: 'SB45' });
+    expect(w.emphasis).toBe(REQUESTS_MATTER);
   });
 
   it('hearing: falls back to a neutral committee phrase', () => {
