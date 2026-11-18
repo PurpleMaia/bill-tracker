@@ -71,6 +71,16 @@ export function coversRound(testimonies: TestimonyRound[], round: TestimonyRound
   return testimonies.length > 0 && testimonies.every((t) => t.chamber === null && t.committee === null);
 }
 
+/**
+ * Whether a testimony is for the bill's current hearing round — the round the
+ * bill's latest hearing notice and deadline apply to. Pre-round testimonies
+ * (both fields null) can't be placed, so they're treated as current.
+ */
+export function isCurrentRoundTestimony(testimony: TestimonyRound, current: TestimonyRound): boolean {
+  if (testimony.chamber === null && testimony.committee === null) return true;
+  return sameRound(testimony, current);
+}
+
 const CHAMBER_LABELS: Record<TestimonyChamber, string> = {
   house: 'House',
   senate: 'Senate',

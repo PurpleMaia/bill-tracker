@@ -46,12 +46,25 @@ if [ -n "$UPS" ]; then
   fi
 fi
 
+# The down-1/up test cycle below is for local verification only. In prod (run on
+# every deploy via app.json's predeploy) it would execute the latest migration's
+# down on live data each deploy — destructive for any down that must delete rows
+# (e.g. 000036 collapsing per-round testimonies) — so prod stops after `up`.
+skip_rollback_test_in_prod() {
+  if [ "$ENV" = "prod" ]; then
+    echo ""
+    echo "Skipping rollback test in prod."
+    exit 0
+  fi
+}
+
 # Run migrations based on UPS argument
 if [ -z "$UPS" ]; then
   # Run ALL pending migrations
   echo ""
   echo "Running all pending migrations..."
   migrate -database "${DATABASE_URL}" -path src/db/migrations up
+  skip_rollback_test_in_prod
 
   # Test rollback
   echo ""
@@ -70,6 +83,7 @@ else
   echo ""
   echo "Running ${UPS} migration(s) up..."
   migrate -database "${DATABASE_URL}" -path src/db/migrations up ${UPS}
+  skip_rollback_test_in_prod
 
   # Test rollback
   echo ""

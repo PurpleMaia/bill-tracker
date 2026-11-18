@@ -90,7 +90,12 @@ function decorate(item: TestimonyListItem, now: Date): DecoratedTestimony {
   let closed = false;
   let closedNote: string | null = null;
 
-  if (isDraft) {
+  if (isDraft && !item.isCurrentRound) {
+    // An earlier round's draft: the bill's latest hearing notice belongs to a
+    // later round, so its countdown/urgency must not show on this testimony.
+    closed = true;
+    closedNote = item.dead ? null : `That hearing has passed — the bill is now at ${item.currentRoundLabel}`;
+  } else if (isDraft) {
     const eligibility = getTestimonyEligibility({
       dead: item.dead,
       billStatus: item.billStatus as BillStatus,

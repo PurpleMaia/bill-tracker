@@ -6,6 +6,7 @@ import { ApiError } from '@/lib/core/errors';
 import {
   coversRound,
   currentTestimonyRound,
+  isCurrentRoundTestimony,
   roundLabel,
   sameRound,
   type TestimonyChamber,
@@ -312,22 +313,15 @@ interface RoundBillRow {
  * For each bill: its current hearing round, and whether the user's testimonies
  * already cover it (see coversRound). Two queries for the whole set.
  */
-async function currentRoundCoverage(
-  userId: string,
-  bills: RoundBillRow[],
-): Promise<Map<string, { round: TestimonyRound; covered: boolean }>> {
-  const result = new Map<string, { round: TestimonyRound; covered: boolean }>();
-  if (bills.length === 0) return result;
-  const billIds = bills.map((b) => b.id);
-  const [updates, written] = await Promise.all([
-    db.selectFrom('status_updates').select(['bill_id', 'statustext']).where('bill_id', 'in', billIds).execute(),
-    db
-      .selectFrom('testimonies')
-      .select(['bill_id', 'chamber', 'committee'])
-      .where('user_id', '=', userId)
-      .where('bill_id', 'in', billIds)
-      .execute(),
-  ]);
+/** Each bill's current hearing round. One status_updates query for the whole set. */
+async function currentRoundsForBills(bills: RoundBillRow[]): Promise<Map<string, TestimonyRound>> {
+  const rounds = new Map<string, TestimonyRound>();
+  if (bills.length === 0) return rounds;
+  const updates = await db
+    .selectFrom('status_updates')
+    .select(['bill_id', 'statustext'])
+    .where('bill_id', 'in', bills.map((b) => b.id))
+    .execute();
 
   const updatesByBill = new Map<string, { statustext: string }[]>();
   for (const u of updates) {
@@ -337,14 +331,39 @@ async function currentRoundCoverage(
   }
 
   for (const bill of bills) {
-    const round = currentTestimonyRound({
-      billNumber: bill.bill_number ?? '',
-      billStatus: bill.bill_status,
-      currentCommittee: bill.current_committee,
-      committeeAssignment: bill.committee_assignment,
-      updates: updatesByBill.get(bill.id) ?? [],
-      dead: bill.dead,
-    });
+    rounds.set(
+      bill.id,
+      currentTestimonyRound({
+        billNumber: bill.bill_number ?? '',
+        billStatus: bill.bill_status,
+        currentCommittee: bill.current_committee,
+        committeeAssignment: bill.committee_assignment,
+        updates: updatesByBill.get(bill.id) ?? [],
+        dead: bill.dead,
+      }),
+    );
+  }
+  return rounds;
+}
+
+async function currentRoundCoverage(
+  userId: string,
+  bills: RoundBillRow[],
+): Promise<Map<string, { round: TestimonyRound; covered: boolean }>> {
+  const result = new Map<string, { round: TestimonyRound; covered: boolean }>();
+  if (bills.length === 0) return result;
+  const [rounds, written] = await Promise.all([
+    currentRoundsForBills(bills),
+    db
+      .selectFrom('testimonies')
+      .select(['bill_id', 'chamber', 'committee'])
+      .where('user_id', '=', userId)
+      .where('bill_id', 'in', bills.map((b) => b.id))
+      .execute(),
+  ]);
+
+  for (const bill of bills) {
+    const round = rounds.get(bill.id)!;
     const mine = written.filter((t) => t.bill_id === bill.id).map(toRound);
     result.set(bill.id, { round, covered: coversRound(mine, round) });
   }
@@ -430,6 +449,7 @@ export async function listUserTestimonies(userId: string): Promise<TestimonyList
       'b.year',
       'b.bill_status',
       'b.committee_assignment',
+      'b.current_committee',
       'b.dead',
     ])
     .where('t.user_id', '=', userId)
@@ -440,10 +460,25 @@ export async function listUserTestimonies(userId: string): Promise<TestimonyList
 
   if (rows.length === 0) return [];
 
-  const latestByBillId = await latestStatusTextByBillId(rows.map((r) => r.bill_id));
+  const bills = new Map<string, RoundBillRow>();
+  for (const row of rows) {
+    bills.set(row.bill_id, {
+      id: row.bill_id,
+      bill_number: row.bill_number,
+      bill_status: row.bill_status,
+      current_committee: row.current_committee,
+      committee_assignment: row.committee_assignment,
+      dead: row.dead,
+    });
+  }
+  const [latestByBillId, currentRounds] = await Promise.all([
+    latestStatusTextByBillId(Array.from(bills.keys())),
+    currentRoundsForBills(Array.from(bills.values())),
+  ]);
 
   return rows.map((row) => {
     const round = toRound(row);
+    const current = currentRounds.get(row.bill_id)!;
     return {
       id: row.id,
       billId: row.bill_id,
@@ -465,6 +500,8 @@ export async function listUserTestimonies(userId: string): Promise<TestimonyList
       updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
       submittedAt: row.submitted_at ? new Date(row.submitted_at).toISOString() : null,
       latestStatusText: latestByBillId[row.bill_id] ?? null,
+      isCurrentRound: isCurrentRoundTestimony(round, current),
+      currentRoundLabel: roundLabel(current),
     };
   });
 }

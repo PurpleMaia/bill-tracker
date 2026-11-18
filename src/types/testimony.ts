@@ -83,6 +83,13 @@ export interface TestimonyListItem extends TestimonyRoundFields {
   submittedAt: string | null;
   /** Most recent scraped status update, for hearing-datetime parsing. */
   latestStatusText: string | null;
+  /**
+   * This testimony is for the bill's current hearing round, so the latest
+   * hearing notice (countdown, urgency) applies to it. False for earlier rounds.
+   */
+  isCurrentRound: boolean;
+  /** Label of the bill's current hearing round ("Senate · AGL"). */
+  currentRoundLabel: string;
 }
 
 /** Payload for saving a draft. */

@@ -3,6 +3,7 @@ import {
   coversRound,
   currentTestimonyRound,
   groupByBill,
+  isCurrentRoundTestimony,
   originChamber,
   roundLabel,
   sameRound,
@@ -103,5 +104,16 @@ describe('coversRound', () => {
   });
   it('is false with no testimonies', () => {
     expect(coversRound([], senate)).toBe(false);
+  });
+});
+
+describe('isCurrentRoundTestimony', () => {
+  const senate = { chamber: 'senate' as const, committee: 'AGL' };
+  it('is true for the current round and false for an earlier one', () => {
+    expect(isCurrentRoundTestimony({ chamber: 'senate', committee: 'agl' }, senate)).toBe(true);
+    expect(isCurrentRoundTestimony({ chamber: 'house', committee: 'AGR' }, senate)).toBe(false);
+  });
+  it('treats pre-round testimonies as current (their round is unknown)', () => {
+    expect(isCurrentRoundTestimony({ chamber: null, committee: null }, senate)).toBe(true);
   });
 });
