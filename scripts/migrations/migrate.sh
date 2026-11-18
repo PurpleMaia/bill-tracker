@@ -63,7 +63,7 @@ if [ -z "$UPS" ]; then
   # Run ALL pending migrations
   echo ""
   echo "Running all pending migrations..."
-  migrate -database "${DATABASE_URL}" -path src/db/migrations up
+  migrate -database "${DATABASE_URL}" -path src/db/migrations up || exit $?  # a failed migration must fail the deploy
   skip_rollback_test_in_prod
 
   # Test rollback
@@ -82,7 +82,7 @@ else
   # Run specific number of migrations
   echo ""
   echo "Running ${UPS} migration(s) up..."
-  migrate -database "${DATABASE_URL}" -path src/db/migrations up ${UPS}
+  migrate -database "${DATABASE_URL}" -path src/db/migrations up ${UPS} || exit $?  # a failed migration must fail the deploy
   skip_rollback_test_in_prod
 
   # Test rollback
