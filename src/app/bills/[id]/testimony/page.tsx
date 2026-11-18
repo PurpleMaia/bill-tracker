@@ -31,6 +31,11 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 const EMPTY_DOC = { type: 'doc', content: [{ type: 'paragraph' }] };
 
+/** Whether focus landed somewhere that opens the on-screen keyboard. */
+function isTextEntry(target: EventTarget): boolean {
+  return target instanceof HTMLElement && (target.isContentEditable || target.matches('input:not([type="radio"]), textarea'));
+}
+
 export default function TestimonyPage() {
   const { id: billId } = useParams<{ id: string }>();
   const router = useRouter();
@@ -55,6 +60,8 @@ export default function TestimonyPage() {
   const [contentJson, setContentJson] = useState<unknown>(EMPTY_DOC);
   const [submitted, setSubmitted] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  // A text field or the editor has focus — on a phone, the keyboard is up.
+  const [typing, setTyping] = useState(false);
 
   const hydrated = useRef(false); // true once bill + draft are loaded (enables autosave)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -243,6 +250,15 @@ export default function TestimonyPage() {
 
   const referencePanel = <BillReferencePanel bill={bill} />;
   const stepper = <TestimonyStepper step={step} onStepChange={setStep} maxStep={hasText ? 3 : 1} />;
+  const nextRow = (
+    <div className="flex items-center justify-end gap-3">
+      {!hasText && <p className="text-xs text-muted-foreground">Write your testimony to continue.</p>}
+      <Button onClick={() => setStep(2)} disabled={!hasText} data-flow-tour="next">
+        Next: Review
+        <ArrowRight className="ml-1.5 h-4 w-4" />
+      </Button>
+    </div>
+  );
 
   return (
     <div className="flex h-dvh flex-col">
@@ -273,7 +289,11 @@ export default function TestimonyPage() {
           <aside className="w-[340px] shrink-0 border-r bg-muted/20" data-flow-tour="reference">{referencePanel}</aside>
         )}
 
-        <main className="min-w-0 flex-1 overflow-y-auto">
+        <main
+          className="min-w-0 flex-1 overflow-y-auto"
+          onFocus={(e) => setTyping(isTextEntry(e.target))}
+          onBlur={() => setTyping(false)}
+        >
           {/* On phones, room at the bottom for the fixed stepper bar. */}
           <div className={['mx-auto max-w-3xl space-y-4 p-4 sm:p-6', isMobile ? 'pb-20' : ''].join(' ')}>
 
@@ -282,18 +302,12 @@ export default function TestimonyPage() {
                 <div data-flow-tour="details">
                   <TestimonyHeaderForm value={form} onChange={handleFormChange} />
                 </div>
+                {/* Phones: Next sits above the editor so it isn't buried under the keyboard. */}
+                {isMobile && nextRow}
                 <div data-flow-tour="editor">
                   <TestimonyEditor initialContent={contentJson} onChange={handleContentChange} />
                 </div>
-                <div className="flex items-center justify-end gap-3">
-                  {!hasText && (
-                    <p className="text-xs text-muted-foreground">Write your testimony to continue.</p>
-                  )}
-                  <Button onClick={() => setStep(2)} disabled={!hasText} data-flow-tour="next">
-                    Next: Review
-                    <ArrowRight className="ml-1.5 h-4 w-4" />
-                  </Button>
-                </div>
+                {!isMobile && nextRow}
               </>
             )}
 
@@ -320,8 +334,9 @@ export default function TestimonyPage() {
         </main>
       </div>
 
-      {/* Phones: the step progress lives in a bar at the bottom, with Bill info floating above it. */}
-      {isMobile && (
+      {/* Phones: the step progress lives in a bar at the bottom, with Bill info floating above it.
+          Both step aside while typing, so they don't sit on top of the keyboard. */}
+      {isMobile && !typing && (
         <>
           <nav
             className="fixed inset-x-0 bottom-0 z-30 flex justify-center border-t bg-background px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"

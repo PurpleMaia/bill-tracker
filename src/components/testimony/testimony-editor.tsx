@@ -90,7 +90,7 @@ export function TestimonyEditor({ initialContent, onChange }: TestimonyEditorPro
     editorProps: {
       attributes: {
         class: cn(
-          'min-h-[55vh] px-4 py-3 text-sm leading-relaxed focus:outline-none',
+          'min-h-[40vh] px-4 py-3 text-sm leading-relaxed focus:outline-none sm:min-h-[55vh]',
           '[&_h1]:text-3xl [&_h1]:font-bold [&_h1]:my-3',
           '[&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:my-3',
           '[&_h3]:text-xl [&_h3]:font-semibold [&_h3]:my-2',
@@ -125,7 +125,7 @@ export function TestimonyEditor({ initialContent, onChange }: TestimonyEditorPro
             else editor.chain().focus().setFontFamily(value).run();
           }}
         >
-          <SelectTrigger className="h-8 w-[150px] text-xs">
+          <SelectTrigger className="h-8 w-[120px] text-xs sm:w-[150px]">
             <SelectValue placeholder="Font" />
           </SelectTrigger>
           <SelectContent>
@@ -144,7 +144,7 @@ export function TestimonyEditor({ initialContent, onChange }: TestimonyEditorPro
             else editor.chain().focus().toggleHeading({ level: Number(value) as 1 | 2 | 3 }).run();
           }}
         >
-          <SelectTrigger className="h-8 w-[130px] text-xs">
+          <SelectTrigger className="h-8 w-[110px] text-xs sm:w-[130px]">
             <SelectValue placeholder="Style" />
           </SelectTrigger>
           <SelectContent>
