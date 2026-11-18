@@ -65,6 +65,8 @@ export interface KanbanColumnProps extends React.HTMLAttributes<HTMLDivElement> 
   orgTestimonyBillIds?: Set<string>;
   trackedBillIds?: Set<string>;
   onTrackForSelf?: (bill: Bill) => void;
+  /** Card to ring briefly — set when "View on board" lands on it. */
+  highlightedBillId?: string | null;
 }
 
 
@@ -99,6 +101,7 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
       orgTestimonyBillIds,
       trackedBillIds,
       onTrackForSelf,
+      highlightedBillId,
       ...props
     },
     ref
@@ -201,6 +204,7 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
                   orgTestimonyState={orgTestimonyBillIds?.has(bill.id) ? 'submitted' : undefined}
                   isTracked={trackedBillIds?.has(bill.id) ?? false}
                   onTrackForSelf={onTrackForSelf}
+                  isHighlighted={bill.id === highlightedBillId}
                 />
               ) : (
                 <Draggable key={bill.id} draggableId={bill.id} index={index}>
@@ -221,6 +225,7 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
                       orgTestimonyState={orgTestimonyBillIds?.has(bill.id) ? 'submitted' : undefined}
                       isTracked={trackedBillIds?.has(bill.id) ?? false}
                       onTrackForSelf={onTrackForSelf}
+                      isHighlighted={bill.id === highlightedBillId}
                       style={{
                         ...provided.draggableProps.style,
                       }}

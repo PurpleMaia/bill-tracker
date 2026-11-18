@@ -20,13 +20,15 @@ interface KanbanPillStripProps {
  */
 export function KanbanPillStrip({ onScrollTo }: KanbanPillStripProps) {
   return (
-    <div className="flex w-max gap-2">
+    // Four equal segments sharing the row with Filters, so all of them fit at
+    // phone width instead of scrolling off the edge.
+    <div className="grid grid-cols-4 gap-1">
       {PHASES.map(({ phase, label }) => (
         <Button
           key={phase}
           variant="outline"
           size="sm"
-          className="h-8 rounded-full px-3 text-xs"
+          className="h-8 min-w-0 overflow-hidden rounded-full px-1 text-[11px]"
           onClick={() => onScrollTo(phase)}
         >
           {label}

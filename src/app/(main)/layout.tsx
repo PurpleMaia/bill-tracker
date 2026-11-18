@@ -12,7 +12,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         Skip to content
       </a>
       <Header />
-      <main id="main-content" className="min-h-0 flex-1 overflow-auto pb-14 md:pb-0">{children}</main>
+      {/* pb-16 reserves exactly the fixed bottom tab bar's h-16, so nothing at
+          the bottom of a page (e.g. the board's page dots) hides under it. On
+          phones the page itself never scrolls sideways — the board scrolls
+          horizontally inside its own viewport. */}
+      <main id="main-content" className="min-h-0 flex-1 overflow-auto pb-16 max-md:overflow-x-hidden md:pb-0">{children}</main>
       <BottomTabBar />
       <WelcomeTour />
     </div>

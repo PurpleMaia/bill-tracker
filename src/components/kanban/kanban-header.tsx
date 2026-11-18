@@ -174,6 +174,7 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
       onClearFilters={mobile ? clearMobileFilters : clearPopoverFilters}
       searchSlot={mobile ? renderSearchInput(mobileSearchRef, false) : undefined}
       searchActive={mobile && searchQuery.trim() !== ''}
+      triggerClassName={mobile ? 'h-8 px-2.5' : undefined}
     />
   );
 
@@ -203,7 +204,7 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
           Filters pinned right (search lives inside its panel). Tracking moved
           to each column's footer and Export to the avatar menu. */}
       <div className="md:hidden flex items-center gap-2 px-3 py-2">
-        <div className="min-w-0 flex-1 overflow-x-auto">
+        <div className="min-w-0 flex-1">
           {phaseScrollAvailable && <KanbanPillStrip onScrollTo={scrollToPhase} />}
         </div>
         {renderFilterControls(true)}

@@ -293,7 +293,10 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                 isDragging
                   ? "opacity-80 shadow-xl rotate-2 scale-105 cursor-grabbing"
                   : "shadow-sm hover:shadow-md cursor-grab",
-                isHighlighted && "ring-2 ring-ring ring-offset-2",
+                // A pulsing teal halo (not the focus ring, which means
+                // keyboard focus): reduced-motion users get a still glow.
+                isHighlighted &&
+                  "border-primary motion-safe:animate-focus-pulse motion-reduce:shadow-[0_0_0_3px_hsl(var(--primary)/0.35)]",
                 className
             )}
             style={style}

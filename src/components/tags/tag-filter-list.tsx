@@ -37,6 +37,8 @@ interface TagFilterListProps {
   searchSlot?: React.ReactNode;
   /** A search is active — counted in the badge, since the box is tucked away. */
   searchActive?: boolean;
+  /** Extra classes for the Filters trigger (the phone toolbar slims it to pill height). */
+  triggerClassName?: string;
 }
 
 /** Keyboard-operable option row used for the status, year, and tag lists. */
@@ -86,6 +88,7 @@ export function TagFilterList({
   onShowArchivedChange,
   searchSlot,
   searchActive = false,
+  triggerClassName,
 }: TagFilterListProps) {
   const [showManagementDialog, setShowManagementDialog] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -123,7 +126,7 @@ export function TagFilterList({
     <>
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" aria-label="Filters" className="shrink-0">
+          <Button variant="outline" aria-label="Filters" className={cn('shrink-0', triggerClassName)}>
             <Filter className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Filters</span>
             {totalFiltersCount > 0 && (

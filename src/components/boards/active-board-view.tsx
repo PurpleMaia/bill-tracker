@@ -13,6 +13,8 @@ import { ActiveBoardBanner } from './active-board-banner';
 import { ActiveBoardsBillsBridge } from './active-boards-bills-bridge';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { toast } from '@/hooks/use-toast';
+import { useViewOnBoard } from '@/hooks/use-view-on-board';
+import { ToastAction } from '@/components/ui/toast';
 import type { Bill } from '@/types/legislation';
 import { cn } from '@/lib/core/utils';
 import { RISE_IN } from '@/lib/core/motion';
@@ -23,6 +25,7 @@ export function ActiveBoardView() {
     testimonyBillIds, trackedBillIds, markBillTracked,
   } = useActiveBoards();
   const { activeTenant } = useAuth();
+  const viewOnBoard = useViewOnBoard();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -60,7 +63,13 @@ export function ActiveBoardView() {
         toast({
           title: 'Bill tracked',
           description: `${bill.bill_number} added to your board.`,
-          duration: 4000,
+          // Longer than the 4s default: long enough to reach the action.
+          duration: 6000,
+          action: (
+            <ToastAction altText={`View ${bill.bill_number} on your board`} onClick={() => viewOnBoard(bill.id)}>
+              View on board
+            </ToastAction>
+          ),
         });
       } catch {
         toast({
@@ -71,7 +80,7 @@ export function ActiveBoardView() {
         });
       }
     },
-    [activeTenant?.tenantId, markBillTracked],
+    [activeTenant?.tenantId, markBillTracked, viewOnBoard],
   );
 
   // Skeleton while the followed list loads (an empty list isn't "follows no

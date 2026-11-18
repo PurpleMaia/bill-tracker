@@ -8,6 +8,8 @@ import { LoginLink } from '@/components/auth/login-link';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useToast } from '@/hooks/use-toast';
+import { useViewOnBoard } from '@/hooks/use-view-on-board';
+import { ToastAction } from '@/components/ui/toast';
 import { data } from '@/lib/data-client';
 
 /**
@@ -40,6 +42,7 @@ export function TrackButton({ billId, billNumber, initialTracked = false }: Trac
   const { toast } = useToast();
   const { refreshBills } = useBills();
   const queryClient = useQueryClient();
+  const viewOnBoard = useViewOnBoard();
   const [isTracking, setIsTracking] = useState(false);
   const [isTracked, setIsTracked] = useState(initialTracked);
 
@@ -89,6 +92,12 @@ export function TrackButton({ billId, billNumber, initialTracked = false }: Trac
             ? `Added to ${activeTenant.name}'s board.`
             : 'Added to your bills.'
           : undefined,
+        // Either way the bill is on the board now — offer to jump to it.
+        action: (
+          <ToastAction altText={`View ${billNumber} on your board`} onClick={() => viewOnBoard(billId)}>
+            View on board
+          </ToastAction>
+        ),
       });
     } catch (error) {
       toast({
