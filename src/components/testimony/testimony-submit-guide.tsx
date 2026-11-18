@@ -76,7 +76,7 @@ export function TestimonySubmitGuide({
           <div>
             <p className="text-sm font-semibold">Your testimony has not been sent yet</p>
             <p className="text-sm text-muted-foreground">
-              Food+ cannot submit testimony for you. It only reaches the committee once you submit it yourself on
+              The Hawaiʻi Bill Tracker cannot submit testimony for you. It only reaches the committee once you submit it yourself on
               capitol.hawaii.gov, following the steps below.
             </p>
           </div>

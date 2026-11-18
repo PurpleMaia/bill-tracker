@@ -38,7 +38,7 @@ interface FlowWalkthroughProps {
 
 /**
  * "How this works" for an action flow: a header button that opens a worked
- * example of the whole flow, ending with what Food+ can't do for the user.
+ * example of the whole flow, ending with what the Hawaiʻi Bill Tracker can't do for the user.
  * Opens on its own the first time someone enters the flow.
  */
 export function FlowWalkthrough({ walkthrough, storageKey }: FlowWalkthroughProps) {

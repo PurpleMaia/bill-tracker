@@ -4,7 +4,7 @@
  * the real bill, so the reader sees their own bill number and committee rather
  * than abstract instructions. The dialog lives in components/tour/flow-walkthrough.tsx.
  *
- * Every walkthrough states the flow's limitation plainly (`caveat`): Food+ never
+ * Every walkthrough states the flow's limitation plainly (`caveat`): the Hawaiʻi Bill Tracker never
  * submits or sends anything on the user's behalf.
  */
 
@@ -36,12 +36,12 @@ const PERSON = 'Kai';
 export function testimonyWalkthrough({ billNumber }: { billNumber: string }): Walkthrough {
   return {
     title: 'How writing testimony works',
-    goal: 'Testimony is your written opinion on a bill. The committee reads it before it votes. Food+ helps you write it and get it ready. Submitting it is up to you.',
+    goal: 'Testimony is your written opinion on a bill. The committee reads it before it votes. The Hawaiʻi Bill Tracker helps you write it and get it ready. Submitting it is up to you.',
     example: `Example: ${PERSON} supports ${billNumber} and wants the committee to pass it.`,
     steps: [
       {
         title: 'Write it here',
-        body: `${PERSON} picks Support and writes a few paragraphs on why ${billNumber} matters to their community. Food+ saves the draft as they type.`,
+        body: `${PERSON} picks Support and writes a few paragraphs on why ${billNumber} matters to their community. The Hawaiʻi Bill Tracker saves the draft as they type.`,
       },
       {
         title: 'Download or copy it',
@@ -53,11 +53,11 @@ export function testimonyWalkthrough({ billNumber }: { billNumber: string }): Wa
       },
       {
         title: 'Mark it submitted here',
-        body: `Back in Food+, ${PERSON} presses "I submitted it on the Capitol site" so ${billNumber} shows as done in Testimonies. This is only a note for ${PERSON}. It doesn't send anything.`,
+        body: `Back in the Hawaiʻi Bill Tracker, ${PERSON} presses "I submitted it on the Capitol site" so ${billNumber} shows as done in Testimonies. This is only a note for ${PERSON}. It doesn't send anything.`,
       },
     ],
     caveat: {
-      title: 'Food+ cannot submit testimony for you',
+      title: 'The Hawaiʻi Bill Tracker cannot submit testimony for you',
       body: 'Nothing you write here reaches the Legislature until you submit it yourself on capitol.hawaii.gov. The capitol site only accepts testimony once a committee has scheduled a hearing on the bill.',
     },
     next: 'Your testimony goes on the public record for that hearing, and the committee considers it before voting. You can sign up to testify in person or online on the same capitol form.',
@@ -82,7 +82,7 @@ function emailSteps(billNumber: string, recipients: string): WalkthroughStep[] {
 }
 
 const EMAIL_CAVEAT = {
-  title: 'Food+ does not send anything for you',
+  title: 'The Hawaiʻi Bill Tracker does not send anything for you',
   body: "The Email button only opens your own email app. The message goes out from your address when you press Send. Offices tally requests, so you may not get a personal reply, but every message counts.",
 };
 
@@ -111,7 +111,7 @@ export function contactWalkthrough({
           },
           {
             title: 'Watch for a hearing notice',
-            body: `If the chair schedules a hearing, it shows up on ${billNumber} in Food+. That's ${PERSON}'s cue to write testimony.`,
+            body: `If the chair schedules a hearing, it shows up on ${billNumber} in the Hawaiʻi Bill Tracker. That's ${PERSON}'s cue to write testimony.`,
           },
         ],
         caveat: EMAIL_CAVEAT,
@@ -127,7 +127,7 @@ export function contactWalkthrough({
           ...emailSteps(billNumber, 'conferees'),
           {
             title: 'Watch for a final vote',
-            body: `If the conferees agree, ${billNumber} goes back to both chambers for a final vote, then to the Governor. Food+ shows the new status on the bill.`,
+            body: `If the conferees agree, ${billNumber} goes back to both chambers for a final vote, then to the Governor. The Hawaiʻi Bill Tracker shows the new status on the bill.`,
           },
         ],
         caveat: EMAIL_CAVEAT,
@@ -155,11 +155,11 @@ export function contactWalkthrough({
           },
           {
             title: 'Watch for the decision',
-            body: `When the Governor signs or vetoes ${billNumber}, Food+ shows the new status on the bill.`,
+            body: `When the Governor signs or vetoes ${billNumber}, The Hawaiʻi Bill Tracker shows the new status on the bill.`,
           },
         ],
         caveat: {
-          title: 'Food+ does not send anything for you',
+          title: 'The Hawaiʻi Bill Tracker does not send anything for you',
           body: "Your message only reaches the Governor once you paste it into their form and submit it there yourself.",
         },
         next: "The Governor's office tallies messages by position. Short and clear is best.",

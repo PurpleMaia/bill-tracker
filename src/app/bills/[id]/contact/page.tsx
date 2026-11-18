@@ -1098,7 +1098,7 @@ function ComposeGovernor({
               <h2 className="text-sm font-semibold">Message script</h2>
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
-              Edit it freely, then copy it into either of the Governor&apos;s forms and submit the form there. Food+ doesn&apos;t send it for you.
+              Edit it freely, then copy it into either of the Governor&apos;s forms and submit the form there. The Hawaiʻi Bill Tracker doesn&apos;t send it for you.
             </p>
             <div className="mb-2 flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
               <span className="min-w-0 flex-1">

@@ -15,7 +15,7 @@ describe('testimonyWalkthrough', () => {
   it('uses the real bill number in the example', () => {
     expect(w.example).toContain('HB123');
   });
-  it('states that Food+ cannot submit testimony', () => {
+  it('states that the app cannot submit testimony', () => {
     expect(w.caveat.title).toMatch(/cannot submit/i);
     expect(w.caveat.body).toContain('capitol.hawaii.gov');
   });
