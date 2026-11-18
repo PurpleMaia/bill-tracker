@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ArrowUp, Search, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,6 +20,7 @@ import { SearchFilterRail } from './search-filter-rail';
 import { SearchFiltersSheet } from './search-filters-sheet';
 import { SearchIntro } from './search-intro';
 import { TrackButton } from './track-button';
+import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
 import { useBillSearch } from '@/hooks/use-bill-search';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
@@ -101,7 +102,6 @@ export function BillSearchView() {
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
-  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const handleClear = useCallback(() => setFilters(DEFAULT_FILTERS), []);
   const handleCardClick = useCallback((billId: string) => openBillDialog(billId), [openBillDialog]);
@@ -141,17 +141,6 @@ export function BillSearchView() {
     filters.chairIds,
     filters.sort,
   ]);
-
-  // Reveal the scroll-to-top button once the hero (and its search bar) has
-  // scrolled out of view, since it's the only way back to them now.
-  useEffect(() => {
-    const node = resultsRef.current;
-    if (!node) return;
-    const onScroll = () => setShowScrollTop(node.scrollTop > 400);
-    node.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    return () => node.removeEventListener('scroll', onScroll);
-  }, []);
 
   const hasQuery = filters.q.trim().length > 0;
   // The full placeholder runs past a phone-width input; phones get the short one.
@@ -344,22 +333,8 @@ export function BillSearchView() {
 
       </div>
 
-      {/* Back to the search bar once the hero has scrolled out of reach.
-          `fixed`, so it pins to the viewport's bottom-right corner rather than
-          the results column. On mobile it lifts above the bottom tab bar (which
-          is fixed at bottom-0, z-30) and stays under it in stacking order. */}
-      {showScrollTop && (
-        <Button
-          size="icon"
-          variant="secondary"
-          onClick={() => resultsRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-          aria-label="Scroll back to search"
-          // Light teal to match the Bill info helper; see BillInfoFab.
-          className="fixed bottom-20 right-4 z-20 h-11 w-11 rounded-full border border-primary/20 shadow-lg hover:bg-secondary hover:brightness-95 md:bottom-6 md:right-6"
-        >
-          <ArrowUp className="h-5 w-5" aria-hidden="true" />
-        </Button>
-      )}
+      {/* Back to the search bar once the hero has scrolled out of reach. */}
+      <ScrollToTopButton scrollRef={resultsRef} label="Scroll back to search" />
 
       {/* The board's own dialog, reused rather than reimplemented — BillsProvider
           wraps the whole app, so it works here. It degrades for logged-out

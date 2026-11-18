@@ -16,6 +16,7 @@ import { ArrowRight, Building2, Check, Eye, FileText, Globe, Lock, LogIn, Plus, 
 import { cn } from '@/lib/core/utils';
 import { RISE_IN, riseDelay } from '@/lib/core/motion';
 import { LoginLink } from '@/components/auth/login-link';
+import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
 
 // Skeleton mirroring one OrgCard's shape while the list loads.
 function OrgCardSkeleton() {
@@ -77,7 +78,7 @@ function BrowseSkeleton() {
             ))}
           </ul>
         </div>
-        <aside className={cn('flex shrink-0 flex-col gap-4 lg:w-72', RISE_IN)} style={riseDelay(2)}>
+        <aside className={cn('order-first flex shrink-0 flex-col gap-4 lg:order-none lg:w-72', RISE_IN)} style={riseDelay(2)}>
           <SideBlobSkeleton rows={2} />
           <SideBlobSkeleton rows={3} />
         </aside>
@@ -113,7 +114,9 @@ function BrowseIntro({ orgCount }: { orgCount: number }) {
           </>
         )}
       </p>
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {/* How-it-works steps: desktop only. On phones they pushed the list a
+          screen down; the line above already says what the page is for. */}
+      <div className="mt-4 hidden gap-3 md:grid md:grid-cols-3">
         {steps.map(({ icon: Icon, title, text }) => (
           <div key={title} className="flex gap-3 rounded-lg bg-background/70 p-3">
             <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -553,13 +556,16 @@ export function BrowseOrgsList() {
           )}
         </div>
 
-        {/* Right: stat blob, then the orgs you follow */}
-        <aside className={cn('flex shrink-0 flex-col gap-4 lg:w-72', RISE_IN)} style={riseDelay(2)}>
+        {/* Stat blob, then the orgs you follow. Below lg this stacks first, so
+            your stats lead on phones/tablets; lg+ makes it the right column. */}
+        <aside className={cn('order-first flex shrink-0 flex-col gap-4 lg:order-none lg:w-72', RISE_IN)} style={riseDelay(2)}>
           <StatBlob orgs={orgs} />
           {/* Following is per-user, so the panel is meaningless when logged out. */}
           {!isLoggedOut && <FollowedOrgs orgs={orgs} />}
         </aside>
       </div>
+
+      <ScrollToTopButton label="Scroll back to top" />
     </div>
   );
 }
