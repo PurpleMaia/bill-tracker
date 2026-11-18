@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import {
   AlertCircle,
@@ -170,6 +170,11 @@ function compareDrafts(a: DecoratedTestimony, b: DecoratedTestimony): number {
   return (b.item.updatedAt ?? '').localeCompare(a.item.updatedAt ?? '');
 }
 
+/** Mount-in, matching Discover and the board (see `rise-in` in tailwind.config). */
+const RISE_IN = 'animate-rise-in motion-reduce:animate-none';
+/** Stagger slot for the i-th item of a cascade, capped so long lists never lag. */
+const riseDelay = (i: number) => ({ '--stagger': Math.min(i, 6) }) as CSSProperties;
+
 export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
   const { user, loading: authLoading } = useAuth();
   const { items, prospects, error, refetch, removeItem } = useTestimonies();
@@ -200,7 +205,7 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
       {/* Page heading + summary */}
-      <div className="mb-6">
+      <div className={cn('mb-6', RISE_IN)}>
         <h2 className="text-2xl font-semibold tracking-tight">Your Testimonies</h2>
         {items !== null && hasAnything && (
           <p className="mt-1 text-sm text-muted-foreground">
@@ -249,7 +254,11 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
           )}
         </div>
 
-        <aside className="w-full shrink-0 lg:sticky lg:top-24 lg:w-80" aria-label="Testimony help">
+        <aside
+          className={cn('w-full shrink-0 lg:sticky lg:top-24 lg:w-80', RISE_IN)}
+          style={riseDelay(2)}
+          aria-label="Testimony help"
+        >
           <TestimoniesSidebar />
         </aside>
       </div>
@@ -274,8 +283,8 @@ function FilteredList({
     <section aria-label="Needs testimony">
       <SectionHeading icon={CalendarClock} label="Needs testimony" count={needed.length} />
       <ul className="space-y-3">
-        {needed.map((prospect) => (
-          <li key={prospect.item.billId}>
+        {needed.map((prospect, i) => (
+          <li key={prospect.item.billId} className={RISE_IN} style={riseDelay(i)}>
             <ProspectCard prospect={prospect} />
           </li>
         ))}
@@ -300,7 +309,7 @@ function FilteredList({
         {drafts.length > 0 && (
           <section aria-label="Drafts">
             <SectionHeading icon={PenLine} label="Drafts" count={drafts.length} />
-            <TestimonyCardList entries={drafts} onDeleted={onDeleted} />
+            <TestimonyCardList entries={drafts} onDeleted={onDeleted} staggerFrom={needed.length} />
           </section>
         )}
       </div>
@@ -337,13 +346,17 @@ function FilteredList({
       {drafts.length > 0 && (
         <section aria-label="Drafts">
           <SectionHeading icon={PenLine} label="Drafts" count={drafts.length} />
-          <TestimonyCardList entries={drafts} onDeleted={onDeleted} />
+          <TestimonyCardList entries={drafts} onDeleted={onDeleted} staggerFrom={needed.length} />
         </section>
       )}
       {submitted.length > 0 && (
         <section aria-label="Submitted">
           <SectionHeading icon={Check} label="Submitted" count={submitted.length} />
-          <TestimonyCardList entries={submitted} onDeleted={onDeleted} />
+          <TestimonyCardList
+            entries={submitted}
+            onDeleted={onDeleted}
+            staggerFrom={needed.length + drafts.length}
+          />
         </section>
       )}
     </div>
@@ -373,14 +386,18 @@ function SectionHeading({
 function TestimonyCardList({
   entries,
   onDeleted,
+  staggerFrom = 0,
 }: {
   entries: DecoratedTestimony[];
   onDeleted: (billId: string) => void;
+  /** Cards in the sections above, so the cascade runs top to bottom across
+   *  sections instead of every section starting at once. */
+  staggerFrom?: number;
 }) {
   return (
     <ul className="space-y-3">
-      {entries.map((entry) => (
-        <li key={entry.item.billId}>
+      {entries.map((entry, i) => (
+        <li key={entry.item.billId} className={RISE_IN} style={riseDelay(staggerFrom + i)}>
           <TestimonyCard entry={entry} onDeleted={onDeleted} />
         </li>
       ))}
@@ -869,7 +886,7 @@ function EmptyState({
   action?: { label: string; onClick: () => void };
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-16 text-center">
+    <div className={cn('flex flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-16 text-center', RISE_IN)}>
       <Icon className="h-10 w-10 text-muted-foreground/60" />
       <h3 className="text-lg font-medium">{title}</h3>
       <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
