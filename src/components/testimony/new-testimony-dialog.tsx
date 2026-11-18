@@ -71,11 +71,17 @@ export function NewTestimonyButton() {
             <p className="py-8 text-center text-sm text-muted-foreground">{error}</p>
           ) : (
             <>
-              <CommandEmpty>
+              <CommandEmpty className="px-6 py-8 text-center text-sm text-muted-foreground">
                 {options?.length === 0
-                  ? 'You aren’t following any bills yet. Follow a bill from Discover or Your Bills to write testimony for it.'
-                  : 'No bills match.'}
+                  ? 'None of the bills you follow can take testimony right now. Follow a bill from Discover or Your Bills to write testimony for it — failed and archived bills don’t appear here.'
+                  : 'No bills you follow match your search.'}
               </CommandEmpty>
+              {scheduled.length === 0 && others.length > 0 && (
+                <p className="flex items-center gap-1.5 px-4 pb-1 pt-3 text-xs text-muted-foreground">
+                  <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+                  No hearings are scheduled for bills you follow yet — you can still start a draft now.
+                </p>
+              )}
               {scheduled.length > 0 && (
                 <CommandGroup heading="Hearing scheduled">
                   {scheduled.map((option) => (
@@ -114,7 +120,8 @@ function BillOptionItem({
       value={`${option.billNumber} ${name} ${option.roundLabel}`}
       onSelect={() => onSelect(option.billId)}
       disabled={opening !== null}
-      className="flex items-start gap-3"
+      // Light teal-soft highlight instead of the shared deep-teal accent.
+      className="flex items-start gap-3 data-[selected='true']:bg-secondary data-[selected=true]:text-secondary-foreground"
     >
       <span className="mt-0.5 w-16 shrink-0 text-sm font-semibold">{option.billNumber}</span>
       <span className="min-w-0 flex-1">
