@@ -17,6 +17,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/core/utils';
+import { FADE_IN, RISE_IN, riseDelay } from '@/lib/core/motion';
 import { data } from '@/lib/data-client';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
@@ -40,10 +41,14 @@ function MilestoneRow({
   m,
   onOpen,
   compact = false,
+  className,
+  style,
 }: {
   m: BillMilestone;
   onOpen: (billId: string) => void;
   compact?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
 }) {
   const meta = MILESTONE_META[m.type];
   return (
@@ -57,7 +62,9 @@ function MilestoneRow({
         // sm+: single-line pill, like the mockup.
         !compact && 'sm:grid-cols-[5rem_7rem_7.5rem_1fr] sm:rounded-full sm:py-2',
         meta.rowClass,
+        className,
       )}
+      style={style}
     >
       <span className="font-semibold">{m.billNumber}</span>
       <span className="flex items-center gap-2">
@@ -167,7 +174,10 @@ export function CalendarView() {
       <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-[10rem_minmax(0,1fr)] lg:grid-cols-[10rem_minmax(0,36rem)_18rem]">
         {/* Legend (doubles as a per-type visibility filter) */}
         <ul
-          className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-col md:gap-3 md:overflow-visible md:px-0 md:pb-0"
+          className={cn(
+            '-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-col md:gap-3 md:overflow-visible md:px-0 md:pb-0',
+            RISE_IN,
+          )}
           aria-label="Milestone legend"
         >
           {MILESTONE_TYPES.map((t) => {
@@ -192,7 +202,7 @@ export function CalendarView() {
           })}
         </ul>
 
-        <div className="min-w-0 space-y-6">
+        <div className={cn('min-w-0 space-y-6', RISE_IN)} style={riseDelay(1)}>
           {isError && (
             <div role="alert" className="flex items-center justify-between rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
               Couldn&apos;t load milestone dates.
@@ -241,7 +251,14 @@ export function CalendarView() {
                 <div key={i} className="py-1">{w}</div>
               ))}
             </div>
-            <div className="grid grid-cols-7" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+            {/* Keyed per month: a new month's days fade in. A fade, not a rise —
+                the grid swaps in place under the fixed month header. */}
+            <div
+              key={monthKey}
+              className={cn('grid grid-cols-7', FADE_IN)}
+              onTouchStart={onTouchStart}
+              onTouchEnd={onTouchEnd}
+            >
               {days.map((d) => {
                 const key = dayKey(d);
                 const dayMilestones = byDay.get(key) ?? [];
@@ -281,24 +298,27 @@ export function CalendarView() {
 
           {/* Day detail — below the grid on small screens, right rail on lg */}
           {selectedDay && (
-            <div className="lg:hidden">
+            <div className={cn('lg:hidden', RISE_IN)}>
               <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={openBill} />
             </div>
           )}
 
           {/* Month list */}
-          <section aria-label={`Milestones in ${format(month, 'MMMM yyyy')}`} className="space-y-2">
+          {/* Keyed per month so each month's list cascades in fresh. */}
+          <section key={monthKey} aria-label={`Milestones in ${format(month, 'MMMM yyyy')}`} className="space-y-2">
             {monthMilestones.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
+              <p className={cn('py-6 text-center text-sm text-muted-foreground', RISE_IN)}>
                 {bills.length === 0 ? 'No tracked bills yet.' : 'No milestones this month.'}
               </p>
             ) : (
-              monthMilestones.map((m) => <MilestoneRow key={m.id} m={m} onOpen={openBill} />)
+              monthMilestones.map((m, i) => (
+                <MilestoneRow key={m.id} m={m} onOpen={openBill} className={RISE_IN} style={riseDelay(i)} />
+              ))
             )}
           </section>
         </div>
 
-        <div className="hidden lg:block">
+        <div className={cn('hidden lg:block', RISE_IN)} style={riseDelay(2)}>
           <DayPanel day={selectedDay} milestones={selectedMilestones} onOpen={openBill} />
         </div>
       </div>
@@ -323,7 +343,8 @@ function DayPanel({
       <h3 className="bg-primary px-3 py-2 text-center font-semibold text-primary-foreground">
         {day ? format(new Date(`${day}T00:00:00`), 'MM / dd / yyyy') : 'Select a day'}
       </h3>
-      <div className="min-h-24 space-y-2 p-2">
+      {/* Keyed per day: picking another day fades its milestones in place. */}
+      <div key={day ?? 'none'} className={cn('min-h-24 space-y-2 p-2', FADE_IN)}>
         {!day ? (
           <p className="p-2 text-sm text-muted-foreground">Pick a day to see its milestones.</p>
         ) : milestones.length === 0 ? (
