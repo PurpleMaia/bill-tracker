@@ -1,15 +1,22 @@
--- Collapse back to one testimony per (user, bill), keeping the most recently edited.
-DELETE FROM testimonies t
-USING testimonies newer
-WHERE t.user_id = newer.user_id
-  AND t.bill_id = newer.bill_id
-  AND (newer.updated_at, newer.id) > (t.updated_at, t.id);
-
-DROP INDEX IF EXISTS idx_testimonies_user_bill;
-DROP INDEX IF EXISTS testimonies_user_bill_round_key;
-
-ALTER TABLE testimonies
-  DROP COLUMN IF EXISTS committee,
-  DROP COLUMN IF EXISTS chamber;
-
-ALTER TABLE testimonies ADD CONSTRAINT testimonies_user_id_bill_id_key UNIQUE (user_id, bill_id);
+-- Intentionally non-destructive.
+--
+-- Deploys run `pnpm migrate:up p`, and scripts/migrations/migrate.sh always
+-- tests a rollback (`down 1` then `up`) on the latest migration. A real down
+-- here would delete every testimony but the newest per (user, bill) and drop
+-- the round columns on EVERY deploy while this is the latest migration.
+-- The up migration is idempotent (IF EXISTS / IF NOT EXISTS), so this no-op
+-- down keeps the rollback test cycle harmless.
+--
+-- To truly roll back (destroys all but the newest testimony per user+bill and
+-- every round label), run manually:
+--
+--   DELETE FROM testimonies t
+--   USING testimonies newer
+--   WHERE t.user_id = newer.user_id
+--     AND t.bill_id = newer.bill_id
+--     AND (newer.updated_at, newer.id) > (t.updated_at, t.id);
+--   DROP INDEX IF EXISTS idx_testimonies_user_bill;
+--   DROP INDEX IF EXISTS testimonies_user_bill_round_key;
+--   ALTER TABLE testimonies DROP COLUMN IF EXISTS committee, DROP COLUMN IF EXISTS chamber;
+--   ALTER TABLE testimonies ADD CONSTRAINT testimonies_user_id_bill_id_key UNIQUE (user_id, bill_id);
+SELECT 1;
