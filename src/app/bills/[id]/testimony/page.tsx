@@ -318,6 +318,9 @@ export default function TestimonyPage() {
         copyFromId: testimoniesRef.current[0]?.id ?? null,
       });
       upsertLocal(created);
+      // Edits typed while the create was in flight belong to the old testimony — save them first.
+      await flushSave();
+      if (dirtyRef.current) return;
       hydrate(created);
       router.replace(hrefFor(created.id));
       invalidateTestimonies();

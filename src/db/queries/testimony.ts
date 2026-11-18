@@ -4,6 +4,7 @@ import { tiptapExcerpt } from '@/lib/testimony/tiptap-text';
 import { SCHEDULED_STATUSES } from '@/lib/testimony/testimony-eligibility';
 import { ApiError } from '@/lib/core/errors';
 import {
+  coversRound,
   currentTestimonyRound,
   roundLabel,
   sameRound,
@@ -358,7 +359,7 @@ export async function listTestimonyProspects(userId: string): Promise<TestimonyP
         updates: updatesByBill.get(row.id) ?? [],
         dead: row.dead,
       });
-      return !written.some((t) => t.bill_id === row.id && sameRound(toRound(t), round));
+      return !coversRound(written.filter((t) => t.bill_id === row.id).map(toRound), round);
     })
     .map((row) => ({
       billId: row.id,

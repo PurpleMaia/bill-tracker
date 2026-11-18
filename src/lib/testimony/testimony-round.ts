@@ -59,6 +59,18 @@ export function sameRound(a: TestimonyRound, b: TestimonyRound): boolean {
   return a.chamber === b.chamber && (a.committee ?? '').toUpperCase() === (b.committee ?? '').toUpperCase();
 }
 
+/**
+ * Whether a bill's testimonies already cover its current round. Testimonies
+ * written before rounds existed (both fields null) can't be placed in a round,
+ * so while they are all the user has, they count as covering it — the
+ * pre-migration behavior — rather than prompting a duplicate for the same
+ * hearing. Once a round-tagged testimony exists, only an exact match covers.
+ */
+export function coversRound(testimonies: TestimonyRound[], round: TestimonyRound): boolean {
+  if (testimonies.some((t) => sameRound(t, round))) return true;
+  return testimonies.length > 0 && testimonies.every((t) => t.chamber === null && t.committee === null);
+}
+
 const CHAMBER_LABELS: Record<TestimonyChamber, string> = {
   house: 'House',
   senate: 'Senate',

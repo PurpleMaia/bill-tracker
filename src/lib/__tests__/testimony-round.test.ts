@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  coversRound,
   currentTestimonyRound,
   groupByBill,
   originChamber,
@@ -84,5 +85,23 @@ describe('originChamber', () => {
     expect(originChamber('SB 12')).toBe('senate');
     expect(originChamber('HCR5')).toBe('house');
     expect(originChamber('')).toBe(null);
+  });
+});
+
+describe('coversRound', () => {
+  const senate = { chamber: 'senate' as const, committee: 'AGL' };
+  const legacy = { chamber: null, committee: null };
+  it('matches a testimony for the same round', () => {
+    expect(coversRound([{ chamber: 'senate', committee: 'agl' }], senate)).toBe(true);
+    expect(coversRound([{ chamber: 'house', committee: 'AGR' }], senate)).toBe(false);
+  });
+  it('treats legacy-only testimonies as covering, as before rounds existed', () => {
+    expect(coversRound([legacy], senate)).toBe(true);
+  });
+  it('stops trusting legacy rows once the user has written a round-tagged testimony', () => {
+    expect(coversRound([legacy, { chamber: 'house', committee: 'AGR' }], senate)).toBe(false);
+  });
+  it('is false with no testimonies', () => {
+    expect(coversRound([], senate)).toBe(false);
   });
 });
