@@ -2,6 +2,10 @@ import type { BillStatus } from '@/db/types';
 import { isBillDead, parseCommittees } from '@/lib/bills/dead-bill';
 import type { SessionDeadlines, StatusUpdate } from '@/lib/bills/dead-bill';
 
+/** Shown under the explanation when the bill merely stalled (not a closed status). */
+export const REVIVAL_NOTE =
+  'Bills that fail in committee can sometimes be revived in subsequent sessions or attached to other bills as amendments. This is procedural and not always a final stop.';
+
 export interface DeadBillExplanation {
   heading: 'Why did this bill fail?' | 'Where did this bill end up?';
   summary: string;

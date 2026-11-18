@@ -12,6 +12,8 @@ import { Term } from '@/components/ui/term';
 import { resolveVersionTerm, resolveCommitteeTerm } from '@/lib/glossary/resolvers';
 import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
 import { isEnacted } from '@/lib/bills/dead-bill';
+import { REVIVAL_NOTE } from '@/lib/bills/dead-bill-explanation';
+import type { DeadBillExplanation } from '@/lib/bills/dead-bill-explanation';
 import { getColumnPhaseBg } from '@/lib/bills/kanban-columns';
 
 const STEP_ICON = { testimony: PenLine, diff: GitCompare, reports: ScrollText, contact: Phone } as const;
@@ -20,7 +22,7 @@ export function BillBriefing({
   bill,
   today,
   dead,
-  deadReason,
+  deadExplanation,
   progressValue,
   progressStages,
   currentStageName,
@@ -29,7 +31,7 @@ export function BillBriefing({
   bill: BillDetails;
   today: string;
   dead: boolean;
-  deadReason: string | null;
+  deadExplanation: DeadBillExplanation | null;
   progressValue: number;
   progressStages: string[];
   currentStageName: string;
@@ -63,7 +65,9 @@ export function BillBriefing({
         <div className="sm:hidden text-[10px] text-muted-foreground mt-1">{currentStageName}</div>
       </div>
 
-      {/* Derived — always shown, no AI */}
+      {/* Derived — always shown, no AI. A failed bill's standing tile below
+          carries the explanation, so the testimony line is dropped there. */}
+      {!dead && (
       <div
         className={cn(
           'flex items-start gap-2 rounded-md border p-2.5 text-[12.5px]',
@@ -77,13 +81,14 @@ export function BillBriefing({
         {facts.testimony.urgent ? <AlertTriangle className="mt-0.5 h-4 w-4 flex-none" /> : <Clock className="mt-0.5 h-4 w-4 flex-none" />}
         <span>{facts.testimony.message}</span>
       </div>
+      )}
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <div
           data-bill-tour="standing"
           className={cn(
             'rounded-md border p-2.5',
-            dead && 'border-red-300 bg-red-50',
+            dead && 'border-red-300 bg-red-50 sm:col-span-3',
             enacted && cn('border-green-700/30', getColumnPhaseBg(bill.current_bill_status)),
           )}
         >
@@ -93,11 +98,32 @@ export function BillBriefing({
               dead ? 'text-red-700' : enacted ? 'text-green-800' : 'text-primary',
             )}
           >
-            {dead ? 'Bill failed' : enacted ? 'Signed into law' : 'Where it stands'}
+            {dead ? (deadExplanation?.heading === 'Where did this bill end up?' ? 'Where it ended' : 'Bill failed') : enacted ? 'Signed into law' : 'Where it stands'}
           </h4>
-          <p className={cn('text-[12px]', dead ? 'text-red-600' : enacted ? 'text-green-900' : 'text-foreground/80')}>
-            {dead ? (deadReason ?? 'This bill is no longer moving.') : facts.standing}
-          </p>
+          {dead ? (
+            <div className="space-y-1.5">
+              <p className="text-[12px] text-red-600">
+                {deadExplanation?.summary ?? 'This bill is no longer moving.'}
+              </p>
+              {deadExplanation?.missedDeadline && (
+                <p className="text-[12px] text-red-600">
+                  Missed deadline: <span className="font-semibold">{deadExplanation.missedDeadline.name}</span> · {deadExplanation.missedDeadline.date}
+                </p>
+              )}
+              {deadExplanation && (
+                <>
+                  <p className="text-[12px] text-foreground/80">{deadExplanation.committeeExplanation}</p>
+                  {deadExplanation.showRevivalNote && (
+                    <p className="text-[12px] text-foreground/80">{REVIVAL_NOTE}</p>
+                  )}
+                </>
+              )}
+            </div>
+          ) : (
+            <p className={cn('text-[12px]', enacted ? 'text-green-900' : 'text-foreground/80')}>
+              {facts.standing}
+            </p>
+          )}
         </div>
         <div data-bill-tour="version" className="rounded-md border p-2.5">
           <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Latest version</h4>

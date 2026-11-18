@@ -5,7 +5,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { explainDeadBill } from '@/lib/bills/dead-bill-explanation';
+import { explainDeadBill, REVIVAL_NOTE } from '@/lib/bills/dead-bill-explanation';
 import type { StatusUpdate } from '@/lib/bills/dead-bill';
 import { todayHawaii } from '@/lib/core/utils';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
@@ -90,7 +90,7 @@ export function DeadBillInfoPopover({
           {/* Revival note — only meaningful for a bill that actually stalled. */}
           {showRevivalNote && (
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Bills that fail in committee can sometimes be revived in subsequent sessions or attached to other bills as amendments. This is procedural and not always a final stop.
+              {REVIVAL_NOTE}
             </p>
           )}
 

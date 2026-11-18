@@ -38,12 +38,13 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
 import { BillBriefing } from './bill-briefing';
+import { explainDeadBill } from '@/lib/bills/dead-bill-explanation';
 import { VersionsReportsTab } from './versions-reports-tab';
 import { PROGRESS_STAGES, getProgressValue, getCurrentStageName } from '@/lib/bills/progress-stages';
 import { Term } from '@/components/ui/term';
 import { resolveDeadlineTerm } from '@/lib/glossary/resolvers';
 import { BillBreakdownButton } from './bill-breakdown';
-import { isBillDead, getNextDeadline, isFiscalBill, isEnacted } from '@/lib/bills/dead-bill';
+import { getNextDeadline, isFiscalBill, isEnacted } from '@/lib/bills/dead-bill';
 import { getGovernorStage } from '@/lib/legislators/governor-contact';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
@@ -106,6 +107,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   // Set while leaving for Contact / Testimony: the dialog stays up until the
   // next page renders, so show progress and ignore dismissals meanwhile
   // (closing would pop the history entry the user is about to come back to).
+  const [isUntracking, setIsUntracking] = useState(false);
   const [navigatingTo, setNavigatingTo] = useState<'testimony' | 'contact' | null>(null);
   useEffect(() => {
     if (!navigatingTo) return;
@@ -256,8 +258,14 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
           size={size}
           variant="outline"
           className={cls}
+          disabled={isUntracking}
           onClick={async () => {
-            if (await untrackBill(bill.id)) onClose();
+            setIsUntracking(true);
+            try {
+              if (await untrackBill(bill.id)) onClose();
+            } finally {
+              setIsUntracking(false);
+            }
           }}
         >
           <X className={cn('mr-1.5 shrink-0', mobile ? 'h-4 w-4' : 'h-3.5 w-3.5')} />
@@ -268,21 +276,21 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
     return null;
   };
 
-  // Derive dead reason and deadline
+  // Derive the failure explanation and next deadline
   const committeeAssign = billDetails?.committee_assignment || bill.committee_assignment;
   const today = todayHawaii();
 
-  const deadReason = (bill.dead && billDetails)
-    ? isBillDead(
+  const deadExplanation = (bill.dead && billDetails)
+    ? explainDeadBill(
         {
-          bill_number: billDetails.bill_number || bill.bill_number,
-          bill_status: (billDetails.current_bill_status || bill.current_bill_status) as DBBillStatus,
-          committee_assignment: committeeAssign ?? null,
+          billNumber: billDetails.bill_number || bill.bill_number,
+          billStatus: billDetails.current_bill_status || bill.current_bill_status,
+          committeeAssignment: committeeAssign ?? null,
         },
         (billDetails.updates || []).map(u => ({ statustext: u.statustext, date: u.date, chamber: u.chamber })),
         SESSION_DEADLINES,
         today,
-      ).reason
+      )
     : null;
 
   const nextDeadline = (!bill.dead && committeeAssign)
@@ -613,7 +621,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                     bill={billForPanels}
                     today={today}
                     dead={bill.dead}
-                    deadReason={deadReason}
+                    deadExplanation={deadExplanation}
                     progressValue={progressValue}
                     progressStages={PROGRESS_STAGES.map(s => s.shortName)}
                     currentStageName={currentStageName}
@@ -839,11 +847,12 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                       </>
                     )}
 
-                    {/* The desktop CTA row is hidden below sm:, so the track
-                        control is repeated here to stay reachable. Full width,
-                        below the pair — its label is forced back on because the
-                        search page's button is icon-only at this breakpoint. */}
+                    {/* The desktop CTA row is hidden below sm:, so the remove /
+                        untrack action is repeated here, full width. */}
                     {renderRemoveAction(true)}
+                    {/* Likewise the track control: full width, below the pair —
+                        its label is forced back on because the search page's
+                        button is icon-only at this breakpoint. */}
                     {trackSlot && (
                       <div className="[&_button]:h-11 [&_button]:w-full [&_button>span]:inline">
                         {trackSlot}
