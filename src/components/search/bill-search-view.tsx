@@ -344,9 +344,11 @@ export function BillSearchView() {
       {showScrollTop && (
         <Button
           size="icon"
+          variant="secondary"
           onClick={() => resultsRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
           aria-label="Scroll back to search"
-          className="fixed bottom-20 right-4 z-20 h-11 w-11 rounded-full shadow-lg md:bottom-6 md:right-6"
+          // Light teal to match the Bill info helper; see BillInfoFab.
+          className="fixed bottom-20 right-4 z-20 h-11 w-11 rounded-full border border-primary/20 shadow-lg hover:bg-secondary hover:brightness-95 md:bottom-6 md:right-6"
         >
           <ArrowUp className="h-5 w-5" aria-hidden="true" />
         </Button>
