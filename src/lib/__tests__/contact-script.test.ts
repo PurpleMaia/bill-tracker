@@ -3,6 +3,7 @@ import {
   buildContactScript,
   buildBaseScript,
   buildCallScript,
+  committeePhrase,
   buildOverrideBaseScript,
   buildOverrideCallScript,
   measurePhrase,
@@ -153,5 +154,23 @@ describe('veto override scripts', () => {
   it('builds a matching call script', () => {
     expect(buildOverrideCallScript({ billNumber: 'SB3262', billTitle: null }))
       .toContain("vote to override the Governor's veto of SB3262.");
+  });
+});
+
+describe('committeePhrase', () => {
+  it('names a bare committee as a committee', () => {
+    expect(committeePhrase('Health')).toBe('the Health committee');
+  });
+  it('keeps a name that already says committee', () => {
+    expect(committeePhrase('Senate Committee on Ways and Means')).toBe('the Senate Committee on Ways and Means');
+  });
+  it('falls back when no committee is known', () => {
+    expect(committeePhrase(undefined)).toBe('the committee');
+    expect(committeePhrase('  ', 'this committee')).toBe('this committee');
+  });
+  it('fixes "the Health" in the email and call scripts', () => {
+    const input = { billNumber: 'HB1539', billTitle: 'Relating to Prescription Drugs.', committeeName: 'Health' };
+    expect(buildBaseScript(input).body).toContain('before the Health committee.');
+    expect(buildCallScript(input)).toContain('ask the Health committee to schedule');
   });
 });

@@ -39,8 +39,9 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BillReferencePanel } from '@/components/bills/bill-reference-panel';
+import { BillInfoFab } from '@/components/bills/bill-info-fab';
 import { FlowWalkthrough } from '@/components/tour/flow-walkthrough';
 import { CONTACT_WALKTHROUGH_KEY, REQUESTS_MATTER, contactWalkthrough, type ContactStage } from '@/lib/tour/flow-walkthroughs';
 import { isEnacted } from '@/lib/bills/dead-bill';
@@ -353,24 +354,11 @@ export default function ContactLegislatorPage() {
             className={[
               'mx-auto space-y-4 p-4 sm:p-6',
               panelCollapsed ? 'max-w-6xl' : 'max-w-5xl',
+              // Phones: keep the last card clear of the floating Bill info button.
+              isMobile ? 'pb-20' : '',
             ].join(' ')}
           >
-            {isMobile && referencePanel && (
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" data-flow-tour="reference">
-                    <Info className="mr-1.5 h-3.5 w-3.5" />
-                    Bill info
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-[85vw] p-0 sm:w-[380px]">
-                  <SheetHeader className="border-b px-4 py-3">
-                    <SheetTitle className="text-sm">Bill reference</SheetTitle>
-                  </SheetHeader>
-                  <div className="h-[calc(100dvh-57px)]">{referencePanel}</div>
-                </SheetContent>
-              </Sheet>
-            )}
+            {isMobile && referencePanel && <BillInfoFab panel={referencePanel} />}
 
             {governorStage === 'vetoed' ? (
               <ComposeConference
@@ -430,6 +418,48 @@ export default function ContactLegislatorPage() {
   );
 }
 
+/* ----------------------------- Script tabs ----------------------------- */
+
+/** The written + call scripts as tabs, so only one editor takes up the column. */
+function ScriptTabs({
+  writtenLabel,
+  written,
+  callScript,
+  onCallChange,
+}: {
+  writtenLabel: string;
+  written: React.ReactNode;
+  callScript: string;
+  onCallChange: (v: string) => void;
+}) {
+  return (
+    <Tabs defaultValue="written" className="flex flex-col rounded-lg border bg-card p-4" data-flow-tour="email">
+      <TabsList className="h-9 self-start">
+        <TabsTrigger value="written" className="gap-1.5 px-2.5 text-xs">
+          <Mail className="h-3.5 w-3.5" />
+          {writtenLabel}
+        </TabsTrigger>
+        <TabsTrigger value="call" className="gap-1.5 px-2.5 text-xs" data-flow-tour="call">
+          <Phone className="h-3.5 w-3.5" />
+          Call script
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="written" className="mt-3 flex flex-col">
+        {written}
+      </TabsContent>
+      <TabsContent value="call" className="mt-3">
+        <Textarea
+          value={callScript}
+          onChange={(e) => onCallChange(e.target.value)}
+          rows={7}
+          className="min-h-[8rem] resize-y font-mono text-sm leading-relaxed"
+          aria-label="Phone call script"
+        />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
 /* ------------------------------- Compose ------------------------------- */
 
 /** Stable key identifying a chair within the flat list. */
@@ -474,10 +504,6 @@ function Compose({
           <Gavel className="h-3.5 w-3.5 text-muted-foreground" />
           <h2 className="text-sm font-semibold">Ask for a hearing</h2>
         </div>
-        <p className="text-xs text-muted-foreground">
-          The goal is to get legislators to act. This bill is waiting on a committee to schedule a hearing, so ask
-          that committee&apos;s chair and vice-chair to put it on the agenda, or to meet with you about it.
-        </p>
         <div className="mt-2 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2">
           <Megaphone className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
           <p className="text-sm font-semibold">{REQUESTS_MATTER}</p>
@@ -493,58 +519,32 @@ function Compose({
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-8">
-        {/* Left — the editable email + call scripts, equal height */}
-        <div
-          className={[
-            'grid grid-cols-1 gap-4 lg:sticky lg:top-0 lg:self-start lg:grid-rows-2',
-            scriptSpan,
-          ].join(' ')}
-        >
-          {/* Email script */}
-          <div className="flex flex-col rounded-lg border bg-card p-4" data-flow-tour="email">
-            <div className="mb-1 flex items-center gap-1.5">
-              <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Email script</h2>
-            </div>
-            <p className="mb-3 text-xs text-muted-foreground">
-              One message goes to every chair. You may edit it freely. The greeting (&ldquo;Dear Chair&rdquo;) is filled in for each legislator when you
-              send. Pressing Email opens your own email app with this message. Nothing is sent until you press Send
-              there.
-            </p>
-            <div className="mb-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
-              <span className="text-muted-foreground">Subject: </span>
-              <span className="font-medium">{subject}</span>
-            </div>
-            <Textarea
-              value={body}
-              onChange={(e) => onChange(e.target.value)}
-              rows={12}
-              className="min-h-[8rem] flex-1 resize-y font-mono text-sm leading-relaxed"
-              aria-label="Email message to legislators"
-            />
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              Tip: replace <span className="font-medium">&lt;your-name&gt;</span> and add a sentence about why this bill
-              matters to you.
-            </p>
-          </div>
-
-          {/* Call script */}
-          <div className="flex flex-col rounded-lg border bg-card p-4" data-flow-tour="call">
-            <div className="mb-1 flex items-center gap-1.5">
-              <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Call script</h2>
-            </div>
-            <p className="mb-3 text-xs text-muted-foreground">
-              What to say when you call an office.
-            </p>
-            <Textarea
-              value={callScript}
-              onChange={(e) => onCallChange(e.target.value)}
-              rows={7}
-              className="min-h-[8rem] flex-1 resize-y font-mono text-sm leading-relaxed"
-              aria-label="Phone call script"
-            />
-          </div>
+        {/* Left — the editable scripts, one tab at a time so the send buttons stay on screen */}
+        <div className={['lg:sticky lg:top-0 lg:self-start', scriptSpan].join(' ')}>
+          <ScriptTabs
+            writtenLabel="Email script"
+            callScript={callScript}
+            onCallChange={onCallChange}
+            written={
+              <>
+                <div className="mb-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
+                  <span className="text-muted-foreground">Subject: </span>
+                  <span className="font-medium">{subject}</span>
+                </div>
+                <Textarea
+                  value={body}
+                  onChange={(e) => onChange(e.target.value)}
+                  rows={12}
+                  className="h-40 min-h-[8rem] resize-y font-mono text-sm leading-relaxed lg:h-auto"
+                  aria-label="Email message to legislators"
+                />
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Tip: replace <span className="font-medium">&lt;your-name&gt;</span> and add a sentence about why this bill
+                  matters to you.
+                </p>
+              </>
+            }
+          />
         </div>
 
         {/* Right — the contact list, current committee(s) foregrounded */}
@@ -802,56 +802,32 @@ function ComposeConference({
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-8">
-        {/* Left — the editable email + call scripts */}
-        <div
-          className={[
-            'grid grid-cols-1 gap-4 lg:sticky lg:top-0 lg:self-start lg:grid-rows-2',
-            scriptSpan,
-          ].join(' ')}
-        >
-          <div className="flex flex-col rounded-lg border bg-card p-4" data-flow-tour="email">
-            <div className="mb-1 flex items-center gap-1.5">
-              <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Email script</h2>
-            </div>
-            <p className="mb-3 text-xs text-muted-foreground">
-              One message goes to every {copy.recipients}. Edit it freely — the greeting is filled in for each legislator
-              when you send. Pressing Email opens your own email app with this message. Nothing is sent until you press
-              Send there.
-            </p>
-            <div className="mb-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
-              <span className="text-muted-foreground">Subject: </span>
-              <span className="font-medium">{subject}</span>
-            </div>
-            <Textarea
-              value={body}
-              onChange={(e) => onChange(e.target.value)}
-              rows={12}
-              className="min-h-[8rem] flex-1 resize-y font-mono text-sm leading-relaxed"
-              aria-label={`Email message to ${copy.recipients}s`}
-            />
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              Tip: replace <span className="font-medium">&lt;your-name&gt;</span> and add a sentence about why this bill
-              matters to you.
-            </p>
-          </div>
-
-          <div className="flex flex-col rounded-lg border bg-card p-4" data-flow-tour="call">
-            <div className="mb-1 flex items-center gap-1.5">
-              <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Call script</h2>
-            </div>
-            <p className="mb-3 text-xs text-muted-foreground">
-              What to say when you call an office. Keep it short — staff just note your request.
-            </p>
-            <Textarea
-              value={callScript}
-              onChange={(e) => onCallChange(e.target.value)}
-              rows={7}
-              className="min-h-[8rem] flex-1 resize-y font-mono text-sm leading-relaxed"
-              aria-label="Phone call script"
-            />
-          </div>
+        {/* Left — the editable scripts, one tab at a time so the send buttons stay on screen */}
+        <div className={['lg:sticky lg:top-0 lg:self-start', scriptSpan].join(' ')}>
+          <ScriptTabs
+            writtenLabel="Email script"
+            callScript={callScript}
+            onCallChange={onCallChange}
+            written={
+              <>
+                <div className="mb-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
+                  <span className="text-muted-foreground">Subject: </span>
+                  <span className="font-medium">{subject}</span>
+                </div>
+                <Textarea
+                  value={body}
+                  onChange={(e) => onChange(e.target.value)}
+                  rows={12}
+                  className="h-40 min-h-[8rem] resize-y font-mono text-sm leading-relaxed lg:h-auto"
+                  aria-label={`Email message to ${copy.recipients}s`}
+                />
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Tip: replace <span className="font-medium">&lt;your-name&gt;</span> and add a sentence about why this bill
+                  matters to you.
+                </p>
+              </>
+            }
+          />
         </div>
 
         {/* Right — the conferee list, grouped by chamber */}
@@ -1095,66 +1071,44 @@ function ComposeGovernor({
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-8">
-        {/* Left — the editable written + call scripts */}
-        <div
-          className={[
-            'grid grid-cols-1 gap-4 lg:sticky lg:top-0 lg:self-start lg:grid-rows-2',
-            scriptSpan,
-          ].join(' ')}
-        >
-          <div className="flex flex-col rounded-lg border bg-card p-4" data-flow-tour="email">
-            <div className="mb-1 flex items-center gap-1.5">
-              <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Message script</h2>
-            </div>
-            <p className="mb-3 text-xs text-muted-foreground">
-              Edit it freely, then copy it into either of the Governor&apos;s forms and submit the form there. The Hawaiʻi Bill Tracker doesn&apos;t send it for you.
-            </p>
-            <div className="mb-2 flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
-              <span className="min-w-0 flex-1">
-                <span className="text-muted-foreground">Subject: </span>
-                <span className="font-medium">{subject}</span>
-              </span>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6 shrink-0"
-                onClick={() => subjectCopy.copy(subject, 'Paste the subject into the Governor’s form.')}
-                aria-label="Copy subject"
-                title="Copy subject"
-              >
-                {subjectCopy.copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              </Button>
-            </div>
-            <Textarea
-              value={body}
-              onChange={(e) => onChange(e.target.value)}
-              rows={12}
-              className="min-h-[8rem] flex-1 resize-y font-mono text-sm leading-relaxed"
-              aria-label="Message to the Governor"
-            />
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              Tip: replace <span className="font-medium">&lt;your-name&gt;</span> and add a sentence about why this bill
-              matters to you.
-            </p>
-          </div>
-
-          <div className="flex flex-col rounded-lg border bg-card p-4" data-flow-tour="call">
-            <div className="mb-1 flex items-center gap-1.5">
-              <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Call script</h2>
-            </div>
-            <p className="mb-3 text-xs text-muted-foreground">
-              What to say when you call the Governor&apos;s office. Keep it short — staff just note your position.
-            </p>
-            <Textarea
-              value={callScript}
-              onChange={(e) => onCallChange(e.target.value)}
-              rows={7}
-              className="min-h-[8rem] flex-1 resize-y font-mono text-sm leading-relaxed"
-              aria-label="Phone call script"
-            />
-          </div>
+        {/* Left — the editable scripts, one tab at a time so the send buttons stay on screen */}
+        <div className={['lg:sticky lg:top-0 lg:self-start', scriptSpan].join(' ')}>
+          <ScriptTabs
+            writtenLabel="Message script"
+            callScript={callScript}
+            onCallChange={onCallChange}
+            written={
+              <>
+                <div className="mb-2 flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
+                  <span className="min-w-0 flex-1">
+                    <span className="text-muted-foreground">Subject: </span>
+                    <span className="font-medium">{subject}</span>
+                  </span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => subjectCopy.copy(subject, 'Paste the subject into the Governor’s form.')}
+                    aria-label="Copy subject"
+                    title="Copy subject"
+                  >
+                    {subjectCopy.copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
+                </div>
+                <Textarea
+                  value={body}
+                  onChange={(e) => onChange(e.target.value)}
+                  rows={12}
+                  className="h-40 min-h-[8rem] resize-y font-mono text-sm leading-relaxed lg:h-auto"
+                  aria-label="Message to the Governor"
+                />
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Tip: replace <span className="font-medium">&lt;your-name&gt;</span> and add a sentence about why this bill
+                  matters to you.
+                </p>
+              </>
+            }
+          />
         </div>
 
         {/* Right — the two contact routes + phone */}

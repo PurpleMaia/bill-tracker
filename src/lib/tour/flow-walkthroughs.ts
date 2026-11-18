@@ -11,6 +11,8 @@
  * to expect next.
  */
 
+import { committeePhrase } from '@/lib/legislators/contact-script';
+
 /** localStorage flags — each tour auto-starts once per flow. Bump to re-show. */
 export const TESTIMONY_WALKTHROUGH_KEY = 'billtracker:walkthrough-testimony-v1';
 export const CONTACT_WALKTHROUGH_KEY = 'billtracker:walkthrough-contact-v1';
@@ -121,15 +123,15 @@ const SEND_BUTTONS =
 function emailScriptStep(extra = ''): WalkthroughStep {
   return {
     target: 'email',
-    title: 'Email script',
-    body: `One message for everyone on the list. Replace <your-name> and add a sentence about why the bill matters to you. A personal line carries more weight than a form letter.${extra}`,
+    title: 'Your message',
+    body: `The Email script tab holds one message for everyone on the list. Replace <your-name> and add a sentence about why the bill matters to you. A personal line carries more weight than a form letter.${extra}`,
   };
 }
 
 const CALL_STEP: WalkthroughStep = {
   target: 'call',
   title: 'Call script',
-  body: 'Prefer the phone? This is what to say to the office. Staff note your request.',
+  body: 'Prefer the phone? Switch to this tab for what to say to the office. Staff note your request.',
 };
 
 /** Shared steps for the flows that send email to one list of legislators. */
@@ -158,12 +160,7 @@ export function contactWalkthrough({
 }): Walkthrough {
   switch (stage) {
     case 'hearing': {
-      // Stored names are often bare ("Health"), which reads badly as "the Health".
-      const committee = !committeeName
-        ? 'the committee'
-        : /committee/i.test(committeeName)
-          ? `the ${committeeName}`
-          : `the ${committeeName} committee`;
+      const committee = committeePhrase(committeeName);
       return {
         title: 'How requesting a hearing works',
         caveat: EMAIL_CAVEAT,
@@ -231,8 +228,8 @@ export function contactWalkthrough({
           CONTACT_REFERENCE_STEP,
           {
             target: 'email',
-            title: 'Message script',
-            body: 'Replace <your-name> and add a sentence about why the bill matters to you. Copy the subject and message from here.',
+            title: 'Your message',
+            body: 'The Message script tab holds your message. Replace <your-name> and add a sentence about why the bill matters to you, then copy the subject and message from here.',
           },
           {
             target: 'contacts',
@@ -242,7 +239,7 @@ export function contactWalkthrough({
           {
             target: 'call',
             title: 'Call script',
-            body: "Prefer the phone? This is what to say to the Governor's office.",
+            body: "Prefer the phone? Switch to this tab for what to say to the Governor's office.",
           },
           HELP_STEP,
         ],

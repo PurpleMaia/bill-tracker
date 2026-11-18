@@ -16,16 +16,16 @@ import { invalidateTestimonies } from '@/hooks/use-testimonies';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { TestimonyStepper, type TestimonyStep } from '@/components/testimony/testimony-stepper';
 import { BillReferencePanel } from '@/components/bills/bill-reference-panel';
+import { BillInfoFab } from '@/components/bills/bill-info-fab';
 import { TestimonyHeaderForm, type TestimonyHeaderValue } from '@/components/testimony/testimony-header-form';
 import { TestimonyEditor } from '@/components/testimony/testimony-editor';
 import { TestimonyExportStep } from '@/components/testimony/testimony-export-step';
 import { TestimonySubmitGuide } from '@/components/testimony/testimony-submit-guide';
 import { FlowWalkthrough } from '@/components/tour/flow-walkthrough';
 import { TESTIMONY_WALKTHROUGH_KEY, testimonyWalkthrough } from '@/lib/tour/flow-walkthroughs';
-import { ArrowLeft, ArrowRight, Info, Loader2, Lock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, Lock } from 'lucide-react';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -242,6 +242,7 @@ export default function TestimonyPage() {
     saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : saveState === 'error' ? 'Save failed' : '';
 
   const referencePanel = <BillReferencePanel bill={bill} />;
+  const stepper = <TestimonyStepper step={step} onStepChange={setStep} maxStep={hasText ? 3 : 1} />;
 
   return (
     <div className="flex h-dvh flex-col">
@@ -262,9 +263,7 @@ export default function TestimonyPage() {
             {saveLabel}
           </span>
           <FlowWalkthrough walkthrough={walkthrough} storageKey={TESTIMONY_WALKTHROUGH_KEY} onStart={startTour} />
-          <div data-flow-tour="stepper">
-            <TestimonyStepper step={step} onStepChange={setStep} maxStep={hasText ? 3 : 1} />
-          </div>
+          {!isMobile && <div data-flow-tour="stepper">{stepper}</div>}
         </div>
       </header>
 
@@ -275,23 +274,8 @@ export default function TestimonyPage() {
         )}
 
         <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-3xl space-y-4 p-4 sm:p-6">
-            {isMobile && (
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" data-flow-tour="reference">
-                    <Info className="mr-1.5 h-3.5 w-3.5" />
-                    Bill info
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-[85vw] p-0 sm:w-[380px]">
-                  <SheetHeader className="border-b px-4 py-3">
-                    <SheetTitle className="text-sm">Bill reference</SheetTitle>
-                  </SheetHeader>
-                  <div className="h-[calc(100dvh-57px)]">{referencePanel}</div>
-                </SheetContent>
-              </Sheet>
-            )}
+          {/* On phones, room at the bottom for the fixed stepper bar. */}
+          <div className={['mx-auto max-w-3xl space-y-4 p-4 sm:p-6', isMobile ? 'pb-20' : ''].join(' ')}>
 
             {step === 1 && (
               <>
@@ -335,6 +319,19 @@ export default function TestimonyPage() {
           </div>
         </main>
       </div>
+
+      {/* Phones: the step progress lives in a bar at the bottom, with Bill info floating above it. */}
+      {isMobile && (
+        <>
+          <nav
+            className="fixed inset-x-0 bottom-0 z-30 flex justify-center border-t bg-background px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+            data-flow-tour="stepper"
+          >
+            {stepper}
+          </nav>
+          <BillInfoFab panel={referencePanel} className="bottom-[4.25rem]" />
+        </>
+      )}
     </div>
   );
 }

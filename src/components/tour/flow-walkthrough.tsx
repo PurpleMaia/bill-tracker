@@ -167,7 +167,7 @@ export function FlowWalkthrough({ walkthrough, storageKey, autoStart = true, onS
 
   return (
     <>
-      <Button size="sm" className="h-8 px-2.5" onClick={start} data-flow-tour="help">
+      <Button size="sm" className="h-8 px-2.5" onClick={start} aria-label="How this works" data-flow-tour="help">
         <CircleHelp className="h-4 w-4" />
         <span className="ml-1 hidden sm:inline">How this works</span>
       </Button>
