@@ -110,6 +110,16 @@ export function FlowWalkthrough({ walkthrough, storageKey, autoStart = true, onS
   const isFirst = index === 0;
   const isLast = index === cards.length - 1;
 
+  // Track the viewport while open — the centered intro/outro cards have no target
+  // to measure from, and they must still fit narrow phones.
+  useEffect(() => {
+    if (!open) return;
+    const measure = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [open]);
+
   // Bring the target into view, then follow it every frame (only committing
   // changes): panels scroll independently and content loads in late.
   useLayoutEffect(() => {
@@ -199,7 +209,13 @@ export function FlowWalkthrough({ walkthrough, storageKey, autoStart = true, onS
               )}
               style={
                 centered
-                  ? { width: cardWidth, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
+                  ? {
+                      width: cardWidth,
+                      maxWidth: 'calc(100vw - 24px)',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                    }
                   : { width: cardWidth, top: cardPos?.top ?? 0, left: cardPos?.left ?? 0 }
               }
             >
