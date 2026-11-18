@@ -20,7 +20,7 @@ function ChipTooltip({ content, children }: { content: React.ReactNode; children
     </TooltipProvider>
   );
 }
-import { Sparkles, X, Check, Users, Info, PenLine, UserPlus, Hourglass, AlarmClock, History, Loader2, Plus } from 'lucide-react';
+import { Sparkles, X, Check, Users, PenLine, UserPlus, Hourglass, AlarmClock, History, Loader2, Plus } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTagSelector } from '../tags/card-tag-selector';
@@ -34,6 +34,7 @@ import { useBills } from '@/hooks/contexts/bills-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { AssignBillDialog } from './assign-bill-dialog';
 import { RemoveFromBoardDialog } from './remove-from-board-dialog';
+import { useFirstFailedPulse } from '@/hooks/use-first-failed-pulse';
 import type { Bill } from '@/types/legislation';
 import {
   AlertDialog,
@@ -47,6 +48,49 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cardVisibility } from '@/lib/bills/board-display';
+
+/** Grays out a failed card's content; the corner X and "Why?" pill stay sharp. */
+const deadDim = 'opacity-50 grayscale-[50%]';
+
+/** The always-visible corner X on a failed card. */
+function failedCornerX(ariaLabel: string, title: string, onActivate?: () => void) {
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      className="cursor-pointer h-6 w-6 p-0 shrink-0 bg-white border-destructive/35 text-destructive hover:bg-destructive/10 hover:text-destructive"
+      onClick={(e) => { e.stopPropagation(); onActivate?.(); }}
+      title={title}
+      aria-label={ariaLabel}
+    >
+      <X className="h-3.5 w-3.5" />
+    </Button>
+  );
+}
+
+/**
+ * The failed card's "Failed | Why? ›" pill: opens the dead-bill explanation.
+ * Its own component so the one-time pulse hook only runs for failed cards.
+ */
+function FailedWhyPill(props: Omit<React.ComponentProps<typeof DeadBillInfoPopover>, 'children'>) {
+  const pulse = useFirstFailedPulse();
+  return (
+    <DeadBillInfoPopover {...props}>
+      <button
+        type="button"
+        className={cn(
+          'inline-flex h-[22px] shrink-0 items-stretch overflow-hidden rounded-full border border-destructive text-[10.5px] font-semibold leading-none',
+          pulse && 'motion-safe:animate-why-ring'
+        )}
+        onClick={(e) => e.stopPropagation()}
+        aria-label="Why did this bill fail?"
+      >
+        <span className="flex items-center bg-destructive px-2 text-white">Failed</span>
+        <span className="flex items-center bg-white px-2 text-destructive">Why? ›</span>
+      </button>
+    </DeadBillInfoPopover>
+  );
+}
 
 interface KanbanCardProps extends React.HTMLAttributes<HTMLDivElement> {
   bill: Bill;
@@ -305,23 +349,29 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
             aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
             tabIndex={0}
         >
-            {/* Grayed-out content layer for dead bills */}
-            <div className={cn(
-              "flex flex-col",
-              bill.dead && "opacity-50 grayscale-[50%]"
-            )}>
+            {/* Content layer. On dead bills the content is grayed out piece by
+                piece (see deadDim) so the corner X and the "Why?" pill can stay
+                sharp; opacity on a parent can't be undone by a child. */}
+            <div className="flex flex-col">
 
             {/* Main content area */}
             <div
                 className="flex flex-col w-full cursor-pointer p-3 pb-2"
             >
-                {/* Tags row + dead badge */}
+                {/* Tags row + failed-bill corner X */}
                 <div className="flex items-start justify-between gap-1">
-                  <div className="flex-1 min-w-0">
+                  <div className={cn("flex-1 min-w-0", bill.dead && deadDim)}>
                     <CardTagSelector billId={bill.id} billTags={bill.tags} />
-                  </div>                  
+                  </div>
+                  {/* Always visible on failed cards (phones have no hover) and
+                      outside the grayed content so it isn't dimmed. */}
+                  {bill.dead && canRemoveFromBoard && (
+                    <RemoveFromBoardDialog bill={bill} trigger={failedCornerX(`Remove ${bill.bill_number} from the board`, 'Remove from board')} />
+                  )}
+                  {bill.dead && canUntrack && failedCornerX(`Untrack ${bill.bill_number}`, 'Untrack bill', () => onUnadopt?.(bill.id))}
                 </div>
 
+                <div className={bill.dead ? cn("flex flex-col", deadDim) : "contents"}>
                 {/* Bill number + year + X remove button */}
                 <div className="flex items-center gap-1.5 mt-1">
                   {/* Reference label — the headline below is the card's primary text */}
@@ -335,7 +385,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                       {bill.year}
                     </Badge>
                   )}
-                  {(canAssign || canUntrack || canRemoveFromBoard) && (
+                  {!bill.dead && (canAssign || canUntrack || canRemoveFromBoard) && (
                     <div className="ml-auto flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       {canUntrack && (
                         <Button
@@ -349,39 +399,39 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                           <X className="h-3 w-3" />
                         </Button>
                       )}
-                      {canAssign && !bill.dead && (
+                      {canAssign && (
                         <AssignBillDialog
                           bill={bill}
                           trigger={
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="cursor-pointer h-5 w-5 p-0 text-muted-foreground hover:bg-secondary hover:text-primary"
-                            onClick={(e) => e.stopPropagation()}
-                            title="Assign to user"
-                            aria-label={`Assign ${bill.bill_number} to a user`}
-                          >
-                            <UserPlus className="h-3 w-3" />
-                          </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="cursor-pointer h-5 w-5 p-0 text-muted-foreground hover:bg-secondary hover:text-primary"
+                              onClick={(e) => e.stopPropagation()}
+                              title="Assign to user"
+                              aria-label={`Assign ${bill.bill_number} to a user`}
+                            >
+                              <UserPlus className="h-3 w-3" />
+                            </Button>
                           }
                         />
                       )}
-                      {canRemoveFromBoard && !bill.dead && (
-                      <RemoveFromBoardDialog
-                        bill={bill}
-                        trigger={
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="cursor-pointer h-5 w-5 p-0 text-muted-foreground hover:bg-secondary hover:text-destructive"
-                            onClick={(e) => e.stopPropagation()}
-                            title="Remove from board"
-                            aria-label={`Remove ${bill.bill_number} from the board`}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        }
-                      />
+                      {canRemoveFromBoard && (
+                        <RemoveFromBoardDialog
+                          bill={bill}
+                          trigger={
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="cursor-pointer h-5 w-5 p-0 text-muted-foreground hover:bg-secondary hover:text-destructive"
+                              onClick={(e) => e.stopPropagation()}
+                              title="Remove from board"
+                              aria-label={`Remove ${bill.bill_number} from the board`}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          }
+                        />
                       )}
                     </div>
                   )}
@@ -426,12 +476,14 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                     </div>
                   </ChipTooltip>
                 )}
+                </div>{/* end grayed headline/description/activity */}
 
                 {/* Status badges footer.
                     Bottom-left: committee identity, superseded by testimony
                     progress chips when there's testimony state.
                     Bottom-right: deadline countdown, superseded by Failed. */}
                 <div className="flex items-center flex-wrap gap-1.5 mt-2.5">
+                  <div className={bill.dead ? cn("flex items-center flex-wrap gap-1.5 min-w-0", deadDim) : "contents"}>
                     {testimonyState === 'submitted' && (
                       <ChipTooltip content="You submitted testimony for this bill">
                         <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 h-5 text-[10px] font-medium text-primary shrink-0">
@@ -488,6 +540,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                         <span>{trackedCount}</span>
                       </div>
                     )}
+                  </div>
 
                   {/* Bottom-right: tiered deadline countdown for any bill with an
                       upcoming deadline — Failed takes over the corner when the
@@ -495,9 +548,30 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                       framing in the tooltip; later stages a neutral one. */}
                   <div className="flex items-center gap-2 ml-auto">
                     {bill.dead ? (
-                      <Badge variant="destructive" className="text-[10px] h-5 px-2 text-white rounded-full shrink-0">
-                        Failed
-                      </Badge>
+                      <FailedWhyPill
+                        billNumber={bill.bill_number}
+                        billStatus={bill.current_bill_status}
+                        billUrl={bill.bill_url}
+                        committeeAssignment={bill.committee_assignment}
+                        latestUpdate={bill.latest_update}
+                        removeSlot={canRemoveFromBoard ? (
+                          <RemoveFromBoardDialog
+                            bill={bill}
+                            trigger={
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full h-8 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                onClick={(e) => e.stopPropagation()}
+                                aria-label={`Remove ${bill.bill_number} from the board`}
+                              >
+                                <X className="h-3.5 w-3.5 mr-1.5" />
+                                Remove from board
+                              </Button>
+                            }
+                          />
+                        ) : undefined}
+                      />
                     ) : nextDeadline && deadlineDaysAway !== null && (
                       /* Original concise tooltip, deliberately NOT a glossary
                          term: appending the deadline-jargon definition here
@@ -529,6 +603,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                 </div>
             </div>
 
+            <div className={bill.dead ? cn("flex flex-col", deadDim) : "contents"}>
             {/* LLM Action Buttons */}
             {vis.showLlmActions && bill.llm_suggested && !bill.llm_processing && (
               <div className="px-3 pb-3 flex gap-2 pt-2 border-t border-border">
@@ -620,45 +695,8 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                 )}
               </div>
             )}
-            </div>{/* end grayed-out content layer */}
-
-            {/* Dead info popover — bottom-right, layered on top of grayed content */}
-            {bill.dead && (
-              <div className="absolute top-3 right-2 z-10">
-              <DeadBillInfoPopover
-                  billNumber={bill.bill_number}
-                  billStatus={bill.current_bill_status}
-                  billUrl={bill.bill_url}
-                  committeeAssignment={bill.committee_assignment}
-                  latestUpdate={bill.latest_update}
-                  removeSlot={canRemoveFromBoard ? (
-                    <RemoveFromBoardDialog
-                      bill={bill}
-                      trigger={
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full h-8 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`Remove ${bill.bill_number} from the board`}
-                        >
-                          <X className="h-3.5 w-3.5 mr-1.5" />
-                          Remove from board
-                        </Button>
-                      }
-                    />
-                  ) : undefined}
-                >
-                  <button
-                    className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-sm"
-                    onClick={(e) => e.stopPropagation()}
-                    aria-label="Why did this bill fail?"
-                  >
-                    <Info className="h-5 w-5" />
-                  </button>
-                </DeadBillInfoPopover>
-              </div>
-            )}
+            </div>{/* end grayed trailing sections */}
+            </div>{/* end content layer */}
       </div>
     );
 });

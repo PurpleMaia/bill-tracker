@@ -43,6 +43,7 @@ export function RemoveFromBoardDialog({
       return;
     }
     setIsRemoving(true);
+    let removed = false;
     try {
       // The server checks org-admin and also clears the acting admin's own
       // NULL-tenant row (from the session), so a bill tracked before joining
@@ -54,12 +55,14 @@ export function RemoveFromBoardDialog({
       queryClient.invalidateQueries({ queryKey: ['bills', 'search'] });
       toast({ title: 'Bill Removed', description: `${bill.bill_number} removed from the board.`, duration: 5000 });
       setOpen(false);
-      onRemoved?.();
+      removed = true;
     } catch (error) {
       console.error('Error removing bill from board:', error);
     } finally {
       setIsRemoving(false);
     }
+    // Outside the try so a throwing callback isn't logged as a failed removal.
+    if (removed) onRemoved?.();
   };
 
   return (
