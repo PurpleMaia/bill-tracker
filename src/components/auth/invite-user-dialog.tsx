@@ -5,22 +5,16 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus } from 'lucide-react';
 
-interface InviteUserDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface InviteUserPanelProps {
+  /** Called once an invite is created (the Organization dialog closes itself). */
+  onInvited: () => void;
 }
 
-export function InviteUserDialog({ open, onOpenChange }: InviteUserDialogProps) {
+/** Invite-by-email form — the Organization dialog's Invite tab. */
+export function InviteUserPanel({ onInvited }: InviteUserPanelProps) {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { activeTenant } = useAuth();
@@ -47,14 +41,14 @@ export function InviteUserDialog({ open, onOpenChange }: InviteUserDialogProps) 
           variant: 'destructive',
         });
         setEmail('');
-        onOpenChange(false);
+        onInvited();
       } else if (response.ok) {
         toast({
           title: 'Invite sent',
           description: `An invitation has been sent to ${email.trim()}. You can manage and copy invite links in the Pending Invites section of the Admin dashboard.`,
         });
         setEmail('');
-        onOpenChange(false);
+        onInvited();
       } else {
         toast({
           title: 'Failed to send invite',
@@ -74,33 +68,26 @@ export function InviteUserDialog({ open, onOpenChange }: InviteUserDialogProps) 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Invite User</DialogTitle>
-          <DialogDescription>
-            Send an invite to join {activeTenant?.name}. They&apos;ll receive an email with a registration link.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="invite-email">Email address</Label>
-            <Input
-              id="invite-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="colleague@example.com"
-              required
-            />
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Send an invite to join {activeTenant?.name}. They&apos;ll receive an email with a registration link.
+      </p>
+      <div className="space-y-2">
+        <Label htmlFor="invite-email">Email address</Label>
+        <Input
+          id="invite-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="colleague@example.com"
+          required
+        />
+      </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            {isLoading ? 'Sending invite...' : 'Send Invite'}
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        <UserPlus className="mr-2 h-4 w-4" />
+        {isLoading ? 'Sending invite...' : 'Send Invite'}
+      </Button>
+    </form>
   );
 }
