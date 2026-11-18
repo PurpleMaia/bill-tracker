@@ -352,7 +352,7 @@ export default function ContactLegislatorPage() {
         <main className="min-w-0 flex-1 overflow-y-auto">
           <div
             className={[
-              'mx-auto space-y-4 p-4 sm:p-6',
+              'mx-auto space-y-4 px-4 pb-4 pt-3 sm:px-6 sm:pb-6 sm:pt-4',
               panelCollapsed ? 'max-w-6xl' : 'max-w-5xl',
               // Phones: keep the last card clear of the floating Bill info button.
               isMobile ? 'pb-20' : '',
@@ -420,6 +420,13 @@ export default function ContactLegislatorPage() {
 
 /* ----------------------------- Script tabs ----------------------------- */
 
+/** Underline tabs across the top of the scripts card; the active one is marked in teal. */
+const SCRIPT_TAB =
+  '-mb-px flex-1 gap-1.5 rounded-none rounded-t-lg border-b-2 border-transparent px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground sm:flex-none data-[state=active]:border-primary data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-none';
+
+/** Both script boxes share one height, so switching tabs doesn't make the card jump. */
+const SCRIPT_BOX = 'h-48 min-h-[8rem] resize-y font-mono text-sm leading-relaxed lg:h-[24rem]';
+
 /** The written + call scripts as tabs, so only one editor takes up the column. */
 function ScriptTabs({
   writtenLabel,
@@ -433,26 +440,25 @@ function ScriptTabs({
   onCallChange: (v: string) => void;
 }) {
   return (
-    <Tabs defaultValue="written" className="flex flex-col rounded-lg border bg-card p-4" data-flow-tour="email">
-      <TabsList className="h-9 self-start">
-        <TabsTrigger value="written" className="gap-1.5 px-2.5 text-xs">
-          <Mail className="h-3.5 w-3.5" />
+    <Tabs defaultValue="written" className="flex flex-col rounded-lg border bg-card" data-flow-tour="email">
+      <TabsList className="h-auto w-full justify-start rounded-none rounded-t-lg border-b bg-muted/40 p-0">
+        <TabsTrigger value="written" className={SCRIPT_TAB}>
+          <Mail className="h-4 w-4" />
           {writtenLabel}
         </TabsTrigger>
-        <TabsTrigger value="call" className="gap-1.5 px-2.5 text-xs" data-flow-tour="call">
-          <Phone className="h-3.5 w-3.5" />
+        <TabsTrigger value="call" className={SCRIPT_TAB} data-flow-tour="call">
+          <Phone className="h-4 w-4" />
           Call script
         </TabsTrigger>
       </TabsList>
-      <TabsContent value="written" className="mt-3 flex flex-col">
+      <TabsContent value="written" className="mt-0 p-4">
         {written}
       </TabsContent>
-      <TabsContent value="call" className="mt-3">
+      <TabsContent value="call" className="mt-0 p-4">
         <Textarea
           value={callScript}
           onChange={(e) => onCallChange(e.target.value)}
-          rows={7}
-          className="min-h-[8rem] resize-y font-mono text-sm leading-relaxed"
+          className={SCRIPT_BOX}
           aria-label="Phone call script"
         />
       </TabsContent>
@@ -534,8 +540,7 @@ function Compose({
                 <Textarea
                   value={body}
                   onChange={(e) => onChange(e.target.value)}
-                  rows={12}
-                  className="h-40 min-h-[8rem] resize-y font-mono text-sm leading-relaxed lg:h-auto"
+                  className={SCRIPT_BOX}
                   aria-label="Email message to legislators"
                 />
                 <p className="mt-2 text-[11px] text-muted-foreground">
@@ -817,8 +822,7 @@ function ComposeConference({
                 <Textarea
                   value={body}
                   onChange={(e) => onChange(e.target.value)}
-                  rows={12}
-                  className="h-40 min-h-[8rem] resize-y font-mono text-sm leading-relaxed lg:h-auto"
+                  className={SCRIPT_BOX}
                   aria-label={`Email message to ${copy.recipients}s`}
                 />
                 <p className="mt-2 text-[11px] text-muted-foreground">
@@ -1098,8 +1102,7 @@ function ComposeGovernor({
                 <Textarea
                   value={body}
                   onChange={(e) => onChange(e.target.value)}
-                  rows={12}
-                  className="h-40 min-h-[8rem] resize-y font-mono text-sm leading-relaxed lg:h-auto"
+                  className={SCRIPT_BOX}
                   aria-label="Message to the Governor"
                 />
                 <p className="mt-2 text-[11px] text-muted-foreground">
