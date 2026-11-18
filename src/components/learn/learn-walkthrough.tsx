@@ -8,10 +8,7 @@ import { cn, todayHawaii } from '@/lib/core/utils';
 import { PROGRESS_STAGES } from '@/lib/bills/progress-stages';
 import { deriveBillStanding, type BillStanding } from '@/lib/bills/bill-standing';
 import { getBillChamber } from '@/lib/bills/dead-bill';
-// data.bills exposes only getBills — there is no getBillDetails on the
-// data-client. getBillDetails is a 'use server' query function that client
-// components call directly (same pattern as bill-details-dialog.tsx).
-import { getBillDetails } from '@/db/queries/bills-read';
+import { data } from '@/lib/data-client';
 
 export function LearnWalkthrough() {
   const searchParams = useSearchParams();
@@ -30,7 +27,7 @@ export function LearnWalkthrough() {
   useEffect(() => {
     if (!billId) return;
     let cancelled = false;
-    getBillDetails(billId)
+    data.bills.getBillDetails({ billId })
       .then((bill) => {
         if (cancelled || !bill) return;
         setBillNumber(bill.bill_number || null);

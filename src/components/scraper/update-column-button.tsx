@@ -4,7 +4,7 @@ import { Button } from "../ui/button"
 import { ListRestart, RefreshCw, Lock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Bill } from "@/types/legislation";
-import { scrapeForUpdates } from "@/services/scraper";
+import { scrapeForUpdatesAction } from "@/app/actions/scraper";
 import { useBills } from "@/hooks/contexts/bills-context";
 import { useAuth } from "@/hooks/contexts/auth-context";
 
@@ -37,7 +37,7 @@ export default function RefreshColumnButton({ bills, onRefreshStart, onRefreshEn
                 variant: 'default',
               });
     
-            const result = await scrapeForUpdates(bill.id) // result is the full json
+            const result = await scrapeForUpdatesAction(bill.id) // result is the full json
     
             if (!result) {
                 console.log('Error scraping individual bill')

@@ -1,9 +1,19 @@
-'use server';
-
 import type { Bill } from '@/types/legislation';
 import { db } from '@/db/kysely/client';
-import { BillStatus, User } from '@/db/types';
-import { Selectable } from 'kysely';
+import { BillStatus } from '@/db/types';
+
+/**
+ * The fields the assign dialog needs. Selected explicitly so secrets on the
+ * `user` row (password hash, verification_token, ...) never reach the browser.
+ */
+export interface AssignableUser {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+}
+
+const ASSIGNABLE_USER_COLUMNS = ['user.id', 'user.username', 'user.email', 'user.role'] as const;
 
 // ==============================================
 // BILL ASSIGN FUNCTIONS
@@ -158,11 +168,21 @@ export async function unassignBillFromUser(assignerId: string, targetUserId: str
   try {
     await validateAssignmentScope(assignerId, targetUserId, tenantId);
 
-    const deleted = await db
+    let query = db
       .deleteFrom('user_bills')
       .where('user_id', '=', targetUserId)
-      .where('bill_id', '=', billId)
-      .executeTakeFirst();
+      .where('bill_id', '=', billId);
+
+    // Only remove the target's tracking in THIS org (plus their NULL-tenant
+    // row for the bill, which predates org scoping — same policy as
+    // untrackBill). Their tracking of the bill in other orgs is left alone.
+    if (tenantId) {
+      query = query.where((eb) =>
+        eb.or([eb('tenant_id', '=', tenantId), eb('tenant_id', 'is', null)]),
+      );
+    }
+
+    const deleted = await query.executeTakeFirst();
 
     return !!deleted;
   } catch (error) {
@@ -179,7 +199,7 @@ export async function unassignBillFromUser(assignerId: string, targetUserId: str
  * @param userId The ID of the user requesting assignable users
  * @returns Array of users that can be assigned bills
  */
-export async function getAssignableUsers(userId: string, tenantId?: string): Promise<Selectable<User>[]> {
+export async function getAssignableUsers(userId: string, tenantId?: string): Promise<AssignableUser[]> {
   try {
     // Get user info
     const user = await db
@@ -215,20 +235,19 @@ export async function getAssignableUsers(userId: string, tenantId?: string): Pro
           .innerJoin('members', (join) =>
             join.onRef('members.user_id', '=', 'user.id').on('members.tenant_id', '=', tenantId)
           )
-          .selectAll('user')
-          .select('members.org_role')
+          .select([...ASSIGNABLE_USER_COLUMNS, 'members.org_role'])
           .where('user.account_status', '=', 'active')
           .orderBy('user.username', 'asc')
           .execute();
 
         // Override legacy role field with org role so the UI displays correctly
-        return rows.map((r) => ({ ...r, role: r.org_role }));
+        return rows.map(({ org_role, ...r }) => ({ ...r, role: org_role }));
       }
 
       // No tenant — return all active users with legacy roles
       return await db
         .selectFrom('user')
-        .selectAll()
+        .select([...ASSIGNABLE_USER_COLUMNS])
         .where('account_status', '=', 'active')
         .orderBy('username', 'asc')
         .execute();
@@ -248,7 +267,7 @@ export async function getAssignableUsers(userId: string, tenantId?: string): Pro
 
       const users = await db
         .selectFrom('user')
-        .selectAll()
+        .select([...ASSIGNABLE_USER_COLUMNS])
         .where('id', 'in', internIds)
         .where('account_status', '=', 'active')
         .orderBy('username', 'asc')

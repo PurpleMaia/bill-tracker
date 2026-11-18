@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
-import { getAllTags, getBillTags, updateBillTags } from '@/db/queries/tags';
+import { getTagsAction, getBillTagsAction, updateBillTagsAction } from '@/app/actions/tags';
 import type { Tag } from '@/types/legislation';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -37,8 +37,8 @@ export function TagSelector({ billId, onTagsChange, readOnly = false }: TagSelec
     setLoading(true);
     try {
       const [tags, billTags] = await Promise.all([
-        getAllTags(activeTenant.tenantId),
-        getBillTags(billId, activeTenant.tenantId),
+        getTagsAction({ tenantId: activeTenant.tenantId }),
+        getBillTagsAction({ billId, tenantId: activeTenant.tenantId }),
       ]);
       setAllTags(tags);
       setSelectedTags(billTags);
@@ -72,11 +72,11 @@ export function TagSelector({ billId, onTagsChange, readOnly = false }: TagSelec
     setSaving(true);
 
     try {
-      const updatedTags = await updateBillTags(
+      const updatedTags = await updateBillTagsAction({
         billId,
-        newSelectedTags.map(t => t.id),
-        activeTenant.tenantId
-      );
+        tagIds: newSelectedTags.map(t => t.id),
+        tenantId: activeTenant.tenantId,
+      });
       setSelectedTags(updatedTags);
       // Update the bill's tags in the context without refreshing everything
       updateBill(billId, { tags: updatedTags });

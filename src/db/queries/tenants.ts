@@ -1,5 +1,3 @@
-'use server';
-
 import { db } from '@/db/kysely/client';
 import type { Membership, OrgRole } from '@/types/tenant';
 import { Errors } from '@/lib/core/errors';

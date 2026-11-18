@@ -4,7 +4,7 @@ import { Button } from "../ui/button"
 import { ListRestart, RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Bill, StatusUpdate } from "@/types/legislation";
-import { scrapeForUpdates } from "@/services/scraper";
+import { scrapeForUpdatesAction } from "@/app/actions/scraper";
 
 interface Props {
     bill: Bill
@@ -26,7 +26,7 @@ export default function RefreshStatusesButton({ bill, onRefresh } : Props) {
             variant: 'default',
           });
 
-        const result = await scrapeForUpdates(bill.id) // result is the full json
+        const result = await scrapeForUpdatesAction(bill.id) // result is the full json
 
         if (!result) {
             console.log('Error scraping individual bill')

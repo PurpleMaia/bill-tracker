@@ -1,5 +1,3 @@
-'use server';
-
 import { db } from '@/db/kysely/client';
 import { applyPreferenceDefaults } from '@/lib/core/preferences';
 import type { UserPreferences } from '@/types/preferences';

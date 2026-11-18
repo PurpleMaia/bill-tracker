@@ -14,13 +14,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, parseLocalDate, todayHawaii } from '@/lib/core/utils';
-import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files, Users } from 'lucide-react';
+import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files, Users, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
 import RefreshStatusesButton from '../scraper/scrape-updates-button';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { useTrackedBills } from '@/hooks/use-tracked-bills';
+import { RemoveFromBoardDialog } from './remove-from-board-dialog';
 import { LoginLink } from '@/components/auth/login-link';
 import { COLUMN_TITLES, KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
 import {
@@ -31,18 +33,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from '@/hooks/use-toast';
-import { updateBillStatus } from '@/db/queries/bills-write';
-import { getBillDetails } from '@/db/queries/bills-read';
+import { data } from '@/lib/data-client';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
 import { BillBriefing } from './bill-briefing';
+import { explainDeadBill } from '@/lib/bills/dead-bill-explanation';
 import { VersionsReportsTab } from './versions-reports-tab';
 import { PROGRESS_STAGES, getProgressValue, getCurrentStageName } from '@/lib/bills/progress-stages';
 import { Term } from '@/components/ui/term';
 import { resolveDeadlineTerm } from '@/lib/glossary/resolvers';
 import { BillBreakdownButton } from './bill-breakdown';
-import { isBillDead, getNextDeadline, isFiscalBill, isEnacted } from '@/lib/bills/dead-bill';
+import { getNextDeadline, isFiscalBill, isEnacted } from '@/lib/bills/dead-bill';
 import { getGovernorStage } from '@/lib/legislators/governor-contact';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
@@ -64,6 +66,12 @@ export interface BillDetailsDialogProps {
    * agnostic about where it was opened from.
    */
   trackSlot?: React.ReactNode;
+  /**
+   * Set by the user's own board views (kanban, spreadsheet) to show Remove from
+   * board / Untrack. Explicit rather than inferred from `trackSlot`, which Search
+   * omits when the opened bill isn't in its loaded results.
+   */
+  allowBoardRemoval?: boolean;
 }
 
 interface DialogTab {
@@ -90,9 +98,10 @@ const TABS: readonly DialogTab[] = [
   { id: 'updates', label: 'Status Updates', shortLabel: 'Updates', icon: Clock, mobileOnly: true },
 ];
 
-export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', returnTo, trackSlot }: BillDetailsDialogProps) {
+export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', returnTo, trackSlot, allowBoardRemoval = false }: BillDetailsDialogProps) {
   const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills();
   const { user, activeTenant } = useAuth();
+  const { untrackBill } = useTrackedBills();
   const isMobile = useIsMobile();
   const router = useRouter();
   // Hosts may pass billID null the moment the dialog closes; keep showing the
@@ -105,6 +114,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   // next page renders, so show progress and ignore dismissals meanwhile
   // (closing would pop the history entry the user is about to come back to).
   const [navigatingTo, setNavigatingTo] = useState<'testimony' | 'contact' | null>(null);
+  const [isUntracking, setIsUntracking] = useState(false);
   useEffect(() => {
     if (!navigatingTo) return;
     // Browser back/forward mid-navigation abandons it.
@@ -138,7 +148,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
       setBillDetails((prev) => (prev?.id === billID ? prev : null));
       setLoadingDetails(true);
       setDetailsError(null);
-      getBillDetails(billID)
+      data.bills.getBillDetails({ billId: billID })
         .then((details) => {
           if (details.updates) {
             details.updates = [...details.updates].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -225,22 +235,68 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   const canSeeTracking = boardMode !== 'active-boards' && activeTenant?.orgRole === 'admin';
   // Only org admins may change a bill's org status; workers and public users don't see the control.
   const canChangeStatus = activeTenant?.orgRole === 'admin';
+  // Remove/Untrack only on the user's own board: not Search, Calendar, Active Boards, or signed out.
+  const onOwnBoard = allowBoardRemoval && boardMode !== 'active-boards' && !!user;
+  const canRemoveFromBoard = onOwnBoard && activeTenant?.orgRole === 'admin';
+  // Mirrors protected-kanban-board's shouldShowUnadoptButton for non-admins.
+  const canUntrack = onOwnBoard && !canRemoveFromBoard && viewMode === 'my-bills';
+  const removeActionClass = 'border-destructive/35 text-destructive hover:bg-destructive/10 hover:text-destructive';
+  const renderRemoveAction = (mobile: boolean) => {
+    const cls = cn(removeActionClass, mobile && 'h-11 w-full');
+    const size = mobile ? 'default' : 'sm';
+    if (canRemoveFromBoard) {
+      return (
+        <RemoveFromBoardDialog
+          bill={bill}
+          onRemoved={onClose}
+          trigger={
+            <Button size={size} variant="outline" className={cls}>
+              <X className={cn('mr-1.5 shrink-0', mobile ? 'h-4 w-4' : 'h-3.5 w-3.5')} />
+              Remove from board
+            </Button>
+          }
+        />
+      );
+    }
+    if (canUntrack) {
+      return (
+        <Button
+          size={size}
+          variant="outline"
+          className={cls}
+          disabled={isUntracking}
+          onClick={async () => {
+            setIsUntracking(true);
+            try {
+              if (await untrackBill(bill.id)) onClose();
+            } finally {
+              setIsUntracking(false);
+            }
+          }}
+        >
+          <X className={cn('mr-1.5 shrink-0', mobile ? 'h-4 w-4' : 'h-3.5 w-3.5')} />
+          Untrack
+        </Button>
+      );
+    }
+    return null;
+  };
 
-  // Derive dead reason and deadline
+  // Derive the failure explanation and next deadline
   const committeeAssign = billDetails?.committee_assignment || bill.committee_assignment;
   const today = todayHawaii();
 
-  const deadReason = (bill.dead && committeeAssign && billDetails)
-    ? isBillDead(
+  const deadExplanation = (bill.dead && billDetails)
+    ? explainDeadBill(
         {
-          bill_number: billDetails.bill_number || bill.bill_number,
-          bill_status: (billDetails.current_bill_status || bill.current_bill_status) as DBBillStatus,
-          committee_assignment: committeeAssign,
+          billNumber: billDetails.bill_number || bill.bill_number,
+          billStatus: billDetails.current_bill_status || bill.current_bill_status,
+          committeeAssignment: committeeAssign ?? null,
         },
         (billDetails.updates || []).map(u => ({ statustext: u.statustext, date: u.date, chamber: u.chamber })),
         SESSION_DEADLINES,
         today,
-      ).reason
+      )
     : null;
 
   const nextDeadline = (!bill.dead && committeeAssign)
@@ -312,8 +368,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
         onClose();
         return;
       }
-      const updatedBillFromServer = await updateBillStatus(bill.id, selectedStatus);
-      if (!updatedBillFromServer) throw new Error('Failed to update');
+      await data.bills.updateStatus({ billId: bill.id, newStatus: selectedStatus, tenantId: activeTenant?.tenantId });
       setBills(prev => prev.map(b => b.id === bill.id
         ? { ...b, llm_suggested: false, llm_processing: false, previous_status: b.current_bill_status, current_bill_status: selectedStatus }
         : b
@@ -438,6 +493,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                 wrapper alongside whichever Write Testimony variant renders. */}
             <div data-bill-tour="actions" className="hidden sm:flex shrink-0 items-center gap-2">
               {trackSlot}
+              {renderRemoveAction(false)}
               {!user ? (
                 /* Logged-out (the dialog is reachable from public search): both
                    CTAs lead to authenticated flows, so they become login prompts
@@ -554,7 +610,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
               <Button variant="outline" size="sm" className="mt-4" onClick={() => {
                 if (shownId) {
                   setLoadingDetails(true); setDetailsError(null);
-                  getBillDetails(shownId).then(setBillDetails).catch(() => setDetailsError('Failed to load')).finally(() => setLoadingDetails(false));
+                  data.bills.getBillDetails({ billId: shownId }).then(setBillDetails).catch(() => setDetailsError('Failed to load')).finally(() => setLoadingDetails(false));
                 }
               }}>Try Again</Button>
             </div>
@@ -571,7 +627,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                     bill={billForPanels}
                     today={today}
                     dead={bill.dead}
-                    deadReason={deadReason}
+                    deadExplanation={deadExplanation}
                     progressValue={progressValue}
                     progressStages={PROGRESS_STAGES.map(s => s.shortName)}
                     currentStageName={currentStageName}
@@ -797,10 +853,12 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                       </>
                     )}
 
-                    {/* The desktop CTA row is hidden below sm:, so the track
-                        control is repeated here to stay reachable. Full width,
-                        below the pair — its label is forced back on because the
-                        search page's button is icon-only at this breakpoint. */}
+                    {/* The desktop CTA row is hidden below sm:, so the remove /
+                        untrack action is repeated here, full width. */}
+                    {renderRemoveAction(true)}
+                    {/* Likewise the track control: full width, below the pair —
+                        its label is forced back on because the search page's
+                        button is icon-only at this breakpoint. */}
                     {trackSlot && (
                       <div className="[&_button]:h-11 [&_button]:w-full [&_button>span]:inline">
                         {trackSlot}

@@ -106,12 +106,22 @@ export default {
   				'40%, 100%': {
   					boxShadow: '0 0 0 6px rgb(250 204 21 / 0)'
   				}
+  			},
+  			// One-shot expanding red halo for the failed card's "Why?" pill.
+  			'why-ring': {
+  				'0%': {
+  					boxShadow: '0 0 0 0 hsl(var(--destructive) / 0.55)'
+  				},
+  				'70%, 100%': {
+  					boxShadow: '0 0 0 8px hsl(var(--destructive) / 0)'
+  				}
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
-  			'soft-ping': 'soft-ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite'
+  			'soft-ping': 'soft-ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite',
+  			'why-ring': 'why-ring 2.4s cubic-bezier(0, 0, 0.2, 1) 1'
   		}
   	}
   },

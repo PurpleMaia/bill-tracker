@@ -72,10 +72,12 @@ export function AssignMultipleBillsDialog({ trigger, onSuccess }: AssignMultiple
   const fetchBills = async () => {
     setIsLoadingBills(true);
     try {
-      const { getAllFoodRelatedBills } = await import('@/db/queries/bills-read');
-      const bills = await getAllFoodRelatedBills(false, false);
-      setAllBills(bills);
-      setFilteredBills(bills);
+      const { getAssignableBills } = await import('@/app/actions/admin');
+      const result = await getAssignableBills();
+      if (result.success && result.data) {
+        setAllBills(result.data);
+        setFilteredBills(result.data);
+      }
     } catch (error) {
       console.error('Error fetching bills:', error);
     } finally {

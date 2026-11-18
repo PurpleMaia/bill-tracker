@@ -4,6 +4,8 @@ import { BillWithInterns, InternWithBills, PendingProposal, PendingUser, Supervi
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/auth/auth-guards';
 import * as adminQueries from '@/db/queries/admin';
+import { getAllFoodRelatedBills } from '@/db/queries/bills-read';
+import type { Bill } from '@/types/legislation';
 
 interface ActionResult<T = void> {
   success: boolean;
@@ -144,6 +146,18 @@ export async function denyUser(userId: string, tenantId?: string): Promise<Actio
   } catch (error) {
     console.error('❌ [DENYING ACCOUNT REQUEST] Error denying user:', error);
     return { success: false, error: 'Failed to deny user' };
+  }
+}
+
+// Food-related bills to pick from in the assign-multiple dialog
+export async function getAssignableBills(tenantId?: string): Promise<ActionResult<Bill[]>> {
+  try {
+    await verifyAdminAccess(tenantId);
+    const bills = await getAllFoodRelatedBills(false, false);
+    return { success: true, data: bills };
+  } catch (error) {
+    console.error('❌ [ASSIGNABLE BILLS] Error fetching bills:', error);
+    return { success: false, error: 'Failed to fetch bills' };
   }
 }
 

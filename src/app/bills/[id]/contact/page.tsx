@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import type { BillDetails } from '@/types/legislation';
-import { getBillDetails } from '@/db/queries/bills-read';
 import { data } from '@/lib/data-client';
 import { safeReturnPath } from '@/lib/core/safe-return-path';
 import { RETURN_TO_PARAM } from '@/lib/bills/bill-dialog-url';
@@ -113,7 +112,7 @@ export default function ContactLegislatorPage() {
     let cancelled = false;
     (async () => {
       try {
-        const details = await getBillDetails(billId);
+        const details = await data.bills.getBillDetails({ billId });
         if (cancelled) return;
         setBill(details);
         const stage = getGovernorStage(details?.current_bill_status, details?.updates);

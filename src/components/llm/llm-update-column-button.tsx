@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { Button } from '../ui/button';
 import { RefreshCw, WandSparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { classifyStatusWithLLM } from '@/services/llm';
+import { classifyStatusAction } from '@/app/actions/scraper';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -72,7 +72,7 @@ export default function LLMUpdateColumnButton({ bills, onRefreshStart, onRefresh
     
     let classification: string | null | undefined;
     try {
-      classification = await classifyStatusWithLLM(bill.id);
+      classification = await classifyStatusAction(bill.id);
     } catch (error) {
       console.error(`Error classifying ${bill.bill_number} with LLM:`, error);
       setBills(prevBills =>

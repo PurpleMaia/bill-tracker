@@ -17,7 +17,7 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Download, Globe, Search, UserPlus } from 'lucide-react';
-import { getAllTags } from '@/db/queries/tags';
+import { getTagsAction } from '@/app/actions/tags';
 import type { Tag } from '@/types/legislation';
 
 interface KanbanHeaderProps {
@@ -54,7 +54,7 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
     }
     setLoadingTags(true);
     try {
-      setTags(await getAllTags(activeTenant.tenantId));
+      setTags(await getTagsAction({ tenantId: activeTenant.tenantId }));
     } catch (error) {
       console.error('Failed to load tags:', error);
     } finally {

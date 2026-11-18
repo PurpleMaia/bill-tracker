@@ -1,5 +1,3 @@
-'use server';
-
 import type { Bill, BillTracker, BillDetails, StatusUpdate, BillVersion, CommitteeReport, BillSearchResult, BillSearchResponse, SearchBillsParams } from '@/types/legislation';
 import {
   isBillNumberQuery,

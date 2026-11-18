@@ -9,7 +9,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Plus, X } from 'lucide-react';
-import { getAllTags, getBillTags, updateBillTags } from '@/db/queries/tags';
+import { getTagsAction, getBillTagsAction, updateBillTagsAction } from '@/app/actions/tags';
 import type { Tag } from '@/types/legislation';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -42,7 +42,7 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
       const loadData = async () => {
         setLoading(true);
         try {
-          const tags = await getAllTags(activeTenant.tenantId);
+          const tags = await getTagsAction({ tenantId: activeTenant.tenantId });
           setAllTags(tags);
         } catch (error) {
           console.error('Failed to load tags:', error);
@@ -72,11 +72,11 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
     setSaving(true);
 
     try {
-      const updatedTags = await updateBillTags(
+      const updatedTags = await updateBillTagsAction({
         billId,
-        newSelectedTags.map(t => t.id),
-        activeTenant.tenantId
-      );
+        tagIds: newSelectedTags.map(t => t.id),
+        tenantId: activeTenant.tenantId,
+      });
       toast({
         title: 'Success',
         description: 'Tags updated successfully',
