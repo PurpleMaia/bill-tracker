@@ -5,6 +5,8 @@ import { LogIn, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoginLink } from '@/components/auth/login-link';
+import { cn } from '@/lib/core/utils';
+import { RISE_IN } from '@/lib/core/motion';
 
 /**
  * Gate for the Following tab. Mirrors LoginWall, but sends visitors to
@@ -14,7 +16,7 @@ import { LoginLink } from '@/components/auth/login-link';
 export function BoardsLoginWall() {
   return (
     <div className="flex h-full items-center justify-center p-8">
-      <Card className="w-full max-w-md text-center">
+      <Card className={cn('w-full max-w-md text-center', RISE_IN)}>
         <CardHeader>
           <Lock className="mx-auto h-10 w-10 text-muted-foreground" />
           <CardTitle>Login to see boards you follow</CardTitle>

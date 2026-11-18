@@ -14,6 +14,8 @@ import { ActiveBoardsBillsBridge } from './active-boards-bills-bridge';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { toast } from '@/hooks/use-toast';
 import type { Bill } from '@/types/legislation';
+import { cn } from '@/lib/core/utils';
+import { RISE_IN } from '@/lib/core/motion';
 
 export function ActiveBoardView() {
   const {
@@ -85,7 +87,7 @@ export function ActiveBoardView() {
 
   if (followedStatus === 'error') {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+      <div className={cn('flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center', RISE_IN)}>
         <AlertCircle className="h-9 w-9 text-destructive" />
         <h2 className="text-base font-semibold">Couldn&rsquo;t load the boards you follow</h2>
         <p className="text-sm text-muted-foreground">Check your connection and try again.</p>
@@ -105,7 +107,7 @@ export function ActiveBoardView() {
     ];
     return (
       <div className="flex flex-1 items-center justify-center p-4 md:p-8">
-        <div className="w-full max-w-lg rounded-xl border bg-card p-6 text-center shadow-sm">
+        <div className={cn('w-full max-w-lg rounded-xl border bg-card p-6 text-center shadow-sm', RISE_IN)}>
           <Star className="mx-auto h-9 w-9 text-primary" />
           <h2 className="mt-2 text-lg font-semibold">See what other organizations are tracking</h2>
           <p className="mt-1 text-sm text-muted-foreground">

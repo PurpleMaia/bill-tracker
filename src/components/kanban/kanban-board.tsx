@@ -6,6 +6,8 @@ import { KANBAN_COLUMNS, COLUMN_TITLES, SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED
 import { ScrollBar } from '@/components/ui/scroll-area';
 import * as ScrollAreaPrimitive from '@radix-ui/react-scroll-area';
 import { searchBillsLocal } from '@/lib/bills/bill-search';
+import { cn } from '@/lib/core/utils';
+import { RISE_IN, riseDelay } from '@/lib/core/motion';
 import { filterBills } from '@/lib/bills/bill-filters';
 import { data as dataClient } from '@/lib/data-client';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
@@ -484,8 +486,8 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
                     ref={(el) => {
                       columnRefs.current[idx] = el;
                     }}
-                    className="h-full shrink-0 animate-rise-in motion-reduce:animate-none"
-                    style={{ '--stagger': Math.min(idx, 6) } as React.CSSProperties}
+                    className={cn('h-full shrink-0', RISE_IN)}
+                    style={riseDelay(idx)}
                   >
                     <KanbanColumn
                       columnId={column.id as BillStatus}
@@ -542,8 +544,8 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
                       // cards are Draggables whose own transform dnd controls, and
                       // a dropped card remounts in its new column, which would
                       // replay a per-card animation on every move.
-                      className="h-full shrink-0 animate-rise-in motion-reduce:animate-none"
-                      style={{ '--stagger': Math.min(idx, 6) } as React.CSSProperties}
+                      className={cn('h-full shrink-0', RISE_IN)}
+                      style={riseDelay(idx)}
                     >
                       <Droppable droppableId={column.id}>
                         {(provided, snapshot) => (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertCircle,
@@ -17,6 +17,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { cn, formatBillStatusName } from '@/lib/core/utils';
+import { RISE_IN, riseDelay } from '@/lib/core/motion';
 import { data } from '@/lib/data-client';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useTestimonies } from '@/hooks/use-testimonies';
@@ -169,11 +170,6 @@ function compareDrafts(a: DecoratedTestimony, b: DecoratedTestimony): number {
   if (aDeadline !== bDeadline) return aDeadline - bDeadline;
   return (b.item.updatedAt ?? '').localeCompare(a.item.updatedAt ?? '');
 }
-
-/** Mount-in, matching Discover and the board (see `rise-in` in tailwind.config). */
-const RISE_IN = 'animate-rise-in motion-reduce:animate-none';
-/** Stagger slot for the i-th item of a cascade, capped so long lists never lag. */
-const riseDelay = (i: number) => ({ '--stagger': Math.min(i, 6) }) as CSSProperties;
 
 export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
   const { user, loading: authLoading } = useAuth();
