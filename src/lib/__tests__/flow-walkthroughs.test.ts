@@ -92,6 +92,15 @@ describe('every walkthrough', () => {
   });
 });
 
+describe('caveat placement', () => {
+  it('testimony leads with the caveat; contact tours put it under the goal', () => {
+    expect(testimonyWalkthrough({ billNumber: 'HB123' }).caveatFirst).toBe(true);
+    for (const stage of STAGES) {
+      expect(contactWalkthrough({ stage, billNumber: 'SB45' }).caveatFirst).toBeFalsy();
+    }
+  });
+});
+
 describe('walkthrough storage keys', () => {
   it('are distinct per flow', () => {
     expect(TESTIMONY_WALKTHROUGH_KEY).not.toBe(CONTACT_WALKTHROUGH_KEY);

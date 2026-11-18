@@ -205,15 +205,9 @@ export function FlowWalkthrough({ walkthrough, storageKey, autoStart = true, onS
             >
               {current.kind === 'intro' && (
                 <>
-                  {/* The limitation leads, so even someone who skips the tour reads it. */}
-                  <div className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-500/40 dark:bg-amber-500/10">
-                    <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
-                    <div>
-                      <p className="text-sm font-semibold">{walkthrough.caveat.title}</p>
-                      <p className="text-sm text-muted-foreground">{walkthrough.caveat.body}</p>
-                    </div>
-                  </div>
-                  <p className="mt-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">How this works</p>
+                  {/* The limitation is on the first card, so even someone who skips the tour reads it. */}
+                  {walkthrough.caveatFirst && <CaveatBox caveat={walkthrough.caveat} className="mb-4" />}
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">How this works</p>
                   <DialogPrimitive.Title className="mt-1 text-lg font-semibold">{walkthrough.title}</DialogPrimitive.Title>
                   <DialogPrimitive.Description className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                     {walkthrough.goal}
@@ -224,6 +218,7 @@ export function FlowWalkthrough({ walkthrough, storageKey, autoStart = true, onS
                       <p className="text-sm font-semibold">{walkthrough.emphasis}</p>
                     </div>
                   )}
+                  {!walkthrough.caveatFirst && <CaveatBox caveat={walkthrough.caveat} className="mt-3" />}
                 </>
               )}
 
@@ -273,5 +268,22 @@ export function FlowWalkthrough({ walkthrough, storageKey, autoStart = true, onS
         </DialogPrimitive.Root>
       )}
     </>
+  );
+}
+
+function CaveatBox({ caveat, className }: { caveat: Walkthrough['caveat']; className?: string }) {
+  return (
+    <div
+      className={cn(
+        'flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-500/40 dark:bg-amber-500/10',
+        className,
+      )}
+    >
+      <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+      <div>
+        <p className="text-sm font-semibold">{caveat.title}</p>
+        <p className="text-sm text-muted-foreground">{caveat.body}</p>
+      </div>
+    </div>
   );
 }

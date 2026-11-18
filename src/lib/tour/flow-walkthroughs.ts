@@ -3,9 +3,10 @@
  * and Contact Legislator. Pure data; the spotlight UI lives in
  * components/tour/flow-walkthrough.tsx.
  *
- * A tour opens on a centered card that leads with the flow's limitation
- * (`caveat`) — the Hawaiʻi Bill Tracker never submits or sends anything on the
- * user's behalf — so it's read even by someone who skips the rest. It then
+ * A tour opens on a centered card that states the flow's limitation (`caveat`)
+ * — the Hawaiʻi Bill Tracker never submits or sends anything on the user's
+ * behalf — so it's read even by someone who skips the rest. Testimony leads
+ * with it; the contact tours put it under the goal. It then
  * spotlights each part of the page and says what it does, and closes on what
  * to expect next.
  */
@@ -40,8 +41,10 @@ export interface WalkthroughStep {
 
 export interface Walkthrough {
   title: string;
-  /** The limitation the user must not miss — shown first, before anything else. */
+  /** The limitation the user must not miss — always on the tour's first card. */
   caveat: { title: string; body: string };
+  /** Put the caveat above the title rather than below the goal (and emphasis). */
+  caveatFirst?: boolean;
   /** What the flow is for, in one or two sentences. */
   goal: string;
   /** The one line the reader should take away, shown highlighted under the goal. */
@@ -62,6 +65,7 @@ const HELP_STEP: WalkthroughStep = {
 export function testimonyWalkthrough({ billNumber }: { billNumber: string }): Walkthrough {
   return {
     title: 'How writing testimony works',
+    caveatFirst: true,
     caveat: {
       title: `The ${APP} cannot submit testimony for you`,
       body: 'Nothing you write here reaches the Legislature until you submit it yourself on capitol.hawaii.gov, at least 24 hours before the hearing. The capitol site only accepts testimony once a committee has scheduled a hearing on the bill.',
