@@ -92,25 +92,27 @@ export function ActiveFilterChips({ filters, onChange, onClear }: ActiveFilterCh
 
   // Until options load (or if the id isn't in them) fall back to a generic
   // label so the chip is still visible and removable.
-  if (filters.introducerId) {
-    const o = legislators?.find((l) => l.id === filters.introducerId);
+  // One chip per picked legislator, each removable on its own (like stages).
+  for (const id of filters.introducerIds) {
+    const o = legislators?.find((l) => l.id === id);
     chips.push({
-      key: 'introducer',
+      key: `introducer-${id}`,
       label: o ? `Introduced by ${o.lastName}` : 'Introduced by legislator',
-      onRemove: () => onChange({ ...filters, introducerId: null }),
+      onRemove: () =>
+        onChange({ ...filters, introducerIds: filters.introducerIds.filter((v) => v !== id) }),
       keepCase: true,
     });
   }
 
-  if (filters.chairId) {
-    const o = legislators?.find((l) => l.id === filters.chairId);
+  for (const id of filters.chairIds) {
+    const o = legislators?.find((l) => l.id === id);
     const roles = o ? formatRoles(o) : '';
     chips.push({
-      key: 'chair',
+      key: `chair-${id}`,
       label: o
         ? `Waiting on ${o.lastName}${roles ? ` (${roles})` : ''}`
         : 'Waiting on legislator',
-      onRemove: () => onChange({ ...filters, chairId: null }),
+      onRemove: () => onChange({ ...filters, chairIds: filters.chairIds.filter((v) => v !== id) }),
       keepCase: true,
     });
   }

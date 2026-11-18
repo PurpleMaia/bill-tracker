@@ -136,8 +136,8 @@ export function BillSearchView() {
     filters.stages,
     filters.deadFilter,
     filters.trackedFilter,
-    filters.introducerId,
-    filters.chairId,
+    filters.introducerIds,
+    filters.chairIds,
     filters.sort,
   ]);
 
@@ -279,10 +279,12 @@ export function BillSearchView() {
                 <Skeleton key={i} className="h-28 w-full" />
               ))}
             </div>
-          ) : !error && filters.chairId && totalCount === 0 ? (
+          ) : !error && filters.chairIds.length > 0 && totalCount === 0 ? (
             <div className={cn('py-16 text-center', RISE_IN)}>
               <p className="text-sm font-medium">
-                Nothing is waiting on this legislator&apos;s committees right now.
+                Nothing is waiting on{' '}
+                {filters.chairIds.length === 1 ? 'this legislator\u2019s' : 'these legislators\u2019'}{' '}
+                committees right now.
               </p>
               <Button variant="outline" size="sm" className="mt-4" onClick={handleClear}>
                 Clear filters

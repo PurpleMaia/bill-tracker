@@ -603,8 +603,8 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
   // The server-action arm passes these straight from the client; the route
   // validates upstream. Treat a non-uuid as absent so both transports agree
   // and the ::uuid casts below can never throw.
-  const introducerId = params.introducerId && isUuid(params.introducerId) ? params.introducerId : null;
-  const chairId = params.chairId && isUuid(params.chairId) ? params.chairId : null;
+  const introducerIds = (params.introducerIds ?? []).filter(isUuid);
+  const chairIds = (params.chairIds ?? []).filter(isUuid);
 
   // Per-user "does this user track this bill" flag. EXISTS keeps searchBills's
   // no-join contract intact (no rows are added or duplicated) while letting the
@@ -640,17 +640,18 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
     // logged-out request can never accidentally hide every bill.
     if (userId && trackedFilter === 'tracked') out = out.where(isTrackedExpr);
     if (userId && trackedFilter === 'untracked') out = out.where(sql<boolean>`not ${isTrackedExpr}`);
-    if (introducerId) {
+    // Introduced by ANY of the picked legislators.
+    if (introducerIds.length) {
       out = out.where(
-        sql<boolean>`exists (select 1 from bill_introducers bi where bi.bill_id = bills.id and bi.legislator_id = ${introducerId}::uuid)`,
+        sql<boolean>`exists (select 1 from bill_introducers bi where bi.bill_id = bills.id and bi.legislator_id = any(${introducerIds}::uuid[]))`,
       );
     }
-    // "Waiting on chair": the bill's current committee is one this legislator
-    // actively chairs or vice-chairs. current_committee holds upper-cased
-    // acronyms. A legislator with no active roles matches no rows (correct).
-    if (chairId) {
+    // "Waiting on chair": the bill's current committee is one that ANY of the
+    // picked legislators actively chairs or vice-chairs. current_committee holds
+    // upper-cased acronyms. Legislators with no active roles match no rows (correct).
+    if (chairIds.length) {
       out = out.where(
-        sql<boolean>`bills.current_committee && array(select upper(c.acronym) from committee_chairs cc join committees c on c.id = cc.committee_id where cc.legislator_id = ${chairId}::uuid and cc.is_active and c.is_active)`,
+        sql<boolean>`bills.current_committee && array(select upper(c.acronym) from committee_chairs cc join committees c on c.id = cc.committee_id where cc.legislator_id = any(${chairIds}::uuid[]) and cc.is_active and c.is_active)`,
       );
     }
     return out as T;
@@ -729,7 +730,7 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
   // coalesced stamp instead and use the identical expression in the cursor.
   const sortStamp = sql<Date>`coalesce(updated_at, 'epoch'::timestamptz)`;
 
-  const sortMode = resolveSortMode({ q: trimmed, introducerId, chairId, sort: params.sort });
+  const sortMode = resolveSortMode({ q: trimmed, introducerIds, chairIds, sort: params.sort });
 
   // The SQL key is the source of truth for paging (the cursor carries its value);
   // it mirrors titleSortKey() in search-params.ts for display purposes. COLLATE "C"

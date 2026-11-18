@@ -55,8 +55,12 @@ export function loadSearchFilters(): SearchFilters | null {
       ? (value.trackedFilter as TrackedFilter)
       : 'all';
 
-    const idOrNull = (v: unknown): string | null =>
-      typeof v === 'string' && isUuid(v) ? v : null;
+    // Uuid lists; the legacy single-id keys (introducerId/chairId, from before
+    // multi-select) migrate to a one-item list so a returning user keeps it.
+    const idList = (list: unknown, legacy: unknown): string[] => {
+      const raw = Array.isArray(list) ? list : typeof legacy === 'string' ? [legacy] : [];
+      return [...new Set(raw.filter((v): v is string => typeof v === 'string' && isUuid(v)))];
+    };
     const sort: SortChoice =
       value.sort === 'relevance' || value.sort === 'title' ? value.sort : 'auto';
 
@@ -67,8 +71,8 @@ export function loadSearchFilters(): SearchFilters | null {
       stages,
       deadFilter,
       trackedFilter,
-      introducerId: idOrNull(value.introducerId),
-      chairId: idOrNull(value.chairId),
+      introducerIds: idList(value.introducerIds, value.introducerId),
+      chairIds: idList(value.chairIds, value.chairId),
       sort,
     };
   } catch {
