@@ -77,9 +77,18 @@ export function LegislatorCombobox({
             aria-expanded={open}
             aria-label={label}
             disabled={loading || error}
-            className="h-9 min-w-0 flex-1 justify-between px-3 text-xs font-normal"
+            className="group h-9 min-w-0 flex-1 justify-between px-3 text-xs font-normal"
           >
-            <span className={cn('truncate', !value && 'text-muted-foreground')}>{triggerText}</span>
+            {/* The outline hover fills deep teal; the muted placeholder must flip
+                to the accent foreground (white) with it or it reads gray-on-teal. */}
+            <span
+              className={cn(
+                'truncate',
+                !value && 'text-muted-foreground group-hover:text-accent-foreground',
+              )}
+            >
+              {triggerText}
+            </span>
             <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
           </Button>
         </PopoverTrigger>
