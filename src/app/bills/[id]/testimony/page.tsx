@@ -25,6 +25,8 @@ import { TestimonySubmitGuide } from '@/components/testimony/testimony-submit-gu
 import { FlowWalkthrough } from '@/components/tour/flow-walkthrough';
 import { TESTIMONY_WALKTHROUGH_KEY, testimonyWalkthrough } from '@/lib/tour/flow-walkthroughs';
 import { ArrowLeft, ArrowRight, Loader2, Lock } from 'lucide-react';
+import { cn } from '@/lib/core/utils';
+import { RISE_IN, riseDelay } from '@/lib/core/motion';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -228,7 +230,7 @@ export default function TestimonyPage() {
   if (!user) {
     return (
       <div className="flex h-dvh items-center justify-center p-4">
-        <div className="max-w-sm rounded-lg border bg-card p-6 text-center">
+        <div className={cn('max-w-sm rounded-lg border bg-card p-6 text-center', RISE_IN)}>
           <Lock className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
           <h1 className="mb-1 text-lg font-semibold">Login to write testimony</h1>
           <p className="mb-4 text-sm text-muted-foreground">
@@ -285,7 +287,7 @@ export default function TestimonyPage() {
       <div className="flex min-h-0 flex-1">
         {/* Reference panel — sidebar on desktop, sheet on mobile */}
         {!isMobile && (
-          <aside className="w-[340px] shrink-0 border-r bg-muted/20" data-flow-tour="reference">{referencePanel}</aside>
+          <aside className={cn('w-[340px] shrink-0 border-r bg-muted/20', RISE_IN)} style={riseDelay(1)} data-flow-tour="reference">{referencePanel}</aside>
         )}
 
         <main
@@ -297,39 +299,42 @@ export default function TestimonyPage() {
           {/* Bottom padding follows isMobile alone (not sm:), which runs past the sm breakpoint. */}
           <div className={['mx-auto max-w-3xl space-y-4 px-4 pt-4 sm:px-6 sm:pt-6', isMobile ? 'pb-20' : 'pb-4 sm:pb-6'].join(' ')}>
 
-            {step === 1 && (
-              <>
-                <div data-flow-tour="details">
-                  <TestimonyHeaderForm value={form} onChange={handleFormChange} />
-                </div>
-                {/* Phones: Next sits above the editor so it isn't buried under the keyboard. */}
-                {isMobile && nextRow}
-                <div data-flow-tour="editor">
-                  <TestimonyEditor initialContent={contentJson} onChange={handleContentChange} />
-                </div>
-                {!isMobile && nextRow}
-              </>
-            )}
+            {/* Keyed on the step so each Next/Back mounts fresh and rises in. */}
+            <div key={step} className={cn('space-y-4', RISE_IN)}>
+              {step === 1 && (
+                <>
+                  <div data-flow-tour="details">
+                    <TestimonyHeaderForm value={form} onChange={handleFormChange} />
+                  </div>
+                  {/* Phones: Next sits above the editor so it isn't buried under the keyboard. */}
+                  {isMobile && nextRow}
+                  <div data-flow-tour="editor">
+                    <TestimonyEditor initialContent={contentJson} onChange={handleContentChange} />
+                  </div>
+                  {!isMobile && nextRow}
+                </>
+              )}
 
-            {step === 2 && (
-              <TestimonyExportStep
-                bill={bill}
-                form={form}
-                contentJson={contentJson}
-                onBack={() => setStep(1)}
-                onNext={() => setStep(3)}
-              />
-            )}
+              {step === 2 && (
+                <TestimonyExportStep
+                  bill={bill}
+                  form={form}
+                  contentJson={contentJson}
+                  onBack={() => setStep(1)}
+                  onNext={() => setStep(3)}
+                />
+              )}
 
-            {step === 3 && (
-              <TestimonySubmitGuide
-                bill={bill}
-                submitted={submitted}
-                onMarkSubmitted={() => setSubmitted(true)}
-                onBack={() => setStep(2)}
-                doneHref={backHref}
-              />
-            )}
+              {step === 3 && (
+                <TestimonySubmitGuide
+                  bill={bill}
+                  submitted={submitted}
+                  onMarkSubmitted={() => setSubmitted(true)}
+                  onBack={() => setStep(2)}
+                  doneHref={backHref}
+                />
+              )}
+            </div>
           </div>
         </main>
       </div>
