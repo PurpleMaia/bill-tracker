@@ -69,7 +69,7 @@ export function ActiveFilterChips({ filters, onChange, onClear }: ActiveFilterCh
   if (filters.deadFilter !== DEFAULT_FILTERS.deadFilter) {
     chips.push({
       key: 'dead',
-      label: filters.deadFilter === 'alive' ? 'alive only' : 'dead only',
+      label: filters.deadFilter === 'alive' ? 'alive only' : 'failed only',
       onRemove: () => onChange({ ...filters, deadFilter: DEFAULT_FILTERS.deadFilter }),
     });
   }
