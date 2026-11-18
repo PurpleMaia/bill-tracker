@@ -38,6 +38,30 @@ export interface BriefingFacts {
   nextSteps: BriefingStep[];
 }
 
+// The enactment line opens with the Act ("Act 071, on 07/09/2025 (Gov. Msg.
+// No. 1424)."); a bill that becomes law unsigned may lead with that sentence
+// instead. Anchored so a passing mention of another Act elsewhere can't match.
+const ACT_RE = /^\s*(?:Became law without the Governor.s signature,?\s*)?Act\s+0*(\d+)\b/i;
+
+/**
+ * The Act number a bill was enacted as, from the most recent status update
+ * that carries one ("71" for "Act 071, …"; leading zeros dropped, as Acts are
+ * cited). Scans every update rather than only the latest: notices like
+ * "Received notice of passage…" routinely land after the Act line.
+ */
+export function parseActNumber(
+  updates: ReadonlyArray<{ statustext: string; date: string }> | null | undefined,
+): string | null {
+  const newestFirst = [...(updates ?? [])].sort(
+    (a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0),
+  );
+  for (const u of newestFirst) {
+    const m = ACT_RE.exec(u.statustext);
+    if (m) return m[1];
+  }
+  return null;
+}
+
 export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingFacts {
   const status = bill.current_bill_status as DBBillStatus;
   const committeeAssignment = bill.committee_assignment || null;
@@ -94,7 +118,10 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
       // Same verbiage as the kanban card's deadline chip tooltip (shared helper).
       standing = formatDeadlineStanding(next, daysAway, isAwaitingHearing(status));
     } else if (isEnacted(status)) {
-      standing = 'This bill has passed and is now law.';
+      const act = parseActNumber(bill.updates);
+      standing = act
+        ? `This bill has passed and is now Act ${act}.`
+        : 'This bill has passed and is now law.';
     } else {
       // Terminal statuses without an upcoming deadline: show the friendly board
       // title, never the raw enum value.

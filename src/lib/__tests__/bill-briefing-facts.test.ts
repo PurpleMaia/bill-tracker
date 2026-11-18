@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deriveBriefingFacts } from '../bills/bill-briefing-facts';
+import { deriveBriefingFacts, parseActNumber } from '../bills/bill-briefing-facts';
 import type { BillDetails, BillVersion } from '@/types/legislation';
 
 const ver = (label: string): BillVersion => ({
@@ -154,5 +154,54 @@ describe('deriveBriefingFacts', () => {
     const f = deriveBriefingFacts(bill, '2026-02-01');
     expect(f.testimony.open).toBe(true);
     expect(f.nextSteps.some((s) => s.action === 'testimony')).toBe(true);
+  });
+});
+
+describe('parseActNumber', () => {
+  const u = (date: string, statustext: string) => ({ date, statustext });
+
+  it('reads the Act from the enactment line, dropping leading zeros', () => {
+    expect(parseActNumber([u('7/9/2025', 'Act 071, on 07/09/2025 (Gov. Msg. No. 1424).')])).toBe('71');
+    expect(parseActNumber([u('5/1/2026', 'Act 12, 05/01/2026 (Gov. Msg. No. 1).')])).toBe('12');
+  });
+
+  it('finds the Act even when later notices follow it', () => {
+    expect(
+      parseActNumber([
+        u('6/2/2025', 'Act 071, on 06/02/2025 (Gov. Msg. No. 1171).'),
+        u('6/5/2025', 'Received notice of passage on Final Reading in House (Hse. Com. No. 821).'),
+      ]),
+    ).toBe('71');
+  });
+
+  it('prefers the most recent Act line', () => {
+    expect(
+      parseActNumber([
+        u('6/2/2025', 'Act 070, on 06/02/2025 (Gov. Msg. No. 1).'),
+        u('7/9/2025', 'Act 310, on 07/09/2025 (Gov. Msg. No. 2).'),
+      ]),
+    ).toBe('310');
+  });
+
+  it('reads the unsigned-law form and ignores a passing mention of another Act', () => {
+    expect(parseActNumber([u('7/9/2025', "Became law without the Governor's signature, Act 270, on 07/09/2025.")])).toBe('270');
+    expect(parseActNumber([u('3/1/2025', 'Amends Act 123, Session Laws of Hawaii 2024.')])).toBeNull();
+    expect(parseActNumber([])).toBeNull();
+    expect(parseActNumber(undefined)).toBeNull();
+  });
+});
+
+describe('enacted standing', () => {
+  it('names the Act when one is on record, else falls back to "now law"', () => {
+    const withAct = deriveBriefingFacts(
+      baseBill({
+        current_bill_status: 'governorSigns',
+        updates: [{ id: 'u1', chamber: 'H', date: '7/9/2025', statustext: 'Act 071, on 07/09/2025 (Gov. Msg. No. 1424).' }],
+      }),
+      '2026-07-20',
+    );
+    expect(withAct.standing).toBe('This bill has passed and is now Act 71.');
+    const noAct = deriveBriefingFacts(baseBill({ current_bill_status: 'governorSigns' }), '2026-07-20');
+    expect(noAct.standing).toBe('This bill has passed and is now law.');
   });
 });
