@@ -111,7 +111,7 @@ export function buildReadingSteps(input: ReadingInput): ReadingStep[] {
       value: referrals.join(', '),
       explanation:
         named +
-        (codes.length > 1 ? `. This bill must clear all ${codes.length} to stay alive. ` : '. ') +
+        (codes.length > 1 ? `. This bill must clear all ${codes.length} to stay active. ` : '. ') +
         GLOSSARY['committee-chair'].short +
         (hasJointReferral(input.committeeAssignment) ? ` ${JOINT_REFERRAL_NOTE}` : ''),
     });

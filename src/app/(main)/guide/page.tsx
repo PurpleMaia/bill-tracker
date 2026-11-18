@@ -43,7 +43,7 @@ const STEPS: Step[] = [
       </>
     ),
     tips: [
-      'Use the filters to narrow results: session year, chamber (House or Senate), alive or dead, stage, and whether you already track it.',
+      'Use the filters to narrow results: session year, chamber (House or Senate), active or failed, stage, and whether you already track it.',
       'Click a bill to read its summary, its history, and its versions.',
     ],
   },

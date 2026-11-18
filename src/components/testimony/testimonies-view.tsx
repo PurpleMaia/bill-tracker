@@ -630,7 +630,7 @@ function TestimonyCard({
               </TooltipTrigger>
               <TooltipContent className="max-w-64">
                 &ldquo;{nextDeadline.name}&rdquo; is the next procedural deadline this bill must
-                clear to stay alive this session. No hearing is scheduled yet — testimony opens
+                clear to stay active this session. No hearing is scheduled yet — testimony opens
                 once one is.
               </TooltipContent>
             </Tooltip>
