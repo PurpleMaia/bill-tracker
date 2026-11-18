@@ -352,10 +352,11 @@ export default function ContactLegislatorPage() {
         <main className="min-w-0 flex-1 overflow-y-auto">
           <div
             className={[
-              'mx-auto space-y-4 px-4 pb-4 pt-3 sm:px-6 sm:pb-6 sm:pt-4',
+              'mx-auto space-y-4 px-4 pt-3 sm:px-6 sm:pt-4',
               panelCollapsed ? 'max-w-6xl' : 'max-w-5xl',
-              // Phones: keep the last card clear of the floating Bill info button.
-              isMobile ? 'pb-20' : '',
+              // Phones: keep the last card clear of the floating Bill info button. Keyed on
+              // isMobile alone (not sm:), which runs past the sm breakpoint.
+              isMobile ? 'pb-20' : 'pb-4 sm:pb-6',
             ].join(' ')}
           >
             {isMobile && referencePanel && <BillInfoFab panel={referencePanel} />}

@@ -295,7 +295,8 @@ export default function TestimonyPage() {
           onBlur={() => setTyping(false)}
         >
           {/* On phones, room at the bottom for the fixed stepper bar. */}
-          <div className={['mx-auto max-w-3xl space-y-4 p-4 sm:p-6', isMobile ? 'pb-20' : ''].join(' ')}>
+          {/* Bottom padding follows isMobile alone (not sm:), which runs past the sm breakpoint. */}
+          <div className={['mx-auto max-w-3xl space-y-4 px-4 pt-4 sm:px-6 sm:pt-6', isMobile ? 'pb-20' : 'pb-4 sm:pb-6'].join(' ')}>
 
             {step === 1 && (
               <>
