@@ -1,19 +1,27 @@
 import { defineClient } from './define-client';
 import {
+  createTestimonyAction,
   deleteTestimonyAction,
+  deleteTestimonyByIdAction,
+  getTestimonyByIdAction,
   getTestimonyDraftAction,
   getTestimonyStatusesAction,
+  listBillTestimoniesAction,
   listTestimonyProspectsAction,
   listUserTestimoniesAction,
   markTestimonySubmittedAction,
+  markTestimonySubmittedByIdAction,
   saveTestimonyDraftAction,
+  updateTestimonyAction,
 } from '@/app/actions/testimony';
 import type {
+  TestimonyCreateInput,
   TestimonyDraft,
   TestimonyDraftInput,
   TestimonyListItem,
   TestimonyProspect,
   TestimonyStatus,
+  TestimonyUpdateInput,
 } from '@/types/testimony';
 
 // ---- fetch arm (hits /api/bills/[id]/testimony) ----
@@ -84,6 +92,72 @@ async function getTestimonyStatusesFetch(): Promise<TestimonyStatus[]> {
   return res.json();
 }
 
+// ---- fetch arm, per testimony (hits /api/testimony/[testimonyId] and /api/bills/[id]/testimonies) ----
+
+async function getTestimonyByIdFetch(testimonyId: string): Promise<TestimonyDraft | null> {
+  const res = await fetch(`/api/testimony/${testimonyId}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to load testimony');
+  }
+  return res.json();
+}
+
+async function listBillTestimoniesFetch(billId: string): Promise<TestimonyDraft[]> {
+  const res = await fetch(`/api/bills/${billId}/testimonies`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to load testimonies for this bill');
+  }
+  return res.json();
+}
+
+async function createTestimonyFetch(input: TestimonyCreateInput): Promise<TestimonyDraft> {
+  const res = await fetch(`/api/bills/${input.billId}/testimonies`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to start testimony');
+  }
+  return res.json();
+}
+
+async function updateTestimonyFetch(
+  testimonyId: string,
+  input: TestimonyUpdateInput,
+): Promise<TestimonyDraft> {
+  const res = await fetch(`/api/testimony/${testimonyId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to save testimony');
+  }
+  return res.json();
+}
+
+async function markTestimonySubmittedByIdFetch(testimonyId: string): Promise<TestimonyDraft> {
+  const res = await fetch(`/api/testimony/${testimonyId}`, { method: 'PATCH' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to mark testimony as submitted');
+  }
+  return res.json();
+}
+
+async function deleteTestimonyByIdFetch(testimonyId: string): Promise<void> {
+  const res = await fetch(`/api/testimony/${testimonyId}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to delete testimony');
+  }
+}
+
 export const testimonyClient = defineClient('testimony', {
   getDraft: { action: getTestimonyDraftAction, fetch: getTestimonyDraftFetch },
   saveDraft: { action: saveTestimonyDraftAction, fetch: saveTestimonyDraftFetch },
@@ -92,4 +166,10 @@ export const testimonyClient = defineClient('testimony', {
   list: { action: listUserTestimoniesAction, fetch: listUserTestimoniesFetch },
   remove: { action: deleteTestimonyAction, fetch: deleteTestimonyFetch },
   prospects: { action: listTestimonyProspectsAction, fetch: listTestimonyProspectsFetch },
+  getById: { action: getTestimonyByIdAction, fetch: getTestimonyByIdFetch },
+  listForBill: { action: listBillTestimoniesAction, fetch: listBillTestimoniesFetch },
+  create: { action: createTestimonyAction, fetch: createTestimonyFetch },
+  update: { action: updateTestimonyAction, fetch: updateTestimonyFetch },
+  markSubmittedById: { action: markTestimonySubmittedByIdAction, fetch: markTestimonySubmittedByIdFetch },
+  removeById: { action: deleteTestimonyByIdAction, fetch: deleteTestimonyByIdFetch },
 });
