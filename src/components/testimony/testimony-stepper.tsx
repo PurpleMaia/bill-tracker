@@ -6,7 +6,7 @@ import { Check } from 'lucide-react';
 const STEPS = [
   { number: 1, title: 'Write' },
   { number: 2, title: 'Review' },
-  { number: 3, title: 'Submit' },
+  { number: 3, title: 'Submit on Capitol site' },
 ] as const;
 
 export type TestimonyStep = 1 | 2 | 3;

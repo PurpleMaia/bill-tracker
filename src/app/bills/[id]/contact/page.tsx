@@ -41,6 +41,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { BillReferencePanel } from '@/components/bills/bill-reference-panel';
+import { FlowWalkthrough } from '@/components/tour/flow-walkthrough';
+import { CONTACT_WALKTHROUGH_KEY, contactWalkthrough, type ContactStage } from '@/lib/tour/flow-walkthroughs';
 import { isEnacted } from '@/lib/bills/dead-bill';
 import {
   ArrowLeft,
@@ -266,6 +268,16 @@ export default function ContactLegislatorPage() {
         : atConference
           ? 'Contact Conferees'
           : 'Request a Hearing';
+  const contactStage: ContactStage =
+    governorStage === 'vetoed'
+      ? 'override'
+      : governorStage === 'intentToVeto'
+        ? 'intentToVeto'
+        : governorStage
+          ? 'governor'
+          : atConference
+            ? 'conference'
+            : 'hearing';
 
   return (
     <div className="flex h-dvh flex-col">
@@ -283,6 +295,16 @@ export default function ContactLegislatorPage() {
             {bill?.bill_title && <p className="truncate text-xs text-muted-foreground">{bill.bill_title}</p>}
           </div>
         </div>
+        {bill && (
+          <FlowWalkthrough
+            walkthrough={contactWalkthrough({
+              stage: contactStage,
+              billNumber: bill.bill_number,
+              committeeName: currentCommitteeName,
+            })}
+            storageKey={CONTACT_WALKTHROUGH_KEY}
+          />
+        )}
       </header>
 
       <div className="flex min-h-0 flex-1">
@@ -448,8 +470,9 @@ function Compose({
           <h2 className="text-sm font-semibold">Ask for a hearing</h2>
         </div>
         <p className="text-xs text-muted-foreground">
-          This bill is waiting on a committee to schedule a hearing. Send the message below to that committee&apos;s
-          chair and vice-chair. The more requests they get, the more likely they are to put it on the agenda.
+          The goal is to get legislators to act. This bill is waiting on a committee to schedule a hearing, so ask
+          that committee&apos;s chair and vice-chair to put it on the agenda, or to meet with you about it. The more
+          requests they get, the more likely they are to hear it.
         </p>
         {isJointReferral && (
           <div className="mt-2 flex items-start gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2">
@@ -477,7 +500,8 @@ function Compose({
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
               One message goes to every chair. You may edit it freely. The greeting (&ldquo;Dear Chair&rdquo;) is filled in for each legislator when you
-              send.
+              send. Pressing Email opens your own email app with this message. Nothing is sent until you press Send
+              there.
             </p>
             <div className="mb-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
               <span className="text-muted-foreground">Subject: </span>
@@ -782,7 +806,8 @@ function ComposeConference({
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
               One message goes to every {copy.recipients}. Edit it freely — the greeting is filled in for each legislator
-              when you send.
+              when you send. Pressing Email opens your own email app with this message. Nothing is sent until you press
+              Send there.
             </p>
             <div className="mb-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
               <span className="text-muted-foreground">Subject: </span>
@@ -1073,7 +1098,7 @@ function ComposeGovernor({
               <h2 className="text-sm font-semibold">Message script</h2>
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
-              Edit it freely, then copy it into either of the Governor&apos;s forms.
+              Edit it freely, then copy it into either of the Governor&apos;s forms and submit the form there. Food+ doesn&apos;t send it for you.
             </p>
             <div className="mb-2 flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-xs">
               <span className="min-w-0 flex-1">

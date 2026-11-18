@@ -22,6 +22,8 @@ import { TestimonyHeaderForm, type TestimonyHeaderValue } from '@/components/tes
 import { TestimonyEditor } from '@/components/testimony/testimony-editor';
 import { TestimonyExportStep } from '@/components/testimony/testimony-export-step';
 import { TestimonySubmitGuide } from '@/components/testimony/testimony-submit-guide';
+import { FlowWalkthrough } from '@/components/tour/flow-walkthrough';
+import { TESTIMONY_WALKTHROUGH_KEY, testimonyWalkthrough } from '@/lib/tour/flow-walkthroughs';
 import { ArrowLeft, ArrowRight, Info, Loader2, Lock } from 'lucide-react';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -248,6 +250,10 @@ export default function TestimonyPage() {
           <span className="hidden text-xs text-muted-foreground sm:inline" aria-live="polite">
             {saveLabel}
           </span>
+          <FlowWalkthrough
+            walkthrough={testimonyWalkthrough({ billNumber: bill.bill_number })}
+            storageKey={TESTIMONY_WALKTHROUGH_KEY}
+          />
           <TestimonyStepper step={step} onStepChange={setStep} />
         </div>
       </header>

@@ -79,7 +79,7 @@ export function TestimonyExportStep({ bill, form, contentJson, onBack, onNext }:
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          Review your testimony, then copy the text or download a file. The PDF uses a standard font; the DOCX keeps your chosen fonts.
+          Review your testimony, then download a file or copy the text. You&apos;ll upload or paste it on the Capitol website in the next step. The PDF uses a standard font; the DOCX keeps your chosen fonts.
         </p>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleCopy} aria-live="polite">
@@ -105,7 +105,7 @@ export function TestimonyExportStep({ bill, form, contentJson, onBack, onNext }:
           Back: Write
         </Button>
         <Button onClick={onNext}>
-          Next: Submit
+          Next: How to submit
           <ArrowRight className="ml-1.5 h-4 w-4" />
         </Button>
       </div>

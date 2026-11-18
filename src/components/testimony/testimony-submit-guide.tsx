@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { data } from '@/lib/data-client';
 import { invalidateTestimonies } from '@/hooks/use-testimonies';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, Check, CheckCircle2, ExternalLink, FileText, Loader2, SquareKanban } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, ExternalLink, FileText, Loader2, SquareKanban, TriangleAlert } from 'lucide-react';
 
 interface TestimonySubmitGuideProps {
   bill: BillDetails;
@@ -69,9 +69,23 @@ export function TestimonySubmitGuide({
 
   return (
     <div className="space-y-4">
+      {/* The one thing users must not miss: this app never submits on their behalf. */}
+      {!submitted && (
+        <div className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-500/40 dark:bg-amber-500/10">
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+          <div>
+            <p className="text-sm font-semibold">Your testimony has not been sent yet</p>
+            <p className="text-sm text-muted-foreground">
+              Food+ cannot submit testimony for you. It only reaches the committee once you submit it yourself on
+              capitol.hawaii.gov, following the steps below.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-lg border bg-card p-5">
         <h2 className="mb-4 text-sm font-semibold">
-          How to submit your testimony for {bill.bill_number}
+          How to submit your {bill.bill_number} testimony on capitol.hawaii.gov
         </h2>
         <ol className="space-y-4">
           {STEPS.map((step, index) => (
@@ -109,7 +123,7 @@ export function TestimonySubmitGuide({
           <p className="text-sm text-muted-foreground">
             {submitted
               ? `Your ${bill.bill_number} testimony is marked as submitted.`
-              : 'Finished submitting on the capitol website?'}
+              : 'Finished submitting on the capitol website? Mark it here to keep track. This does not send anything.'}
           </p>
           {submitted ? (
             <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-700">
@@ -119,7 +133,7 @@ export function TestimonySubmitGuide({
           ) : (
             <Button size="sm" onClick={handleMarkSubmitted} disabled={marking}>
               {marking ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5" />}
-              I submitted my testimony
+              I submitted it on the Capitol site
             </Button>
           )}
         </div>
