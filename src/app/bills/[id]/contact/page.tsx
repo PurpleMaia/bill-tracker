@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import type { BillDetails } from '@/types/legislation';
 import { getBillDetails } from '@/db/queries/bills-read';
@@ -427,6 +427,54 @@ const SCRIPT_TAB =
 /** Both script boxes share one height, so switching tabs doesn't make the card jump. */
 const SCRIPT_BOX = 'h-48 min-h-[8rem] resize-y font-mono text-sm leading-relaxed lg:h-[24rem]';
 
+/** Space left under the scripts card when its box is stretched to the window. */
+const FILL_BUFFER = 24;
+/** Never shrink the box below its phone height (h-48). */
+const FILL_MIN = 192;
+
+/**
+ * On desktop, stretch the active tab's text box so the card ends just above the
+ * bottom of the window. The space above it varies (the intro wraps, joint
+ * referrals add a note), so it's measured rather than set in CSS. Measured as if
+ * the page were unscrolled; phones keep the fixed CSS height.
+ */
+function useFillRemainingHeight(rootRef: React.RefObject<HTMLDivElement | null>, tab: string) {
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const scroller = root.closest('main');
+
+    const fit = () => {
+      // Looked up each time: Radix mounts a newly selected panel a render later.
+      const box = root.querySelector<HTMLTextAreaElement>('[role="tabpanel"][data-state="active"] textarea');
+      if (!box) return;
+      if (!window.matchMedia('(min-width: 1024px)').matches) {
+        box.style.height = '';
+        return;
+      }
+      const boxRect = box.getBoundingClientRect();
+      // Card padding (and the tip line) below the box stays below it.
+      const below = root.getBoundingClientRect().bottom - boxRect.bottom;
+      const top = boxRect.top + (scroller?.scrollTop ?? 0);
+      const height = Math.max(FILL_MIN, Math.round(window.innerHeight - top - below - FILL_BUFFER));
+      if (box.style.height !== `${height}px`) box.style.height = `${height}px`;
+    };
+
+    fit();
+    const frame = requestAnimationFrame(fit);
+    window.addEventListener('resize', fit);
+    // Re-fit when the content above reflows (e.g. the bill panel is collapsed).
+    const observer = new ResizeObserver(fit);
+    const content = scroller?.firstElementChild;
+    if (content) observer.observe(content);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', fit);
+      observer.disconnect();
+    };
+  }, [rootRef, tab]);
+}
+
 /** The written + call scripts as tabs, so only one editor takes up the column. */
 function ScriptTabs({
   writtenLabel,
@@ -439,8 +487,18 @@ function ScriptTabs({
   callScript: string;
   onCallChange: (v: string) => void;
 }) {
+  const [tab, setTab] = useState('written');
+  const rootRef = useRef<HTMLDivElement>(null);
+  useFillRemainingHeight(rootRef, tab);
+
   return (
-    <Tabs defaultValue="written" className="flex flex-col rounded-lg border bg-card" data-flow-tour="email">
+    <Tabs
+      ref={rootRef}
+      value={tab}
+      onValueChange={setTab}
+      className="flex flex-col rounded-lg border bg-card"
+      data-flow-tour="email"
+    >
       <TabsList className="h-auto w-full justify-start rounded-none rounded-t-lg border-b bg-muted/40 p-0">
         <TabsTrigger value="written" className={SCRIPT_TAB}>
           <Mail className="h-4 w-4" />
@@ -505,12 +563,17 @@ function Compose({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border bg-card p-4" data-flow-tour="goal">
-        <div className="mb-1 flex items-center gap-1.5">
+      {/* Phones show only the blurb (no heading, description, or card frame) to keep the send buttons in view. */}
+      <div className="lg:rounded-lg lg:border lg:bg-card lg:p-4" data-flow-tour="goal">
+        <div className="mb-1 hidden items-center gap-1.5 lg:flex">
           <Gavel className="h-3.5 w-3.5 text-muted-foreground" />
           <h2 className="text-sm font-semibold">Ask for a hearing</h2>
         </div>
-        <div className="mt-2 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2">
+        <p className="hidden text-xs text-muted-foreground lg:block">
+          The goal is to get legislators to act. This bill is waiting on a committee to schedule a hearing, so ask
+          that committee&apos;s chair and vice-chair to put it on the agenda, or to meet with you about it.
+        </p>
+        <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 lg:mt-2">
           <Megaphone className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
           <p className="text-sm font-semibold">{REQUESTS_MATTER}</p>
         </div>
