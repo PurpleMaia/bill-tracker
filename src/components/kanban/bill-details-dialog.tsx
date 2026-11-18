@@ -66,6 +66,12 @@ export interface BillDetailsDialogProps {
    * agnostic about where it was opened from.
    */
   trackSlot?: React.ReactNode;
+  /**
+   * Set by the user's own board views (kanban, spreadsheet) to show Remove from
+   * board / Untrack. Explicit rather than inferred from `trackSlot`, which Search
+   * omits when the opened bill isn't in its loaded results.
+   */
+  allowBoardRemoval?: boolean;
 }
 
 interface DialogTab {
@@ -92,7 +98,7 @@ const TABS: readonly DialogTab[] = [
   { id: 'updates', label: 'Status Updates', shortLabel: 'Updates', icon: Clock, mobileOnly: true },
 ];
 
-export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', returnTo, trackSlot }: BillDetailsDialogProps) {
+export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', returnTo, trackSlot, allowBoardRemoval = false }: BillDetailsDialogProps) {
   const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills();
   const { user, activeTenant } = useAuth();
   const { untrackBill } = useTrackedBills();
@@ -229,8 +235,8 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   const canSeeTracking = boardMode !== 'active-boards' && activeTenant?.orgRole === 'admin';
   // Only org admins may change a bill's org status; workers and public users don't see the control.
   const canChangeStatus = activeTenant?.orgRole === 'admin';
-  // Remove/Untrack only on the user's own board: not Search (trackSlot), Active Boards, or signed out.
-  const onOwnBoard = !trackSlot && boardMode !== 'active-boards' && !!user;
+  // Remove/Untrack only on the user's own board: not Search, Calendar, Active Boards, or signed out.
+  const onOwnBoard = allowBoardRemoval && boardMode !== 'active-boards' && !!user;
   const canRemoveFromBoard = onOwnBoard && activeTenant?.orgRole === 'admin';
   // Mirrors protected-kanban-board's shouldShowUnadoptButton for non-admins.
   const canUntrack = onOwnBoard && !canRemoveFromBoard && viewMode === 'my-bills';

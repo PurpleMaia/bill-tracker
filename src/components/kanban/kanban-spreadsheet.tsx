@@ -376,6 +376,7 @@ export function KanbanSpreadsheet() {
 
       {/* Details dialog (portal — renders outside the scroll container) */}
       <UrlBillDetailsDialog
+        allowBoardRemoval
       />
     </div>
   );

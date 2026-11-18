@@ -546,6 +546,26 @@ describe('isBillDead', () => {
       expect(result.reason).not.toMatch(/^No committee referral/);
     });
 
+    it('does not apply the no-referral rule to a deferred status (it reached a hearing)', () => {
+      const result = isBillDead(
+        { bill_number: 'HB9', bill_status: 'deferred1' as BillStatus, committee_assignment: null },
+        [],
+        MOCK_DEADLINES,
+        '2025-02-28'
+      );
+      expect(result.reason).not.toMatch(/^No committee referral/);
+    });
+
+    it('applies the no-referral rule to an unassigned bill', () => {
+      const result = isBillDead(
+        { bill_number: 'HB9', bill_status: 'unassigned' as BillStatus, committee_assignment: null },
+        [],
+        MOCK_DEADLINES,
+        '2025-02-28'
+      );
+      expect(result.reason).toBe('No committee referral by First Lateral deadline (2025-02-27)');
+    });
+
     it('treats an empty string like null', () => {
       const result = isBillDead(
         { bill_number: 'SB9', bill_status: 'introduced' as BillStatus, committee_assignment: '  ' },
