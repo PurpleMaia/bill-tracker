@@ -1,5 +1,4 @@
 import React, { useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { cn, formatBillHeadline, formatBillStatusName, formatRelativeDate, parseLocalDate, todayHawaii } from '@/lib/core/utils';
 import { canAssignBills } from '@/lib/auth/permissions';
 import { parseCommittees } from '@/lib/bills/dead-bill';
@@ -34,6 +33,7 @@ import type { BillStatus as DBBillStatus } from '@/db/types';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { AssignBillDialog } from './assign-bill-dialog';
+import { RemoveFromBoardDialog } from './remove-from-board-dialog';
 import type { Bill } from '@/types/legislation';
 import {
   AlertDialog,
@@ -46,8 +46,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { data } from '@/lib/data-client';
-import { toast } from '@/hooks/use-toast';
 import { cardVisibility } from '@/lib/bills/board-display';
 
 interface KanbanCardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -87,12 +85,9 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const touchTapAt = useRef(0);
 
     const [isProcessing, setIsProcessing] = useState(false);
-    const [isRemoving, setIsRemoving] = useState(false);
-    const [showRemoveDialog, setShowRemoveDialog] = useState(false);
-    const queryClient = useQueryClient();
     const [isTracking, setIsTracking] = useState(false);
     const [showTrackDialog, setShowTrackDialog] = useState(false);
-    const { acceptLLMChange, rejectLLMChange, removeBill, testimonyStatuses, showArchived } = useBills();
+    const { acceptLLMChange, rejectLLMChange, testimonyStatuses, showArchived } = useBills();
     const { user, activeTenant } = useAuth();
     const committeeNames = useCommitteeNames();
     const vis = cardVisibility(boardMode);
@@ -174,33 +169,6 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const handleReject = async () => {
       setIsProcessing(true);
       try { await rejectLLMChange(bill.id); } finally { setIsProcessing(false); }
-    };
-
-    const handleRemoveBill = async () => {
-      // Org-wide removal deletes every member's tracking row for this bill in the
-      // tenant, so it requires an active org context and admin role. Without a
-      // tenant there is no org board to remove from.
-      if (!activeTenant?.tenantId) {
-        console.error('Cannot remove bill: no active organization.');
-        return;
-      }
-      setIsRemoving(true);
-      try {
-        // The server checks org-admin and also clears the acting admin's own
-        // NULL-tenant row (from the session), so a bill tracked before joining
-        // the org doesn't survive the tenant-scoped delete and reappear.
-        await data.bills.removeFromOrg({ billId: bill.id, tenantId: activeTenant.tenantId });
-        removeBill(bill.id);
-        // Search caches is_tracked per bill; drop it so Search stops showing
-        // this bill as Tracked.
-        queryClient.invalidateQueries({ queryKey: ['bills', 'search'] });
-        toast({ title: 'Bill Removed', description: `${bill.bill_number} removed from the board.`, duration: 5000 });
-        setShowRemoveDialog(false);
-      } catch (error) {
-        console.error('Error removing bill from board:', error);
-      } finally {
-        setIsRemoving(false);
-      }
     };
 
     const handleTrackForSelf = async () => {
@@ -385,55 +353,35 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                         <AssignBillDialog
                           bill={bill}
                           trigger={
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="cursor-pointer h-5 w-5 p-0 text-muted-foreground hover:bg-secondary hover:text-primary"
-                              onClick={(e) => e.stopPropagation()}
-                              title="Assign to user"
-                              aria-label={`Assign ${bill.bill_number} to a user`}
-                            >
-                              <UserPlus className="h-3 w-3" />
-                            </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="cursor-pointer h-5 w-5 p-0 text-muted-foreground hover:bg-secondary hover:text-primary"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Assign to user"
+                            aria-label={`Assign ${bill.bill_number} to a user`}
+                          >
+                            <UserPlus className="h-3 w-3" />
+                          </Button>
                           }
                         />
                       )}
                       {canRemoveFromBoard && !bill.dead && (
-                      <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
-                        <AlertDialogTrigger asChild>
+                      <RemoveFromBoardDialog
+                        bill={bill}
+                        trigger={
                           <Button
                             size="sm"
                             variant="ghost"
                             className="cursor-pointer h-5 w-5 p-0 text-muted-foreground hover:bg-secondary hover:text-destructive"
-                            onClick={(e) => { e.stopPropagation(); setShowRemoveDialog(true); }}
-                            disabled={isRemoving}
+                            onClick={(e) => e.stopPropagation()}
                             title="Remove from board"
                             aria-label={`Remove ${bill.bill_number} from the board`}
                           >
                             <X className="h-3 w-3" />
                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remove Bill from Board?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              {activeTenant
-                                ? `This bill will be removed from your organization's list, including for anyone else in ${activeTenant.name} tracking it. You can track it again anytime using the Track Bill button.`
-                                : 'This bill will no longer be tracked on your list, and it will be removed for anyone else tracking it. You can track it again anytime using the Track Bill button.'}
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={(e) => { e.stopPropagation(); handleRemoveBill(); }}
-                              className="bg-destructive hover:bg-destructive/90"
-                              disabled={isRemoving}
-                            >
-                              {isRemoving ? 'Removing...' : 'Remove'}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                        }
+                      />
                       )}
                     </div>
                   )}
@@ -684,41 +632,21 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                   committeeAssignment={bill.committee_assignment}
                   latestUpdate={bill.latest_update}
                   removeSlot={canRemoveFromBoard ? (
-                    <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
-                      <AlertDialogTrigger asChild>
+                    <RemoveFromBoardDialog
+                      bill={bill}
+                      trigger={
                         <Button
                           variant="outline"
                           size="sm"
                           className="w-full h-8 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={(e) => { e.stopPropagation(); setShowRemoveDialog(true); }}
-                          disabled={isRemoving}
+                          onClick={(e) => e.stopPropagation()}
                           aria-label={`Remove ${bill.bill_number} from the board`}
                         >
                           <X className="h-3.5 w-3.5 mr-1.5" />
                           Remove from board
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Remove Bill from Board?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {activeTenant
-                              ? `This bill will be removed from your organization's list, including for anyone else in ${activeTenant.name} tracking it. You can track it again anytime using the Track Bill button.`
-                              : 'This bill will no longer be tracked on your list, and it will be removed for anyone else tracking it. You can track it again anytime using the Track Bill button.'}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={(e) => { e.stopPropagation(); handleRemoveBill(); }}
-                            className="bg-destructive hover:bg-destructive/90"
-                            disabled={isRemoving}
-                          >
-                            {isRemoving ? 'Removing...' : 'Remove'}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                      }
+                    />
                   ) : undefined}
                 >
                   <button
