@@ -115,13 +115,29 @@ export default {
   				'70%, 100%': {
   					boxShadow: '0 0 0 8px hsl(var(--destructive) / 0)'
   				}
+  			},
+  			// Mount-in for content: fade while rising a few px into place.
+  			'rise-in': {
+  				from: {
+  					opacity: '0',
+  					transform: 'translateY(8px)'
+  				},
+  				to: {
+  					opacity: '1',
+  					transform: 'none'
+  				}
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			'soft-ping': 'soft-ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite',
-  			'why-ring': 'why-ring 2.4s cubic-bezier(0, 0, 0.2, 1) 1'
+  			'why-ring': 'why-ring 2.4s cubic-bezier(0, 0, 0.2, 1) 1',
+  			// Staggered by a `--stagger` index (set inline, capped by the caller).
+  			// `backwards` (not `both`) holds the hidden frame through the delay but
+  			// leaves NO transform once finished: a lingering transform would make
+  			// the element a containing block and break dnd's position:fixed drag.
+  			'rise-in': 'rise-in 320ms cubic-bezier(0.22, 1, 0.36, 1) calc(var(--stagger, 0) * 45ms) backwards'
   		}
   	}
   },

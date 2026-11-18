@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ArrowUp, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ import {
   DEFAULT_FILTERS,
   parseSearchParams,
   resolveSortMode,
+  SEARCH_PAGE_SIZE,
   type SearchFilters,
   type SortMode,
 } from '@/lib/bills/search-params';
@@ -87,6 +88,7 @@ export function BillSearchView() {
     bills,
     totalCount,
     debouncedQuery,
+    resultSetKey,
     isLoading,
     isFetchingNextPage,
     hasNextPage,
@@ -204,7 +206,7 @@ export function BillSearchView() {
             so the CTA scrolls away with everything else rather than staying
             pinned. The scroll-to-top button below brings it back. */}
         <div ref={resultsRef} className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <div className="mb-4">
+          <div className="mb-4 animate-rise-in motion-reduce:animate-none">
             <SearchIntro
               onSuggestionClick={(term) => setFilters({ ...filters, q: term })}
               sessionYears={SESSION_YEARS}
@@ -276,7 +278,7 @@ export function BillSearchView() {
               ))}
             </div>
           ) : !error && filters.chairId && totalCount === 0 ? (
-            <div className="py-16 text-center">
+            <div className="animate-rise-in py-16 text-center motion-reduce:animate-none">
               <p className="text-sm font-medium">
                 Nothing is waiting on this legislator&apos;s committees right now.
               </p>
@@ -285,7 +287,7 @@ export function BillSearchView() {
               </Button>
             </div>
           ) : bills.length === 0 ? (
-            <div className="py-16 text-center">
+            <div className="animate-rise-in py-16 text-center motion-reduce:animate-none">
               <p className="text-sm font-medium">No bills found</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Try a different search term or clear your filters.
@@ -295,9 +297,18 @@ export function BillSearchView() {
               </Button>
             </div>
           ) : (
-            <ul className="space-y-3">
-              {bills.map((bill) => (
-                <li key={bill.id}>
+            // Keyed by result set: a new filter set remounts every card so the
+            // whole list cascades in, even bills that were already showing.
+            <ul key={resultSetKey} className="space-y-3">
+              {bills.map((bill, i) => (
+                <li
+                  key={bill.id}
+                  // Stagger restarts per page, so an appended page cascades in
+                  // from its own first card instead of all landing at the cap.
+                  // Stable keys mean cards already shown never replay.
+                  className="animate-rise-in motion-reduce:animate-none"
+                  style={{ '--stagger': Math.min(i % SEARCH_PAGE_SIZE, 6) } as CSSProperties}
+                >
                   <BillSearchCard
                     bill={bill}
                     query={debouncedQuery}

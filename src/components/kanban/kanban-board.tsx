@@ -482,7 +482,8 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
                     ref={(el) => {
                       columnRefs.current[idx] = el;
                     }}
-                    className="h-full shrink-0"
+                    className="h-full shrink-0 animate-rise-in motion-reduce:animate-none"
+                    style={{ '--stagger': Math.min(idx, 6) } as React.CSSProperties}
                   >
                     <KanbanColumn
                       columnId={column.id as BillStatus}
@@ -535,7 +536,12 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
                       ref={(el) => {
                         columnRefs.current[idx] = el;
                       }}
-                      className="h-full shrink-0"
+                      // Columns rise in as whole units rather than per card: the
+                      // cards are Draggables whose own transform dnd controls, and
+                      // a dropped card remounts in its new column, which would
+                      // replay a per-card animation on every move.
+                      className="h-full shrink-0 animate-rise-in motion-reduce:animate-none"
+                      style={{ '--stagger': Math.min(idx, 6) } as React.CSSProperties}
                     >
                       <Droppable droppableId={column.id}>
                         {(provided, snapshot) => (
