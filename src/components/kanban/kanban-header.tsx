@@ -178,19 +178,21 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
     />
   );
 
-  const renderSearchInput = (ref: React.RefObject<HTMLInputElement>, withHint: boolean) => (
+  // `desktop` adds the ⌘K hint and the full placeholder; the phone copy lives
+  // in the narrow filter panel, where only a short placeholder fits.
+  const renderSearchInput = (ref: React.RefObject<HTMLInputElement>, desktop: boolean) => (
     <div className="relative flex-1 max-w-xl">
       <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
       <Input
         ref={ref}
         type="search"
-        placeholder="Search bills by number, title, or keyword..."
-        className={withHint ? 'pl-9 pr-16' : 'pl-9'}
+        placeholder={desktop ? 'Search bills by number, title, or keyword...' : 'Bill number, title, or keyword'}
+        className={desktop ? 'pl-9 pr-16' : 'pl-9'}
         value={searchQuery}
         onChange={handleSearchChange}
         aria-label="Search bills"
       />
-      {withHint && (
+      {desktop && (
         <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
           {shortcutHint}
         </kbd>

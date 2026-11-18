@@ -23,6 +23,7 @@ import { TrackButton } from './track-button';
 import { useBillSearch } from '@/hooks/use-bill-search';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { hasNonBillParams } from '@/lib/bills/bill-dialog-url';
 import {
   DEFAULT_FILTERS,
@@ -153,6 +154,8 @@ export function BillSearchView() {
   }, []);
 
   const hasQuery = filters.q.trim().length > 0;
+  // The full placeholder runs past a phone-width input; phones get the short one.
+  const isMobile = useIsMobile();
   // The dialog takes only a bill id; the Track control needs the bill number for
   // its label and toasts, so resolve the open row from the loaded results.
   const openBill = openBillId ? bills.find((b) => b.id === openBillId) : undefined;
@@ -171,7 +174,7 @@ export function BillSearchView() {
           id="bill-search"
           type="text"
           role="searchbox"
-          placeholder="Search bill number, title, or text…"
+          placeholder={isMobile ? 'Bill number, title, or keyword' : 'Search bill number, title, or text…'}
           value={filters.q}
           onChange={(e) => setFilters({ ...filters, q: e.target.value })}
           className="h-11 pl-9 pr-9"
