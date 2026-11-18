@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { BillDetails } from '@/types/legislation';
@@ -9,6 +9,7 @@ import { getBillDetails } from '@/db/queries/bills-read';
 import { data } from '@/lib/data-client';
 import { safeReturnPath } from '@/lib/core/safe-return-path';
 import { fullNameOrUsername } from '@/lib/auth/profile';
+import { tiptapHasText } from '@/lib/testimony/tiptap-text';
 import { RETURN_TO_PARAM, stripBillParam } from '@/lib/bills/bill-dialog-url';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { invalidateTestimonies } from '@/hooks/use-testimonies';
@@ -197,6 +198,16 @@ export default function TestimonyPage() {
     scheduleSave();
   };
 
+  // An empty testimony can't move on to Review (or be skipped past via the stepper).
+  const hasText = useMemo(() => tiptapHasText(contentJson), [contentJson]);
+
+  // The tour walks the Write step, so replaying it from Review/Submit returns there first.
+  const startTour = useCallback(() => setStep(1), []);
+  const walkthrough = useMemo(
+    () => testimonyWalkthrough({ billNumber: bill?.bill_number ?? '' }),
+    [bill?.bill_number],
+  );
+
   if (authLoading || (user && loading)) {
     return (
       <div className="flex h-dvh items-center justify-center">
@@ -250,18 +261,17 @@ export default function TestimonyPage() {
           <span className="hidden text-xs text-muted-foreground sm:inline" aria-live="polite">
             {saveLabel}
           </span>
-          <FlowWalkthrough
-            walkthrough={testimonyWalkthrough({ billNumber: bill.bill_number })}
-            storageKey={TESTIMONY_WALKTHROUGH_KEY}
-          />
-          <TestimonyStepper step={step} onStepChange={setStep} />
+          <FlowWalkthrough walkthrough={walkthrough} storageKey={TESTIMONY_WALKTHROUGH_KEY} onStart={startTour} />
+          <div data-flow-tour="stepper">
+            <TestimonyStepper step={step} onStepChange={setStep} maxStep={hasText ? 3 : 1} />
+          </div>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
         {/* Reference panel — sidebar on desktop, sheet on mobile */}
         {!isMobile && (
-          <aside className="w-[340px] shrink-0 border-r bg-muted/20">{referencePanel}</aside>
+          <aside className="w-[340px] shrink-0 border-r bg-muted/20" data-flow-tour="reference">{referencePanel}</aside>
         )}
 
         <main className="min-w-0 flex-1 overflow-y-auto">
@@ -269,7 +279,7 @@ export default function TestimonyPage() {
             {isMobile && (
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" data-flow-tour="reference">
                     <Info className="mr-1.5 h-3.5 w-3.5" />
                     Bill info
                   </Button>
@@ -285,10 +295,17 @@ export default function TestimonyPage() {
 
             {step === 1 && (
               <>
-                <TestimonyHeaderForm value={form} onChange={handleFormChange} />
-                <TestimonyEditor initialContent={contentJson} onChange={handleContentChange} />
-                <div className="flex justify-end">
-                  <Button onClick={() => setStep(2)}>
+                <div data-flow-tour="details">
+                  <TestimonyHeaderForm value={form} onChange={handleFormChange} />
+                </div>
+                <div data-flow-tour="editor">
+                  <TestimonyEditor initialContent={contentJson} onChange={handleContentChange} />
+                </div>
+                <div className="flex items-center justify-end gap-3">
+                  {!hasText && (
+                    <p className="text-xs text-muted-foreground">Write your testimony to continue.</p>
+                  )}
+                  <Button onClick={() => setStep(2)} disabled={!hasText} data-flow-tour="next">
                     Next: Review
                     <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>

@@ -279,6 +279,8 @@ export default function ContactLegislatorPage() {
           : atConference
             ? 'conference'
             : 'hearing';
+  // Mirrors the render below: everything but the two empty states has contacts.
+  const hasContacts = governorStage !== null || (atConference ? conferees.length > 0 : hasChairs);
 
   return (
     <div className="flex h-dvh flex-col">
@@ -296,7 +298,9 @@ export default function ContactLegislatorPage() {
             {bill?.bill_title && <p className="truncate text-xs text-muted-foreground">{bill.bill_title}</p>}
           </div>
         </div>
-        {bill && (
+        {/* Only where there's someone to contact: the empty states have no scripts or
+            recipients to tour, and running it there would use up the first-visit tour. */}
+        {bill && hasContacts && (
           <FlowWalkthrough
             walkthrough={contactWalkthrough({
               stage: contactStage,
@@ -465,7 +469,7 @@ function Compose({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border bg-card p-4">
+      <div className="rounded-lg border bg-card p-4" data-flow-tour="goal">
         <div className="mb-1 flex items-center gap-1.5">
           <Gavel className="h-3.5 w-3.5 text-muted-foreground" />
           <h2 className="text-sm font-semibold">Ask for a hearing</h2>
@@ -497,7 +501,7 @@ function Compose({
           ].join(' ')}
         >
           {/* Email script */}
-          <div className="flex flex-col rounded-lg border bg-card p-4">
+          <div className="flex flex-col rounded-lg border bg-card p-4" data-flow-tour="email">
             <div className="mb-1 flex items-center gap-1.5">
               <Mail className="h-3.5 w-3.5 text-muted-foreground" />
               <h2 className="text-sm font-semibold">Email script</h2>
@@ -525,7 +529,7 @@ function Compose({
           </div>
 
           {/* Call script */}
-          <div className="flex flex-col rounded-lg border bg-card p-4">
+          <div className="flex flex-col rounded-lg border bg-card p-4" data-flow-tour="call">
             <div className="mb-1 flex items-center gap-1.5">
               <Phone className="h-3.5 w-3.5 text-muted-foreground" />
               <h2 className="text-sm font-semibold">Call script</h2>
@@ -544,7 +548,7 @@ function Compose({
         </div>
 
         {/* Right — the contact list, current committee(s) foregrounded */}
-        <div className={['space-y-4', contactSpan].join(' ')}>
+        <div data-flow-tour="contacts" className={['space-y-4 lg:self-start', contactSpan].join(' ')}>
           {isJoint && (
             <p className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
               <Gavel className="h-3.5 w-3.5" />
@@ -773,7 +777,7 @@ function ComposeConference({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border bg-card p-4">
+      <div className="rounded-lg border bg-card p-4" data-flow-tour="goal">
         <div className="mb-1 flex items-center gap-1.5">
           <Gavel className="h-3.5 w-3.5 text-muted-foreground" />
           <h2 className="text-sm font-semibold">{copy.title}</h2>
@@ -803,7 +807,7 @@ function ComposeConference({
             scriptSpan,
           ].join(' ')}
         >
-          <div className="flex flex-col rounded-lg border bg-card p-4">
+          <div className="flex flex-col rounded-lg border bg-card p-4" data-flow-tour="email">
             <div className="mb-1 flex items-center gap-1.5">
               <Mail className="h-3.5 w-3.5 text-muted-foreground" />
               <h2 className="text-sm font-semibold">Email script</h2>
@@ -830,7 +834,7 @@ function ComposeConference({
             </p>
           </div>
 
-          <div className="flex flex-col rounded-lg border bg-card p-4">
+          <div className="flex flex-col rounded-lg border bg-card p-4" data-flow-tour="call">
             <div className="mb-1 flex items-center gap-1.5">
               <Phone className="h-3.5 w-3.5 text-muted-foreground" />
               <h2 className="text-sm font-semibold">Call script</h2>
@@ -849,7 +853,7 @@ function ComposeConference({
         </div>
 
         {/* Right — the conferee list, grouped by chamber */}
-        <div className={['space-y-4', contactSpan].join(' ')}>
+        <div data-flow-tour="contacts" className={['space-y-4 lg:self-start', contactSpan].join(' ')}>
           {chamberGroups.map((group) => (
             <div key={group.chamber}>
               <div className="mb-2 flex items-center gap-2 border-b pb-1.5">
@@ -1076,7 +1080,7 @@ function ComposeGovernor({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border bg-card p-4">
+      <div className="rounded-lg border bg-card p-4" data-flow-tour="goal">
         <div className="mb-1 flex items-center gap-1.5">
           <Landmark className="h-3.5 w-3.5 text-muted-foreground" />
           <h2 className="text-sm font-semibold">{intentToVeto ? 'Ask the Governor to reconsider' : 'Ask the Governor to sign'}</h2>
@@ -1096,7 +1100,7 @@ function ComposeGovernor({
             scriptSpan,
           ].join(' ')}
         >
-          <div className="flex flex-col rounded-lg border bg-card p-4">
+          <div className="flex flex-col rounded-lg border bg-card p-4" data-flow-tour="email">
             <div className="mb-1 flex items-center gap-1.5">
               <Mail className="h-3.5 w-3.5 text-muted-foreground" />
               <h2 className="text-sm font-semibold">Message script</h2>
@@ -1133,7 +1137,7 @@ function ComposeGovernor({
             </p>
           </div>
 
-          <div className="flex flex-col rounded-lg border bg-card p-4">
+          <div className="flex flex-col rounded-lg border bg-card p-4" data-flow-tour="call">
             <div className="mb-1 flex items-center gap-1.5">
               <Phone className="h-3.5 w-3.5 text-muted-foreground" />
               <h2 className="text-sm font-semibold">Call script</h2>
@@ -1152,7 +1156,7 @@ function ComposeGovernor({
         </div>
 
         {/* Right — the two contact routes + phone */}
-        <div className={['space-y-2', contactSpan].join(' ')}>
+        <div data-flow-tour="contacts" className={['space-y-2 lg:self-start', contactSpan].join(' ')}>
           <div className="mb-2 flex items-center gap-2 border-b pb-1.5">
             <h3 className="truncate text-sm font-semibold">Office of the Governor</h3>
           </div>
