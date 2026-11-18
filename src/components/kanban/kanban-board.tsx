@@ -67,8 +67,10 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
   const crossoverIdx = activeColumns.findIndex((col) =>
     col.id === (isSimplified ? 'simpleCrossoverWaiting' : 'crossoverWaiting1')
   );
+  // The CONFERENCE column is `passedCommittees` (it opens the conference
+  // phase); `conferenceAssigned` is the AWAITING COMMITTEES column after it.
   const conferenceIdx = activeColumns.findIndex((col) =>
-    col.id === 'conferenceAssigned'
+    col.id === 'passedCommittees'
   );
   const governorIdx = activeColumns.findIndex((col) =>
     col.id === 'transmittedGovernor'
