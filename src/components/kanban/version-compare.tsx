@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeftRight } from 'lucide-react';
 import { VersionDiffAccordion } from './version-diff-accordion';
+import { cn } from '@/lib/core/utils';
+import { FADE_IN } from '@/lib/core/motion';
 import { Term } from '@/components/ui/term';
 
 const ERROR_COPY: Record<NonNullable<VersionComparison['error']>, string> = {
@@ -141,7 +143,7 @@ export function VersionCompare({
       )}
 
       {sameVersion ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">Pick two different versions.</p>
+        <p className={cn('py-8 text-center text-sm text-muted-foreground', FADE_IN)}>Pick two different versions.</p>
       ) : loading ? (
         <div className="space-y-2" aria-busy="true" aria-live="polite">
           <Skeleton className="h-14 w-full" />
@@ -150,7 +152,7 @@ export function VersionCompare({
           <Skeleton className="h-11 w-full" />
         </div>
       ) : comparison?.error ? (
-        <div className="py-8 text-center">
+        <div className={cn('py-8 text-center', FADE_IN)}>
           <p className="text-sm text-muted-foreground">{ERROR_COPY[comparison.error]}</p>
           {/* Only a transient failure can succeed on a second try — a missing
               html_link or an unparseable document never will, so no Retry is
@@ -162,7 +164,10 @@ export function VersionCompare({
           )}
         </div>
       ) : comparison ? (
-        <VersionDiffAccordion key={`${olderId}-${newerId}`} comparison={comparison} billId={billId} olderId={olderId} newerId={newerId} />
+        // Keyed per pair: picking new versions remounts the diff, fading it in.
+        <div key={`${olderId}-${newerId}`} className={FADE_IN}>
+          <VersionDiffAccordion comparison={comparison} billId={billId} olderId={olderId} newerId={newerId} />
+        </div>
       ) : null}
     </div>
   );

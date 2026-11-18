@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, parseLocalDate, todayHawaii } from '@/lib/core/utils';
-import { RISE_IN } from '@/lib/core/motion';
+import { FADE_IN } from '@/lib/core/motion';
 import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files, Users, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -780,13 +780,13 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                         so this holds it to the available height (flex + min-h-0)
                         rather than letting it grow inside an outer overflow-auto —
                         which would nest two scrollers and unpin the footer. */}
-                    <TabsContent value="overview" className={cn('flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden', RISE_IN)}>
+                    <TabsContent value="overview" className={cn('flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden', FADE_IN)}>
                       {leftPanel}
                     </TabsContent>
-                    <TabsContent value="versions" className={cn('flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden', RISE_IN)}>
+                    <TabsContent value="versions" className={cn('flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden', FADE_IN)}>
                       <VersionsReportsTab billId={shownId ?? ""} versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
                     </TabsContent>
-                    <TabsContent value="updates" className={cn('flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden', RISE_IN)}>
+                    <TabsContent value="updates" className={cn('flex-1 min-h-0 mt-0 flex flex-col data-[state=inactive]:hidden', FADE_IN)}>
                       {activityPanel}
                     </TabsContent>
                   </Tabs>
@@ -873,7 +873,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
             return (
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex-1 flex flex-col min-h-0">
                 {/* Tab switcher lives in the dialog header */}
-                <TabsContent value="overview" className={cn('flex-1 min-h-0 mt-0 data-[state=inactive]:hidden', RISE_IN)}>
+                <TabsContent value="overview" className={cn('flex-1 min-h-0 mt-0 data-[state=inactive]:hidden', FADE_IN)}>
                   <div className="flex h-full min-h-0">
                     {leftPanel}
                     <div className="flex flex-col bg-muted/20 min-h-0 w-[45%]">
@@ -881,7 +881,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                     </div>
                   </div>
                 </TabsContent>
-                <TabsContent value="versions" className={cn('flex-1 min-h-0 mt-0 data-[state=inactive]:hidden', RISE_IN)}>
+                <TabsContent value="versions" className={cn('flex-1 min-h-0 mt-0 data-[state=inactive]:hidden', FADE_IN)}>
                   <VersionsReportsTab billId={shownId ?? ""} versions={billDetails?.versions ?? []} reports={billDetails?.reports ?? []} />
                 </TabsContent>
               </Tabs>

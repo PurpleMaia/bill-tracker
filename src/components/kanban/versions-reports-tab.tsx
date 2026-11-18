@@ -7,7 +7,7 @@ import { VersionCompare } from './version-compare';
 import { sortVersions, resolveComparisonOrder } from '@/lib/versions/bill-versions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/core/utils';
-import { RISE_IN } from '@/lib/core/motion';
+import { FADE_IN } from '@/lib/core/motion';
 
 const SECTION_HEAD = 'shrink-0 border-b px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground';
 
@@ -139,9 +139,9 @@ function MobileTabs({
           );
         })}
       </div>
-      {/* Keyed so a switch mounts a fresh node and the entrance replays —
+      {/* Keyed so a switch mounts a fresh node and the fade replays —
           both views are plain divs in this slot, which React would reuse. */}
-      <div key={tab} className={cn('flex min-h-0 flex-1 flex-col', RISE_IN)}>
+      <div key={tab} className={cn('flex min-h-0 flex-1 flex-col', FADE_IN)}>
         {tab === 'timeline' ? timeline : compare}
       </div>
     </div>
