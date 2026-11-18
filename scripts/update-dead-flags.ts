@@ -16,7 +16,6 @@ async function main() {
     .select(['id', 'bill_number', 'bill_status', 'committee_assignment', 'dead'])
     .where('bill_number', 'is not', null)
     .where('bill_status', 'is not', null)
-    .where('committee_assignment', 'is not', null)
     .orderBy('bill_number')
     .execute();
 
@@ -41,7 +40,7 @@ async function main() {
         {
           bill_number: bill.bill_number!,
           bill_status: bill.bill_status as BillStatus,
-          committee_assignment: bill.committee_assignment!,
+          committee_assignment: bill.committee_assignment,
         },
         statusUpdates,
         deadlines,

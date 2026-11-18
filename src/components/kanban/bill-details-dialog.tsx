@@ -229,12 +229,12 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   const committeeAssign = billDetails?.committee_assignment || bill.committee_assignment;
   const today = todayHawaii();
 
-  const deadReason = (bill.dead && committeeAssign && billDetails)
+  const deadReason = (bill.dead && billDetails)
     ? isBillDead(
         {
           bill_number: billDetails.bill_number || bill.bill_number,
           bill_status: (billDetails.current_bill_status || bill.current_bill_status) as DBBillStatus,
-          committee_assignment: committeeAssign,
+          committee_assignment: committeeAssign ?? null,
         },
         (billDetails.updates || []).map(u => ({ statustext: u.statustext, date: u.date, chamber: u.chamber })),
         SESSION_DEADLINES,

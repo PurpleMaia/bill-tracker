@@ -4,7 +4,7 @@
 
 **Goal:** Make removing a failed bill easy to find (an X in the card's corner, and Remove in the bill dialog's actions) while still drawing users to read why the bill failed (a "Failed | Why? ›" pill, and the full explanation in the dialog's briefing).
 
-**Architecture:** First, pull the "why did it fail" wording out of `DeadBillInfoPopover` into a pure, tested helper. Both the popover and `BillBriefing` render from it. Second, pull the card's remove-from-board flow (confirmation dialog + `data.bills.removeFromOrg` + local state cleanup) into one reusable component, used by the card's live X, the card's failed-corner X, the popover and the dialog. Everything else is presentational changes to `kanban-card.tsx`, `bill-details-dialog.tsx` and `bill-briefing.tsx`.
+**Architecture:** Task 0 fixes when a bill with no committee referral counts as failed (only after First Lateral, not immediately). Then, pull the "why did it fail" wording out of `DeadBillInfoPopover` into a pure, tested helper. Both the popover and `BillBriefing` render from it. Second, pull the card's remove-from-board flow (confirmation dialog + `data.bills.removeFromOrg` + local state cleanup) into one reusable component, used by the card's live X, the card's failed-corner X, the popover and the dialog. Everything else is presentational changes to `kanban-card.tsx`, `bill-details-dialog.tsx` and `bill-briefing.tsx`.
 
 **Tech Stack:** Next.js 15 / React, TypeScript, shadcn/ui (AlertDialog, Popover, Button, Badge), Tailwind, Vitest.
 
@@ -25,11 +25,42 @@
 
 ## Review Focus
 
-1. **Bill with no committee assignment** (`committee_assignment` null) marked dead: the explanation must still render ("no committee referral on record"), and must not crash or show "Unknown deadline". → test in Task 1.
+1. **Bill with no committee assignment** (`committee_assignment` null or blank): alive through First Lateral, dead the day after (Task 0). Once dead, the explanation names First Lateral as the missed deadline and says "no committee referral on record", never "was referred to committee" or "Unknown deadline". → tests in Task 0 and Task 1.
 2. **Dead bill whose status is end-of-process** (`governorSigns`, `vetoList`, …): the heading must be "Where did this bill end up?", the summary must not say "failed", and there's no revival note. → test in Task 1.
 3. **Missed-deadline date formatting across timezones:** "February 27, 2025" must render the same in every timezone (the old popover used local-time `toLocaleDateString`, which can shift the day). → test in Task 1.
 4. **Remove from inside the dialog:** after confirming, the dialog must close and the card must leave the board. A dialog left open on a removed bill, or a card that survives, is the bug we're fixing. → manual check in Task 4.
 5. **localStorage unavailable** (private mode, blocked storage): the pill must render and work, just without the pulse. → manual check in Task 3 (wrap every storage access in try/catch).
+
+---
+
+### Task 0: No-committee bills fail only after First Lateral
+
+**Status:** implemented in the working tree and verified (`pnpm typecheck`, `pnpm test` with 826 passing, `pnpm build`). Only the commit is left.
+
+**Why:** a bill with `committee_assignment` null was shown as failed immediately. `DeadBillInfoPopover` skipped `isBillDead` and hard-coded `{ dead: true, reason: 'No committee assignment' }`, while `scripts/update-dead-flags.ts` skipped those bills entirely. The rule Jaden wants: no committee referral past **First Lateral** → dead; before it → alive.
+
+**Files:**
+- Modify: `src/lib/bills/dead-bill.ts` (`isBillDead`)
+- Modify: `src/components/kanban/dead-bill-info-popover.tsx`
+- Modify: `src/components/kanban/bill-details-dialog.tsx` (`deadReason`)
+- Modify: `scripts/update-dead-flags.ts`
+- Test: `src/lib/__tests__/dead-bill.test.ts` (`describe('no committee assignment')` inside `isBillDead`)
+
+**Interfaces:**
+- Produces: `isBillDead(bill: { bill_number: string; bill_status: BillStatus; committee_assignment: string | null }, ...)`. The parameter now accepts `null`; callers no longer guard on it. For a no-committee death it returns `reason: 'No committee referral by <name> deadline (<YYYY-MM-DD>)'` and `failedDeadline` set to the First Lateral entry, so Task 1's `missedDeadline` is non-null for these bills.
+
+- [x] **Step 1: Failing tests** (the cutoff is First Lateral, 2025-02-27 in MOCK_DEADLINES): `introduced` + `null` is alive on 2025-01-20 and on 2025-02-27; dead on 2025-02-28 with reason `'No committee referral by First Lateral deadline (2025-02-27)'` and `failedDeadline` `{ name: 'First Lateral', date: '2025-02-27' }`; a blank `'  '` SB behaves like `null`; `crossoverWaiting1` + `null` on 2025-03-14 is alive (not killed by this rule).
+- [x] **Step 2: Implement in `isBillDead`**, after the deferral check: normalize `committee_assignment ?? ''`. When there are zero committees **and** `isPreCrossover(status)`, build the cutoff entry `{ name: 'First Lateral', date: deadlines.deadlines.first_lateral, minimumStatus: 'waiting2' }` (Jaden's choice; Feb 20 in 2026, same for HB and SB). Dead only when `today > date` (strictly after; the deadline day itself is still alive); otherwise return alive. Post-crossover bills with no committee fall through to the normal deadline walk, since a missing assignment there is a data gap.
+- [x] **Step 3: Callers.** The popover always calls `isBillDead` (fallback removed). The dialog's `deadReason` drops the `committeeAssign &&` guard and passes `committeeAssign ?? null`. The sweep drops `.where('committee_assignment', 'is not', null)` and the `!`.
+- [x] **Step 4: Popover copy for zero committees.** Summary: `` `This bill failed because it was not referred to a committee before the ${deadlineName} deadline.` ``. Committee explanation: `'This bill has no committee referral on record, so it cannot advance this session.'` (checked before the "was referred to …" branches). **Task 1 must carry these two branches into `explainDeadBill`.**
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/lib/bills/dead-bill.ts src/lib/__tests__/dead-bill.test.ts src/components/kanban/dead-bill-info-popover.tsx src/components/kanban/bill-details-dialog.tsx scripts/update-dead-flags.ts docs/superpowers/plans/2026-11-17-failed-bill-remove.md
+git commit -m "fix: mark bills with no committee referral failed only after First Lateral"
+```
+
+**Rollout note (for the PR):** every 2026 deadline has passed, so the next manual run of `scripts/update-dead-flags.ts` (nothing schedules it) will flag every pre-crossover bill with no committee as dead. Those bills were skipped before, so expect a batch of cards to flip to Failed.
 
 ---
 
@@ -110,7 +141,9 @@ it('closed status: "Where did this bill end up?", no failure wording, no revival
 it('no committee assignment: still explains, never "Unknown"', () => {
   const e = explainDeadBill({ billNumber: 'HB9', billStatus: 'introduced', committeeAssignment: null },
     [], MOCK_DEADLINES, '2025-03-14');
-  expect(e.summary).toBe('This bill is no longer advancing this session.');
+  // isBillDead marks no-committee bills dead once First Lateral passes.
+  expect(e.summary).toBe('This bill failed because it was not referred to a committee before the First Lateral deadline.');
+  expect(e.missedDeadline).toEqual({ name: 'First Lateral', date: 'February 27, 2025' });
   expect(e.committeeExplanation).toBe('This bill has no committee referral on record, so it cannot advance this session.');
   expect(JSON.stringify(e)).not.toContain('Unknown');
 });
@@ -229,4 +262,4 @@ If the "known deadline" fixture resolves to a different first-failed deadline th
 ### Task 6: Ship
 
 - [ ] **Step 1:** `pnpm typecheck && pnpm test && pnpm build` all pass on the branch.
-- [ ] **Step 2:** Push `feat/failed-bill-remove` and open a PR against `fix/removed-bill-still-tracked` (retarget to `dev` once #240 merges). Use the CLAUDE.md PR format (Summary + QA steps covering the manual checks from Tasks 3–5, plus admin / worker / public / mobile edge cases). Then run the Codex review loop.
+- [ ] **Step 2:** Push `feat/failed-bill-remove` and open a PR against `fix/removed-bill-still-tracked` (retarget to `dev` once #240 merges). Use the CLAUDE.md PR format (Summary + QA steps covering the manual checks from Tasks 3–5, plus admin / worker / public / mobile edge cases). Include Task 0: a QA step that runs `npx tsx scripts/update-dead-flags.ts` and opens a no-committee bill's "Why?" popover (it names First Lateral and says no referral on record), and the rollout note about the batch of newly failed bills. Then run the Codex review loop.

@@ -386,7 +386,7 @@ export function isBillDead(
   bill: {
     bill_number: string;
     bill_status: BillStatus;
-    committee_assignment: string;
+    committee_assignment: string | null;
   },
   statusUpdates: StatusUpdate[],
   deadlines: SessionDeadlines,
@@ -412,16 +412,40 @@ export function isBillDead(
   }
 
   // Parse bill properties
-  const committees = parseCommittees(bill.committee_assignment);
+  const committeeAssignment = bill.committee_assignment ?? '';
+  const committees = parseCommittees(committeeAssignment);
   const referralType = getReferralType(committees.length);
   const chamber = getBillChamber(bill.bill_number);
   const preCrossover = isPreCrossover(bill.bill_status);
+
+  // No committee referral yet: the bill is only dead once First Lateral has
+  // passed (not on the day itself — it can still be referred then).
+  // Skipped after crossover, where a missing assignment is a data gap, not a
+  // bill that was never referred.
+  if (committees.length === 0 && preCrossover) {
+    const firstDeadline: DeadlineEntry = {
+      name: 'First Lateral',
+      date: deadlines.deadlines.first_lateral,
+      minimumStatus: 'waiting2' as BillStatus,
+    };
+    if (today > firstDeadline.date) {
+      return {
+        dead: true,
+        reason: `No committee referral by ${firstDeadline.name} deadline (${firstDeadline.date})`,
+        failedDeadline: firstDeadline,
+      };
+    }
+    return {
+      dead: false,
+      reason: 'No committee referral yet, but First Lateral has not passed',
+    };
+  }
 
   // Kill Condition 2: Missed deadline
   // Walk deadlines chronologically and find the FIRST one the bill failed.
   // This gives a specific, actionable reason (e.g. "Missed First Lateral")
   // instead of always blaming the most recent deadline (e.g. Adjournment).
-  const applicable = getApplicableDeadlines(referralType, chamber, preCrossover, deadlines, bill.committee_assignment);
+  const applicable = getApplicableDeadlines(referralType, chamber, preCrossover, deadlines, committeeAssignment);
   const passed = applicable.filter((d) => d.date <= today);
 
   if (passed.length === 0) {

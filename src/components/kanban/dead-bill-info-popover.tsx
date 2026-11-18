@@ -45,18 +45,16 @@ export function DeadBillInfoPopover({
   const updates: StatusUpdate[] = statusUpdates ??
     (latestUpdate ? [{ statustext: latestUpdate.statustext, date: latestUpdate.date, chamber: latestUpdate.chamber }] : []);
 
-  const result: DeadBillResult = committeeAssignment
-    ? isBillDead(
-        {
-          bill_number: billNumber,
-          bill_status: billStatus as DBBillStatus,
-          committee_assignment: committeeAssignment,
-        },
-        updates,
-        SESSION_DEADLINES,
-        today,
-      )
-    : { dead: true, reason: 'No committee assignment' };
+  const result: DeadBillResult = isBillDead(
+    {
+      bill_number: billNumber,
+      bill_status: billStatus as DBBillStatus,
+      committee_assignment: committeeAssignment,
+    },
+    updates,
+    SESSION_DEADLINES,
+    today,
+  );
 
   // Use the failedDeadline from the algorithm result — this is the FIRST
   // deadline the bill failed to meet, not the most recent one relative to today.
@@ -100,9 +98,11 @@ export function DeadBillInfoPopover({
       ? 'This bill failed because a committee did not adopt the recommendation to advance it.'
       : isDeferral
         ? 'This bill failed because it was permanently deferred by a committee.'
-        : deadlineName
-          ? `This bill failed because it was not scheduled for a committee hearing before its ${deadlineName} deadline.`
-          : 'This bill is no longer advancing this session.';
+        : deadlineName && committees.length === 0
+          ? `This bill failed because it was not referred to a committee before the ${deadlineName} deadline.`
+          : deadlineName
+            ? `This bill failed because it was not scheduled for a committee hearing before its ${deadlineName} deadline.`
+            : 'This bill is no longer advancing this session.';
 
   const committeeLabel = committeeList || 'committee';
 
@@ -112,13 +112,13 @@ export function DeadBillInfoPopover({
       ? `${committeeLabel} heard this bill but did not adopt the recommendation needed to move it forward, ending its progress this session.`
       : isDeferral
         ? 'The committee permanently deferred this bill, ending its progress this session.'
-        : deadlineName
-          ? committees.length > 1
-            ? `Bills referred to multiple committees must be scheduled by the ${deadlineName} deadline to remain active in this session. This bill was referred to ${committeeList} but neither chair scheduled it for a hearing in time.`
-            : `This bill was referred to ${committeeLabel} but was not scheduled for a hearing before the ${deadlineName} deadline.`
-          : committeeAssignment
-            ? `This bill was referred to ${committeeLabel} but did not complete the steps needed to stay active this session.`
-            : 'This bill has no committee referral on record, so it cannot advance this session.';
+        : committees.length === 0
+          ? 'This bill has no committee referral on record, so it cannot advance this session.'
+          : deadlineName
+            ? committees.length > 1
+              ? `Bills referred to multiple committees must be scheduled by the ${deadlineName} deadline to remain active in this session. This bill was referred to ${committeeList} but neither chair scheduled it for a hearing in time.`
+              : `This bill was referred to ${committeeLabel} but was not scheduled for a hearing before the ${deadlineName} deadline.`
+            : `This bill was referred to ${committeeLabel} but did not complete the steps needed to stay active this session.`;
 
   return (
     <Popover>

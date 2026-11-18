@@ -500,6 +500,63 @@ describe('isBillDead', () => {
     expect(result.dead).toBe(true);
     expect(result.reason).toContain('Recommendation not adopted');
   });
+
+  // No-committee bills fail after First Lateral (2025-02-27 in MOCK_DEADLINES).
+  describe('no committee assignment', () => {
+    it('is alive before the first deadline', () => {
+      const result = isBillDead(
+        { bill_number: 'HB9', bill_status: 'introduced' as BillStatus, committee_assignment: null },
+        [],
+        MOCK_DEADLINES,
+        '2025-01-20'
+      );
+      expect(result.dead).toBe(false);
+    });
+
+    it('is alive on the day of First Lateral', () => {
+      const result = isBillDead(
+        { bill_number: 'HB9', bill_status: 'introduced' as BillStatus, committee_assignment: null },
+        [],
+        MOCK_DEADLINES,
+        '2025-02-27'
+      );
+      expect(result.dead).toBe(false);
+    });
+
+    it('is dead once First Lateral has passed', () => {
+      const result = isBillDead(
+        { bill_number: 'HB9', bill_status: 'introduced' as BillStatus, committee_assignment: null },
+        [],
+        MOCK_DEADLINES,
+        '2025-02-28'
+      );
+      expect(result.dead).toBe(true);
+      expect(result.reason).toBe('No committee referral by First Lateral deadline (2025-02-27)');
+      expect(result.failedDeadline?.name).toBe('First Lateral');
+      expect(result.failedDeadline?.date).toBe('2025-02-27');
+    });
+
+    it('treats an empty string like null', () => {
+      const result = isBillDead(
+        { bill_number: 'SB9', bill_status: 'introduced' as BillStatus, committee_assignment: '  ' },
+        [],
+        MOCK_DEADLINES,
+        '2025-02-28'
+      );
+      expect(result.dead).toBe(true);
+      expect(result.failedDeadline?.name).toBe('First Lateral');
+    });
+
+    it('does not apply to a bill that has already crossed over (missing data, not missing referral)', () => {
+      const result = isBillDead(
+        { bill_number: 'HB9', bill_status: 'crossoverWaiting1' as BillStatus, committee_assignment: null },
+        [],
+        MOCK_DEADLINES,
+        '2025-03-14'
+      );
+      expect(result.dead).toBe(false);
+    });
+  });
 });
 
 describe('getDeadlineTier', () => {
