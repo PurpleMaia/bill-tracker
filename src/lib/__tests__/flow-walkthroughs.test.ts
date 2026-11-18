@@ -41,7 +41,7 @@ describe('contactWalkthrough', () => {
     expect(w.caveat.title).toMatch(/does not send/i);
     expect(new Set(w.steps.map((s) => s.title)).size).toBe(w.steps.length);
     expect(new Set(w.steps.map((s) => s.target)).size).toBe(w.steps.length);
-    expect(w.steps.map((s) => s.target)).toEqual(expect.arrayContaining(['goal', 'email', 'contacts', 'call', 'help']));
+    expect(w.steps.map((s) => s.target)).toEqual(expect.arrayContaining(['goal', 'reference', 'email', 'call', 'help']));
   });
 
   it('hearing: asks for a hearing or a meeting, naming the committee', () => {
@@ -54,6 +54,14 @@ describe('contactWalkthrough', () => {
   it('hearing: highlights that more requests make a hearing more likely', () => {
     const w = contactWalkthrough({ stage: 'hearing', billNumber: 'SB45' });
     expect(w.emphasis).toBe(REQUESTS_MATTER);
+  });
+
+  it('hearing: spotlights the committee holding the bill, then the rest of its path', () => {
+    const targets = contactWalkthrough({ stage: 'hearing', billNumber: 'SB45' }).steps.map((s) => s.target);
+    expect(targets.indexOf('committee')).toBeGreaterThan(-1);
+    expect(targets.indexOf('other-committees')).toBe(targets.indexOf('committee') + 1);
+    const committee = contactWalkthrough({ stage: 'hearing', billNumber: 'SB45' }).steps.find((s) => s.target === 'committee');
+    expect(committee?.body).toMatch(/top committee/i);
   });
 
   it('hearing: names a bare committee as a committee', () => {

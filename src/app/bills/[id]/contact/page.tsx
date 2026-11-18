@@ -316,7 +316,7 @@ export default function ContactLegislatorPage() {
         {/* Reference panel — collapsible sidebar on desktop, sheet on mobile */}
         {!isMobile && referencePanel && (
           panelCollapsed ? (
-            <aside className="flex w-10 shrink-0 flex-col items-center border-r bg-muted/20 py-2">
+            <aside className="flex w-10 shrink-0 flex-col items-center border-r bg-muted/20 py-2" data-flow-tour="reference">
               <Button
                 variant="ghost"
                 size="icon"
@@ -329,7 +329,7 @@ export default function ContactLegislatorPage() {
               </Button>
             </aside>
           ) : (
-            <aside className="flex w-[340px] shrink-0 flex-col border-r bg-muted/20">
+            <aside className="flex w-[340px] shrink-0 flex-col border-r bg-muted/20" data-flow-tour="reference">
               <div className="flex items-center justify-between border-b px-3 py-2">
                 <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Bill info</span>
                 <Button
@@ -358,7 +358,7 @@ export default function ContactLegislatorPage() {
             {isMobile && referencePanel && (
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" data-flow-tour="reference">
                     <Info className="mr-1.5 h-3.5 w-3.5" />
                     Bill info
                   </Button>
@@ -549,33 +549,35 @@ function Compose({
 
         {/* Right — the contact list, current committee(s) foregrounded */}
         <div data-flow-tour="contacts" className={['space-y-4 lg:self-start', contactSpan].join(' ')}>
-          {isJoint && (
-            <p className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
-              <Gavel className="h-3.5 w-3.5" />
-              Joint hearing — contact both committees below.
-            </p>
-          )}
-          {currentGroups.map((group) => (
-            <div key={group.code}>
-              <div className="mb-2 flex items-center gap-2 border-b pb-1.5">
-                <span className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary">
-                  {group.code}
-                </span>
-                <h3 className="truncate text-sm font-semibold">{group.name}</h3>
-                <span className="ml-auto inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                  Awaiting hearing
-                </span>
+          <div className="space-y-4" data-flow-tour="committee">
+            {isJoint && (
+              <p className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
+                <Gavel className="h-3.5 w-3.5" />
+                Joint hearing — contact both committees below.
+              </p>
+            )}
+            {currentGroups.map((group) => (
+              <div key={group.code}>
+                <div className="mb-2 flex items-center gap-2 border-b pb-1.5">
+                  <span className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary">
+                    {group.code}
+                  </span>
+                  <h3 className="truncate text-sm font-semibold">{group.name}</h3>
+                  <span className="ml-auto inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                    Awaiting hearing
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {group.chairs.map((chair) => (
+                    <ChairCard key={chairKey(chair)} chair={chair} subject={subject} body={body} />
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {group.chairs.map((chair) => (
-                  <ChairCard key={chairKey(chair)} chair={chair} subject={subject} body={body} />
-                ))}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
 
           {otherGroups.length > 0 && (
-            <div className="rounded-lg border bg-muted/20">
+            <div className="rounded-lg border bg-muted/20" data-flow-tour="other-committees">
               <button
                 type="button"
                 onClick={() => setShowOthers((v) => !v)}

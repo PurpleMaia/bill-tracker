@@ -28,6 +28,8 @@ export type FlowTourTarget =
   | 'email'
   | 'call'
   | 'contacts'
+  | 'committee'
+  | 'other-committees'
   | 'help';
 
 export interface WalkthroughStep {
@@ -103,24 +105,35 @@ export const REQUESTS_MATTER = 'The more requests a legislator gets, the more li
 /** Which ask the contact page is making — mirrors the page's own stage branches. */
 export type ContactStage = 'hearing' | 'conference' | 'governor' | 'intentToVeto' | 'override';
 
-/** Shared steps for the flows that send email. */
-function emailSteps(extra = ''): WalkthroughStep[] {
+const CONTACT_REFERENCE_STEP: WalkthroughStep = {
+  target: 'reference',
+  title: 'Bill info',
+  body: "The bill's summary, introducers, committees, and status updates, for reference while you write your message.",
+};
+
+const SEND_BUTTONS =
+  'Email opens your own email app with the message filled in, and Gmail opens it in Gmail. Either way, you press Send there. The copy button copies the message instead.';
+
+function emailScriptStep(extra = ''): WalkthroughStep {
+  return {
+    target: 'email',
+    title: 'Email script',
+    body: `One message for everyone on the list. Replace <your-name> and add a sentence about why the bill matters to you. A personal line carries more weight than a form letter.${extra}`,
+  };
+}
+
+const CALL_STEP: WalkthroughStep = {
+  target: 'call',
+  title: 'Call script',
+  body: 'Prefer the phone? This is what to say to the office. Staff note your request.',
+};
+
+/** Shared steps for the flows that send email to one list of legislators. */
+function emailSteps(): WalkthroughStep[] {
   return [
-    {
-      target: 'email',
-      title: 'Email script',
-      body: `One message for everyone on the list. Replace <your-name> and add a sentence about why the bill matters to you. A personal line carries more weight than a form letter.${extra}`,
-    },
-    {
-      target: 'contacts',
-      title: 'Who to send it to',
-      body: 'Email opens your own email app with the message filled in, and Gmail opens it in Gmail. Either way, you press Send there. The copy button copies the message instead.',
-    },
-    {
-      target: 'call',
-      title: 'Call script',
-      body: 'Prefer the phone? This is what to say to the office. Staff note your request.',
-    },
+    emailScriptStep(),
+    { target: 'contacts', title: 'Who to send it to', body: SEND_BUTTONS },
+    CALL_STEP,
   ];
 }
 
@@ -158,7 +171,19 @@ export function contactWalkthrough({
             title: 'What you’re asking for',
             body: `${billNumber} is waiting on ${committee}. Its chair and vice-chair decide whether it gets a hearing.`,
           },
-          ...emailSteps(' You can also ask to meet with the chair or their staff.'),
+          CONTACT_REFERENCE_STEP,
+          emailScriptStep(' You can also ask to meet with the chair or their staff.'),
+          {
+            target: 'committee',
+            title: 'The committee it’s waiting on',
+            body: `The top committee, marked Awaiting hearing, is the one holding ${billNumber} now, so its chair and vice-chair are who to contact. If two are marked, they're hearing it jointly, so contact both. ${SEND_BUTTONS}`,
+          },
+          {
+            target: 'other-committees',
+            title: 'The bill’s other committees',
+            body: `${billNumber} goes through its committees in order. These are the others on its path. Contact them only after the bill has moved on to them.`,
+          },
+          CALL_STEP,
           HELP_STEP,
         ],
         next: `If the chair schedules a hearing, it shows up on ${billNumber} here. That's your cue to write testimony. Chairs decide their own agenda, so there is no guarantee, but adding your voice raises the odds.`,
@@ -175,6 +200,7 @@ export function contactWalkthrough({
             title: 'What you’re asking for',
             body: `The conferees are the House and Senate members appointed to settle ${billNumber}'s final version.`,
           },
+          CONTACT_REFERENCE_STEP,
           ...emailSteps(),
           HELP_STEP,
         ],
@@ -198,6 +224,7 @@ export function contactWalkthrough({
             title: 'What you’re asking for',
             body: `Legislators have finished their work on ${billNumber}, so the Governor is the one to contact now.`,
           },
+          CONTACT_REFERENCE_STEP,
           {
             target: 'email',
             title: 'Message script',
@@ -229,6 +256,7 @@ export function contactWalkthrough({
             title: 'What you’re asking for',
             body: `${billNumber}'s introducers are most likely to lead an override. Use the member directory link here to find your own House and Senate members, and send them the same message.`,
           },
+          CONTACT_REFERENCE_STEP,
           ...emailSteps(),
           HELP_STEP,
         ],
