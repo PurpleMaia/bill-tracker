@@ -116,13 +116,13 @@ export function useTestimonies() {
   }, [user]);
 
   /**
-   * Optimistically drop one testimony from the cache (after a delete), then
-   * refresh in the background — the bill may now qualify as a prospect.
+   * Optimistically drop one testimony (one hearing round) from the cache after
+   * a delete, then refresh in the background — the bill may now qualify as a prospect.
    */
   const removeItem = useCallback(
-    (billId: string) => {
+    (testimonyId: string) => {
       if (state.items) {
-        setState({ items: state.items.filter((item) => item.billId !== billId) });
+        setState({ items: state.items.filter((item) => item.id !== testimonyId) });
       }
       if (user) loadFor(user.id, true);
     },

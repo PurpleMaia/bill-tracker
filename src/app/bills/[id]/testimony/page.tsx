@@ -92,6 +92,7 @@ export default function TestimonyPage() {
   const testimoniesRef = useRef<TestimonyDraft[]>([]);
   testimoniesRef.current = testimonies;
   const requestedIdRef = useRef(requestedId); // read once on load; switching updates the URL itself
+  const startCurrentRoundRef = useRef(searchParams.get('round') === 'current');
   const authorDefaultRef = useRef('');
   authorDefaultRef.current = user ? fullNameOrUsername(user) : '';
 
@@ -141,7 +142,7 @@ export default function TestimonyPage() {
     let cancelled = false;
     (async () => {
       try {
-        const [details, list] = await Promise.all([
+        const [details, fetched] = await Promise.all([
           data.bills.getBillDetails({ billId }),
           data.testimony.listForBill(billId),
         ]);
@@ -150,6 +151,7 @@ export default function TestimonyPage() {
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
         );
         setBill(details);
+        let list = fetched;
         setTestimonies(list);
         const round = currentTestimonyRound({
           billNumber: details.bill_number,
@@ -159,11 +161,25 @@ export default function TestimonyPage() {
           updates: details.updates,
           dead: details.dead,
         });
-        const picked =
+        let picked =
           list.find((t) => t.id === requestedIdRef.current) ??
           list.find((t) => sameRound(t, round)) ??
-          list[0] ??
           null;
+        // From "Needs testimony" (?round=current) on a bill testified on in an earlier
+        // round: start this round's testimony now, copied from the newest one.
+        if (!picked && list.length > 0 && startCurrentRoundRef.current) {
+          const created = await data.testimony.create({
+            billId,
+            tenantId: activeTenant?.tenantId ?? null,
+            copyFromId: list[0].id,
+          });
+          if (cancelled) return;
+          list = [created, ...list];
+          setTestimonies(list);
+          invalidateTestimonies();
+          picked = created;
+        }
+        picked ??= list[0] ?? null;
         hydrate(picked);
         if (picked && picked.id !== requestedIdRef.current) router.replace(hrefForRef.current(picked.id));
         hydrated.current = true;
@@ -180,6 +196,9 @@ export default function TestimonyPage() {
     return () => {
       cancelled = true;
     };
+    // activeTenant is read once at load (like the rest of the load); later tenant
+    // switches don't reload the writer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [billId, authLoading, user, router, backHref, hydrate]);
 
   // Serialized save: only one saveDraft request runs at a time, so slow responses
