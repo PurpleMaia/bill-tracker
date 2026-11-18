@@ -17,11 +17,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
-import { Building2, CircleHelp, LogOut, MessageSquareText, Settings, Shield, SlidersHorizontal, UserPen, UserPlus } from 'lucide-react';
+import { Building2, CircleHelp, Download, LogOut, MessageSquareText, Settings, Shield, SlidersHorizontal, UserPen, UserPlus } from 'lucide-react';
 import { FEEDBACK_FORM_URL } from '@/lib/core/feedback';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useState, useCallback } from 'react';
 import { CreateOrgDialog } from './create-org-dialog';
+import { ExportCsvDialog } from '@/components/kanban/export-csv-dialog';
 import { SettingsDialog, type SettingsTab } from '@/components/settings/settings-dialog';
 import { OrganizationDialog, type OrganizationTab } from '@/components/admin/organization-dialog';
 import { isProfileIncomplete } from '@/lib/auth/profile';
@@ -32,6 +33,7 @@ export function UserMenu() {
   const { user, logout, activeTenant, memberships, setActiveTenant, isPublicUser } = useAuth();
   const { setView } = useKanbanBoard();
   const [createOrgOpen, setCreateOrgOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   // Each tabbed dialog is open on a tab, or closed (null).
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [orgTab, setOrgTab] = useState<OrganizationTab | null>(null);
@@ -46,6 +48,11 @@ export function UserMenu() {
   const openOrganization = useCallback((tab: OrganizationTab) => {
     setDropdownOpen(false);
     setTimeout(() => setOrgTab(tab), 0);
+  }, []);
+
+  const openExportDialog = useCallback(() => {
+    setDropdownOpen(false);
+    setTimeout(() => setExportOpen(true), 0);
   }, []);
 
   const openCreateOrgDialog = useCallback(() => {
@@ -201,6 +208,12 @@ export function UserMenu() {
           )}
 
           <DropdownMenuSeparator />
+          {/* Board-level action, like Trello's board menu: on phones it's the
+              only home for export (the board toolbar keeps just Filters). */}
+          <DropdownMenuItem onSelect={openExportDialog} className='cursor-pointer'>
+            <Download className="mr-2 h-4 w-4" />
+            <span>Export bills</span>
+          </DropdownMenuItem>
           <DropdownMenuItem asChild className='cursor-pointer'>
             <Link href="/guide">
               <CircleHelp className="mr-2 h-4 w-4" />
@@ -221,6 +234,7 @@ export function UserMenu() {
         </DropdownMenuContent>
       </DropdownMenu>
       <CreateOrgDialog open={createOrgOpen} onOpenChange={setCreateOrgOpen} />
+      <ExportCsvDialog open={exportOpen} onOpenChange={setExportOpen} />
       <SettingsDialog tab={settingsTab} onTabChange={setSettingsTab} />
       <OrganizationDialog tab={orgTab} onTabChange={setOrgTab} />
     </>

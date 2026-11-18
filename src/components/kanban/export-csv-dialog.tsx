@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,12 @@ import type { Bill } from '@/types/legislation';
 interface ExportCsvDialogProps {
   /** Optional custom trigger. Defaults to a standard primary "Export" button. */
   children?: React.ReactNode;
+  /**
+   * Controlled mode, for opening from a menu item (e.g. the avatar menu) rather
+   * than a trigger. When `open` is given, no trigger is rendered.
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -38,7 +44,7 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export function ExportCsvDialog({ children }: ExportCsvDialogProps) {
+export function ExportCsvDialog({ children, open, onOpenChange }: ExportCsvDialogProps) {
   const { activeTenant, memberships } = useAuth();
   const { viewMode, showArchived } = useBills();
   const { searchQuery, selectedTagIds, selectedYears, deadFilter, view } = useKanbanBoard();
@@ -55,7 +61,9 @@ export function ExportCsvDialog({ children }: ExportCsvDialogProps) {
   };
   const filtersActive = hasActiveFilters(boardFilters);
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const controlled = open !== undefined;
+  const isOpen = controlled ? open : uncontrolledOpen;
   const [format, setFormat] = useState<ExportFormat>('csv');
   const [includeAllOrg, setIncludeAllOrg] = useState(false);
   const [includeArchived, setIncludeArchived] = useState(false);
@@ -63,14 +71,20 @@ export function ExportCsvDialog({ children }: ExportCsvDialogProps) {
   const [isExporting, setIsExporting] = useState(false);
 
   // Seed the options from the current board view so the default is
-  // "export what I'm looking at"; users can still widen before download.
-  const handleOpenChange = (open: boolean) => {
-    if (open) {
-      setIncludeAllOrg(belongsToOrg && viewMode === 'all-bills');
-      setIncludeArchived(showArchived);
-      setApplyBoardFilters(true);
-    }
-    setIsOpen(open);
+  // "export what I'm looking at"; users can still widen before download. Runs
+  // on every open, whether a trigger or a controlling parent opened it.
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    setIncludeAllOrg(belongsToOrg && viewMode === 'all-bills');
+    setIncludeArchived(showArchived);
+    setApplyBoardFilters(true);
+    // Seed once per open, not on every board change while it's showing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  const handleOpenChange = (next: boolean) => {
+    if (controlled) onOpenChange?.(next);
+    else setUncontrolledOpen(next);
   };
 
   const handleExport = async () => {
@@ -121,7 +135,7 @@ export function ExportCsvDialog({ children }: ExportCsvDialogProps) {
         title: 'Export ready',
         description: `Downloaded ${safeBills.length} bill${safeBills.length === 1 ? '' : 's'}.`,
       });
-      setIsOpen(false);
+      handleOpenChange(false);
     } catch (error) {
       console.error('Error exporting bills:', error);
       toast({
@@ -136,13 +150,15 @@ export function ExportCsvDialog({ children }: ExportCsvDialogProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {children ?? (
-          <Button>
-            <Download /> Export
-          </Button>
-        )}
-      </DialogTrigger>
+      {!controlled && (
+        <DialogTrigger asChild>
+          {children ?? (
+            <Button>
+              <Download /> Export
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
 
       <DialogContent>
         <DialogHeader>
@@ -212,7 +228,7 @@ export function ExportCsvDialog({ children }: ExportCsvDialogProps) {
           </div>
 
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isExporting}>
+            <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isExporting}>
               Cancel
             </Button>
             <Button onClick={handleExport} disabled={isExporting}>

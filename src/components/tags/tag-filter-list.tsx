@@ -30,6 +30,13 @@ interface TagFilterListProps {
   showArchivedFilter?: boolean;
   showArchived: boolean;
   onShowArchivedChange: () => void;
+  /**
+   * Phones: the board search lives at the top of this panel (Trello-style)
+   * instead of in the header. Pass the input here.
+   */
+  searchSlot?: React.ReactNode;
+  /** A search is active — counted in the badge, since the box is tucked away. */
+  searchActive?: boolean;
 }
 
 /** Keyboard-operable option row used for the status, year, and tag lists. */
@@ -77,6 +84,8 @@ export function TagFilterList({
   showArchivedFilter = false,
   showArchived,
   onShowArchivedChange,
+  searchSlot,
+  searchActive = false,
 }: TagFilterListProps) {
   const [showManagementDialog, setShowManagementDialog] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -100,7 +109,8 @@ export function TagFilterList({
     selectedTagIds.length +
     selectedYears.length +
     (showStatusFilter && deadFilter !== 'all' ? 1 : 0) +
-    (archivedActive ? 1 : 0);
+    (archivedActive ? 1 : 0) +
+    (searchActive ? 1 : 0);
 
   const handleClearAll = () => {
     onClearFilters();
@@ -160,6 +170,8 @@ export function TagFilterList({
                 )}
               </div>
             </div>
+
+            {searchSlot}
 
             <div className="space-y-4">
               {/* Archived Section (logged-in users only) */}

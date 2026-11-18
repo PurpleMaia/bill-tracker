@@ -8,6 +8,7 @@ import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 // feature further; left commented out rather than deleted.
 // import NewBillButton from './new-bill/new-bill-button';
 import { TrackBillDialog } from './track-bill-dialog';
+import { KanbanPillStrip } from './kanban-pill-strip';
 import { ExportCsvDialog } from './export-csv-dialog';
 import { ViewScopeToggle } from './view-scope-toggle';
 import { FilterChipsRow } from './filter-chips-row';
@@ -16,7 +17,7 @@ import { TagFilterList } from '../tags/tag-filter-list';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Download, Globe, Search, UserPlus } from 'lucide-react';
+import { Download, Globe, Search } from 'lucide-react';
 import { getTagsAction } from '@/app/actions/tags';
 import type { Tag } from '@/types/legislation';
 
@@ -34,7 +35,7 @@ interface KanbanHeaderProps {
 export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
   const { user, activeTenant } = useAuth();
   const { showArchived, toggleShowArchived, bills } = useBills();
-  const { view, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter, searchQuery, setSearchQuery } = useKanbanBoard();
+  const { view, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter, searchQuery, setSearchQuery, scrollToPhase, phaseScrollAvailable } = useKanbanBoard();
 
   const isActiveBoards = variant === 'active-boards';
   // Active Boards is a read-only view of another org's board: no public branch,
@@ -148,7 +149,14 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
     }
   };
 
-  const filterControls = (
+  // Phones put the search inside the filter panel, so its Clear All clears the
+  // search too (desktop's search box sits in plain view and keeps its own).
+  const clearMobileFilters = () => {
+    clearPopoverFilters();
+    setSearchQuery('');
+  };
+
+  const renderFilterControls = (mobile: boolean) => (
     <TagFilterList
       tags={effectiveTags}
       loadingTags={isActiveBoards ? false : loadingTags}
@@ -163,7 +171,9 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
       showArchivedFilter={!isActiveBoards && !isPublic}
       showArchived={showArchived}
       onShowArchivedChange={toggleShowArchived}
-      onClearFilters={clearPopoverFilters}
+      onClearFilters={mobile ? clearMobileFilters : clearPopoverFilters}
+      searchSlot={mobile ? renderSearchInput(mobileSearchRef, false) : undefined}
+      searchActive={mobile && searchQuery.trim() !== ''}
     />
   );
 
@@ -189,24 +199,14 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
 
   return (
     <div className="border-b bg-white shadow-md">
-      {/* Mobile: search + filter + action row. */}
-      <div className="md:hidden flex items-center gap-2 p-2 px-4">
-        {renderSearchInput(mobileSearchRef, false)}
-        {filterControls}
-        {!isActiveBoards && !isPublic && (
-          <>
-            <TrackBillDialog>
-              <Button size="icon" className="shrink-0" aria-label="Track a new bill">
-                <UserPlus className="h-4 w-4" />
-              </Button>
-            </TrackBillDialog>
-            <ExportCsvDialog>
-              <Button variant="outline" size="icon" className="shrink-0" aria-label="Export bills (CSV or Excel)">
-                <Download className="h-4 w-4" />
-              </Button>
-            </ExportCsvDialog>
-          </>
-        )}
+      {/* Mobile: one Trello-style toolbar row — phase jump pills, then
+          Filters pinned right (search lives inside its panel). Tracking moved
+          to each column's footer and Export to the avatar menu. */}
+      <div className="md:hidden flex items-center gap-2 px-3 py-2">
+        <div className="min-w-0 flex-1 overflow-x-auto">
+          {phaseScrollAvailable && <KanbanPillStrip onScrollTo={scrollToPhase} />}
+        </div>
+        {renderFilterControls(true)}
       </div>
 
       {/* Desktop */}
@@ -227,7 +227,7 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
         {/* Find group: search + filters narrow the same result set */}
         <div className="flex items-center gap-2 flex-1">
           {renderSearchInput(desktopSearchRef, true)}
-          {filterControls}
+          {renderFilterControls(false)}
         </div>
 
         <div className="flex items-center gap-2 ml-auto">

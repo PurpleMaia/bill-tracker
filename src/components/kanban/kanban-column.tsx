@@ -117,10 +117,12 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
         ref={ref}
         className={cn(
           // Column width = (viewport − board padding − gaps) / N so an exact
-          // number of columns is visible per breakpoint: 1 phone, 2 sm/md,
-          // 3 lg (small laptop), 4 xl (laptop), 5 2xl (desktop).
+          // number of columns is visible per breakpoint: 2 sm/md, 3 lg (small
+          // laptop), 4 xl (laptop), 5 2xl (desktop). Phones show one centered
+          // column 2.5rem narrower than the board, leaving a ~0.75rem stub of
+          // each neighbour peeking in — the cue that the board scrolls sideways.
           'flex h-full shrink-0 flex-col rounded-lg',
-          'w-[calc(100vw-1rem)] sm:w-[calc((100vw-1.5rem)/2)] md:w-[calc((100vw-3rem)/2)]',
+          'w-[calc(100vw-3.5rem)] sm:w-[calc((100vw-1.5rem)/2)] md:w-[calc((100vw-3rem)/2)]',
           'lg:w-[calc((100vw-4rem)/3)] xl:w-[calc((100vw-5rem)/4)] 2xl:w-[calc((100vw-6rem)/5)]',
           getColumnPhaseBg(columnId),
           isDraggingOver ? 'bg-accent/20' : '',
@@ -248,40 +250,32 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
               </div>
             )}
 
-            {/* Track-more button at the bottom of a non-empty list. Own board
-                only — it links to the search page pre-filtered to this stage.
-                The empty column shows its own centered version instead, so this
-                is gated to when there are actually cards above it. */}
-            {bills.length > 0 && activeTenant && boardMode === 'own' && (
-              <Link
-                href={columnTrackSearchHref(columnId)}
-                className="mt-1 inline-flex items-center justify-center gap-1.5 self-center rounded-md border border-dashed px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Track bills at this stage
-              </Link>
-            )}
           </div>
 
-          {/* Empty state. On your own board it invites you to the search page
-              (pre-filtered to this stage) to track a bill; on public/read-only
-              boards there's nothing to track, so it stays a neutral line. */}
+          {/* Empty state. The track link lives in the pinned footer below, so
+              the body only needs to say the stage is empty. */}
           {!bills.length && pendingCount === 0 && !children && (
-            activeTenant && boardMode === 'own' ? (
-              <div className="flex flex-col items-center gap-2 p-4 text-center">                
-                <Link
-                  href={columnTrackSearchHref(columnId)}
-                  className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Track bills at this stage
-                </Link>
-              </div>
-            ) : (
-              <p className="p-4 text-center text-sm text-muted-foreground">No bills in this stage.</p>
-            )
+            <p className="p-4 text-center text-sm text-muted-foreground">No bills in this stage.</p>
           )}
         </ScrollArea>
+
+        {/* Pinned footer: outside the scroll area, so "Track bills" sits at the
+            bottom of the column however long the card list runs, instead of
+            waiting at the end of it. Own board only — it links to the search
+            page pre-filtered to this stage. */}
+        {activeTenant && boardMode === 'own' && (
+          <div className="shrink-0 px-2 pb-2">
+            <Link
+              href={columnTrackSearchHref(columnId)}
+              // Solid and readable, like Trello's "+ Add a card": the column's
+              // primary action, not a faint hint.
+              className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-background px-2.5 text-sm font-semibold text-primary shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:min-h-9 md:text-xs"
+            >
+              <Plus className="h-4 w-4" />
+              Track bills at this stage
+            </Link>
+          </div>
+        )}
       </div>
     );
   }

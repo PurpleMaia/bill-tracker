@@ -20,7 +20,6 @@ import { useBills } from '@/hooks/contexts/bills-context';
 import KanbanBoardSkeleton from './skeletons/skeleton-board';
 import { KanbanColumn } from './kanban-column';
 import { useAuth } from '@/hooks/contexts/auth-context';
-import { KanbanPillStrip } from './kanban-pill-strip';
 
 
 interface KanbanBoardProps {
@@ -34,7 +33,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, boardMode = 'own', orgTestimonyBillIds, trackedBillIds, onTrackForSelf }: KanbanBoardProps) {
-  const { searchQuery, selectedTagIds, selectedYears, columnView } = useKanbanBoard();
+  const { searchQuery, selectedTagIds, selectedYears, columnView, registerPhaseScroll } = useKanbanBoard();
   const { toast } = useToast();
   const { user, activeTenant } = useAuth();
   // Status changes are org-scoped; users with no org can't move cards.
@@ -82,6 +81,10 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
   // ============= Scroll Handlers =========================
   // =======================================================
   
+  // Phones (max-sm) show one centered column with a stub of each neighbour
+  // peeking in: the viewports snap-x to column centers, and the column rows
+  // carry px-5 (the peek gutter) so the first and last columns can center too.
+
   // Create refs for all columns dynamically
   const viewportRef = useRef<HTMLDivElement>(null);
   const columnRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -140,8 +143,12 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
     isMobileDragRef.current = window.matchMedia('(max-width: 767px)').matches;
     if (!isMobileDragRef.current) return;
     dragPointerXRef.current = null;
-    // Per-frame scrollLeft writes fight the inline scrollBehavior: 'smooth'.
-    if (viewportRef.current) viewportRef.current.style.scrollBehavior = 'auto';
+    // Per-frame scrollLeft writes fight the inline scrollBehavior: 'smooth',
+    // and snapping would yank each 1px nudge back to the nearest column.
+    if (viewportRef.current) {
+      viewportRef.current.style.scrollBehavior = 'auto';
+      viewportRef.current.style.scrollSnapType = 'none';
+    }
     window.addEventListener('pointermove', handleDragPointerMove, { passive: true });
     window.addEventListener('touchmove', handleDragPointerMove, { passive: true });
     if (autoPanRafRef.current === null) {
@@ -159,7 +166,10 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
     }
     dragPointerXRef.current = null;
     isMobileDragRef.current = false;
-    if (viewportRef.current) viewportRef.current.style.scrollBehavior = 'smooth';
+    if (viewportRef.current) {
+      viewportRef.current.style.scrollBehavior = 'smooth';
+      viewportRef.current.style.scrollSnapType = ''; // back to the class's snap
+    }
   }, [handleDragPointerMove]);
 
   // Tear down listeners/rAF if a drag is interrupted by unmount.
@@ -177,11 +187,17 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
 
       const targetRect = target.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
+      // Phones center the column (its neighbours peek in on both sides, and
+      // it's where the snap would settle anyway); wider screens show several
+      // columns and keep the target flush left.
+      const inset = window.matchMedia('(max-width: 639px)').matches
+        ? Math.max(0, (containerRect.width - targetRect.width) / 2)
+        : 0;
       // Explicit behavior — a bare scrollLeft assignment depends on the
       // viewport's inline scroll-behavior, which the drag auto-pan toggles
       // to 'auto' and may leave there.
       container.scrollTo({
-        left: container.scrollLeft + (targetRect.left - containerRect.left),
+        left: container.scrollLeft + (targetRect.left - containerRect.left) - inset,
         behavior: 'smooth',
       });
     }
@@ -198,6 +214,14 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
       console.warn('Invalid column index:', columnIndex);
     }
   }, []);
+
+  // The phone phase pills render in KanbanHeader (beside Filters); hand them
+  // this board's scroller. Re-registered when the column set changes.
+  useEffect(() => {
+    const phaseIdx = { introduced: introducedIdx, crossover: crossoverIdx, conference: conferenceIdx, governor: governorIdx };
+    registerPhaseScroll((phase) => scrollToColumnByIndex(phaseIdx[phase]));
+    return () => registerPhaseScroll(null);
+  }, [registerPhaseScroll, scrollToColumnByIndex, introducedIdx, crossoverIdx, conferenceIdx, governorIdx]);
 
   // =======================================================
   // ==================== Effects ==========================
@@ -462,31 +486,24 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
 
   return (
     <>
-      <KanbanPillStrip
-        onScrollToIntroduced={scrollToIntroduced}
-        onScrollToCrossover={scrollToCrossover}
-        onScrollToConference={scrollToConference}
-        onScrollToGovernor={scrollToGovernor}
-      />
-
       {(isReadOnly || isSimplified) ? (
         <ScrollAreaPrimitive.Root className="relative min-h-0 w-full flex-1 overflow-hidden p-2 md:p-4">
           <ScrollAreaPrimitive.Viewport
             ref={viewportRef}
-            className="h-full w-full max-w-[100vw] rounded-[inherit] [&>div]:!flex [&>div]:h-full"
+            className="h-full w-full max-w-[100vw] rounded-[inherit] max-sm:snap-x max-sm:snap-mandatory [&>div]:!flex [&>div]:h-full"
             style={{ scrollBehavior: 'smooth' }}
           >
             {loading ? (
               <KanbanBoardSkeleton columns={activeColumns.length} />
             ) : (
-              <div className="flex h-full space-x-2 md:space-x-4 pb-4">
+              <div className="flex h-full space-x-2 md:space-x-4 pb-4 max-sm:px-5">
                 {activeColumns.map((column, idx) => (
                   <div
                     key={column.id}
                     ref={(el) => {
                       columnRefs.current[idx] = el;
                     }}
-                    className={cn('h-full shrink-0', RISE_IN)}
+                    className={cn('h-full shrink-0 max-sm:snap-center', RISE_IN)}
                     style={riseDelay(idx)}
                   >
                     <KanbanColumn
@@ -527,13 +544,13 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
           <ScrollAreaPrimitive.Root className="relative min-h-0 w-full flex-1 overflow-hidden p-2 md:p-4">
             <ScrollAreaPrimitive.Viewport
               ref={viewportRef}
-              className="h-full w-full max-w-[100vw] rounded-[inherit] [&>div]:!flex [&>div]:h-full"
+              className="h-full w-full max-w-[100vw] rounded-[inherit] max-sm:snap-x max-sm:snap-mandatory [&>div]:!flex [&>div]:h-full"
               style={{ scrollBehavior: 'smooth' }}
             >
               {loading ? (
                 <KanbanBoardSkeleton columns={activeColumns.length} />
               ) : (
-                <div className="flex h-full space-x-2 md:space-x-4 pb-4">
+                <div className="flex h-full space-x-2 md:space-x-4 pb-4 max-sm:px-5">
                   {activeColumns.map((column, idx) => (
                     <div
                       key={column.id}
@@ -544,7 +561,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
                       // cards are Draggables whose own transform dnd controls, and
                       // a dropped card remounts in its new column, which would
                       // replay a per-card animation on every move.
-                      className={cn('h-full shrink-0', RISE_IN)}
+                      className={cn('h-full shrink-0 max-sm:snap-center', RISE_IN)}
                       style={riseDelay(idx)}
                     >
                       <Droppable droppableId={column.id}>

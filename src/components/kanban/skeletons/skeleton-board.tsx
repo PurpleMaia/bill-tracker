@@ -16,7 +16,7 @@ export const KanbanColumnSkeleton = ({ index = 0 }: { index?: number }) => {
     className={cn(
         "flex h-full shrink-0 flex-col rounded-lg animate-pulse",
         PHASE_BGS[index % PHASE_BGS.length],
-        "w-[calc(100vw-1rem)] sm:w-[calc((100vw-1.5rem)/2)] md:w-[calc((100vw-3rem)/2)]",
+        "w-[calc(100vw-3.5rem)] sm:w-[calc((100vw-1.5rem)/2)] md:w-[calc((100vw-3rem)/2)]",
         "lg:w-[calc((100vw-4rem)/3)] xl:w-[calc((100vw-5rem)/4)] 2xl:w-[calc((100vw-6rem)/5)]",
     )}
     >
@@ -69,7 +69,7 @@ export default function KanbanBoardSkeleton({ columns = SIMPLIFIED_COLUMNS.lengt
     // Spacing mirrors the real board's column wrapper so the swap to live
     // content doesn't shift anything.
     return (
-        <div className="flex h-full space-x-2 md:space-x-4 pb-4 overflow-hidden">
+        <div className="flex h-full space-x-2 md:space-x-4 pb-4 overflow-hidden max-sm:px-5">
             {Array.from({ length: columns }).map((_, index) => (
                 <KanbanColumnSkeleton
                 key={`column-skeleton-${index}`}
