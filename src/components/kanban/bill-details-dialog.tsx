@@ -14,13 +14,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, parseLocalDate, todayHawaii } from '@/lib/core/utils';
-import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files, Users } from 'lucide-react';
+import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files, Users, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
 import RefreshStatusesButton from '../scraper/scrape-updates-button';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { useTrackedBills } from '@/hooks/use-tracked-bills';
+import { RemoveFromBoardDialog } from './remove-from-board-dialog';
 import { LoginLink } from '@/components/auth/login-link';
 import { COLUMN_TITLES, KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
 import {
@@ -92,6 +94,7 @@ const TABS: readonly DialogTab[] = [
 export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', returnTo, trackSlot }: BillDetailsDialogProps) {
   const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills();
   const { user, activeTenant } = useAuth();
+  const { untrackBill } = useTrackedBills();
   const isMobile = useIsMobile();
   const router = useRouter();
   // Hosts may pass billID null the moment the dialog closes; keep showing the
@@ -224,6 +227,46 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   const canSeeTracking = boardMode !== 'active-boards' && activeTenant?.orgRole === 'admin';
   // Only org admins may change a bill's org status; workers and public users don't see the control.
   const canChangeStatus = activeTenant?.orgRole === 'admin';
+  // Remove/Untrack only on the user's own board: not Search (trackSlot), Active Boards, or signed out.
+  const onOwnBoard = !trackSlot && boardMode !== 'active-boards' && !!user;
+  const canRemoveFromBoard = onOwnBoard && activeTenant?.orgRole === 'admin';
+  // Mirrors protected-kanban-board's shouldShowUnadoptButton for non-admins.
+  const canUntrack = onOwnBoard && !canRemoveFromBoard && viewMode === 'my-bills';
+  const removeActionClass = 'border-destructive/35 text-destructive hover:bg-destructive/10 hover:text-destructive';
+  const renderRemoveAction = (mobile: boolean) => {
+    const cls = cn(removeActionClass, mobile && 'h-11 w-full');
+    const size = mobile ? 'default' : 'sm';
+    if (canRemoveFromBoard) {
+      return (
+        <RemoveFromBoardDialog
+          bill={bill}
+          onRemoved={onClose}
+          trigger={
+            <Button size={size} variant="outline" className={cls}>
+              <X className={cn('mr-1.5 shrink-0', mobile ? 'h-4 w-4' : 'h-3.5 w-3.5')} />
+              Remove from board
+            </Button>
+          }
+        />
+      );
+    }
+    if (canUntrack) {
+      return (
+        <Button
+          size={size}
+          variant="outline"
+          className={cls}
+          onClick={async () => {
+            if (await untrackBill(bill.id)) onClose();
+          }}
+        >
+          <X className={cn('mr-1.5 shrink-0', mobile ? 'h-4 w-4' : 'h-3.5 w-3.5')} />
+          Untrack
+        </Button>
+      );
+    }
+    return null;
+  };
 
   // Derive dead reason and deadline
   const committeeAssign = billDetails?.committee_assignment || bill.committee_assignment;
@@ -436,6 +479,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                 wrapper alongside whichever Write Testimony variant renders. */}
             <div data-bill-tour="actions" className="hidden sm:flex shrink-0 items-center gap-2">
               {trackSlot}
+              {renderRemoveAction(false)}
               {!user ? (
                 /* Logged-out (the dialog is reachable from public search): both
                    CTAs lead to authenticated flows, so they become login prompts
@@ -799,6 +843,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                         control is repeated here to stay reachable. Full width,
                         below the pair — its label is forced back on because the
                         search page's button is icon-only at this breakpoint. */}
+                    {renderRemoveAction(true)}
                     {trackSlot && (
                       <div className="[&_button]:h-11 [&_button]:w-full [&_button>span]:inline">
                         {trackSlot}
