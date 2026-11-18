@@ -6,7 +6,7 @@ import { Check } from 'lucide-react';
 const STEPS = [
   { number: 1, title: 'Write' },
   { number: 2, title: 'Review' },
-  { number: 3, title: 'Submit' },
+  { number: 3, title: 'Submit on Capitol site' },
 ] as const;
 
 export type TestimonyStep = 1 | 2 | 3;
@@ -14,9 +14,11 @@ export type TestimonyStep = 1 | 2 | 3;
 interface TestimonyStepperProps {
   step: TestimonyStep;
   onStepChange: (step: TestimonyStep) => void;
+  /** Furthest step the user may jump to; later steps render disabled. */
+  maxStep?: TestimonyStep;
 }
 
-export function TestimonyStepper({ step, onStepChange }: TestimonyStepperProps) {
+export function TestimonyStepper({ step, onStepChange, maxStep = 3 }: TestimonyStepperProps) {
   return (
     <nav aria-label="Testimony progress" className="flex items-center gap-2">
       {STEPS.map((item, index) => {
@@ -27,8 +29,9 @@ export function TestimonyStepper({ step, onStepChange }: TestimonyStepperProps) 
             <button
               type="button"
               onClick={() => onStepChange(item.number)}
+              disabled={item.number > maxStep}
               className={cn(
-                'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
+                'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-50',
                 state === 'current' && 'bg-primary text-primary-foreground',
                 state === 'done' && 'text-primary hover:bg-primary/10',
                 state === 'todo' && 'text-muted-foreground hover:bg-muted',

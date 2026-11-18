@@ -111,7 +111,7 @@ function ResetPasswordForm() {
             <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
               {stage === "invalid"
                 ? "Reset links last 1 hour and work only once."
-                : "Choose a new password for your Food+ account."}
+                : "Choose a new password for your Hawaiʻi Bill Tracker account."}
             </p>
           </div>
         </div>

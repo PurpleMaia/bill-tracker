@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { BillDetails } from '@/types/legislation';
@@ -8,24 +8,32 @@ import type { TestimonyPosition } from '@/types/testimony';
 import { data } from '@/lib/data-client';
 import { safeReturnPath } from '@/lib/core/safe-return-path';
 import { fullNameOrUsername } from '@/lib/auth/profile';
+import { tiptapHasText } from '@/lib/testimony/tiptap-text';
 import { RETURN_TO_PARAM, stripBillParam } from '@/lib/bills/bill-dialog-url';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { invalidateTestimonies } from '@/hooks/use-testimonies';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { TestimonyStepper, type TestimonyStep } from '@/components/testimony/testimony-stepper';
 import { BillReferencePanel } from '@/components/bills/bill-reference-panel';
+import { BillInfoFab } from '@/components/bills/bill-info-fab';
 import { TestimonyHeaderForm, type TestimonyHeaderValue } from '@/components/testimony/testimony-header-form';
 import { TestimonyEditor } from '@/components/testimony/testimony-editor';
 import { TestimonyExportStep } from '@/components/testimony/testimony-export-step';
 import { TestimonySubmitGuide } from '@/components/testimony/testimony-submit-guide';
-import { ArrowLeft, ArrowRight, Info, Loader2, Lock } from 'lucide-react';
+import { FlowWalkthrough } from '@/components/tour/flow-walkthrough';
+import { TESTIMONY_WALKTHROUGH_KEY, testimonyWalkthrough } from '@/lib/tour/flow-walkthroughs';
+import { ArrowLeft, ArrowRight, Loader2, Lock } from 'lucide-react';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 const EMPTY_DOC = { type: 'doc', content: [{ type: 'paragraph' }] };
+
+/** Whether focus landed somewhere that opens the on-screen keyboard. */
+function isTextEntry(target: EventTarget): boolean {
+  return target instanceof HTMLElement && (target.isContentEditable || target.matches('input:not([type="radio"]), textarea'));
+}
 
 export default function TestimonyPage() {
   const { id: billId } = useParams<{ id: string }>();
@@ -51,6 +59,8 @@ export default function TestimonyPage() {
   const [contentJson, setContentJson] = useState<unknown>(EMPTY_DOC);
   const [submitted, setSubmitted] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  // A text field or the editor has focus — on a phone, the keyboard is up.
+  const [typing, setTyping] = useState(false);
 
   const hydrated = useRef(false); // true once bill + draft are loaded (enables autosave)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -194,6 +204,16 @@ export default function TestimonyPage() {
     scheduleSave();
   };
 
+  // An empty testimony can't move on to Review (or be skipped past via the stepper).
+  const hasText = useMemo(() => tiptapHasText(contentJson), [contentJson]);
+
+  // The tour walks the Write step, so replaying it from Review/Submit returns there first.
+  const startTour = useCallback(() => setStep(1), []);
+  const walkthrough = useMemo(
+    () => testimonyWalkthrough({ billNumber: bill?.bill_number ?? '' }),
+    [bill?.bill_number],
+  );
+
   if (authLoading || (user && loading)) {
     return (
       <div className="flex h-dvh items-center justify-center">
@@ -228,6 +248,16 @@ export default function TestimonyPage() {
     saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : saveState === 'error' ? 'Save failed' : '';
 
   const referencePanel = <BillReferencePanel bill={bill} />;
+  const stepper = <TestimonyStepper step={step} onStepChange={setStep} maxStep={hasText ? 3 : 1} />;
+  const nextRow = (
+    <div className="flex items-center justify-end gap-3">
+      {!hasText && <p className="text-xs text-muted-foreground">Write your testimony to continue.</p>}
+      <Button onClick={() => setStep(2)} disabled={!hasText} data-flow-tour="next">
+        Next: Review
+        <ArrowRight className="ml-1.5 h-4 w-4" />
+      </Button>
+    </div>
+  );
 
   return (
     <div className="flex h-dvh flex-col">
@@ -247,45 +277,37 @@ export default function TestimonyPage() {
           <span className="hidden text-xs text-muted-foreground sm:inline" aria-live="polite">
             {saveLabel}
           </span>
-          <TestimonyStepper step={step} onStepChange={setStep} />
+          <FlowWalkthrough walkthrough={walkthrough} storageKey={TESTIMONY_WALKTHROUGH_KEY} onStart={startTour} />
+          {!isMobile && <div data-flow-tour="stepper">{stepper}</div>}
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
         {/* Reference panel — sidebar on desktop, sheet on mobile */}
         {!isMobile && (
-          <aside className="w-[340px] shrink-0 border-r bg-muted/20">{referencePanel}</aside>
+          <aside className="w-[340px] shrink-0 border-r bg-muted/20" data-flow-tour="reference">{referencePanel}</aside>
         )}
 
-        <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-3xl space-y-4 p-4 sm:p-6">
-            {isMobile && (
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Info className="mr-1.5 h-3.5 w-3.5" />
-                    Bill info
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-[85vw] p-0 sm:w-[380px]">
-                  <SheetHeader className="border-b px-4 py-3">
-                    <SheetTitle className="text-sm">Bill reference</SheetTitle>
-                  </SheetHeader>
-                  <div className="h-[calc(100dvh-57px)]">{referencePanel}</div>
-                </SheetContent>
-              </Sheet>
-            )}
+        <main
+          className="min-w-0 flex-1 overflow-y-auto"
+          onFocus={(e) => setTyping(isTextEntry(e.target))}
+          onBlur={() => setTyping(false)}
+        >
+          {/* On phones, room at the bottom for the fixed stepper bar. */}
+          {/* Bottom padding follows isMobile alone (not sm:), which runs past the sm breakpoint. */}
+          <div className={['mx-auto max-w-3xl space-y-4 px-4 pt-4 sm:px-6 sm:pt-6', isMobile ? 'pb-20' : 'pb-4 sm:pb-6'].join(' ')}>
 
             {step === 1 && (
               <>
-                <TestimonyHeaderForm value={form} onChange={handleFormChange} />
-                <TestimonyEditor initialContent={contentJson} onChange={handleContentChange} />
-                <div className="flex justify-end">
-                  <Button onClick={() => setStep(2)}>
-                    Next: Review
-                    <ArrowRight className="ml-1.5 h-4 w-4" />
-                  </Button>
+                <div data-flow-tour="details">
+                  <TestimonyHeaderForm value={form} onChange={handleFormChange} />
                 </div>
+                {/* Phones: Next sits above the editor so it isn't buried under the keyboard. */}
+                {isMobile && nextRow}
+                <div data-flow-tour="editor">
+                  <TestimonyEditor initialContent={contentJson} onChange={handleContentChange} />
+                </div>
+                {!isMobile && nextRow}
               </>
             )}
 
@@ -311,6 +333,20 @@ export default function TestimonyPage() {
           </div>
         </main>
       </div>
+
+      {/* Phones: the step progress lives in a bar at the bottom, with Bill info floating above it.
+          Both step aside while typing, so they don't sit on top of the keyboard. */}
+      {isMobile && !typing && (
+        <>
+          <nav
+            className="fixed inset-x-0 bottom-0 z-30 flex justify-center border-t bg-background px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+            data-flow-tour="stepper"
+          >
+            {stepper}
+          </nav>
+          <BillInfoFab panel={referencePanel} className="bottom-[4.25rem]" />
+        </>
+      )}
     </div>
   );
 }

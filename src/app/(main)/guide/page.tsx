@@ -83,15 +83,16 @@ const STEPS: Step[] = [
     body: (
       <>
         Testimony is your chance to tell a committee what you think of a bill. The guided editor
-        walks you through three steps: <strong>Write</strong>, <strong>Review</strong>, and{' '}
-        <strong>Submit</strong>. You can also reach out to your legislators directly with{' '}
-        <strong>Contact Legislator</strong>.
+        helps you <strong>write</strong> it and <strong>download</strong> it, then shows you how to{' '}
+        <strong>submit it yourself</strong> on capitol.hawaii.gov. The Hawaiʻi Bill Tracker can&rsquo;t submit testimony
+        for you. You can also ask lawmakers to act on a bill, like scheduling a hearing or meeting
+        with you, with <strong>Contact Legislator</strong>.
       </>
     ),
     tips: [
       'Testimony is generally due 24 hours before the hearing, so check the hearing date first.',
-      'Your drafts are saved here, and so are the ones you have submitted.',
-      'Open any bill and press Contact Legislator to write to the lawmakers who can act on it. Once a bill reaches the Governor, the button becomes Contact Governor.',
+      'Your drafts are saved here. After you submit on the Capitol site, mark it submitted to keep track.',
+      'Open any bill and press Contact Legislator to write to the lawmakers who can act on it. The message is sent from your own email app, not by the Hawaiʻi Bill Tracker. Once a bill reaches the Governor, the button becomes Contact Governor.',
     ],
   },
   {

@@ -39,7 +39,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'testimonies',
     target: '/testimonies',
     title: 'Testimonies',
-    body: 'Write, review, and submit testimony on a bill. Drafts and submitted testimony are saved here.',
+    body: 'Write testimony on a bill and download it, then submit it yourself on the Capitol website. Your drafts and submitted testimony are tracked here.',
   },
   {
     id: 'boards',

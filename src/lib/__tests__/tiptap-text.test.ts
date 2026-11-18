@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { tiptapExcerpt, tiptapPlainText } from '@/lib/testimony/tiptap-text';
+import { tiptapExcerpt, tiptapHasText, tiptapPlainText } from '@/lib/testimony/tiptap-text';
 
 function doc(...paragraphs: string[]) {
   return {
@@ -117,5 +117,28 @@ describe('tiptapPlainText', () => {
   it('returns empty string for empty or malformed docs', () => {
     expect(tiptapPlainText({})).toBe('');
     expect(tiptapPlainText(null)).toBe('');
+  });
+});
+
+describe('tiptapHasText', () => {
+  const doc = (...content: unknown[]) => ({ type: 'doc', content });
+  const para = (text?: string) => ({ type: 'paragraph', content: text === undefined ? undefined : [{ type: 'text', text }] });
+
+  it('is false for empty and malformed documents', () => {
+    expect(tiptapHasText(null)).toBe(false);
+    expect(tiptapHasText({})).toBe(false);
+    expect(tiptapHasText(doc(para()))).toBe(false);
+  });
+  it('ignores whitespace-only paragraphs', () => {
+    expect(tiptapHasText(doc(para('   '), para()))).toBe(false);
+  });
+  it('ignores empty list items', () => {
+    const list = { type: 'bulletList', content: [{ type: 'listItem', content: [para()] }] };
+    expect(tiptapHasText(doc(list))).toBe(false);
+  });
+  it('is true once any block has text', () => {
+    expect(tiptapHasText(doc(para(), para('I support this bill.')))).toBe(true);
+    const list = { type: 'bulletList', content: [{ type: 'listItem', content: [para('Point one')] }] };
+    expect(tiptapHasText(doc(list))).toBe(true);
   });
 });

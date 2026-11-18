@@ -21,7 +21,7 @@ const GUIDE_STEPS: Array<{ title: string; body: string }> = [
   },
   {
     title: 'Draft it here, submit it there',
-    body: 'Write and refine your testimony in Food+, then paste or upload it on their Submit Testimony form.',
+    body: 'Write and refine your testimony in the Hawaiʻi Bill Tracker, then paste or upload it on their Submit Testimony form.',
   },
   {
     title: 'Beat the 24-hour deadline',

@@ -755,7 +755,7 @@ function TestimonyCardMenu({
             <AlertDialogDescription>
               {isDraft
                 ? `Your testimony draft for ${item.billNumber} will be permanently deleted. This cannot be undone.`
-                : `Your ${item.billNumber} testimony record will be removed from Food+. This does not withdraw testimony already submitted on the Capitol website, and it cannot be undone.`}
+                : `Your ${item.billNumber} testimony record will be removed from the Hawaiʻi Bill Tracker. This does not withdraw testimony already submitted on the Capitol website, and it cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

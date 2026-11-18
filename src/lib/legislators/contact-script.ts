@@ -23,11 +23,14 @@ export function measurePhrase(
 }
 
 /**
- * The clause naming the committee the request is directed at. Uses the inferred
- * current committee name when we have one, else a neutral fallback.
+ * A committee as it reads mid-sentence: "the Committee on Health" stays as is,
+ * but a bare stored name ("Health") becomes "the Health committee" rather than
+ * "the Health". `fallback` is used when no committee is known.
  */
-function committeeClause(committeeName?: string): string {
-  return committeeName ? `the ${committeeName}` : 'the committee';
+export function committeePhrase(committeeName?: string | null, fallback = 'the committee'): string {
+  const name = committeeName?.trim();
+  if (!name) return fallback;
+  return /committee/i.test(name) ? `the ${name}` : `the ${name} committee`;
 }
 
 function scriptBody(input: {
@@ -40,7 +43,7 @@ function scriptBody(input: {
 }): string {
   const { greeting, billNumber, billTitle, userName, committeeName } = input;
   const measure = measurePhrase(billNumber, billTitle);
-  const before = committeeClause(committeeName);
+  const before = committeePhrase(committeeName);
 
   return [
     greeting,
@@ -121,7 +124,7 @@ export function buildCallScript(input: {
 }): string {
   const { billNumber, billTitle, userName, committeeName } = input;
   const measure = measurePhrase(billNumber, billTitle, { trailingComma: false });
-  const before = committeeName ? `the ${committeeName}` : 'this committee';
+  const before = committeePhrase(committeeName, 'this committee');
 
   return [
     `Hi, my name is ${userName ?? NAME_PLACEHOLDER} and I'm a Hawaii resident.`,
