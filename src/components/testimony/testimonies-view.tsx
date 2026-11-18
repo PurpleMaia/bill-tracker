@@ -59,6 +59,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { TestimoniesSidebar } from './testimonies-sidebar';
+import { NewTestimonyButton } from './new-testimony-dialog';
 
 export type TestimoniesFilter = 'all' | 'drafts' | 'submitted';
 
@@ -214,7 +215,10 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
     <div className="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
       {/* Page heading + summary */}
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold tracking-tight">Your Testimonies</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-2xl font-semibold tracking-tight">Your Testimonies</h2>
+          {user && <NewTestimonyButton />}
+        </div>
         {items !== null && hasAnything && (
           <p className="mt-1 text-sm text-muted-foreground">
             {needed.length > 0 && (

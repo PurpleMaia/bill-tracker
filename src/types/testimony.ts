@@ -108,3 +108,18 @@ export interface TestimonyCreateInput {
   /** Prefill for the author field when starting blank. */
   authorName?: string;
 }
+
+/** A followed bill offered in the "New testimony" picker on Your Testimonies. */
+export interface TestimonyBillOption {
+  billId: string;
+  billNumber: string;
+  billTitle: string | null;
+  nickname: string | null;
+  billStatus: string;
+  /** Label of the bill's current hearing round ("Senate · AGL"). */
+  roundLabel: string;
+  /** A hearing is scheduled — testimony can be submitted now. */
+  scheduled: boolean;
+  /** The user already has a testimony covering the current round (picking it opens that one). */
+  written: boolean;
+}

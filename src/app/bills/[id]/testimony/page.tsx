@@ -10,7 +10,7 @@ import { safeReturnPath } from '@/lib/core/safe-return-path';
 import { fullNameOrUsername } from '@/lib/auth/profile';
 import { tiptapHasText } from '@/lib/testimony/tiptap-text';
 import { RETURN_TO_PARAM, stripBillParam } from '@/lib/bills/bill-dialog-url';
-import { currentTestimonyRound, roundLabel, sameRound } from '@/lib/testimony/testimony-round';
+import { coversRound, currentTestimonyRound, roundLabel, sameRound } from '@/lib/testimony/testimony-round';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { invalidateTestimonies } from '@/hooks/use-testimonies';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -165,9 +165,10 @@ export default function TestimonyPage() {
           list.find((t) => t.id === requestedIdRef.current) ??
           list.find((t) => sameRound(t, round)) ??
           null;
-        // From "Needs testimony" (?round=current) on a bill testified on in an earlier
-        // round: start this round's testimony now, copied from the newest one.
-        if (!picked && list.length > 0 && startCurrentRoundRef.current) {
+        // From "Needs testimony" or the New testimony picker (?round=current) on a bill
+        // testified on in an earlier round: start this round's testimony now, copied
+        // from the newest one. (Pre-round testimonies alone count as covering it.)
+        if (!picked && startCurrentRoundRef.current && list.length > 0 && !coversRound(list, round)) {
           const created = await data.testimony.create({
             billId,
             tenantId: activeTenant?.tenantId ?? null,

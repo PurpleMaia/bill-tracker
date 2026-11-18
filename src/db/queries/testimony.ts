@@ -12,6 +12,7 @@ import {
   type TestimonyRound,
 } from '@/lib/testimony/testimony-round';
 import type {
+  TestimonyBillOption,
   TestimonyCreateInput,
   TestimonyDraft,
   TestimonyDraftInput,
@@ -298,6 +299,58 @@ async function latestStatusTextByBillId(billIds: string[]): Promise<Record<strin
   return latestByBillId;
 }
 
+interface RoundBillRow {
+  id: string;
+  bill_number: string | null;
+  bill_status: string | null;
+  current_committee: string[] | null;
+  committee_assignment: string | null;
+  dead: boolean;
+}
+
+/**
+ * For each bill: its current hearing round, and whether the user's testimonies
+ * already cover it (see coversRound). Two queries for the whole set.
+ */
+async function currentRoundCoverage(
+  userId: string,
+  bills: RoundBillRow[],
+): Promise<Map<string, { round: TestimonyRound; covered: boolean }>> {
+  const result = new Map<string, { round: TestimonyRound; covered: boolean }>();
+  if (bills.length === 0) return result;
+  const billIds = bills.map((b) => b.id);
+  const [updates, written] = await Promise.all([
+    db.selectFrom('status_updates').select(['bill_id', 'statustext']).where('bill_id', 'in', billIds).execute(),
+    db
+      .selectFrom('testimonies')
+      .select(['bill_id', 'chamber', 'committee'])
+      .where('user_id', '=', userId)
+      .where('bill_id', 'in', billIds)
+      .execute(),
+  ]);
+
+  const updatesByBill = new Map<string, { statustext: string }[]>();
+  for (const u of updates) {
+    const list = updatesByBill.get(u.bill_id) ?? [];
+    list.push(u);
+    updatesByBill.set(u.bill_id, list);
+  }
+
+  for (const bill of bills) {
+    const round = currentTestimonyRound({
+      billNumber: bill.bill_number ?? '',
+      billStatus: bill.bill_status,
+      currentCommittee: bill.current_committee,
+      committeeAssignment: bill.committee_assignment,
+      updates: updatesByBill.get(bill.id) ?? [],
+      dead: bill.dead,
+    });
+    const mine = written.filter((t) => t.bill_id === bill.id).map(toRound);
+    result.set(bill.id, { round, covered: coversRound(mine, round) });
+  }
+  return result;
+}
+
 /**
  * Tracked bills with a hearing scheduled where the user has no testimony for
  * the bill's CURRENT hearing round — the "needs testimony" list. A bill the
@@ -329,38 +382,14 @@ export async function listTestimonyProspects(userId: string): Promise<TestimonyP
     .execute();
 
   if (rows.length === 0) return [];
-  const billIds = rows.map((r) => r.id);
 
-  const [latestByBillId, updates, written] = await Promise.all([
-    latestStatusTextByBillId(billIds),
-    db.selectFrom('status_updates').select(['bill_id', 'statustext']).where('bill_id', 'in', billIds).execute(),
-    db
-      .selectFrom('testimonies')
-      .select(['bill_id', 'chamber', 'committee'])
-      .where('user_id', '=', userId)
-      .where('bill_id', 'in', billIds)
-      .execute(),
+  const [latestByBillId, coverage] = await Promise.all([
+    latestStatusTextByBillId(rows.map((r) => r.id)),
+    currentRoundCoverage(userId, rows),
   ]);
 
-  const updatesByBill = new Map<string, { statustext: string }[]>();
-  for (const u of updates) {
-    const list = updatesByBill.get(u.bill_id) ?? [];
-    list.push(u);
-    updatesByBill.set(u.bill_id, list);
-  }
-
   return rows
-    .filter((row) => {
-      const round = currentTestimonyRound({
-        billNumber: row.bill_number ?? '',
-        billStatus: row.bill_status,
-        currentCommittee: row.current_committee,
-        committeeAssignment: row.committee_assignment,
-        updates: updatesByBill.get(row.id) ?? [],
-        dead: row.dead,
-      });
-      return !coversRound(written.filter((t) => t.bill_id === row.id).map(toRound), round);
-    })
+    .filter((row) => !coverage.get(row.id)?.covered)
     .map((row) => ({
       billId: row.id,
       billNumber: row.bill_number ?? '',
@@ -476,4 +505,52 @@ export async function getOrgTestimonyBillIds(
     .where('bill_id', 'in', billIds)
     .execute();
   return rows.map((r) => r.bill_id);
+}
+
+/**
+ * Every non-dead, non-archived bill the user follows, for the "New testimony"
+ * picker: bills with a hearing scheduled first, then by bill number.
+ */
+export async function listTestimonyBillOptions(userId: string): Promise<TestimonyBillOption[]> {
+  const rows = await db
+    .selectFrom('user_bills as ub')
+    .innerJoin('bills as b', 'b.id', 'ub.bill_id')
+    .select([
+      'b.id',
+      'b.bill_number',
+      'b.bill_title',
+      'b.nickname',
+      'b.bill_status',
+      'b.committee_assignment',
+      'b.current_committee',
+      'b.dead',
+    ])
+    .distinct()
+    .where('ub.user_id', '=', userId)
+    .where('b.dead', '=', false)
+    .where('b.archived', '=', false)
+    .execute();
+
+  const coverage = await currentRoundCoverage(userId, rows);
+  const scheduled = new Set<string>(SCHEDULED_STATUSES);
+
+  return rows
+    .map((row) => {
+      const { round, covered } = coverage.get(row.id)!;
+      return {
+        billId: row.id,
+        billNumber: row.bill_number ?? '',
+        billTitle: row.bill_title,
+        nickname: row.nickname,
+        billStatus: row.bill_status ?? 'unassigned',
+        roundLabel: roundLabel(round),
+        scheduled: row.bill_status !== null && scheduled.has(row.bill_status),
+        written: covered,
+      };
+    })
+    .sort(
+      (a, b) =>
+        Number(b.scheduled) - Number(a.scheduled) ||
+        a.billNumber.localeCompare(b.billNumber, undefined, { numeric: true }),
+    );
 }

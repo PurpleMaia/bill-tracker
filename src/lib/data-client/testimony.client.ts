@@ -7,6 +7,7 @@ import {
   getTestimonyDraftAction,
   getTestimonyStatusesAction,
   listBillTestimoniesAction,
+  listTestimonyBillOptionsAction,
   listTestimonyProspectsAction,
   listUserTestimoniesAction,
   markTestimonySubmittedAction,
@@ -15,6 +16,7 @@ import {
   updateTestimonyAction,
 } from '@/app/actions/testimony';
 import type {
+  TestimonyBillOption,
   TestimonyCreateInput,
   TestimonyDraft,
   TestimonyDraftInput,
@@ -158,6 +160,15 @@ async function deleteTestimonyByIdFetch(testimonyId: string): Promise<void> {
   }
 }
 
+async function listTestimonyBillOptionsFetch(): Promise<TestimonyBillOption[]> {
+  const res = await fetch('/api/testimony/bill-options');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to load your bills');
+  }
+  return res.json();
+}
+
 export const testimonyClient = defineClient('testimony', {
   getDraft: { action: getTestimonyDraftAction, fetch: getTestimonyDraftFetch },
   saveDraft: { action: saveTestimonyDraftAction, fetch: saveTestimonyDraftFetch },
@@ -172,4 +183,5 @@ export const testimonyClient = defineClient('testimony', {
   update: { action: updateTestimonyAction, fetch: updateTestimonyFetch },
   markSubmittedById: { action: markTestimonySubmittedByIdAction, fetch: markTestimonySubmittedByIdFetch },
   removeById: { action: deleteTestimonyByIdAction, fetch: deleteTestimonyByIdFetch },
+  billOptions: { action: listTestimonyBillOptionsAction, fetch: listTestimonyBillOptionsFetch },
 });

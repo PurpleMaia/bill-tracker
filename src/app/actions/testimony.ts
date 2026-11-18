@@ -10,6 +10,7 @@ import {
   getTestimonyStatuses,
   listTestimonyProspects,
   listBillTestimonies,
+  listTestimonyBillOptions,
   listUserTestimonies,
   markTestimonySubmitted,
   markTestimonySubmittedById,
@@ -17,6 +18,7 @@ import {
   upsertTestimonyDraft,
 } from '@/db/queries/testimony';
 import type {
+  TestimonyBillOption,
   TestimonyCreateInput,
   TestimonyDraft,
   TestimonyDraftInput,
@@ -113,4 +115,10 @@ export async function markTestimonySubmittedByIdAction(testimonyId: string): Pro
 export async function deleteTestimonyByIdAction(testimonyId: string): Promise<void> {
   const { user } = await requireSession.fromAction();
   return deleteTestimonyById(user.id, testimonyId);
+}
+
+/** Server-action arm for data.testimony.billOptions. The caller's followed bills for the New testimony picker. */
+export async function listTestimonyBillOptionsAction(): Promise<TestimonyBillOption[]> {
+  const { user } = await requireSession.fromAction();
+  return listTestimonyBillOptions(user.id);
 }
