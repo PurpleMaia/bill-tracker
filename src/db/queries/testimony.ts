@@ -270,13 +270,13 @@ export async function markTestimonySubmitted(
   return markTestimonySubmittedById(userId, target.id);
 }
 
-/** Deletes all of the user's testimonies for a bill (no-op if none exist). */
+/**
+ * Deletes the user's newest testimony for a bill (no-op if none exist), like
+ * the other legacy bill-keyed operations — never the earlier rounds.
+ */
 export async function deleteTestimony(userId: string, billId: string): Promise<void> {
-  await db
-    .deleteFrom('testimonies')
-    .where('user_id', '=', userId)
-    .where('bill_id', '=', billId)
-    .execute();
+  const newest = await getTestimonyDraft(userId, billId);
+  if (newest) await deleteTestimonyById(userId, newest.id);
 }
 
 /** Latest scraped status update per bill, for hearing-datetime parsing. */
