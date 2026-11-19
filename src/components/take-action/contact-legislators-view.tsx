@@ -129,7 +129,7 @@ export function ContactLegislatorsView() {
               icon={Users}
               title="No one to contact right now"
               description="Bills you track show up here when a call or email can help: waiting for a hearing, in conference, with the Governor, or vetoed."
-              cta={{ href: '/discover', label: 'Find bills to track' }}
+              cta={{ href: '/find-bills', label: 'Find bills to track' }}
             />
           ) : (
             <div className="space-y-8">

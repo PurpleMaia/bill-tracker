@@ -11,11 +11,11 @@ import { isActiveBoardsTabActive } from '@/lib/boards/board-routes';
 // the first step. "Following" + a star, not "View Board" + the kanban icon, so
 // it can't be mistaken for Your Bills.
 const TABS = [
-  { href: '/boards/browse', label: 'Browse', icon: Compass, adminOnly: false },
-  { href: '/boards', label: 'Following', icon: Star, adminOnly: false },
+  { href: '/community', label: 'Browse', icon: Compass, adminOnly: false },
+  { href: '/community/following', label: 'Following', icon: Star, adminOnly: false },
   // An admin's preview of their own org's board as others see it. Not "Your
   // Tracker": that's the main nav's editable board.
-  { href: '/boards/mine', label: 'Public View', icon: Building2, adminOnly: true },
+  { href: '/community/public-view', label: 'Public View', icon: Building2, adminOnly: true },
 ] as const;
 
 /**

@@ -84,7 +84,7 @@ function MyOrgBoardBanner({ board, onOpenSettings }: { board: MyOrgBoard; onOpen
 }
 
 /**
- * /boards/mine — an org admin's preview of their own org's board as visitors
+ * /community/public-view — an org admin's preview of their own org's board as visitors
  * see it. Unlike /org/<slug>, it works while the board is private, so admins
  * can check what they'd be sharing before turning it on.
  */
@@ -135,7 +135,7 @@ export function MyOrgBoardView() {
         body="Organization admins can preview how their organization’s board looks to others here."
       >
         <Button asChild className="mt-5">
-          <Link href="/boards/browse">
+          <Link href="/community">
             Browse organizations
             <ArrowRight className="ml-1.5 h-4 w-4" />
           </Link>

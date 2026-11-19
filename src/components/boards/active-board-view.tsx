@@ -25,7 +25,7 @@ export function ActiveBoardView() {
   const searchParams = useSearchParams();
   const orgParam = searchParams.get('org');
 
-  // "View board" links from Browse land here as /boards?org=<id>. Select it
+  // "View board" links from Browse land here as /community/following?org=<id>. Select it
   // right away — this effect runs before the provider's, so a cold load fetches
   // only the requested board, and refreshFollowed's reconcile keeps it if
   // followed (falling back otherwise). Then strip just `org`, leaving e.g. a
@@ -96,7 +96,7 @@ export function ActiveBoardView() {
             ))}
           </ol>
           <Button asChild className="mt-5">
-            <Link href="/boards/browse">
+            <Link href="/community">
               Browse organizations
               <ArrowRight className="ml-1.5 h-4 w-4" />
             </Link>

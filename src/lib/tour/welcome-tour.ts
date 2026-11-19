@@ -25,13 +25,13 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'discover',
-    target: '/discover',
+    target: '/find-bills',
     title: 'Find Bills',
     body: 'Search every bill by number, title, or topic. Use the filters to narrow results, then press Track on the ones you care about.',
   },
   {
     id: 'your-bills',
-    target: '/your-bills',
+    target: '/tracker',
     title: 'Your Tracker',
     body: 'Bills you track show up here, on your organization’s board. See them as a Kanban board, a spreadsheet, or a calendar of key dates.',
   },
@@ -44,7 +44,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'boards',
-    target: '/boards/browse',
+    target: '/community',
     title: 'Community',
     body: 'See what other organizations are tracking: open any public board (view only) and follow the ones you care about.',
   },
@@ -62,12 +62,12 @@ export function tourStepPath(step: TourStep, pathname: string): string | null {
   const onPage =
     pathname === page ||
     pathname.startsWith(`${page}/`) ||
-    (page === '/discover' && pathname === '/');
+    (page === '/find-bills' && pathname === '/');
   return onPage ? null : page;
 }
 
 /** Paths that count as "initial landing" for auto-starting the tour. */
-const LANDING_PATHS: ReadonlySet<string> = new Set(['/', '/discover']);
+const LANDING_PATHS: ReadonlySet<string> = new Set(['/', '/find-bills']);
 
 /** Auto-start only on the landing pages, and only if the user hasn't finished or skipped it. */
 export function shouldAutoStartTour(pathname: string, seen: boolean): boolean {

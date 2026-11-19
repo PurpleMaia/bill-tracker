@@ -93,7 +93,7 @@ export function WelcomeTour() {
   // the header has laid out before we measure it.
   useEffect(() => {
     if (!shouldAutoStartTour(pathname, hasSeenTour())) return;
-    // Functional update: the tour itself navigates back to /discover on "Back",
+    // Functional update: the tour itself navigates back to /find-bills on "Back",
     // which must not restart a tour that's already running.
     const t = window.setTimeout(() => setStep((s) => s ?? 0), 600);
     return () => window.clearTimeout(t);

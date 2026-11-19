@@ -10,7 +10,7 @@ import { RISE_IN } from '@/lib/core/motion';
 
 /**
  * Gate for the Following tab. Mirrors LoginWall, but sends visitors to
- * /boards/browse — the organization list stays public, only the boards
+ * /community — the organization list stays public, only the boards
  * themselves require an account.
  */
 export function BoardsLoginWall() {
@@ -33,7 +33,7 @@ export function BoardsLoginWall() {
             </LoginLink>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href="/boards/browse">Browse organizations</Link>
+            <Link href="/community">Browse organizations</Link>
           </Button>
         </CardContent>
       </Card>

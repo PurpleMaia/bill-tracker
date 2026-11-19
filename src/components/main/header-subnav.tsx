@@ -10,19 +10,19 @@ import { ViewToggle } from './view-toggle';
 
 /**
  * Contextual sub-navigation for the header's center slot.
- * '/your-bills' hosts the board view toggle (logged-in only — hidden over
+ * '/tracker' hosts the board view toggle (logged-in only — hidden over
  * the login wall); compact icon-only variant on mobile. It lives in the global header
  * rather than the board header so it stays reachable from the admin view.
  * /take-action renders its Testimony/Contact Legislators tabs (logged-in only
- * — both tabs sit behind a login wall). /boards renders its Following/Browse tabs
+ * — both tabs sit behind a login wall). /community renders its Browse/Following tabs
  * for everyone, since browsing public orgs needs no account; the Following
- * tab itself gates. '/' and /discover render nothing yet; their sub-nav lands here later.
+ * tab itself gates. '/' and /find-bills render nothing yet; their sub-nav lands here later.
  */
 export function HeaderSubNav() {
   const pathname = usePathname();
   const { user } = useAuth();
 
-  if (pathname.startsWith('/your-bills') && user) {
+  if (pathname.startsWith('/tracker') && user) {
     return (
       <>
         <div className="hidden md:block">

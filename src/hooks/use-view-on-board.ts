@@ -16,7 +16,7 @@ export function useViewOnBoard() {
   return useCallback(
     (billId: string) => {
       setView('kanban');
-      router.push(`/your-bills?focus=${encodeURIComponent(billId)}`);
+      router.push(`/tracker?focus=${encodeURIComponent(billId)}`);
     },
     [router, setView],
   );

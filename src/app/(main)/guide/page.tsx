@@ -35,7 +35,7 @@ const STEPS: Step[] = [
     video: 'discover',
     title: 'Find bills',
     where: 'Find Bills',
-    href: '/discover',
+    href: '/find-bills',
     body: (
       <>
         Search by bill number, title, or what a bill says. Not sure where to start? Try a topic
@@ -51,7 +51,7 @@ const STEPS: Step[] = [
     icon: BookmarkPlus,
     title: 'Track the ones you care about',
     where: 'Track button',
-    href: '/discover',
+    href: '/find-bills',
     body: (
       <>
         Press <strong>Track</strong> on any bill to add it to your own list. You&rsquo;ll need to be
@@ -65,7 +65,7 @@ const STEPS: Step[] = [
     video: 'your-bills',
     title: 'Follow your bills',
     where: 'Your Tracker',
-    href: '/your-bills',
+    href: '/tracker',
     body: <>Everything you track lives here. Switch between three views with the tabs at the top.</>,
     tips: [
       'Kanban: one column per stage, so you can see at a glance where each bill stands.',
@@ -101,7 +101,7 @@ const STEPS: Step[] = [
     video: 'boards',
     title: 'See what other groups are tracking',
     where: 'Community',
-    href: '/boards/browse',
+    href: '/community',
     body: (
       <>
         Organizations share the bills they follow. Browse their boards (view only) to discover

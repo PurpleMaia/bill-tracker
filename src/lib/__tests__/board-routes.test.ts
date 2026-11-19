@@ -31,33 +31,31 @@ describe('publicBoardUrl', () => {
 });
 
 describe('isActiveBoardsPath', () => {
-  it('covers the /boards tree and public board pages', () => {
-    expect(isActiveBoardsPath('/boards')).toBe(true);
-    expect(isActiveBoardsPath('/boards/browse')).toBe(true);
+  it('covers the /community tree and public board pages', () => {
+    expect(isActiveBoardsPath('/community')).toBe(true);
+    expect(isActiveBoardsPath('/community/following')).toBe(true);
+    expect(isActiveBoardsPath('/community/public-view')).toBe(true);
     expect(isActiveBoardsPath('/org/food-plus')).toBe(true);
   });
 
   it('does not match look-alike or unrelated paths', () => {
+    expect(isActiveBoardsPath('/communityx')).toBe(false);
     expect(isActiveBoardsPath('/organization')).toBe(false);
-    expect(isActiveBoardsPath('/your-bills')).toBe(false);
+    expect(isActiveBoardsPath('/tracker')).toBe(false);
   });
 });
 
 describe('isActiveBoardsTabActive', () => {
-  it('keeps Following exact', () => {
-    expect(isActiveBoardsTabActive('/boards', '/boards')).toBe(true);
-    expect(isActiveBoardsTabActive('/boards', '/org/x')).toBe(false);
+  it('keeps Browse to /community itself and public board pages', () => {
+    expect(isActiveBoardsTabActive('/community', '/community')).toBe(true);
+    expect(isActiveBoardsTabActive('/community', '/org/x')).toBe(true);
+    expect(isActiveBoardsTabActive('/community', '/community/following')).toBe(false);
   });
 
-  it('highlights Browse on public board pages', () => {
-    expect(isActiveBoardsTabActive('/boards/browse', '/boards/browse')).toBe(true);
-    expect(isActiveBoardsTabActive('/boards/browse', '/org/x')).toBe(true);
-    expect(isActiveBoardsTabActive('/boards/browse', '/boards')).toBe(false);
-  });
-
-  it('highlights only the Your Org tab on the admin preview', () => {
-    expect(isActiveBoardsTabActive('/boards/mine', '/boards/mine')).toBe(true);
-    expect(isActiveBoardsTabActive('/boards', '/boards/mine')).toBe(false);
-    expect(isActiveBoardsTabActive('/boards/browse', '/boards/mine')).toBe(false);
+  it('highlights Following and Public View on their own pages only', () => {
+    expect(isActiveBoardsTabActive('/community/following', '/community/following')).toBe(true);
+    expect(isActiveBoardsTabActive('/community/following', '/community')).toBe(false);
+    expect(isActiveBoardsTabActive('/community/public-view', '/community/public-view')).toBe(true);
+    expect(isActiveBoardsTabActive('/community/following', '/community/public-view')).toBe(false);
   });
 });

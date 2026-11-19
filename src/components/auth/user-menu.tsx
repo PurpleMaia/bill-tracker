@@ -242,7 +242,7 @@ export function UserMenu() {
       <ExportCsvDialog
         open={exportOpen}
         onOpenChange={setExportOpen}
-        applyFiltersByDefault={pathname === '/your-bills'}
+        applyFiltersByDefault={pathname === '/tracker'}
       />
       <SettingsDialog tab={settingsTab} onTabChange={setSettingsTab} />
       <OrganizationDialog tab={orgTab} onTabChange={setOrgTab} />

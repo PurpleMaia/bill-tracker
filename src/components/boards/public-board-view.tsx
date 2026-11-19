@@ -59,7 +59,7 @@ export function PublicBoardView({ slug }: { slug: string }) {
             The link may be wrong, or the organization has made its board private.
           </p>
           <Button asChild className="mt-5">
-            <Link href="/boards/browse">
+            <Link href="/community">
               Browse organizations
               <ArrowRight className="ml-1.5 h-4 w-4" />
             </Link>

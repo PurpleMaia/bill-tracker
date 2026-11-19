@@ -24,6 +24,15 @@ const nextConfig: NextConfig = {
     return [
       { source: '/testimonies', destination: '/take-action/testimony', permanent: true },
       { source: '/testimonies/:path*', destination: '/take-action/testimony/:path*', permanent: true },
+      // Nav renamed to Find Bills | Your Tracker | Take Action | Community, and
+      // the URLs followed. Query strings (?bill=, ?org=, ?focus=) carry over.
+      // Temporary (307), not permanent: a 308 is cached by browsers for good,
+      // and these names are still settling.
+      { source: '/discover', destination: '/find-bills', permanent: false },
+      { source: '/your-bills', destination: '/tracker', permanent: false },
+      { source: '/boards', destination: '/community/following', permanent: false },
+      { source: '/boards/browse', destination: '/community', permanent: false },
+      { source: '/boards/mine', destination: '/community/public-view', permanent: false },
     ];
   },
   webpack: (config, { isServer }) => {

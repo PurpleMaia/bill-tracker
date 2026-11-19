@@ -46,7 +46,7 @@ export function ActiveBoardsProvider({ children }: { children: ReactNode }) {
   const [testimonyBillIds, setTestimonyBillIds] = useState<Set<string>>(new Set());
   const [trackedBillIds, setTrackedBillIds] = useState<Set<string>>(new Set());
 
-  // Signed-out visitors can reach /boards/browse, but every endpoint below is
+  // Signed-out visitors can reach /community (Browse), but every endpoint below is
   // per-user and would 401 for them, so all of them wait on a resolved session.
   const { user, loading: authLoading } = useAuth();
   const isSignedIn = !authLoading && !!user;

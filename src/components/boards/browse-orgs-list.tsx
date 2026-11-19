@@ -317,7 +317,7 @@ function PublicLinkRow({ publicBoard, slug, isAdmin }: { publicBoard: boolean; s
 }
 
 function boardHref(tenantId: string) {
-  return `/boards?org=${encodeURIComponent(tenantId)}`;
+  return `/community/following?org=${encodeURIComponent(tenantId)}`;
 }
 
 function OrgCard({
