@@ -240,8 +240,6 @@ function MyOrgCard() {
           <p className="mt-3 text-xs text-muted-foreground">
             {!isAdmin ? (
               'Ask your organization admin to update these details.'
-            ) : org && !org.publicBoard ? (
-              <>Your board is private. Make it public in {settingsLink} to get a shareable link.</>
             ) : (
               <>Edit how your organization is viewed in {settingsLink}.</>
             )}
