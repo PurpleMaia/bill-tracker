@@ -11,7 +11,7 @@ import { fullNameOrUsername } from '@/lib/auth/profile';
 import { tiptapHasText } from '@/lib/testimony/tiptap-text';
 import { RETURN_TO_PARAM, stripBillParam } from '@/lib/bills/bill-dialog-url';
 import { isPastPublicTestimony } from '@/lib/testimony/testimony-eligibility';
-import { coversRound, currentTestimonyRound, roundLabel, sameRound } from '@/lib/testimony/testimony-round';
+import { coversRound, currentTestimonyRound, opensNewRound, roundLabel, sameRound } from '@/lib/testimony/testimony-round';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { invalidateTestimonies } from '@/hooks/use-testimonies';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -174,6 +174,7 @@ export default function TestimonyPage() {
           startCurrentRoundRef.current &&
           list.length > 0 &&
           !coversRound(list, round) &&
+          opensNewRound(round) &&
           !isPastPublicTestimony(details.current_bill_status)
         ) {
           const created = await data.testimony.create({
@@ -429,7 +430,7 @@ export default function TestimonyPage() {
   // and none covers its current round.
   const newRoundLabel =
     activeId && !bill.dead && !isPastPublicTestimony(bill.current_bill_status) &&
-    !testimonies.some((t) => sameRound(t, currentRound))
+    opensNewRound(currentRound) && !testimonies.some((t) => sameRound(t, currentRound))
       ? roundLabel(currentRound)
       : null;
   const roundSwitcher = activeId ? (

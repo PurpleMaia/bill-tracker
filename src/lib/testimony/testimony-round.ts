@@ -1,3 +1,5 @@
+import type { BillStatus } from '@/db/types';
+import { PROGRESS_STAGES } from '@/lib/bills/progress-stages';
 import { currentCommitteeStep, type StatusLine } from '@/lib/testimony/committees';
 
 /** Which chamber's hearing a testimony is for. Mirrors the `testimonies.chamber` CHECK. */
@@ -22,8 +24,8 @@ export function originChamber(billNumber: string): 'house' | 'senate' | null {
 }
 
 /**
- * The round a bill is in right now: the chamber hearing it (flipped after
- * crossover, 'conference' in conference) and the committee step it waits on.
+ * The round a bill is in right now: the chamber hearing it (flipped in the
+ * non-originating-chamber stage, 'conference' in conference) and the committee step it waits on.
  * Prefers the stored `current_committee`, else computes the step live. Pure.
  */
 export function currentTestimonyRound(bill: {
@@ -34,12 +36,15 @@ export function currentTestimonyRound(bill: {
   updates?: StatusLine[] | null;
   dead: boolean;
 }): TestimonyRound {
-  const status = bill.billStatus ?? '';
-  if (status.startsWith('conference')) return { chamber: 'conference', committee: null };
+  // Chamber follows the bill's progress stage (PROGRESS_STAGES), not status
+  // prefixes: crossoverWaiting1 still sits in the originating chamber, and
+  // passedCommittees belongs to the non-originating one.
+  const stage = PROGRESS_STAGES.find((s) => s.statuses.includes(bill.billStatus as BillStatus))?.id;
+  if (stage === 'conference') return { chamber: 'conference', committee: null };
 
   const origin = originChamber(bill.billNumber);
   const chamber: TestimonyChamber | null =
-    origin && status.startsWith('crossover') ? (origin === 'house' ? 'senate' : 'house') : origin;
+    origin && stage === 'non-orig-chamber' ? (origin === 'house' ? 'senate' : 'house') : origin;
 
   const step =
     bill.currentCommittee && bill.currentCommittee.length > 0
@@ -79,6 +84,16 @@ export function coversRound(testimonies: TestimonyRound[], round: TestimonyRound
 export function isCurrentRoundTestimony(testimony: TestimonyRound, current: TestimonyRound): boolean {
   if (testimony.chamber === null && testimony.committee === null) return true;
   return sameRound(testimony, current);
+}
+
+/**
+ * Whether the bill's current round warrants offering an ADDITIONAL testimony
+ * version: only a committee hearing round. A round with no committee
+ * (passedCommittees, awaiting a floor vote; conference; no referral) has no
+ * hearing to testify at. A bill's first testimony doesn't go through this.
+ */
+export function opensNewRound(round: TestimonyRound): boolean {
+  return round.committee !== null && round.chamber !== 'conference';
 }
 
 const CHAMBER_LABELS: Record<TestimonyChamber, string> = {

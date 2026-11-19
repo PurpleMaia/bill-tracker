@@ -4,6 +4,7 @@ import {
   currentTestimonyRound,
   groupByBill,
   isCurrentRoundTestimony,
+  opensNewRound,
   originChamber,
   roundLabel,
   sameRound,
@@ -27,6 +28,18 @@ describe('currentTestimonyRound', () => {
         currentCommittee: ['AGL', 'WTL'],
       }),
     ).toEqual({ chamber: 'senate', committee: 'AGL/WTL' });
+  });
+
+  it('keeps passedCommittees in the crossover chamber (it is a non-originating stage)', () => {
+    expect(
+      currentTestimonyRound({ ...base, billNumber: 'HB123', billStatus: 'passedCommittees', currentCommittee: null }).chamber,
+    ).toBe('senate');
+  });
+
+  it('keeps crossoverWaiting1 in the originating chamber (still waiting to cross)', () => {
+    expect(
+      currentTestimonyRound({ ...base, billNumber: 'HB123', billStatus: 'crossoverWaiting1', currentCommittee: null }).chamber,
+    ).toBe('house');
   });
 
   it('gives conference no committee', () => {
@@ -115,5 +128,14 @@ describe('isCurrentRoundTestimony', () => {
   });
   it('treats pre-round testimonies as current (their round is unknown)', () => {
     expect(isCurrentRoundTestimony({ chamber: null, committee: null }, senate)).toBe(true);
+  });
+});
+
+describe('opensNewRound', () => {
+  it('only a committee round can start an additional version', () => {
+    expect(opensNewRound({ chamber: 'senate', committee: 'AGL' })).toBe(true);
+    expect(opensNewRound({ chamber: 'senate', committee: null })).toBe(false); // e.g. passedCommittees
+    expect(opensNewRound({ chamber: 'conference', committee: null })).toBe(false);
+    expect(opensNewRound({ chamber: null, committee: null })).toBe(false);
   });
 });
