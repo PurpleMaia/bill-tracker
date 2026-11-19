@@ -304,7 +304,7 @@ function PublicLinkRow({ publicBoard, slug, isAdmin }: { publicBoard: boolean; s
         <code className="min-w-0 flex-1 truncate rounded-md border border-olive/20 bg-background/70 px-2 py-1.5 text-xs">
           {url}
         </code>
-        <CopyLinkButton url={url} variant="default" />
+        <CopyLinkButton url={url} />
         <Button asChild size="sm" variant="outline" className="shrink-0">
           <Link href={publicBoardPath(slug)} aria-label="Open your public board">
             <ExternalLink className="h-4 w-4 sm:mr-1.5" />
