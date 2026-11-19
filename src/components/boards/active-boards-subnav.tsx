@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Star, Building2 } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
+import { isActiveBoardsTabActive } from '@/lib/boards/board-routes';
 
 // Following leads: user testing showed people skipped the tabs entirely, so the
 // section now opens on the boards you follow (with an empty state that points
@@ -13,10 +14,6 @@ const TABS = [
   { href: '/boards', label: 'Following', icon: Star },
   { href: '/boards/browse', label: 'Browse', icon: Building2 },
 ] as const;
-
-export function isActiveBoardsTabActive(href: string, pathname: string) {
-  return href === '/boards' ? pathname === '/boards' : pathname.startsWith(href);
-}
 
 /**
  * Sub-navigation for the Active Boards section — link-based tabs styled to

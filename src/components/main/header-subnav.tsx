@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { TakeActionSubNav } from '@/components/take-action/take-action-subnav';
 import { isTakeActionPath } from '@/lib/take-action/routes';
+import { isActiveBoardsPath } from '@/lib/boards/board-routes';
 import { ActiveBoardsSubNav } from '@/components/boards/active-boards-subnav';
 import { ViewToggle } from './view-toggle';
 
@@ -49,7 +50,8 @@ export function HeaderSubNav() {
 
   // Shown logged out too: Browse is public, so the tabs must stay reachable.
   // Following is still gated — it renders BoardsLoginWall for signed-out users.
-  if (pathname.startsWith('/boards')) {
+  // Public /org/<slug> boards show the tabs too, with Browse highlighted.
+  if (isActiveBoardsPath(pathname)) {
     return (
       <>
         <div className="hidden md:block">
