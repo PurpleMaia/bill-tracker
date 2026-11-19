@@ -8,6 +8,7 @@ import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 // feature further; left commented out rather than deleted.
 // import NewBillButton from './new-bill/new-bill-button';
 import { TrackBillDialog } from './track-bill-dialog';
+import { KanbanPillStrip } from './kanban-pill-strip';
 import { ExportCsvDialog } from './export-csv-dialog';
 import { ViewScopeToggle } from './view-scope-toggle';
 import { FilterChipsRow } from './filter-chips-row';
@@ -16,7 +17,7 @@ import { TagFilterList } from '../tags/tag-filter-list';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Download, Globe, Search, UserPlus } from 'lucide-react';
+import { Download, Globe, Search } from 'lucide-react';
 import { getTagsAction } from '@/app/actions/tags';
 import type { Tag } from '@/types/legislation';
 
@@ -34,7 +35,7 @@ interface KanbanHeaderProps {
 export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
   const { user, activeTenant } = useAuth();
   const { showArchived, toggleShowArchived, bills } = useBills();
-  const { view, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter, searchQuery, setSearchQuery } = useKanbanBoard();
+  const { view, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, deadFilter, setDeadFilter, searchQuery, setSearchQuery, scrollToPhase, phaseScrollAvailable } = useKanbanBoard();
 
   const isActiveBoards = variant === 'active-boards';
   // Active Boards is a read-only view of another org's board: no public branch,
@@ -140,15 +141,26 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
     setDeadFilter('all');
   };
 
-  // Chips-row variant also resets archived (the popover handles that itself).
+  // Chips-row variant also resets archived (the popover handles that itself)
+  // and the search: on phones the search box is tucked inside the Filters
+  // panel, so leaving it would keep the board narrowed by a query nobody can
+  // see once the chips are gone. On desktop it's "all" too, in plain view.
   const clearAllFilters = () => {
     clearPopoverFilters();
+    setSearchQuery('');
     if (!isPublic && showArchived) {
       toggleShowArchived();
     }
   };
 
-  const filterControls = (
+  // Phones put the search inside the filter panel, so its Clear All clears the
+  // search too (desktop's search box sits in plain view and keeps its own).
+  const clearMobileFilters = () => {
+    clearPopoverFilters();
+    setSearchQuery('');
+  };
+
+  const renderFilterControls = (mobile: boolean) => (
     <TagFilterList
       tags={effectiveTags}
       loadingTags={isActiveBoards ? false : loadingTags}
@@ -163,23 +175,28 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
       showArchivedFilter={!isActiveBoards && !isPublic}
       showArchived={showArchived}
       onShowArchivedChange={toggleShowArchived}
-      onClearFilters={clearPopoverFilters}
+      onClearFilters={mobile ? clearMobileFilters : clearPopoverFilters}
+      searchSlot={mobile ? renderSearchInput(mobileSearchRef, false) : undefined}
+      searchActive={mobile && searchQuery.trim() !== ''}
+      triggerClassName={mobile ? 'h-8 px-2.5' : undefined}
     />
   );
 
-  const renderSearchInput = (ref: React.RefObject<HTMLInputElement>, withHint: boolean) => (
+  // `desktop` adds the ⌘K hint and the full placeholder; the phone copy lives
+  // in the narrow filter panel, where only a short placeholder fits.
+  const renderSearchInput = (ref: React.RefObject<HTMLInputElement>, desktop: boolean) => (
     <div className="relative flex-1 max-w-xl">
       <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
       <Input
         ref={ref}
         type="search"
-        placeholder="Search bills by number, title, or keyword..."
-        className={withHint ? 'pl-9 pr-16' : 'pl-9'}
+        placeholder={desktop ? 'Search bills by number, title, or keyword...' : 'Bill number, title, or keyword'}
+        className={desktop ? 'pl-9 pr-16' : 'pl-9'}
         value={searchQuery}
         onChange={handleSearchChange}
         aria-label="Search bills"
       />
-      {withHint && (
+      {desktop && (
         <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
           {shortcutHint}
         </kbd>
@@ -189,24 +206,14 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
 
   return (
     <div className="border-b bg-white shadow-md">
-      {/* Mobile: search + filter + action row. */}
-      <div className="md:hidden flex items-center gap-2 p-2 px-4">
-        {renderSearchInput(mobileSearchRef, false)}
-        {filterControls}
-        {!isActiveBoards && !isPublic && (
-          <>
-            <TrackBillDialog>
-              <Button size="icon" className="shrink-0" aria-label="Track a new bill">
-                <UserPlus className="h-4 w-4" />
-              </Button>
-            </TrackBillDialog>
-            <ExportCsvDialog>
-              <Button variant="outline" size="icon" className="shrink-0" aria-label="Export bills (CSV or Excel)">
-                <Download className="h-4 w-4" />
-              </Button>
-            </ExportCsvDialog>
-          </>
-        )}
+      {/* Mobile: one Trello-style toolbar row — phase jump pills, then
+          Filters pinned right (search lives inside its panel). Tracking moved
+          to each column's footer and Export to the avatar menu. */}
+      <div className="md:hidden flex items-center gap-2 px-3 py-2">
+        <div className="min-w-0 flex-1">
+          {phaseScrollAvailable && <KanbanPillStrip onScrollTo={scrollToPhase} />}
+        </div>
+        {renderFilterControls(true)}
       </div>
 
       {/* Desktop */}
@@ -227,7 +234,7 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
         {/* Find group: search + filters narrow the same result set */}
         <div className="flex items-center gap-2 flex-1">
           {renderSearchInput(desktopSearchRef, true)}
-          {filterControls}
+          {renderFilterControls(false)}
         </div>
 
         <div className="flex items-center gap-2 ml-auto">

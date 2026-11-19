@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ArrowUp, Search, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,18 +20,23 @@ import { SearchFilterRail } from './search-filter-rail';
 import { SearchFiltersSheet } from './search-filters-sheet';
 import { SearchIntro } from './search-intro';
 import { TrackButton } from './track-button';
+import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
 import { useBillSearch } from '@/hooks/use-bill-search';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { hasNonBillParams } from '@/lib/bills/bill-dialog-url';
 import {
   DEFAULT_FILTERS,
   parseSearchParams,
   resolveSortMode,
+  SEARCH_PAGE_SIZE,
   type SearchFilters,
   type SortMode,
 } from '@/lib/bills/search-params';
 import { loadSearchFilters, saveSearchFilters } from '@/lib/bills/search-filter-storage';
+import { cn } from '@/lib/core/utils';
+import { RISE_IN, riseDelay } from '@/lib/core/motion';
 
 /** Sessions the corpus covers, newest first. Mirrors the rail's YEARS list. */
 const SESSION_YEARS = [2026];
@@ -87,6 +92,7 @@ export function BillSearchView() {
     bills,
     totalCount,
     debouncedQuery,
+    resultSetKey,
     isLoading,
     isFetchingNextPage,
     hasNextPage,
@@ -96,7 +102,6 @@ export function BillSearchView() {
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
-  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const handleClear = useCallback(() => setFilters(DEFAULT_FILTERS), []);
   const handleCardClick = useCallback((billId: string) => openBillDialog(billId), [openBillDialog]);
@@ -132,23 +137,14 @@ export function BillSearchView() {
     filters.stages,
     filters.deadFilter,
     filters.trackedFilter,
-    filters.introducerId,
-    filters.chairId,
+    filters.introducerIds,
+    filters.chairIds,
     filters.sort,
   ]);
 
-  // Reveal the scroll-to-top button once the hero (and its search bar) has
-  // scrolled out of view, since it's the only way back to them now.
-  useEffect(() => {
-    const node = resultsRef.current;
-    if (!node) return;
-    const onScroll = () => setShowScrollTop(node.scrollTop > 400);
-    node.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    return () => node.removeEventListener('scroll', onScroll);
-  }, []);
-
   const hasQuery = filters.q.trim().length > 0;
+  // The full placeholder runs past a phone-width input; phones get the short one.
+  const isMobile = useIsMobile();
   // The dialog takes only a bill id; the Track control needs the bill number for
   // its label and toasts, so resolve the open row from the loaded results.
   const openBill = openBillId ? bills.find((b) => b.id === openBillId) : undefined;
@@ -167,7 +163,7 @@ export function BillSearchView() {
           id="bill-search"
           type="text"
           role="searchbox"
-          placeholder="Search bill number, title, or text…"
+          placeholder={isMobile ? 'Bill number, title, or keyword' : 'Search bill number, title, or text…'}
           value={filters.q}
           onChange={(e) => setFilters({ ...filters, q: e.target.value })}
           className="h-11 pl-9 pr-9"
@@ -204,7 +200,7 @@ export function BillSearchView() {
             so the CTA scrolls away with everything else rather than staying
             pinned. The scroll-to-top button below brings it back. */}
         <div ref={resultsRef} className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <div className="mb-4">
+          <div className={cn('mb-4', RISE_IN)}>
             <SearchIntro
               onSuggestionClick={(term) => setFilters({ ...filters, q: term })}
               sessionYears={SESSION_YEARS}
@@ -275,17 +271,19 @@ export function BillSearchView() {
                 <Skeleton key={i} className="h-28 w-full" />
               ))}
             </div>
-          ) : !error && filters.chairId && totalCount === 0 ? (
-            <div className="py-16 text-center">
+          ) : !error && filters.chairIds.length > 0 && totalCount === 0 ? (
+            <div className={cn('py-16 text-center', RISE_IN)}>
               <p className="text-sm font-medium">
-                Nothing is waiting on this legislator&apos;s committees right now.
+                Nothing is waiting on{' '}
+                {filters.chairIds.length === 1 ? 'this legislator\u2019s' : 'these legislators\u2019'}{' '}
+                committees right now.
               </p>
               <Button variant="outline" size="sm" className="mt-4" onClick={handleClear}>
                 Clear filters
               </Button>
             </div>
           ) : bills.length === 0 ? (
-            <div className="py-16 text-center">
+            <div className={cn('py-16 text-center', RISE_IN)}>
               <p className="text-sm font-medium">No bills found</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Try a different search term or clear your filters.
@@ -295,9 +293,18 @@ export function BillSearchView() {
               </Button>
             </div>
           ) : (
-            <ul className="space-y-3">
-              {bills.map((bill) => (
-                <li key={bill.id}>
+            // Keyed by result set: a new filter set remounts every card so the
+            // whole list cascades in, even bills that were already showing.
+            <ul key={resultSetKey} className="space-y-3">
+              {bills.map((bill, i) => (
+                <li
+                  key={bill.id}
+                  // Stagger restarts per page, so an appended page cascades in
+                  // from its own first card instead of all landing at the cap.
+                  // Stable keys mean cards already shown never replay.
+                  className={RISE_IN}
+                  style={riseDelay(i % SEARCH_PAGE_SIZE)}
+                >
                   <BillSearchCard
                     bill={bill}
                     query={debouncedQuery}
@@ -326,20 +333,8 @@ export function BillSearchView() {
 
       </div>
 
-      {/* Back to the search bar once the hero has scrolled out of reach.
-          `fixed`, so it pins to the viewport's bottom-right corner rather than
-          the results column. On mobile it lifts above the bottom tab bar (which
-          is fixed at bottom-0, z-30) and stays under it in stacking order. */}
-      {showScrollTop && (
-        <Button
-          size="icon"
-          onClick={() => resultsRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-          aria-label="Scroll back to search"
-          className="fixed bottom-20 right-4 z-20 h-11 w-11 rounded-full shadow-lg md:bottom-6 md:right-6"
-        >
-          <ArrowUp className="h-5 w-5" aria-hidden="true" />
-        </Button>
-      )}
+      {/* Back to the search bar once the hero has scrolled out of reach. */}
+      <ScrollToTopButton scrollRef={resultsRef} label="Scroll back to search" />
 
       {/* The board's own dialog, reused rather than reimplemented — BillsProvider
           wraps the whole app, so it works here. It degrades for logged-out

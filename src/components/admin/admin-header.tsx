@@ -12,19 +12,25 @@ interface AdminHeaderProps {
   }
 }
 export default function AdminHeader({ count }: AdminHeaderProps) {
-  const activeStyle = 'data-[state=active]:bg-accent data-[state=active]:text-white'
+  // Phones: the three tabs split the row evenly (grid) with tighter padding and
+  // badges, so nothing scrolls sideways; sm+ keeps the content-width row.
+  const tabStyle =
+    'min-w-0 gap-1 px-1.5 text-xs sm:gap-0 sm:px-3 sm:text-sm data-[state=active]:bg-accent data-[state=active]:text-white'
+  const badgeStyle = 'px-1.5 py-0 text-[10px] sm:ml-1 sm:px-2.5 sm:py-0.5 sm:text-xs'
   return (
-    <div className='px-4 sm:px-6 py-2 border-b bg-white flex items-center justify-between shadow-md'>
-        <div className='w-full overflow-x-auto'>
-            <TabsList className="space-x-2 sm:space-x-4 shadow-sm border w-max">
-                <TabsTrigger value="pending-requests" className={activeStyle}>
-                  Accounts <Badge className='ml-1 bg-red-100 text-red-800'>{count.accounts}</Badge>
+    <div className='px-3 sm:px-6 py-2 border-b bg-white flex items-center justify-between shadow-md'>
+        <div className='w-full'>
+            <TabsList className="grid w-full grid-cols-3 gap-1 shadow-sm border sm:flex sm:w-max sm:gap-0 sm:space-x-4">
+                <TabsTrigger value="pending-requests" className={tabStyle}>
+                  Accounts <Badge className={`${badgeStyle} bg-red-100 text-red-800`}>{count.accounts}</Badge>
                 </TabsTrigger>
-                <TabsTrigger value="all-tracked-bills" className={activeStyle}>
-                  Tracked Bills <Badge className='ml-1 bg-yellow-100 text-yellow-800'>{count.allTrackedBills}</Badge>
+                <TabsTrigger value="all-tracked-bills" className={tabStyle}>
+                  {/* "Tracked" is what won't fit a third of a phone row. */}
+                  <span><span className="hidden sm:inline">Tracked </span>Bills</span>
+                  <Badge className={`${badgeStyle} bg-yellow-100 text-yellow-800`}>{count.allTrackedBills}</Badge>
                 </TabsTrigger>
-                <TabsTrigger value="all-interns" className={activeStyle}>
-                  Users <Badge className='ml-1 bg-blue-100 text-blue-800'>{count.allInterns}</Badge>
+                <TabsTrigger value="all-interns" className={tabStyle}>
+                  Users <Badge className={`${badgeStyle} bg-blue-100 text-blue-800`}>{count.allInterns}</Badge>
                 </TabsTrigger>
             </TabsList>
         </div>

@@ -237,17 +237,17 @@ describe('LIVE_SESSION_YEARS', () => {
 });
 
 describe('resolveSortMode', () => {
-  const base = { q: '', introducerId: null, chairId: null, sort: 'auto' as const };
+  const base = { q: '', introducerIds: [] as string[], chairIds: [] as string[], sort: 'auto' as const };
   it('explicit choice always wins', () => {
     expect(resolveSortMode({ ...base, sort: 'title' })).toBe('title');
-    expect(resolveSortMode({ ...base, sort: 'relevance', introducerId: U1 })).toBe('relevance');
+    expect(resolveSortMode({ ...base, sort: 'relevance', introducerIds: [U1] })).toBe('relevance');
   });
   it('auto + legislator filter + empty q is title', () => {
-    expect(resolveSortMode({ ...base, introducerId: U1 })).toBe('title');
-    expect(resolveSortMode({ ...base, chairId: U1 })).toBe('title');
+    expect(resolveSortMode({ ...base, introducerIds: [U1] })).toBe('title');
+    expect(resolveSortMode({ ...base, chairIds: [U1, U2] })).toBe('title');
   });
   it('auto + legislator filter + q is relevance', () => {
-    expect(resolveSortMode({ ...base, introducerId: U1, q: 'food' })).toBe('relevance');
+    expect(resolveSortMode({ ...base, introducerIds: [U1], q: 'food' })).toBe('relevance');
   });
   it('auto without legislator filter is relevance', () => {
     expect(resolveSortMode(base)).toBe('relevance');
@@ -264,25 +264,36 @@ describe('titleSortKey', () => {
 });
 
 describe('legislator filters and sort in URL + count', () => {
-  it('round-trips introducerId, chairId, sort', () => {
-    const f = { ...DEFAULT_FILTERS, introducerId: U1, chairId: U2, sort: 'title' as const };
+  it('round-trips introducer/chair id lists and sort', () => {
+    const f = {
+      ...DEFAULT_FILTERS,
+      introducerIds: [U2, U1],
+      chairIds: [U2],
+      sort: 'title' as const,
+    };
     const parsed = parseSearchParams(new URLSearchParams(filtersToQueryString(f)));
-    expect(parsed.introducerId).toBe(U1);
-    expect(parsed.chairId).toBe(U2);
+    // Normalized (sorted) on the way out, so the cache key is order-independent.
+    expect(parsed.introducerIds).toEqual([U1, U2].sort());
+    expect(parsed.chairIds).toEqual([U2]);
     expect(parsed.sort).toBe('title');
   });
-  it('omits null ids and auto sort from the query string', () => {
+  it('parses a lone id (the pre-multi-select link shape) as a one-item list', () => {
+    const p = parseSearchParams(new URLSearchParams(`introducer=${U1}&chair=${U2}`));
+    expect(p.introducerIds).toEqual([U1]);
+    expect(p.chairIds).toEqual([U2]);
+  });
+  it('omits empty id lists and auto sort from the query string', () => {
     const qs = filtersToQueryString(DEFAULT_FILTERS);
     expect(qs).not.toMatch(/introducer|chair|sort/);
   });
-  it('drops non-uuid introducer/chair ids', () => {
-    const p = parseSearchParams(new URLSearchParams('introducer=abc&chair=1;drop'));
-    expect(p.introducerId).toBeNull();
-    expect(p.chairId).toBeNull();
+  it('drops non-uuid ids and duplicates from the lists', () => {
+    const p = parseSearchParams(new URLSearchParams(`introducer=abc,${U1},${U1}&chair=1;drop`));
+    expect(p.introducerIds).toEqual([U1]);
+    expect(p.chairIds).toEqual([]);
   });
-  it('counts introducer and chair once each; sort does not count', () => {
-    expect(activeFilterCount({ ...DEFAULT_FILTERS, introducerId: U1 })).toBe(1);
-    expect(activeFilterCount({ ...DEFAULT_FILTERS, introducerId: U1, chairId: U2 })).toBe(2);
+  it('counts each legislator group once however many are picked; sort does not count', () => {
+    expect(activeFilterCount({ ...DEFAULT_FILTERS, introducerIds: [U1, U2] })).toBe(1);
+    expect(activeFilterCount({ ...DEFAULT_FILTERS, introducerIds: [U1], chairIds: [U2] })).toBe(2);
     expect(activeFilterCount({ ...DEFAULT_FILTERS, sort: 'title' })).toBe(0);
   });
 });

@@ -44,6 +44,8 @@ import { BillInfoFab } from '@/components/bills/bill-info-fab';
 import { FlowWalkthrough } from '@/components/tour/flow-walkthrough';
 import { CONTACT_WALKTHROUGH_KEY, REQUESTS_MATTER, contactWalkthrough, type ContactStage } from '@/lib/tour/flow-walkthroughs';
 import { isEnacted } from '@/lib/bills/dead-bill';
+import { cn } from '@/lib/core/utils';
+import { RISE_IN, riseDelay } from '@/lib/core/motion';
 import {
   ArrowLeft,
   Check,
@@ -224,7 +226,7 @@ export default function ContactLegislatorPage() {
   // the route so a directly-pasted URL can't bypass the disabled Contact button.
   if (bill && isEnacted(bill.current_bill_status)) {
     return (
-      <div className="flex h-dvh flex-col items-center justify-center gap-4 p-8 text-center">
+      <div className={cn('flex h-dvh flex-col items-center justify-center gap-4 p-8 text-center', RISE_IN)}>
         <ShieldCheck className="h-10 w-10 text-green-700" aria-hidden="true" />
         <div className="space-y-1">
           <h1 className="text-lg font-semibold">This bill has become law</h1>
@@ -245,7 +247,7 @@ export default function ContactLegislatorPage() {
   // briefing (no Governor/override step) and the dialog's disabled Contact.
   if (bill && governorStage && bill.dead) {
     return (
-      <div className="flex h-dvh flex-col items-center justify-center gap-4 p-8 text-center">
+      <div className={cn('flex h-dvh flex-col items-center justify-center gap-4 p-8 text-center', RISE_IN)}>
         <Landmark className="h-10 w-10 text-muted-foreground" aria-hidden="true" />
         <div className="space-y-1">
           <h1 className="text-lg font-semibold">This bill is no longer moving</h1>
@@ -316,7 +318,7 @@ export default function ContactLegislatorPage() {
         {/* Reference panel — collapsible sidebar on desktop, sheet on mobile */}
         {!isMobile && referencePanel && (
           panelCollapsed ? (
-            <aside className="flex w-10 shrink-0 flex-col items-center border-r bg-muted/20 py-2" data-flow-tour="reference">
+            <aside className={cn('flex w-10 shrink-0 flex-col items-center border-r bg-muted/20 py-2', RISE_IN)} style={riseDelay(1)} data-flow-tour="reference">
               <Button
                 variant="ghost"
                 size="icon"
@@ -329,7 +331,7 @@ export default function ContactLegislatorPage() {
               </Button>
             </aside>
           ) : (
-            <aside className="flex w-[340px] shrink-0 flex-col border-r bg-muted/20" data-flow-tour="reference">
+            <aside className={cn('flex w-[340px] shrink-0 flex-col border-r bg-muted/20', RISE_IN)} style={riseDelay(1)} data-flow-tour="reference">
               <div className="flex items-center justify-between border-b px-3 py-2">
                 <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Bill info</span>
                 <Button
@@ -360,34 +362,13 @@ export default function ContactLegislatorPage() {
           >
             {isMobile && referencePanel && <BillInfoFab panel={referencePanel} />}
 
-            {governorStage === 'vetoed' ? (
-              <ComposeConference
-                variant="override"
-                conferees={introducers}
-                subject={scriptSubject}
-                body={scriptBody}
-                onChange={setScriptBody}
-                callScript={callScript}
-                onCallChange={setCallScript}
-                panelCollapsed={panelCollapsed}
-              />
-            ) : governorStage ? (
-              <ComposeGovernor
-                intentToVeto={governorStage === 'intentToVeto'}
-                subject={scriptSubject}
-                body={scriptBody}
-                onChange={setScriptBody}
-                callScript={callScript}
-                onCallChange={setCallScript}
-                panelCollapsed={panelCollapsed}
-              />
-            ) : atConference ? (
-              conferees.length === 0 ? (
-                <ConfereesAwaitingState />
-              ) : (
+            {/* Its own wrapper so the fixed Bill info button above isn't inside
+                the transform (a transformed ancestor unpins position: fixed). */}
+            <div className={RISE_IN}>
+              {governorStage === 'vetoed' ? (
                 <ComposeConference
-                  variant="conference"
-                  conferees={conferees}
+                  variant="override"
+                  conferees={introducers}
                   subject={scriptSubject}
                   body={scriptBody}
                   onChange={setScriptBody}
@@ -395,22 +376,47 @@ export default function ContactLegislatorPage() {
                   onCallChange={setCallScript}
                   panelCollapsed={panelCollapsed}
                 />
-              )
-            ) : !hasChairs ? (
-              <EmptyState />
-            ) : (
-              <Compose
-                currentGroups={currentGroups}
-                otherGroups={otherGroups}
-                isJointReferral={hasJointReferral(bill?.committee_assignment)}
-                subject={scriptSubject}
-                body={scriptBody}
-                onChange={setScriptBody}
-                callScript={callScript}
-                onCallChange={setCallScript}
-                panelCollapsed={panelCollapsed}
-              />
-            )}
+              ) : governorStage ? (
+                <ComposeGovernor
+                  intentToVeto={governorStage === 'intentToVeto'}
+                  subject={scriptSubject}
+                  body={scriptBody}
+                  onChange={setScriptBody}
+                  callScript={callScript}
+                  onCallChange={setCallScript}
+                  panelCollapsed={panelCollapsed}
+                />
+              ) : atConference ? (
+                conferees.length === 0 ? (
+                  <ConfereesAwaitingState />
+                ) : (
+                  <ComposeConference
+                    variant="conference"
+                    conferees={conferees}
+                    subject={scriptSubject}
+                    body={scriptBody}
+                    onChange={setScriptBody}
+                    callScript={callScript}
+                    onCallChange={setCallScript}
+                    panelCollapsed={panelCollapsed}
+                  />
+                )
+              ) : !hasChairs ? (
+                <EmptyState />
+              ) : (
+                <Compose
+                  currentGroups={currentGroups}
+                  otherGroups={otherGroups}
+                  isJointReferral={hasJointReferral(bill?.committee_assignment)}
+                  subject={scriptSubject}
+                  body={scriptBody}
+                  onChange={setScriptBody}
+                  callScript={callScript}
+                  onCallChange={setCallScript}
+                  panelCollapsed={panelCollapsed}
+                />
+              )}
+            </div>
           </div>
         </main>
       </div>
@@ -463,6 +469,9 @@ function useFillRemainingHeight(rootRef: React.RefObject<HTMLDivElement | null>,
     fit();
     const frame = requestAnimationFrame(fit);
     window.addEventListener('resize', fit);
+    // An entrance animation shifts the box while it measures; a transform
+    // doesn't resize anything, so re-fit once the animation settles.
+    scroller?.addEventListener('animationend', fit);
     // Re-fit when the content above reflows (e.g. the bill panel is collapsed).
     const observer = new ResizeObserver(fit);
     const content = scroller?.firstElementChild;
@@ -470,6 +479,7 @@ function useFillRemainingHeight(rootRef: React.RefObject<HTMLDivElement | null>,
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener('resize', fit);
+      scroller?.removeEventListener('animationend', fit);
       observer.disconnect();
     };
   }, [rootRef, tab]);
@@ -509,10 +519,10 @@ function ScriptTabs({
           Call script
         </TabsTrigger>
       </TabsList>
-      <TabsContent value="written" className="mt-0 p-4">
+      <TabsContent value="written" className={cn('mt-0 p-4', RISE_IN)}>
         {written}
       </TabsContent>
-      <TabsContent value="call" className="mt-0 p-4">
+      <TabsContent value="call" className={cn('mt-0 p-4', RISE_IN)}>
         <Textarea
           value={callScript}
           onChange={(e) => onCallChange(e.target.value)}

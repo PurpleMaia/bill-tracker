@@ -24,10 +24,11 @@ export interface SearchFilters {
   stages: string[];
   deadFilter: DeadFilter;
   trackedFilter: TrackedFilter;
-  /** Legislator id (uuid) of a bill introducer, or null. */
-  introducerId: string | null;
-  /** Legislator id (uuid) of a committee chair/vice chair the bill awaits, or null. */
-  chairId: string | null;
+  /** Legislator ids (uuids) of bill introducers; a bill matches ANY of them. */
+  introducerIds: string[];
+  /** Legislator ids (uuids) of committee chairs/vice chairs the bill awaits;
+   *  a bill matches ANY of them. */
+  chairIds: string[];
   sort: SortChoice;
 }
 
@@ -44,8 +45,8 @@ export const DEFAULT_FILTERS: SearchFilters = {
   stages: [],
   deadFilter: 'all',
   trackedFilter: 'all',
-  introducerId: null,
-  chairId: null,
+  introducerIds: [],
+  chairIds: [],
   sort: 'auto',
 };
 
@@ -56,8 +57,13 @@ export function isUuid(s: string): boolean {
   return UUID_RE.test(s);
 }
 
-function asUuidOrNull(v: unknown): string | null {
-  return typeof v === 'string' && isUuid(v) ? v : null;
+/**
+ * Comma-separated uuids -> deduped list, dropping anything that isn't one. A
+ * lone id (the pre-multi-select URL shape) parses to a one-item list.
+ */
+export function parseUuidList(raw: string | null): string[] {
+  if (!raw) return [];
+  return [...new Set(raw.split(',').map((s) => s.trim()).filter(isUuid))];
 }
 
 /**
@@ -65,10 +71,10 @@ function asUuidOrNull(v: unknown): string | null {
  * active and there is no text query (no relevance to rank by); otherwise relevance.
  */
 export function resolveSortMode(
-  f: Pick<SearchFilters, 'q' | 'introducerId' | 'chairId' | 'sort'>,
+  f: Pick<SearchFilters, 'q' | 'introducerIds' | 'chairIds' | 'sort'>,
 ): SortMode {
   if (f.sort === 'title' || f.sort === 'relevance') return f.sort;
-  const hasLegislator = f.introducerId !== null || f.chairId !== null;
+  const hasLegislator = f.introducerIds.length > 0 || f.chairIds.length > 0;
   return hasLegislator && f.q.trim() === '' ? 'title' : 'relevance';
 }
 
@@ -128,8 +134,8 @@ export function normalizeFilters(filters: SearchFilters): SearchFilters {
     stages: [...filters.stages].sort(),
     deadFilter: filters.deadFilter,
     trackedFilter: filters.trackedFilter,
-    introducerId: filters.introducerId,
-    chairId: filters.chairId,
+    introducerIds: [...filters.introducerIds].sort(),
+    chairIds: [...filters.chairIds].sort(),
     sort: filters.sort,
   };
 }
@@ -144,8 +150,8 @@ export function activeFilterCount(filters: SearchFilters): number {
   if (filters.stages.length > 0) count++;
   if (filters.deadFilter !== DEFAULT_FILTERS.deadFilter) count++;
   if (filters.trackedFilter !== DEFAULT_FILTERS.trackedFilter) count++;
-  if (filters.introducerId) count++;
-  if (filters.chairId) count++;
+  if (filters.introducerIds.length > 0) count++;
+  if (filters.chairIds.length > 0) count++;
   return count;
 }
 
@@ -199,8 +205,8 @@ export function filtersToQueryString(
   if (n.stages.length) qs.set('stages', n.stages.join(','));
   if (n.deadFilter !== 'all') qs.set('dead', n.deadFilter);
   if (n.trackedFilter !== 'all') qs.set('tracked', n.trackedFilter);
-  if (n.introducerId) qs.set('introducer', n.introducerId);
-  if (n.chairId) qs.set('chair', n.chairId);
+  if (n.introducerIds.length) qs.set('introducer', n.introducerIds.join(','));
+  if (n.chairIds.length) qs.set('chair', n.chairIds.join(','));
   if (n.sort !== 'auto') qs.set('sort', n.sort);
   if (cursor) qs.set('cursor', cursor);
   return qs.toString();
@@ -227,8 +233,8 @@ export function parseSearchParams(params: URLSearchParams): SearchFilters {
     stages,
     deadFilter: dead === 'alive' || dead === 'dead' ? dead : 'all',
     trackedFilter: tracked === 'tracked' || tracked === 'untracked' ? tracked : 'all',
-    introducerId: asUuidOrNull(params.get('introducer')),
-    chairId: asUuidOrNull(params.get('chair')),
+    introducerIds: parseUuidList(params.get('introducer')),
+    chairIds: parseUuidList(params.get('chair')),
     sort: sort === 'relevance' || sort === 'title' ? sort : 'auto',
   };
 }

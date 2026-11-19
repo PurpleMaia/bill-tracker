@@ -14,7 +14,9 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowRight, Building2, Check, Eye, FileText, Globe, Lock, LogIn, Plus, Search, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
+import { RISE_IN, riseDelay } from '@/lib/core/motion';
 import { LoginLink } from '@/components/auth/login-link';
+import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
 
 // Skeleton mirroring one OrgCard's shape while the list loads.
 function OrgCardSkeleton() {
@@ -76,7 +78,7 @@ function BrowseSkeleton() {
             ))}
           </ul>
         </div>
-        <aside className="flex shrink-0 flex-col gap-4 lg:w-72">
+        <aside className={cn('order-first flex shrink-0 flex-col gap-4 lg:order-none lg:w-72', RISE_IN)} style={riseDelay(2)}>
           <SideBlobSkeleton rows={2} />
           <SideBlobSkeleton rows={3} />
         </aside>
@@ -94,7 +96,7 @@ function BrowseIntro({ orgCount }: { orgCount: number }) {
     { icon: Plus, title: 'Track this bill', text: 'Track any of their bills onto your own board with one click.' },
   ];
   return (
-    <div className="mb-6 bg-gradient-to-br from-muted/60 to-background p-6">
+    <div className={cn('mb-6 bg-gradient-to-br from-muted/60 to-background p-6', RISE_IN)}>
       <div className="flex items-center gap-2 text-primary">
         <Building2 className="h-5 w-5" />
         <h2 className="text-lg font-semibold text-foreground">Active Boards</h2>
@@ -112,7 +114,9 @@ function BrowseIntro({ orgCount }: { orgCount: number }) {
           </>
         )}
       </p>
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {/* How-it-works steps: desktop only. On phones they pushed the list a
+          screen down; the line above already says what the page is for. */}
+      <div className="mt-4 hidden gap-3 md:grid md:grid-cols-3">
         {steps.map(({ icon: Icon, title, text }) => (
           <div key={title} className="flex gap-3 rounded-lg bg-background/70 p-3">
             <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -165,7 +169,10 @@ function MyOrgCard() {
   const displayName = org?.name ?? activeTenant.name;
 
   return (
-    <div className="mb-4 rounded-xl border border-olive/20 bg-olive-soft p-5 shadow-sm">
+    <div
+      className={cn('mb-4 rounded-xl border border-olive/20 bg-olive-soft p-5 shadow-sm', RISE_IN)}
+      style={riseDelay(1)}
+    >
       <div className="flex items-center justify-between gap-2">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-olive-dark">
           Your organization
@@ -249,17 +256,28 @@ function boardHref(tenantId: string) {
 
 function OrgCard({
   org,
+  index,
   busy,
   onToggle,
   isLoggedOut,
 }: {
   org: PublicOrg;
+  /** Position in the list — its slot in the entrance cascade. */
+  index: number;
   busy: boolean;
   onToggle: () => void;
   isLoggedOut: boolean;
 }) {
   return (
-    <li className="flex flex-col rounded-lg border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:items-start sm:gap-5">
+    <li
+      className={cn(
+        'flex flex-col rounded-lg border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:items-start sm:gap-5',
+        RISE_IN,
+      )}
+      // After the intro and Your organization card (slots 0–1). Searching only
+      // removes cards, so the ones left stay put rather than replaying.
+      style={riseDelay(2 + index)}
+    >
       {/* Identity + counts + description */}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="min-w-0 flex-1">
@@ -481,7 +499,10 @@ export function BrowseOrgsList() {
       <div className="mx-auto w-full max-w-6xl">
         <BrowseIntro orgCount={0} />
         <MyOrgCard />
-        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed py-16 text-center text-muted-foreground">
+        <div
+          className={cn('flex flex-col items-center gap-2 rounded-xl border border-dashed py-16 text-center text-muted-foreground', RISE_IN)}
+          style={riseDelay(2)}
+        >
           <Building2 className="h-8 w-8" />
           <p className="text-sm">No public boards yet.</p>
           <p className="max-w-xs text-xs">
@@ -515,16 +536,17 @@ export function BrowseOrgsList() {
           </div>
 
           {filtered && filtered.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-16 text-center text-muted-foreground">
+            <div className={cn('flex flex-col items-center gap-2 py-16 text-center text-muted-foreground', RISE_IN)}>
               <Search className="h-8 w-8" />
               <p className="text-sm">No organizations match &ldquo;{query}&rdquo;.</p>
             </div>
           ) : (
             <ul className="flex flex-col gap-4">
-              {filtered?.map((org) => (
+              {filtered?.map((org, i) => (
                 <OrgCard
                   key={org.tenantId}
                   org={org}
+                  index={i}
                   busy={busyId === org.tenantId}
                   onToggle={() => toggle(org)}
                   isLoggedOut={isLoggedOut}
@@ -534,13 +556,16 @@ export function BrowseOrgsList() {
           )}
         </div>
 
-        {/* Right: stat blob, then the orgs you follow */}
-        <aside className="flex shrink-0 flex-col gap-4 lg:w-72">
+        {/* Stat blob, then the orgs you follow. Below lg this stacks first, so
+            your stats lead on phones/tablets; lg+ makes it the right column. */}
+        <aside className={cn('order-first flex shrink-0 flex-col gap-4 lg:order-none lg:w-72', RISE_IN)} style={riseDelay(2)}>
           <StatBlob orgs={orgs} />
           {/* Following is per-user, so the panel is meaningless when logged out. */}
           {!isLoggedOut && <FollowedOrgs orgs={orgs} />}
         </aside>
       </div>
+
+      <ScrollToTopButton label="Scroll back to top" />
     </div>
   );
 }

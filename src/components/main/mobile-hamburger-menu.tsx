@@ -19,12 +19,12 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ExportCsvDialog } from '@/components/kanban/export-csv-dialog';
 import { ViewScopeToggle } from '@/components/kanban/view-scope-toggle';
-import { SettingsDialog } from '@/components/settings/settings-dialog';
+import { SettingsDialog, type SettingsTab } from '@/components/settings/settings-dialog';
 
 export function MobileHamburgerMenu() {
   const { activeTenant, memberships, setActiveTenant, user } = useAuth();
   const { view, setView } = useKanbanBoard();
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -115,7 +115,7 @@ export function MobileHamburgerMenu() {
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() => setSettingsOpen(true)}
+                onClick={() => setSettingsTab('preferences')}
               >
                 <Settings className="h-4 w-4" /> Settings
               </Button>
@@ -129,7 +129,7 @@ export function MobileHamburgerMenu() {
         </div>
       </PopoverContent>
     </Popover>
-    <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+    <SettingsDialog tab={settingsTab} onTabChange={setSettingsTab} />
     </>
   );
 }

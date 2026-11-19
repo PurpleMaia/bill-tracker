@@ -1,6 +1,10 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import Link from 'next/link';
+import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { SEARCH_TRACK_HREF } from '@/lib/bills/track-bill-links';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { KanbanBoard } from './kanban-board';
 import { KanbanSpreadsheet } from './kanban-spreadsheet';
@@ -56,9 +60,18 @@ export function ProtectedKanbanBoardOrSpreadsheet() {
           <div className="text-center space-y-4">
             <h2 className="text-2xl font-semibold">No Tracked Bills Yet</h2>
             <p className="text-muted-foreground max-w-md">
-              Click Track Bill in the header to get started.
+              Find bills on Discover and track them to build your board.
             </p>
           </div>
+          {/* The action lives here, not in the header: with no bills there are
+              no column "Track bills" footers, and phones have no header
+              Track Bill button. */}
+          <Button asChild>
+            <Link href={SEARCH_TRACK_HREF}>
+              <Search className="mr-1.5 h-4 w-4" aria-hidden="true" />
+              Find bills to track
+            </Link>
+          </Button>
         </div>
       </>
     );
