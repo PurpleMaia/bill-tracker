@@ -23,12 +23,15 @@ anyone, no account needed". There is no separate setting.
 
 ## What ships
 
-### 1. A shareable public board page — `/org/[slug]`
+### 1. A shareable public board page — `/community/[slug]`
 
 - One org's board, read-only, for anyone (signed in or not).
 - Keyed on `tenants.slug` (already `UNIQUE NOT NULL`), so links read as
-  `https://<app>/org/<slug>`. Not under `/boards/…` because `/boards/browse`
-  would collide with a slug of `browse`.
+  `https://<app>/community/<slug>`. *(Revised 2026-11-19: started at
+  `/community/<slug>`, which now redirects.)* The same URL is an admin's "Your
+  Organization" tab, which shows their own board even while private. Slugs that
+  would collide with fixed Community pages (`following`, `your-organization`)
+  are reserved at org creation.
 - 404-style "This board isn't public" state when the slug is unknown **or** the
   org's board is private — the two are indistinguishable to the visitor.
 - Server-rendered `<title>`/description (`generateMetadata`) so a pasted link
@@ -40,11 +43,11 @@ anyone, no account needed". There is no separate setting.
   `KanbanBoard readOnly boardMode="active-boards"`, with org testimony badges.
 - "Track this bill" on cards only when signed in. Signed-out cards show no
   track control (the bill details dialog still offers its own login prompt).
-- The Active Boards nav tab is highlighted on `/org/*`, and its Following/Browse sub-nav shows with **Browse** active.
+- The Active Boards nav tab is highlighted on `/community/<slug>`, and its Following/Browse sub-nav shows with **Browse** active.
 
 ### 2. Browse Orgs changes
 
-- **Every** org card gets a **View board** button linking to `/org/<slug>`, for
+- **Every** org card gets a **View board** button linking to `/community/<slug>`, for
   everyone — no follow or login required. Follow/Login-to-follow stays beside it.
 - The "Following" side panel and follow toast keep linking to `/boards?org=…`
   (the Following tab), unchanged.

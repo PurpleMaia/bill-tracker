@@ -32,8 +32,11 @@ const nextConfig: NextConfig = {
       { source: '/your-bills', destination: '/tracker', permanent: false },
       { source: '/boards', destination: '/community/following', permanent: false },
       { source: '/boards/browse', destination: '/community', permanent: false },
+      // /community/your-organization forwards to the admin's own /community/<slug>.
       { source: '/boards/mine', destination: '/community/your-organization', permanent: false },
       { source: '/community/public-view', destination: '/community/your-organization', permanent: false },
+      // Org boards moved from /org/<slug>; links already shared keep working.
+      { source: '/org/:slug', destination: '/community/:slug', permanent: false },
     ];
   },
   webpack: (config, { isServer }) => {

@@ -20,8 +20,8 @@ export const NAV_ITEMS = [
 export function isNavItemActive(href: string, pathname: string) {
   // '/' is Find Bills (the landing page), so the bare root highlights that tab.
   if (href === '/find-bills') return pathname === '/' || pathname.startsWith('/find-bills');
-  // Community owns the whole /community tree plus public /org/<slug> boards, so
-  // the tab stays highlighted on Following and shared board links too.
+  // Community owns the whole /community tree, org boards included, so the tab
+  // stays highlighted on Following and shared board links too.
   if (href === '/community') return isActiveBoardsPath(pathname);
   if (href === TAKE_ACTION_ROOT) return isTakeActionPath(pathname);
   return pathname.startsWith(href);

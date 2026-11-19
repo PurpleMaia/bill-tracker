@@ -89,7 +89,7 @@ function FollowControl({ tenantId, orgName }: { tenantId: string; orgName: strin
 }
 
 /**
- * "Whose board is this?" banner for a public /org/<slug> board. Same olive
+ * "Whose board is this?" banner for a public /community/<slug> board. Same olive
  * strip as the Following board's banner, plus a follow action for visitors
  * arriving from a link. Sharing lives with the org (Browse, Org Settings), not here.
  */

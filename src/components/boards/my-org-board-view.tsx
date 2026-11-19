@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, ExternalLink, Globe, Lock, RotateCw, Settings } from 'lucide-react';
+import { ArrowRight, Globe, Lock, RotateCw, Settings } from 'lucide-react';
 import type { MyOrgBoard } from '@/types/tenant';
 import { data } from '@/lib/data-client';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import KanbanBoardSkeleton from '@/components/kanban/skeletons/skeleton-board';
 import { Button } from '@/components/ui/button';
 import { OrganizationDialog, type OrganizationTab } from '@/components/admin/organization-dialog';
-import { publicBoardPath } from '@/lib/boards/board-routes';
 import { cn } from '@/lib/core/utils';
 import { RISE_IN } from '@/lib/core/motion';
 import { initials } from './active-board-banner';
@@ -63,18 +62,10 @@ function MyOrgBoardBanner({ board, onOpenSettings }: { board: MyOrgBoard; onOpen
         </div>
         <p className="truncate text-xs text-olive-dark">
           {publicBoard
-            ? 'Preview · this is what anyone sees at your public link'
-            : 'Preview · only your members can see this until you make it public'}
+            ? 'This is what anyone sees at this link'
+            : 'Only you can see this until you make your board public'}
         </p>
       </div>
-      {publicBoard && (
-        <Button asChild size="sm" variant="outline" className="shrink-0">
-          <Link href={publicBoardPath(org.slug)} aria-label="Open your public page">
-            <ExternalLink className="h-4 w-4 sm:mr-1.5" />
-            <span className="sr-only sm:not-sr-only">Public page</span>
-          </Link>
-        </Button>
-      )}
       <Button size="sm" className="shrink-0" onClick={onOpenSettings} aria-label="Organization Settings">
         <Settings className="h-4 w-4 sm:mr-1.5" />
         <span className="sr-only sm:not-sr-only">Settings</span>
@@ -84,9 +75,9 @@ function MyOrgBoardBanner({ board, onOpenSettings }: { board: MyOrgBoard; onOpen
 }
 
 /**
- * /community/your-organization — an org admin's preview of their own org's board as visitors
- * see it. Unlike /org/<slug>, it works while the board is private, so admins
- * can check what they'd be sharing before turning it on.
+ * An org admin's view of their own board at /community/<slug> — the same link
+ * they share. Unlike the public view of that link, it works while the board is
+ * private, so admins can check what they'd be sharing before turning it on.
  */
 export function MyOrgBoardView() {
   const { activeTenant, loading: authLoading } = useAuth();

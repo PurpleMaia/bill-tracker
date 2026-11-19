@@ -5,17 +5,21 @@ import { usePathname } from 'next/navigation';
 import { Star, Building2, Compass } from 'lucide-react';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { cn } from '@/lib/core/utils';
-import { isActiveBoardsTabActive } from '@/lib/boards/board-routes';
+import {
+  COMMUNITY_BROWSE,
+  COMMUNITY_FOLLOWING,
+  communityTab,
+  publicBoardPath,
+  type CommunityTab,
+} from '@/lib/boards/board-routes';
 
 // Browse leads: any public board is now open to everyone, so finding orgs is
 // the first step. "Following" + a star, not "View Board" + the kanban icon, so
-// it can't be mistaken for Your Bills.
-const TABS = [
-  { href: '/community', label: 'Browse', icon: Compass, adminOnly: false },
-  { href: '/community/following', label: 'Following', icon: Star, adminOnly: false },
-  // An admin's preview of their own org's board as others see it.
-  { href: '/community/your-organization', label: 'Your Organization', icon: Building2, adminOnly: true },
-] as const;
+// it can't be mistaken for Your Tracker.
+const TABS: { id: CommunityTab; href: string; label: string; icon: typeof Star }[] = [
+  { id: 'browse', href: COMMUNITY_BROWSE, label: 'Browse', icon: Compass },
+  { id: 'following', href: COMMUNITY_FOLLOWING, label: 'Following', icon: Star },
+];
 
 /**
  * Sub-navigation for the Active Boards section — link-based tabs styled to
@@ -32,16 +36,21 @@ export function ActiveBoardsSubNav({
 }) {
   const pathname = usePathname();
   const { activeTenant } = useAuth();
-  const isAdmin = activeTenant?.orgRole === 'admin';
-  const tabs = TABS.filter((t) => !t.adminOnly || isAdmin);
+  // Admins get their own org's board, at the same /community/<slug> link they
+  // share, so they can check how it looks to others (even while private).
+  const ownSlug = activeTenant?.orgRole === 'admin' ? activeTenant.slug : null;
+  const tabs = ownSlug
+    ? [...TABS, { id: 'your-organization' as const, href: publicBoardPath(ownSlug), label: 'Your Organization', icon: Building2 }]
+    : TABS;
+  const activeTab = communityTab(pathname, ownSlug);
 
   return (
     <nav
       aria-label="Active board views"
       className={cn('inline-flex h-10 items-center rounded-md bg-secondary p-1 shadow-sm', className)}
     >
-      {tabs.map(({ href, label, icon: Icon }) => {
-        const active = isActiveBoardsTabActive(href, pathname);
+      {tabs.map(({ id, href, label, icon: Icon }) => {
+        const active = activeTab === id;
         return (
           <Link
             key={href}

@@ -2,7 +2,7 @@ import { db } from '@/db/kysely/client';
 import type { Membership, OrgRole } from '@/types/tenant';
 import { Errors } from '@/lib/core/errors';
 import { auth } from '@/lib/auth/session';
-import { deriveOrgSlug, slugCandidate } from '@/lib/tenants/org-slug';
+import { deriveOrgSlug, slugCandidate, isReservedSlug } from '@/lib/tenants/org-slug';
 
 /** How many suffixed slug candidates we try before giving up. */
 const MAX_SLUG_ATTEMPTS = 50;
@@ -359,7 +359,7 @@ export async function getPublicTenant(tenantId: string) {
 }
 
 /**
- * A public org by slug, for its shareable /org/<slug> board. Null when the slug
+ * A public org by slug, for its shareable /community/<slug> board. Null when the slug
  * is unknown OR the board is private — callers must not tell the two apart.
  */
 export async function getPublicTenantBySlug(slug: string) {
@@ -552,6 +552,8 @@ async function findFreeSlug(trx: typeof db, name: string): Promise<string | null
 
   for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
     const candidate = slugCandidate(base, attempt);
+    // e.g. an org named "Following" gets "following-2".
+    if (isReservedSlug(candidate)) continue;
     const existing = await trx
       .selectFrom('tenants')
       .select('id')

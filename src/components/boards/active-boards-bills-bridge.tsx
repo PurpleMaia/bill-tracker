@@ -12,7 +12,7 @@ import type { Bill } from '@/types/legislation';
 
 /**
  * Serves a read-only bill list to KanbanBoard/Card through BillsContext. Shared
- * by the Following board (ActiveBoardsBillsBridge) and public /org/<slug> boards.
+ * by the Following board (ActiveBoardsBillsBridge) and /community/<slug> org boards.
  */
 export function BoardBillsBridge({
   bills,

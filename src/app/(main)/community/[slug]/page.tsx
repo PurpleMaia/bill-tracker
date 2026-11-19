@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getPublicTenantBySlug } from '@/db/queries/tenants';
-import { PublicBoardView } from '@/components/boards/public-board-view';
+import { OrgBoardRoute } from '@/components/boards/org-board-route';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function PublicBoardPage({ params }: Props) {
+export default async function OrgBoardPage({ params }: Props) {
   const { slug } = await params;
-  return <PublicBoardView slug={slug} />;
+  return <OrgBoardRoute slug={slug} />;
 }

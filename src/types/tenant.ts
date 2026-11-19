@@ -25,7 +25,7 @@ export interface Tenant {
   brandingConfig: Record<string, unknown> | null;
 }
 
-/** The org shown on a public /org/<slug> board. */
+/** The org shown on a public /community/<slug> board. */
 export interface PublicBoardOrg {
   tenantId: string;
   name: string;

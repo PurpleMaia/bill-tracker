@@ -50,7 +50,7 @@ export function HeaderSubNav() {
 
   // Shown logged out too: Browse is public, so the tabs must stay reachable.
   // Following is still gated — it renders BoardsLoginWall for signed-out users.
-  // Public /org/<slug> boards show the tabs too, with Browse highlighted.
+  // Org boards (/community/<slug>) show the tabs too.
   if (isActiveBoardsPath(pathname)) {
     return (
       <>

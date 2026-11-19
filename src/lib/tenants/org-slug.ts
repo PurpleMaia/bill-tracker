@@ -6,6 +6,17 @@
  * which owns DB access; this module only turns a name into a base slug.
  */
 
+/**
+ * Slugs an org can't take: org boards live at /community/<slug>, beside these
+ * fixed Community pages, which would otherwise hide that org's board.
+ */
+const RESERVED_SLUGS: ReadonlySet<string> = new Set(['following', 'your-organization']);
+
+/** True if a slug collides with a fixed /community/* page. */
+export function isReservedSlug(slug: string): boolean {
+  return RESERVED_SLUGS.has(slug);
+}
+
 /** Longest slug we ever store; matches the register route's historical cap. */
 export const MAX_SLUG_LENGTH = 50;
 

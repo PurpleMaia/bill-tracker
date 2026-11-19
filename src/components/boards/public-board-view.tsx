@@ -13,7 +13,7 @@ import { PublicBoardBanner } from './public-board-banner';
 import { ReadOnlyOrgBoard } from './read-only-org-board';
 
 /**
- * One org's public board at /org/<slug>, for anyone — no account needed. The
+ * One org's public board at /community/<slug>, for anyone — no account needed. The
  * same read-only kanban as the Following board; tracking a bill onto your own
  * board is offered only when signed in (cardVisibility hides it otherwise).
  */
