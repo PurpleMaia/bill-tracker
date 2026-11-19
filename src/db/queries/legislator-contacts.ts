@@ -2,14 +2,13 @@ import { db } from '@/db/kysely/client';
 import { ApiError } from '@/lib/core/errors';
 import { fullNameOrUsername } from '@/lib/auth/profile';
 import { isUuid } from '@/lib/bills/search-params';
-import { isContactMethod, isContactStage } from '@/lib/legislators/contact-stage';
+import { MAX_CONTACT_RECIPIENTS, isContactMethod, isContactStage } from '@/lib/legislators/contact-stage';
 import type { ContactMethod, ContactStage, LegislatorContact, LogContactsInput } from '@/types/contacts';
 
 // The Contact Legislators tab's history. Like every db/queries module these
 // functions do no auth: callers (guarded actions/routes) pass the session's
 // userId, and a tenantId only after checking membership.
 
-const MAX_RECIPIENTS = 20;
 const MAX_RECIPIENT_LENGTH = 200;
 const MAX_NOTE_LENGTH = 1000;
 
@@ -74,7 +73,7 @@ export async function logContacts(userId: string, input: LogContactsInput): Prom
   if (!isContactMethod(input.method)) throw new ApiError('INVALID_INPUT', 400, 'Invalid contact method');
   const recipients = [...new Set((input.recipients ?? []).map((r) => r?.trim()).filter(Boolean))];
   if (recipients.length === 0) throw new ApiError('INVALID_INPUT', 400, 'Choose who you contacted');
-  if (recipients.length > MAX_RECIPIENTS || recipients.some((r) => r.length > MAX_RECIPIENT_LENGTH)) {
+  if (recipients.length > MAX_CONTACT_RECIPIENTS || recipients.some((r) => r.length > MAX_RECIPIENT_LENGTH)) {
     throw new ApiError('INVALID_INPUT', 400, 'Too many or too long recipients');
   }
   const note = input.note?.trim() || null;

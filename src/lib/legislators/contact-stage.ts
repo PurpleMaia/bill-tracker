@@ -46,6 +46,9 @@ export function isContactStage(value: unknown): value is ContactStage {
   return typeof value === 'string' && (CONTACT_STAGES as readonly string[]).includes(value);
 }
 
+/** Most recipients one "Mark as contacted" save may log (enforced server-side too). */
+export const MAX_CONTACT_RECIPIENTS = 20;
+
 export function isContactMethod(value: unknown): value is ContactMethod {
   return typeof value === 'string' && (CONTACT_METHODS as readonly string[]).includes(value);
 }
@@ -70,6 +73,8 @@ export interface ContactStageInput {
   dead: boolean;
   /** The bill's latest status line — tells a final veto from an intent to veto. */
   latestStatusText?: string | null;
+  /** The full history has a final veto, even if the latest line isn't it. */
+  finalVeto?: boolean;
 }
 
 /**
@@ -77,9 +82,12 @@ export interface ContactStageInput {
  * is no one useful to contact: enacted, failed, or between stages (e.g. a
  * hearing is already scheduled).
  */
-export function getContactStage({ status, dead, latestStatusText }: ContactStageInput): ContactStage | null {
+export function getContactStage({ status, dead, latestStatusText, finalVeto }: ContactStageInput): ContactStage | null {
   if (isEnacted(status)) return null;
-  const governor = getGovernorStage(status, latestStatusText ? [{ statustext: latestStatusText }] : []);
+  const governor =
+    finalVeto && status === 'vetoList'
+      ? 'vetoed'
+      : getGovernorStage(status, latestStatusText ? [{ statustext: latestStatusText }] : []);
   if (governor) {
     if (dead) return null;
     if (governor === 'vetoed') return 'override';
@@ -146,6 +154,7 @@ export interface ContactableBill {
   dead: boolean;
   archived: boolean;
   latest_update: { statustext: string; date: string } | null;
+  final_veto?: boolean;
 }
 
 export interface ContactOpportunity<B extends ContactableBill, C extends ContactRecord> {
@@ -195,6 +204,7 @@ export function buildContactOpportunities<B extends ContactableBill, C extends C
       status: bill.current_bill_status,
       dead: bill.dead,
       latestStatusText: bill.latest_update?.statustext ?? null,
+      finalVeto: bill.final_veto,
     });
     const billContacts = byBill.get(bill.id) ?? [];
     if (!stage) {

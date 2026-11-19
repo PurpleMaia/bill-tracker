@@ -82,6 +82,8 @@ export interface Bill {
 
   // client side attributes
   latest_update: StatusUpdate | null;
+  /** Any status line is the Governor's final veto (latest_update alone can miss it). */
+  final_veto?: boolean;
   previous_status?: BillStatus;
 
   // LLM state 

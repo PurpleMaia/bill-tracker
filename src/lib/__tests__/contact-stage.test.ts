@@ -55,6 +55,14 @@ describe('getContactStage', () => {
     ).toBe('override');
   });
 
+  it('uses the full-history veto flag when the latest line is not the veto', () => {
+    expect(
+      getContactStage({ status: 'vetoList', dead: false, latestStatusText: 'Received from the Governor.', finalVeto: true }),
+    ).toBe('override');
+    // Only on the veto list — a stale flag can't override another status.
+    expect(getContactStage({ status: 'transmittedGovernor', dead: false, finalVeto: true })).toBe('governor');
+  });
+
   it('has no one to contact for enacted or failed bills', () => {
     expect(getContactStage({ status: 'governorSigns', dead: false })).toBeNull();
     expect(getContactStage({ status: 'lawWithoutSignature', dead: false })).toBeNull();

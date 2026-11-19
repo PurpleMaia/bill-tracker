@@ -6,6 +6,7 @@
 import type { Bill, BillTracker, Tag, BillDetails, StatusUpdate, BillVersion, CommitteeReport } from '@/types/legislation';
 import { Bills, StatusUpdates, BillVersions, CommitteeReports } from '@/db/types';
 import { Selectable } from 'kysely';
+import { hasFinalVeto } from '@/lib/legislators/governor-contact';
 
 // ==============================================
 // BILL HELPER DATA MAPPING FUNCTIONS
@@ -164,6 +165,7 @@ export async function convertDataToBillShape(
     year: bill.year ?? null,
 
     latest_update: updates[0] || null,
+    final_veto: hasFinalVeto(updates),
 
     tags: billTags,
     tracked_by: trackedBy,

@@ -42,6 +42,11 @@ export function isGovernorStatus(status: string | null | undefined): boolean {
 // of intent to veto…", which doesn't start with "Vetoed".
 const FINAL_VETO_RE = /^\s*vetoed\b/i;
 
+/** True when the bill's status history includes the Governor's final veto. */
+export function hasFinalVeto(updates: ReadonlyArray<{ statustext: string }> | null | undefined): boolean {
+  return (updates ?? []).some((u) => FINAL_VETO_RE.test(u.statustext));
+}
+
 /**
  * The governor-phase stage for a bill, or null outside it. `vetoList` covers
  * both the intent-to-veto list and a final veto — the status history tells them
@@ -53,7 +58,7 @@ export function getGovernorStage(
 ): GovernorStage | null {
   if (status === 'transmittedGovernor') return 'awaitingGovernor';
   if (status !== 'vetoList') return null;
-  return (updates ?? []).some((u) => FINAL_VETO_RE.test(u.statustext)) ? 'vetoed' : 'intentToVeto';
+  return hasFinalVeto(updates) ? 'vetoed' : 'intentToVeto';
 }
 
 /**

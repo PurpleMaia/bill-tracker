@@ -28,6 +28,7 @@ import {
   CONTACT_METHODS,
   CONTACT_METHOD_LABELS,
   CONTACT_STAGE_ACTIONS,
+  MAX_CONTACT_RECIPIENTS,
   type ContactMethod,
   type ContactStage,
 } from '@/lib/legislators/contact-stage';
@@ -81,6 +82,8 @@ export function LogContactDialog({
   const checkboxNames = [...new Set([...suggestedRecipients, ...billLegislators])];
 
   const recipients = [...selected];
+  // A bill can list more legislators than one save accepts (long introducer lists).
+  const atLimit = selected.size >= MAX_CONTACT_RECIPIENTS;
 
   const toggle = (name: string, checked: boolean) => {
     setSelected((prev) => {
@@ -134,6 +137,7 @@ export function LogContactDialog({
                   <Checkbox
                     id={id}
                     checked={selected.has(name)}
+                    disabled={atLimit && !selected.has(name)}
                     onCheckedChange={(checked) => toggle(name, checked === true)}
                   />
                   <Label htmlFor={id} className="text-sm font-normal">
@@ -142,6 +146,11 @@ export function LogContactDialog({
                 </div>
               );
             })}
+            {atLimit && (
+              <p className="text-xs text-muted-foreground">
+                You can mark up to {MAX_CONTACT_RECIPIENTS} people at a time. Save these, then mark the rest.
+              </p>
+            )}
             {legislatorsLoading ? (
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Loader2 className="h-3 w-3 animate-spin" /> Loading legislators on this bill…
