@@ -8,8 +8,8 @@ import { TAKE_ACTION_ROOT, isTakeActionPath } from '@/lib/take-action/routes';
 import { isActiveBoardsPath } from '@/lib/boards/board-routes';
 
 export const NAV_ITEMS = [
-  { href: '/discover', label: 'Bills', icon: Search },
-  { href: '/your-bills', label: 'Board', icon: KanbanSquareIcon },
+  { href: '/discover', label: 'Find Bills', icon: Search },
+  { href: '/your-bills', label: 'Your Tracker', icon: KanbanSquareIcon },
   // Testimony + Contact Legislators; /take-action lands on the Testimony tab.
   { href: TAKE_ACTION_ROOT, label: 'Take Action', icon: Megaphone },
   // Lands on Browse, the first tab: every public board opens from there, even

@@ -108,7 +108,7 @@ export function TrackBillDialog({ children }: TrackBillDialogProps) {
         <Button asChild className="w-full" onClick={() => setIsOpen(false)}>
           <Link href="/discover">
             <Search className="h-4 w-4" />
-            Go to Bills
+            Go to Find Bills
             <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>
