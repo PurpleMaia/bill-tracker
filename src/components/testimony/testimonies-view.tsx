@@ -17,6 +17,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { cn, formatBillStatusName } from '@/lib/core/utils';
+import { RISE_IN, riseDelay } from '@/lib/core/motion';
 import { data } from '@/lib/data-client';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useTestimonies } from '@/hooks/use-testimonies';
@@ -219,7 +220,7 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
       {/* Page heading + summary */}
-      <div className="mb-6">
+      <div className={cn('mb-6', RISE_IN)}>
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-2xl font-semibold tracking-tight">Your Testimonies</h2>
           {user && <NewTestimonyButton />}
@@ -271,7 +272,11 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
           )}
         </div>
 
-        <aside className="w-full shrink-0 lg:sticky lg:top-24 lg:w-80" aria-label="Testimony help">
+        <aside
+          className={cn('w-full shrink-0 lg:sticky lg:top-24 lg:w-80', RISE_IN)}
+          style={riseDelay(2)}
+          aria-label="Testimony help"
+        >
           <TestimoniesSidebar />
         </aside>
       </div>
@@ -296,8 +301,8 @@ function FilteredList({
     <section aria-label="Needs testimony">
       <SectionHeading icon={CalendarClock} label="Needs testimony" count={needed.length} />
       <ul className="space-y-3">
-        {needed.map((prospect) => (
-          <li key={prospect.item.billId}>
+        {needed.map((prospect, i) => (
+          <li key={prospect.item.billId} className={RISE_IN} style={riseDelay(i)}>
             <ProspectCard prospect={prospect} />
           </li>
         ))}
@@ -322,7 +327,7 @@ function FilteredList({
         {drafts.length > 0 && (
           <section aria-label="Drafts">
             <SectionHeading icon={PenLine} label="Drafts" count={billCount(drafts)} />
-            <TestimonyCardList entries={drafts} onDeleted={onDeleted} />
+            <TestimonyCardList entries={drafts} onDeleted={onDeleted} staggerFrom={needed.length} />
           </section>
         )}
       </div>
@@ -359,13 +364,17 @@ function FilteredList({
       {drafts.length > 0 && (
         <section aria-label="Drafts">
           <SectionHeading icon={PenLine} label="Drafts" count={billCount(drafts)} />
-          <TestimonyCardList entries={drafts} onDeleted={onDeleted} />
+          <TestimonyCardList entries={drafts} onDeleted={onDeleted} staggerFrom={needed.length} />
         </section>
       )}
       {submitted.length > 0 && (
         <section aria-label="Submitted">
           <SectionHeading icon={Check} label="Submitted" count={billCount(submitted)} />
-          <TestimonyCardList entries={submitted} onDeleted={onDeleted} />
+          <TestimonyCardList
+            entries={submitted}
+            onDeleted={onDeleted}
+            staggerFrom={needed.length + billCount(drafts)}
+          />
         </section>
       )}
     </div>
@@ -400,16 +409,20 @@ function billCount(entries: DecoratedTestimony[]): number {
 function TestimonyCardList({
   entries,
   onDeleted,
+  staggerFrom = 0,
 }: {
   entries: DecoratedTestimony[];
   onDeleted: (testimonyId: string) => void;
+  /** Cards in the sections above, so the cascade runs top to bottom across
+   *  sections instead of every section starting at once. */
+  staggerFrom?: number;
 }) {
   // One card per bill; a bill with several hearing-round testimonies gets round pills.
   const groups = groupByBill(entries.map((entry) => ({ billId: entry.item.billId, entry })));
   return (
     <ul className="space-y-3">
-      {groups.map((group) => (
-        <li key={group.billId}>
+      {groups.map((group, i) => (
+        <li key={group.billId} className={RISE_IN} style={riseDelay(staggerFrom + i)}>
           <TestimonyCard entries={group.items.map((g) => g.entry)} onDeleted={onDeleted} />
         </li>
       ))}
@@ -667,7 +680,7 @@ function TestimonyCard({
               </TooltipTrigger>
               <TooltipContent className="max-w-64">
                 &ldquo;{nextDeadline.name}&rdquo; is the next procedural deadline this bill must
-                clear to stay alive this session. No hearing is scheduled yet — testimony opens
+                clear to stay active this session. No hearing is scheduled yet — testimony opens
                 once one is.
               </TooltipContent>
             </Tooltip>
@@ -949,7 +962,7 @@ function EmptyState({
   action?: { label: string; onClick: () => void };
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-16 text-center">
+    <div className={cn('flex flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-16 text-center', RISE_IN)}>
       <Icon className="h-10 w-10 text-muted-foreground/60" />
       <h3 className="text-lg font-medium">{title}</h3>
       <p className="max-w-sm text-sm text-muted-foreground">{description}</p>

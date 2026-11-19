@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { data } from '@/lib/data-client';
 import {
@@ -53,6 +53,14 @@ export function useBillSearch(filters: SearchFilters, tenantId?: string | null) 
   const bills: BillSearchResult[] = query.data?.pages.flatMap((p) => p.items) ?? [];
   const totalCount = query.data?.pages[0]?.totalCount ?? 0;
 
+  // Identifies the filter set behind the results ON SCREEN. While a new query
+  // resolves, `data` is still the previous set (placeholderData), so the key
+  // only advances once the new results land — keying the list on it remounts
+  // the cards (replaying their entrance) exactly when the set actually changes.
+  const queryIdentity = JSON.stringify([effective, tenantId ?? null]);
+  const resultSetKey = useRef(queryIdentity);
+  if (!query.isPlaceholderData) resultSetKey.current = queryIdentity;
+
   return {
     bills,
     totalCount,
@@ -60,6 +68,7 @@ export function useBillSearch(filters: SearchFilters, tenantId?: string | null) 
     // this (not the raw filter) to anything highlighting matches, so the
     // highlighted terms never race ahead of the results they're drawn on.
     debouncedQuery,
+    resultSetKey: resultSetKey.current,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     isFetchingNextPage: query.isFetchingNextPage,

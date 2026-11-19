@@ -37,7 +37,7 @@ export const GLOSSARY = {
   committee: {
     term: 'Committee',
     short:
-      'A small group of legislators that reviews bills on one subject before the full chamber sees them. A bill must clear every committee it is referred to, in order, to stay alive.',
+      'A small group of legislators that reviews bills on one subject before the full chamber sees them. A bill must clear every committee it is referred to, in order, to stay active.',
     learnMoreAnchor: 'orig-chamber',
   },
   'committee-chair': {

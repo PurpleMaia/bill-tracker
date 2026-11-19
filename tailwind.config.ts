@@ -115,13 +115,55 @@ export default {
   				'70%, 100%': {
   					boxShadow: '0 0 0 8px hsl(var(--destructive) / 0)'
   				}
+  			},
+  			// "Here it is" halo for a card the board just scrolled to (View on
+  			// board): a teal spread that grows and fades, like the guide's
+  			// spotlight but without dimming the page. Spread stays within the
+  			// column's 8px padding so the scroll area doesn't clip it.
+  			'focus-pulse': {
+  				'0%': {
+  					boxShadow: '0 0 0 0 hsl(var(--primary) / 0.45)'
+  				},
+  				'70%, 100%': {
+  					boxShadow: '0 0 0 8px hsl(var(--primary) / 0)'
+  				}
+  			},
+  			// Opacity-only mount-in, for places where movement would distract
+  			// (the bill dialog's tabs, the version diff).
+  			'fade-in': {
+  				from: {
+  					opacity: '0'
+  				},
+  				to: {
+  					opacity: '1'
+  				}
+  			},
+  			// Mount-in for content: fade while rising a few px into place.
+  			'rise-in': {
+  				from: {
+  					opacity: '0',
+  					transform: 'translateY(8px)'
+  				},
+  				to: {
+  					opacity: '1',
+  					transform: 'none'
+  				}
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			'soft-ping': 'soft-ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite',
-  			'why-ring': 'why-ring 2.4s cubic-bezier(0, 0, 0.2, 1) 1'
+  			'why-ring': 'why-ring 2.4s cubic-bezier(0, 0, 0.2, 1) 1',
+  			// Staggered by a `--stagger` index (set inline, capped by the caller).
+  			// `backwards` (not `both`) holds the hidden frame through the delay but
+  			// leaves NO transform once finished: a lingering transform would make
+  			// the element a containing block and break dnd's position:fixed drag.
+  			'rise-in': 'rise-in 320ms cubic-bezier(0.22, 1, 0.36, 1) calc(var(--stagger, 0) * 45ms) backwards',
+  			// Three pulses, then done (the board clears the highlight after).
+  			'focus-pulse': 'focus-pulse 1.6s cubic-bezier(0, 0, 0.2, 1) 3',
+  			// Same timing and stagger as rise-in, minus the movement.
+  			'fade-in': 'fade-in 320ms cubic-bezier(0.22, 1, 0.36, 1) calc(var(--stagger, 0) * 45ms) backwards'
   		}
   	}
   },

@@ -6,6 +6,9 @@ import { KANBAN_COLUMNS, COLUMN_TITLES, SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED
 import { ScrollBar } from '@/components/ui/scroll-area';
 import * as ScrollAreaPrimitive from '@radix-ui/react-scroll-area';
 import { searchBillsLocal } from '@/lib/bills/bill-search';
+import { cn } from '@/lib/core/utils';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { RISE_IN, riseDelay } from '@/lib/core/motion';
 import { filterBills } from '@/lib/bills/bill-filters';
 import { data as dataClient } from '@/lib/data-client';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
@@ -18,7 +21,6 @@ import { useBills } from '@/hooks/contexts/bills-context';
 import KanbanBoardSkeleton from './skeletons/skeleton-board';
 import { KanbanColumn } from './kanban-column';
 import { useAuth } from '@/hooks/contexts/auth-context';
-import { KanbanPillStrip } from './kanban-pill-strip';
 
 
 interface KanbanBoardProps {
@@ -32,7 +34,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, boardMode = 'own', orgTestimonyBillIds, trackedBillIds, onTrackForSelf }: KanbanBoardProps) {
-  const { searchQuery, selectedTagIds, selectedYears, columnView } = useKanbanBoard();
+  const { searchQuery, setSearchQuery, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, columnView, registerPhaseScroll } = useKanbanBoard();
   const { toast } = useToast();
   const { user, activeTenant } = useAuth();
   // Status changes are org-scoped; users with no org can't move cards.
@@ -67,8 +69,10 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
   const crossoverIdx = activeColumns.findIndex((col) =>
     col.id === (isSimplified ? 'simpleCrossoverWaiting' : 'crossoverWaiting1')
   );
+  // The CONFERENCE column is `passedCommittees` (it opens the conference
+  // phase); `conferenceAssigned` is the AWAITING COMMITTEES column after it.
   const conferenceIdx = activeColumns.findIndex((col) =>
-    col.id === 'conferenceAssigned'
+    col.id === 'passedCommittees'
   );
   const governorIdx = activeColumns.findIndex((col) =>
     col.id === 'transmittedGovernor'
@@ -78,6 +82,10 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
   // ============= Scroll Handlers =========================
   // =======================================================
   
+  // Phones (max-sm) show one centered column with a stub of each neighbour
+  // peeking in: the viewports snap-x to column centers, and the column rows
+  // carry px-5 (the peek gutter) so the first and last columns can center too.
+
   // Create refs for all columns dynamically
   const viewportRef = useRef<HTMLDivElement>(null);
   const columnRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -136,8 +144,12 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
     isMobileDragRef.current = window.matchMedia('(max-width: 767px)').matches;
     if (!isMobileDragRef.current) return;
     dragPointerXRef.current = null;
-    // Per-frame scrollLeft writes fight the inline scrollBehavior: 'smooth'.
-    if (viewportRef.current) viewportRef.current.style.scrollBehavior = 'auto';
+    // Per-frame scrollLeft writes fight the inline scrollBehavior: 'smooth',
+    // and snapping would yank each 1px nudge back to the nearest column.
+    if (viewportRef.current) {
+      viewportRef.current.style.scrollBehavior = 'auto';
+      viewportRef.current.style.scrollSnapType = 'none';
+    }
     window.addEventListener('pointermove', handleDragPointerMove, { passive: true });
     window.addEventListener('touchmove', handleDragPointerMove, { passive: true });
     if (autoPanRafRef.current === null) {
@@ -155,7 +167,10 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
     }
     dragPointerXRef.current = null;
     isMobileDragRef.current = false;
-    if (viewportRef.current) viewportRef.current.style.scrollBehavior = 'smooth';
+    if (viewportRef.current) {
+      viewportRef.current.style.scrollBehavior = 'smooth';
+      viewportRef.current.style.scrollSnapType = ''; // back to the class's snap
+    }
   }, [handleDragPointerMove]);
 
   // Tear down listeners/rAF if a drag is interrupted by unmount.
@@ -173,11 +188,17 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
 
       const targetRect = target.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
+      // Phones center the column (its neighbours peek in on both sides, and
+      // it's where the snap would settle anyway); wider screens show several
+      // columns and keep the target flush left.
+      const inset = window.matchMedia('(max-width: 639px)').matches
+        ? Math.max(0, (containerRect.width - targetRect.width) / 2)
+        : 0;
       // Explicit behavior — a bare scrollLeft assignment depends on the
       // viewport's inline scroll-behavior, which the drag auto-pan toggles
       // to 'auto' and may leave there.
       container.scrollTo({
-        left: container.scrollLeft + (targetRect.left - containerRect.left),
+        left: container.scrollLeft + (targetRect.left - containerRect.left) - inset,
         behavior: 'smooth',
       });
     }
@@ -194,6 +215,56 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
       console.warn('Invalid column index:', columnIndex);
     }
   }, []);
+
+  // The phone phase pills render in KanbanHeader (beside Filters); hand them
+  // this board's scroller. Re-registered when the column set changes.
+  useEffect(() => {
+    const phaseIdx = { introduced: introducedIdx, crossover: crossoverIdx, conference: conferenceIdx, governor: governorIdx };
+    registerPhaseScroll((phase) => scrollToColumnByIndex(phaseIdx[phase]));
+    return () => registerPhaseScroll(null);
+  }, [registerPhaseScroll, scrollToColumnByIndex, introducedIdx, crossoverIdx, conferenceIdx, governorIdx]);
+
+  // ----- Phone page dots -----
+  // Which column sits nearest the viewport's center, for the dot indicator.
+  // Measured at most once per frame while scrolling.
+  const [activeColumnIdx, setActiveColumnIdx] = useState(0);
+  const scrollRafRef = useRef<number | null>(null);
+  const handleViewportScroll = useCallback(() => {
+    if (scrollRafRef.current !== null) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      const viewport = viewportRef.current;
+      if (!viewport) return;
+      const vr = viewport.getBoundingClientRect();
+      const center = vr.left + vr.width / 2;
+      let best = 0;
+      let bestDist = Infinity;
+      columnRefs.current.forEach((el, i) => {
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        const dist = Math.abs(r.left + r.width / 2 - center);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = i;
+        }
+      });
+      setActiveColumnIdx((prev) => (prev === best ? prev : best));
+    });
+  }, []);
+  useEffect(() => () => {
+    if (scrollRafRef.current !== null) {
+      cancelAnimationFrame(scrollRafRef.current);
+      // Clear the pending flag too: Strict Mode runs this cleanup between its
+      // double-mounted effects, and a stale id here made every later scroll
+      // think a measure was already queued — freezing the dots on column 1.
+      scrollRafRef.current = null;
+    }
+  }, []);
+  // A new column set (simplified <-> detailed) or the first real render after
+  // loading moves things without a scroll event, so re-measure then too.
+  useEffect(() => {
+    if (!loading) handleViewportScroll();
+  }, [loading, activeColumns, handleViewportScroll]);
 
   // =======================================================
   // ==================== Effects ==========================
@@ -413,6 +484,22 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
     openBill(bill.id);
   }, [openBill]);
 
+  // Center a card vertically in its column's own scroll area. Waits a beat so
+  // the horizontal scroll to that column (smooth) has landed first.
+  const scrollCardIntoColumn = useCallback((billId: string, columnIndex: number) => {
+    setTimeout(() => {
+      const billElement = billCardRefs.current.get(billId);
+      const viewport = columnScrollViewportRefs.current.get(columnIndex);
+      if (!billElement || !viewport) return;
+      const billRect = billElement.getBoundingClientRect();
+      const viewportRect = viewport.getBoundingClientRect();
+      viewport.scrollTo({
+        top: viewport.scrollTop + (billRect.top - viewportRect.top) - viewportRect.height / 2 + billRect.height / 2,
+        behavior: 'smooth',
+      });
+    }, 300);
+  }, []);
+
   const handleTempCardClick = useCallback(
     (tempBill: TempBill) => {
       // Find the column index where the real bill currently is (current_status)
@@ -426,63 +513,95 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
         col => col.id === targetId
       );
 
-      // First, scroll horizontally to the column where the real bill is
+      // Scroll horizontally to the column where the real bill is, then
+      // vertically to its card within that column.
       if (currentStatusColumnIndex !== -1) {
         scrollToColumnByIndex(currentStatusColumnIndex);
       }
-
-      // Then, scroll vertically to the bill card within that column
-      // Wait a bit for the horizontal scroll to complete
-      setTimeout(() => {
-        const billElement = billCardRefs.current.get(tempBill.id);
-        const viewport = columnScrollViewportRefs.current.get(currentStatusColumnIndex);
-
-        if (billElement && viewport) {
-          // Get the position of the bill card relative to the viewport
-          const billRect = billElement.getBoundingClientRect();
-          const viewportRect = viewport.getBoundingClientRect();
-
-          // Calculate the scroll position to center the bill card
-          const scrollTop = viewport.scrollTop + (billRect.top - viewportRect.top) - (viewportRect.height / 2) + (billRect.height / 2);
-
-          // Smooth scroll to the position
-          viewport.scrollTo({
-            top: scrollTop,
-            behavior: 'smooth'
-          });
-        }
-      }, 300); // Wait for horizontal scroll animation
+      scrollCardIntoColumn(tempBill.id, currentStatusColumnIndex);
     },
-    [scrollToColumnByIndex, isSimplified, activeColumns]
+    [scrollToColumnByIndex, scrollCardIntoColumn, isSimplified, activeColumns]
   );
+
+  // ----- ?focus=<billId>: "View on board" from a track toast -----
+  // Find the bill in the columns as rendered (so view mode, fallbacks and
+  // filters all agree), bring it into view, ring it briefly, then drop the
+  // param so a reload doesn't replay it.
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const focusBillId = searchParams.get('focus');
+  const [highlightedBillId, setHighlightedBillId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!focusBillId || loading) return;
+    const dropParam = () => {
+      const rest = new URLSearchParams(searchParams.toString());
+      rest.delete('focus');
+      const qs = rest.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    };
+    const columnIndex = activeColumns.findIndex((c) =>
+      billsByColumn[c.id]?.some((b) => b.id === focusBillId),
+    );
+    if (columnIndex === -1) {
+      // On the board but hidden by the search/tag/year filters: clear them so
+      // the bill can show (this effect re-runs on the new columns), and say so.
+      // A just-tracked bill is never archived, and the failed/active filter only
+      // applies to the spreadsheet, so these three are what can hide it.
+      // Only when a filter is actually on — resetting already-empty filters
+      // would hand out fresh [] refs, re-run this effect, and loop.
+      const filtersActive = searchQuery.trim() !== '' || selectedTagIds.length > 0 || selectedYears.length > 0;
+      if (filtersActive && bills.some((b) => b.id === focusBillId)) {
+        setSearchQuery('');
+        setSelectedTagIds([]);
+        setSelectedYears([]);
+        toast({ title: 'Board filters cleared', description: 'So the bill you tracked is visible.' });
+        return;
+      }
+      // Not loaded yet (the board refetches after a track). If it never
+      // arrives, give up quietly so the param doesn't linger.
+      const giveUp = setTimeout(dropParam, 4000);
+      return () => clearTimeout(giveUp);
+    }
+    scrollToColumnByIndex(columnIndex);
+    scrollCardIntoColumn(focusBillId, columnIndex);
+    setHighlightedBillId(focusBillId);
+    dropParam();
+    // searchParams/router/pathname only feed dropParam; re-running on their
+    // churn would re-scroll after the param is already gone.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusBillId, loading, billsByColumn, bills, searchQuery, selectedTagIds, selectedYears, activeColumns, scrollToColumnByIndex, scrollCardIntoColumn]);
+
+  // The highlight clears once its three pulses (3 × 1.6s) have played.
+  useEffect(() => {
+    if (!highlightedBillId) return;
+    const t = setTimeout(() => setHighlightedBillId(null), 5000);
+    return () => clearTimeout(t);
+  }, [highlightedBillId]);
 
   return (
     <>
-      <KanbanPillStrip
-        onScrollToIntroduced={scrollToIntroduced}
-        onScrollToCrossover={scrollToCrossover}
-        onScrollToConference={scrollToConference}
-        onScrollToGovernor={scrollToGovernor}
-      />
-
       {(isReadOnly || isSimplified) ? (
         <ScrollAreaPrimitive.Root className="relative min-h-0 w-full flex-1 overflow-hidden p-2 md:p-4">
           <ScrollAreaPrimitive.Viewport
             ref={viewportRef}
-            className="h-full w-full max-w-[100vw] rounded-[inherit] [&>div]:!flex [&>div]:h-full"
+            onScroll={handleViewportScroll}
+            className="h-full w-full max-w-[100vw] rounded-[inherit] max-sm:snap-x max-sm:snap-mandatory max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden [&>div]:!flex [&>div]:h-full"
             style={{ scrollBehavior: 'smooth' }}
           >
             {loading ? (
               <KanbanBoardSkeleton columns={activeColumns.length} />
             ) : (
-              <div className="flex h-full space-x-2 md:space-x-4 pb-4">
+              <div className="flex h-full space-x-2 md:space-x-4 pb-4 max-sm:px-5">
                 {activeColumns.map((column, idx) => (
                   <div
                     key={column.id}
                     ref={(el) => {
                       columnRefs.current[idx] = el;
                     }}
-                    className="h-full shrink-0"
+                    className={cn('h-full shrink-0 max-sm:snap-center', RISE_IN)}
+                    style={riseDelay(idx)}
                   >
                     <KanbanColumn
                       columnId={column.id as BillStatus}
@@ -509,33 +628,41 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
                       orgTestimonyBillIds={orgTestimonyBillIds}
                       trackedBillIds={trackedBillIds}
                       onTrackForSelf={onTrackForSelf}
+                      highlightedBillId={highlightedBillId}
                     />
                   </div>
                 ))}
               </div>
             )}
           </ScrollAreaPrimitive.Viewport>
-          <ScrollBar orientation="horizontal" />
+          {/* Phones swipe and follow the page dots instead of a scrollbar. */}
+          <ScrollBar orientation="horizontal" className="max-sm:hidden" />
         </ScrollAreaPrimitive.Root>
       ) : (
         <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <ScrollAreaPrimitive.Root className="relative min-h-0 w-full flex-1 overflow-hidden p-2 md:p-4">
             <ScrollAreaPrimitive.Viewport
               ref={viewportRef}
-              className="h-full w-full max-w-[100vw] rounded-[inherit] [&>div]:!flex [&>div]:h-full"
+              onScroll={handleViewportScroll}
+              className="h-full w-full max-w-[100vw] rounded-[inherit] max-sm:snap-x max-sm:snap-mandatory max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden [&>div]:!flex [&>div]:h-full"
               style={{ scrollBehavior: 'smooth' }}
             >
               {loading ? (
                 <KanbanBoardSkeleton columns={activeColumns.length} />
               ) : (
-                <div className="flex h-full space-x-2 md:space-x-4 pb-4">
+                <div className="flex h-full space-x-2 md:space-x-4 pb-4 max-sm:px-5">
                   {activeColumns.map((column, idx) => (
                     <div
                       key={column.id}
                       ref={(el) => {
                         columnRefs.current[idx] = el;
                       }}
-                      className="h-full shrink-0"
+                      // Columns rise in as whole units rather than per card: the
+                      // cards are Draggables whose own transform dnd controls, and
+                      // a dropped card remounts in its new column, which would
+                      // replay a per-card animation on every move.
+                      className={cn('h-full shrink-0 max-sm:snap-center', RISE_IN)}
+                      style={riseDelay(idx)}
                     >
                       <Droppable droppableId={column.id}>
                         {(provided, snapshot) => (
@@ -566,6 +693,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
                             orgTestimonyBillIds={orgTestimonyBillIds}
                             trackedBillIds={trackedBillIds}
                             onTrackForSelf={onTrackForSelf}
+                            highlightedBillId={highlightedBillId}
                           >
                             {provided.placeholder}
                           </KanbanColumn>
@@ -576,9 +704,27 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
                 </div>
               )}
             </ScrollAreaPrimitive.Viewport>
-            <ScrollBar orientation="horizontal" />
+            {/* Phones swipe and follow the page dots instead of a scrollbar. */}
+            <ScrollBar orientation="horizontal" className="max-sm:hidden" />
           </ScrollAreaPrimitive.Root>
         </DragDropContext>
+      )}
+
+      {/* Phone page dots: one per column, the centered one filled and widened,
+          so it's clear more columns sit off-screen and where you are among
+          them. Decorative — the columns themselves are the navigation. */}
+      {!loading && activeColumns.length > 1 && (
+        <div className="flex shrink-0 justify-center gap-1.5 py-2 sm:hidden" aria-hidden="true">
+          {activeColumns.map((column, idx) => (
+            <span
+              key={column.id}
+              className={cn(
+                'h-1.5 rounded-full transition-all duration-200 motion-reduce:transition-none',
+                idx === activeColumnIdx ? 'w-4 bg-primary' : 'w-1.5 bg-foreground/20',
+              )}
+            />
+          ))}
+        </div>
       )}
 
       {/* Bottom scroll bar */}

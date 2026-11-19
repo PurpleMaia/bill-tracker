@@ -157,7 +157,7 @@ export function SearchFilterRail({ filters, onChange, onClear, loggedIn }: Searc
             <div key={value} className="flex items-center gap-2">
               <RadioGroupItem value={value} id={`dead-${value}`} />
               <Label htmlFor={`dead-${value}`} className="cursor-pointer text-sm font-normal capitalize">
-                {value === 'all' ? 'All bills' : value === 'dead' ? 'Failed' : value}
+                {value === 'all' ? 'All bills' : value === 'dead' ? 'Failed' : 'Active'}
               </Label>
             </div>
           ))}
@@ -184,18 +184,11 @@ export function SearchFilterRail({ filters, onChange, onClear, loggedIn }: Searc
       </fieldset>
 
       <fieldset className="space-y-2">
-        <div className="mb-2 flex items-center justify-between">
-          <legend className="text-sm font-medium">Stage</legend>
-          {filters.stages.length > 0 && (
-            <button
-              type="button"
-              onClick={() => onChange({ ...filters, stages: [] })}
-              className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-            >
-              Reset
-            </button>
-          )}
-        </div>
+        <LegendWithReset
+          label="Stage"
+          showReset={filters.stages.length > 0}
+          onReset={() => onChange({ ...filters, stages: [] })}
+        />
         {/*
           A dropdown rather than an inline list. 13 stages inline made the rail
           taller than its pane, and a nested scroll region inside an already
@@ -237,12 +230,16 @@ export function SearchFilterRail({ filters, onChange, onClear, loggedIn }: Searc
       </fieldset>
 
       <fieldset className="space-y-2">
-        <legend className="mb-2 text-sm font-medium">Introduced by</legend>
+        <LegendWithReset
+          label="Introduced by"
+          showReset={filters.introducerIds.length > 0}
+          onReset={() => onChange({ ...filters, introducerIds: [] })}
+        />
         <LegislatorCombobox
           label="Introduced by"
           options={allLegislators}
-          value={filters.introducerId}
-          onChange={(introducerId) => onChange({ ...filters, introducerId })}
+          value={filters.introducerIds}
+          onChange={(introducerIds) => onChange({ ...filters, introducerIds })}
           emptyText="No legislator found."
           loading={legislators.isPending}
           error={legislators.isError}
@@ -250,21 +247,52 @@ export function SearchFilterRail({ filters, onChange, onClear, loggedIn }: Searc
       </fieldset>
 
       <fieldset className="space-y-2">
-        <legend className="mb-2 text-sm font-medium">Waiting on chair</legend>
+        <LegendWithReset
+          label="Waiting on chair"
+          showReset={filters.chairIds.length > 0}
+          onReset={() => onChange({ ...filters, chairIds: [] })}
+        />
         <LegislatorCombobox
           label="Waiting on chair"
           options={chairLegislators}
-          value={filters.chairId}
-          onChange={(chairId) => onChange({ ...filters, chairId })}
+          value={filters.chairIds}
+          onChange={(chairIds) => onChange({ ...filters, chairIds })}
           showRoles
           emptyText="No committee chair found."
           loading={legislators.isPending}
           error={legislators.isError}
         />
         <p className="text-xs text-muted-foreground">
-          Bills currently in a committee this legislator chairs or vice-chairs.
+          Bills currently in a committee any of these legislators chairs or vice-chairs.
         </p>
       </fieldset>
+    </div>
+  );
+}
+
+/** A fieldset's legend with a Reset link on the right, shown once the group
+    has a selection. Shared by every multi-pick filter so they clear alike. */
+function LegendWithReset({
+  label,
+  showReset,
+  onReset,
+}: {
+  label: string;
+  showReset: boolean;
+  onReset: () => void;
+}) {
+  return (
+    <div className="mb-2 flex items-center justify-between">
+      <legend className="text-sm font-medium">{label}</legend>
+      {showReset && (
+        <button
+          type="button"
+          onClick={onReset}
+          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        >
+          Reset
+        </button>
+      )}
     </div>
   );
 }

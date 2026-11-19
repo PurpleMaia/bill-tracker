@@ -13,7 +13,12 @@ import { ActiveBoardBanner } from './active-board-banner';
 import { ActiveBoardsBillsBridge } from './active-boards-bills-bridge';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { toast } from '@/hooks/use-toast';
+import { useViewOnBoard } from '@/hooks/use-view-on-board';
+import { ToastAction } from '@/components/ui/toast';
 import type { Bill } from '@/types/legislation';
+import { useBills } from '@/hooks/contexts/bills-context';
+import { cn } from '@/lib/core/utils';
+import { RISE_IN } from '@/lib/core/motion';
 
 export function ActiveBoardView() {
   const {
@@ -21,6 +26,10 @@ export function ActiveBoardView() {
     testimonyBillIds, trackedBillIds, markBillTracked,
   } = useActiveBoards();
   const { activeTenant } = useAuth();
+  const viewOnBoard = useViewOnBoard();
+  // The root BillsProvider (Your Bills) — this component sits outside the
+  // ActiveBoardsBillsBridge, so this is the user's own board, not the viewed org's.
+  const { refreshBills } = useBills();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -55,10 +64,20 @@ export function ActiveBoardView() {
         });
         if (!res.ok) throw new Error('Failed');
         markBillTracked(bill.id);
+        // markBillTracked only updates this view. Your Bills reads the root
+        // BillsProvider, which doesn't refetch on navigation — refresh it so
+        // "View on board" lands on a board that actually has the bill.
+        void refreshBills();
         toast({
           title: 'Bill tracked',
           description: `${bill.bill_number} added to your board.`,
-          duration: 4000,
+          // Longer than the 4s default: long enough to reach the action.
+          duration: 6000,
+          action: (
+            <ToastAction altText={`View ${bill.bill_number} on your board`} onClick={() => viewOnBoard(bill.id)}>
+              View on board
+            </ToastAction>
+          ),
         });
       } catch {
         toast({
@@ -69,7 +88,7 @@ export function ActiveBoardView() {
         });
       }
     },
-    [activeTenant?.tenantId, markBillTracked],
+    [activeTenant?.tenantId, markBillTracked, refreshBills, viewOnBoard],
   );
 
   // Skeleton while the followed list loads (an empty list isn't "follows no
@@ -85,7 +104,7 @@ export function ActiveBoardView() {
 
   if (followedStatus === 'error') {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+      <div className={cn('flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center', RISE_IN)}>
         <AlertCircle className="h-9 w-9 text-destructive" />
         <h2 className="text-base font-semibold">Couldn&rsquo;t load the boards you follow</h2>
         <p className="text-sm text-muted-foreground">Check your connection and try again.</p>
@@ -105,7 +124,7 @@ export function ActiveBoardView() {
     ];
     return (
       <div className="flex flex-1 items-center justify-center p-4 md:p-8">
-        <div className="w-full max-w-lg rounded-xl border bg-card p-6 text-center shadow-sm">
+        <div className={cn('w-full max-w-lg rounded-xl border bg-card p-6 text-center shadow-sm', RISE_IN)}>
           <Star className="mx-auto h-9 w-9 text-primary" />
           <h2 className="mt-2 text-lg font-semibold">See what other organizations are tracking</h2>
           <p className="mt-1 text-sm text-muted-foreground">

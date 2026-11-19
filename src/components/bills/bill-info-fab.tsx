@@ -21,9 +21,16 @@ export function BillInfoFab({ panel, className }: BillInfoFabProps) {
   return (
     <Sheet>
       <SheetTrigger asChild>
+        {/* Light teal, not the primary deep teal, so the floating helper doesn't
+            compete with the page's own primary buttons. Hover darkens rather than
+            using secondary/80, which would turn translucent over content. */}
         <Button
           size="sm"
-          className={cn('fixed bottom-4 left-4 z-40 h-10 rounded-full px-4 shadow-lg', className)}
+          variant="secondary"
+          className={cn(
+            'fixed bottom-4 left-4 z-40 h-10 rounded-full border border-primary/20 px-4 shadow-lg hover:bg-secondary hover:brightness-95',
+            className,
+          )}
           data-flow-tour="reference"
         >
           <Info className="mr-1.5 h-4 w-4" />

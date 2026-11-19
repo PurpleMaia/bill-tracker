@@ -14,6 +14,7 @@ import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
 import { UrlBillDetailsDialog } from './url-bill-details-dialog';
 import { cn, formatBillStatusName, todayHawaii } from '@/lib/core/utils';
+import { RISE_IN } from '@/lib/core/motion';
 import { Term } from '@/components/ui/term';
 import { resolveStatusTerm, resolveCommitteeTerm } from '@/lib/glossary/resolvers';
 import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
@@ -175,7 +176,10 @@ export function KanbanSpreadsheet() {
     // sticky left-0 bill column both resolve against this container, and the
     // horizontal scrollbar stays reachable without scrolling to the bottom.
     <div className="min-h-0 w-full flex-1 overflow-auto">
-      <div className="min-w-max p-2 md:p-4">
+      {/* The table rises in as one block (per-row transforms fight the sticky
+          header and first column). Keyed on loading so it rises again when the
+          bills land, not just on the "Loading bills..." row. */}
+      <div key={loadingBills ? 'loading' : 'ready'} className={cn('min-w-max p-2 md:p-4', RISE_IN)}>
         <Table className="min-w-max text-xs md:text-sm">
           <TableHeader>
             <TableRow>

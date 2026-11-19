@@ -31,8 +31,8 @@ const FULL: SearchFilters = {
   stages: ['introduced', 'passed'],
   deadFilter: 'alive',
   trackedFilter: 'tracked',
-  introducerId: '123e4567-e89b-12d3-a456-426614174000',
-  chairId: 'abcdef01-2345-6789-abcd-ef0123456789',
+  introducerIds: ['123e4567-e89b-12d3-a456-426614174000'],
+  chairIds: ['abcdef01-2345-6789-abcd-ef0123456789', '123e4567-e89b-12d3-a456-426614174000'],
   sort: 'title',
 };
 
@@ -43,8 +43,8 @@ const DEFAULTS_SHAPE: SearchFilters = {
   stages: [],
   deadFilter: 'all',
   trackedFilter: 'all',
-  introducerId: null,
-  chairId: null,
+  introducerIds: [],
+  chairIds: [],
   sort: 'auto',
 };
 
@@ -121,8 +121,8 @@ describe('search-filter-storage', () => {
         stages: ['ok', 'ok2'],
         deadFilter: 'dead',
         trackedFilter: 'untracked',
-        introducerId: null,
-        chairId: null,
+        introducerIds: [],
+        chairIds: [],
         sort: 'auto',
       });
     });
@@ -131,21 +131,39 @@ describe('search-filter-storage', () => {
       const store = installMockStorage();
       store.set('billSearchFilters', JSON.stringify({ q: 'x', years: [2026] }));
       const loaded = loadSearchFilters();
-      expect(loaded?.introducerId).toBeNull();
-      expect(loaded?.chairId).toBeNull();
+      expect(loaded?.introducerIds).toEqual([]);
+      expect(loaded?.chairIds).toEqual([]);
       expect(loaded?.sort).toBe('auto');
     });
 
-    it('loads a non-uuid id as null', () => {
+    it('drops non-uuid ids from the lists', () => {
       const store = installMockStorage();
       store.set(
         'billSearchFilters',
-        JSON.stringify({ introducerId: 'abc', chairId: '1;drop', sort: 'bogus' }),
+        JSON.stringify({
+          introducerIds: ['abc', '123e4567-e89b-12d3-a456-426614174000'],
+          chairIds: ['1;drop', 42],
+          sort: 'bogus',
+        }),
       );
       const loaded = loadSearchFilters();
-      expect(loaded?.introducerId).toBeNull();
-      expect(loaded?.chairId).toBeNull();
+      expect(loaded?.introducerIds).toEqual(['123e4567-e89b-12d3-a456-426614174000']);
+      expect(loaded?.chairIds).toEqual([]);
       expect(loaded?.sort).toBe('auto');
+    });
+
+    it('migrates the pre-multi-select single ids to one-item lists', () => {
+      const store = installMockStorage();
+      store.set(
+        'billSearchFilters',
+        JSON.stringify({
+          introducerId: '123e4567-e89b-12d3-a456-426614174000',
+          chairId: 'not-a-uuid',
+        }),
+      );
+      const loaded = loadSearchFilters();
+      expect(loaded?.introducerIds).toEqual(['123e4567-e89b-12d3-a456-426614174000']);
+      expect(loaded?.chairIds).toEqual([]);
     });
   });
 
