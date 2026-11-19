@@ -45,6 +45,7 @@ export function DeadBillInfoPopover({
       updates,
       SESSION_DEADLINES,
       todayHawaii(),
+      statusUpdates === undefined,
     );
 
   const isMobile = useIsMobile();

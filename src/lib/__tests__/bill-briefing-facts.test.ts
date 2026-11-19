@@ -113,6 +113,31 @@ describe('deriveBriefingFacts', () => {
     expect(f.nextSteps.some((s) => s.text.toLowerCase().includes('schedule a hearing'))).toBe(false);
   });
 
+  it.each(['introduced', 'scheduled1', 'waiting2', 'crossoverWaiting1', 'passedCommittees'])(
+    'a failed bill at %s offers no contact step at all',
+    (status) => {
+      const f = deriveBriefingFacts(baseBill({ current_bill_status: status, dead: true }), '2026-05-15');
+      expect(f.nextSteps.some((s) => s.action === 'contact')).toBe(false);
+    },
+  );
+
+  it('a failed bill at conference offers no urge-conferees step — they already decided', () => {
+    // SB3263 CD1 (2026): conferees agreed, then the Senate failed it on Final Reading.
+    const f = deriveBriefingFacts(
+      baseBill({
+        current_bill_status: 'conferencePassed',
+        dead: true,
+        updates: [
+          { id: 'u1', chamber: 'S', date: '4/22/2026', statustext: 'Senate Conferees Appointed: Kim Chair; DeCoite, Hashimoto, Keohokalole Co-Chairs; DeCorte.' },
+          { id: 'u2', chamber: 'S', date: '5/8/2026', statustext: 'Failed to pass Final Reading. Ayes, 11; Noes, 12.' },
+        ],
+      }),
+      '2026-05-15',
+    );
+    expect(f.conferees.length).toBeGreaterThan(0);
+    expect(f.nextSteps.some((s) => s.action === 'contact')).toBe(false);
+  });
+
   it('at conference with no conferees appointed yet, offers no contact step at all', () => {
     // Conference status but no "Conferees Appointed/Added" line parsed yet — there
     // is no one to urge, and the schedule-a-hearing step is still (correctly)

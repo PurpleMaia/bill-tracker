@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { BillStatus } from '@/db/types';
 import {
+  getFinalReadingVotes,
   parseCommittees,
   getReferralType,
   getBillChamber,
@@ -604,5 +605,50 @@ describe('getDeadlineTier', () => {
   it('is safe beyond 14 days', () => {
     expect(getDeadlineTier(15)).toBe('safe');
     expect(getDeadlineTier(60)).toBe('safe');
+  });
+});
+
+describe('getFinalReadingVotes', () => {
+  it('reads each chamber\'s latest vote and ignores passage notices', () => {
+    expect(getFinalReadingVotes([
+      { statustext: 'Passed Final Reading as amended in CD 1.', date: '5/8/2026', chamber: 'H' },
+      { statustext: 'Failed to pass Final Reading. Ayes, 11; Noes, 12.', date: '5/8/2026', chamber: 'S' },
+      { statustext: 'Received notice of passage on Final Reading in House.', date: '5/8/2026', chamber: 'S' },
+    ])).toEqual({ passed: ['House'], failed: ['Senate'] });
+  });
+
+  it('a new conference draft clears votes on the earlier draft', () => {
+    // House passed CD 1, then the bill went back and CD 2 passed only the Senate.
+    expect(getFinalReadingVotes([
+      { statustext: 'Reported from Conference Committee as amended CD 1.', date: '4/20/2026', chamber: 'H' },
+      { statustext: 'Passed Final Reading as amended in CD 1.', date: '4/22/2026', chamber: 'H' },
+      { statustext: 'Reported from Conference Committee as amended CD 2.', date: '4/24/2026', chamber: 'S' },
+      { statustext: 'Passed Final Reading.', date: '4/27/2026', chamber: 'S' },
+    ])).toEqual({ passed: ['Senate'], failed: [] });
+  });
+
+  it('votes dated the same day as a new report belong to the earlier draft', () => {
+    expect(getFinalReadingVotes([
+      { statustext: 'Reported from Conference Committee as amended CD 2.', date: '4/24/2026', chamber: 'S' },
+      { statustext: 'Passed Final Reading as amended in CD 1.', date: '4/24/2026', chamber: 'H' },
+    ])).toEqual({ passed: [], failed: [] });
+  });
+
+  it('conflicting same-day results in one chamber resolve to failed, in any input order', () => {
+    const pass = { statustext: 'Passed Final Reading.', date: '5/8/2026', chamber: 'S' };
+    const fail = { statustext: 'Failed to pass Final Reading.', date: '5/8/2026', chamber: 'S' };
+    expect(getFinalReadingVotes([pass, fail])).toEqual({ passed: [], failed: ['Senate'] });
+    expect(getFinalReadingVotes([fail, pass])).toEqual({ passed: [], failed: ['Senate'] });
+  });
+
+  it('a later vote supersedes an earlier one in the same chamber', () => {
+    expect(getFinalReadingVotes([
+      { statustext: 'Passed Final Reading.', date: '5/9/2026', chamber: 'S' },
+      { statustext: 'Failed to pass Final Reading.', date: '5/8/2026', chamber: 'S' },
+    ])).toEqual({ passed: ['Senate'], failed: [] });
+  });
+
+  it('no Final Reading updates: empty', () => {
+    expect(getFinalReadingVotes([])).toEqual({ passed: [], failed: [] });
   });
 });

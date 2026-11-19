@@ -179,6 +179,67 @@ export function getDeadReasonFromUpdate(latestStatusText: string | null): string
   return 'Missed deadline';
 }
 
+// --- Final Reading Votes ---
+
+export type ChamberName = 'House' | 'Senate';
+
+export interface FinalReadingVotes {
+  passed: ChamberName[];
+  failed: ChamberName[];
+}
+
+/**
+ * Each chamber's latest Final Reading result on the CURRENT conference draft,
+ * from status updates like
+ *   "Passed Final Reading as amended in CD 1 ..."  /  "Conference committee report adopted. Passed Final Reading."
+ *   "Failed to pass Final Reading. Ayes, 11; ... Noes, 12 ..."
+ * "Received notice of passage on Final Reading in House" is the other chamber's
+ * notice, not a vote, so it is ignored. A conference draft needs both chambers.
+ *
+ * Updates carry only a calendar date (no time or sequence), so they are handled
+ * a day at a time:
+ * - A new "Reported from Conference Committee" draft clears earlier votes — a
+ *   House pass of CD 1 plus a Senate pass of CD 2 is not both chambers passing
+ *   one draft. Final Reading needs 48 hours' notice after a report, so votes
+ *   dated the same day as a report belong to the earlier draft: the day's votes
+ *   are applied first, then the report clears them.
+ * - Conflicting results in one chamber on one day (a same-day reconsideration)
+ *   can't be ordered, so failure wins. This only explains bills already marked
+ *   failed, and counting both chambers as passed would hide why it failed.
+ */
+export function getFinalReadingVotes(statusUpdates: StatusUpdate[]): FinalReadingVotes {
+  const byDay = new Map<number, StatusUpdate[]>();
+  for (const u of statusUpdates) {
+    const day = new Date(u.date).getTime();
+    const list = byDay.get(day);
+    if (list) list.push(u);
+    else byDay.set(day, [u]);
+  }
+
+  const latest = new Map<ChamberName, boolean>();
+  for (const day of [...byDay.keys()].sort((a, b) => a - b)) {
+    const dayResults = new Map<ChamberName, boolean>();
+    let newDraftReported = false;
+    for (const u of byDay.get(day)!) {
+      const text = u.statustext.toLowerCase();
+      if (text.includes('reported from conference committee')) newDraftReported = true;
+      const chamber: ChamberName | null =
+        u.chamber === 'H' ? 'House' : u.chamber === 'S' ? 'Senate' : null;
+      if (!chamber) continue;
+      if (text.includes('failed to pass final reading')) dayResults.set(chamber, false);
+      else if (text.includes('passed final reading') && dayResults.get(chamber) !== false) dayResults.set(chamber, true);
+    }
+    for (const [chamber, passed] of dayResults) latest.set(chamber, passed);
+    if (newDraftReported) latest.clear();
+  }
+
+  const order: ChamberName[] = ['House', 'Senate'];
+  return {
+    passed: order.filter((c) => latest.get(c) === true),
+    failed: order.filter((c) => latest.get(c) === false),
+  };
+}
+
 /** Escalation tier for an upcoming deadline, by days remaining. */
 export type DeadlineTier = 'safe' | 'warning' | 'urgent';
 

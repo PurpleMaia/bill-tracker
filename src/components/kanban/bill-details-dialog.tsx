@@ -343,11 +343,11 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
 
   // Once a bill is signed into law, legislators can no longer act on it — the
   // same enacted check that closes testimony also closes Contact Legislator.
-  // A failed bill in the governor phase has no one left to ask either (the
-  // briefing drops its Governor/override step for the same reason).
+  // A failed bill has no one left to ask at any stage either (the briefing
+  // drops every contact step for the same reason).
   const enacted = isEnacted(currentStatus as DBBillStatus);
   const governorStage = getGovernorStage(currentStatus, billDetails?.updates);
-  const contactDisabled = enacted || (governorStage !== null && bill.dead);
+  const contactDisabled = enacted || bill.dead;
   const contactDisabledReason = enacted
     ? 'This bill has become law! Legislators can no longer act on it.'
     : 'This bill is no longer moving, so there is no one left to contact about it.';
@@ -506,12 +506,14 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                       Login to write a testimony
                     </LoginLink>
                   </Button>
-                  <Button asChild size="sm" variant="outline">
-                    <LoginLink next={`/bills/${bill.id}/contact`}>
-                      <Users className="mr-1.5 h-3.5 w-3.5" />
-                      Login to contact a legislator
-                    </LoginLink>
-                  </Button>
+                  {!contactDisabled && (
+                    <Button asChild size="sm" variant="outline">
+                      <LoginLink next={`/bills/${bill.id}/contact`}>
+                        <Users className="mr-1.5 h-3.5 w-3.5" />
+                        Login to contact a legislator
+                      </LoginLink>
+                    </Button>
+                  )}
                 </>
               ) : testimonyEligibility.allowed ? (
                 <>
@@ -800,19 +802,21 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                     {!user ? (
                       /* Logged-out: both flows require an account, so the CTAs
                          become login prompts instead of buttons that dead-end. */
-                      <div className="grid grid-cols-2 gap-1.5">
+                      <div className={cn('grid gap-1.5', contactDisabled ? 'grid-cols-1' : 'grid-cols-2')}>
                         <Button asChild variant="outline" className="h-11 w-full px-2">
                           <LoginLink next={`/bills/${bill.id}/testimony`}>
                             <PenLine className="mr-1.5 h-4 w-4 shrink-0" />
                             <span className="truncate">Login to testify</span>
                           </LoginLink>
                         </Button>
-                        <Button asChild variant="outline" className="h-11 w-full px-2">
-                          <LoginLink next={`/bills/${bill.id}/contact`}>
-                            <Users className="mr-1.5 h-4 w-4 shrink-0" />
-                            <span className="truncate">Login to contact</span>
-                          </LoginLink>
-                        </Button>
+                        {!contactDisabled && (
+                          <Button asChild variant="outline" className="h-11 w-full px-2">
+                            <LoginLink next={`/bills/${bill.id}/contact`}>
+                              <Users className="mr-1.5 h-4 w-4 shrink-0" />
+                              <span className="truncate">Login to contact</span>
+                            </LoginLink>
+                          </Button>
+                        )}
                       </div>
                     ) : (
                       <>

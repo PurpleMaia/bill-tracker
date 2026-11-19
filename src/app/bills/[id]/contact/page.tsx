@@ -282,9 +282,9 @@ export default function ContactLegislatorPage() {
     );
   }
 
-  // A failed bill in the governor phase has no one left to ask — matches the
-  // briefing (no Governor/override step) and the dialog's disabled Contact.
-  if (bill && governorStage && bill.dead) {
+  // A failed bill has no one left to ask at any stage — matches the briefing
+  // (no contact step) and the dialog's disabled Contact.
+  if (bill?.dead) {
     return (
       <div className={cn('flex h-dvh flex-col items-center justify-center gap-4 p-8 text-center', RISE_IN)}>
         <Landmark className="h-10 w-10 text-muted-foreground" aria-hidden="true" />
