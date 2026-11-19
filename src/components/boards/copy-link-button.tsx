@@ -52,9 +52,11 @@ export function CopyLinkButton({
       title={copied ? 'Copied' : label}
       className={cn(
         'h-9 w-9 shrink-0',
-        // A light teal tint on hover, not the outline variant's solid fill —
-        // the icon keeps its color, so the check stays visible.
-        variant !== 'default' && 'hover:bg-primary/10 hover:text-foreground',
+        // A light gray on hover, not the outline variant's solid teal fill: the
+        // icon keeps its color (so the check stays visible), and a neutral tint
+        // doesn't clash with the olive "Your organization" card. Plain neutral,
+        // since the theme's muted is cream and secondary is teal.
+        variant !== 'default' && 'hover:bg-neutral-100 hover:text-foreground',
         className,
       )}
     >
