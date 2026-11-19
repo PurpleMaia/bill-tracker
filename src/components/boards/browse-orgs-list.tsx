@@ -12,7 +12,7 @@ import { ToastAction } from '@/components/ui/toast';
 import { toast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building2, Check, ExternalLink, Eye, FileText, Globe, Lock, LogIn, Plus, Search, Star, Users } from 'lucide-react';
+import { ArrowRight, Building2, Check, ExternalLink, Eye, FileText, Globe, Lock, LogIn, Plus, Search, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { RISE_IN, riseDelay } from '@/lib/core/motion';
 import { LoginLink } from '@/components/auth/login-link';
@@ -312,7 +312,10 @@ function OrgCard({
   return (
     <li
       className={cn(
-        'flex flex-col rounded-lg border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:items-start sm:gap-5',
+        // relative: anchors the name link's stretched hit area (below), which
+        // makes the whole card open the board.
+        'group relative flex cursor-pointer flex-col rounded-lg border bg-card p-5 shadow-sm transition-shadow hover:border-primary/40 hover:shadow-md sm:flex-row sm:items-start sm:gap-5',
+        'has-[a[data-card-link]:focus-visible]:ring-2 has-[a[data-card-link]:focus-visible]:ring-ring has-[a[data-card-link]:focus-visible]:ring-offset-2',
         RISE_IN,
       )}
       // After the intro and Your organization card (slots 0–1). Searching only
@@ -322,7 +325,17 @@ function OrgCard({
       {/* Identity + counts + description */}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold leading-tight">{org.name}</p>
+          {/* The card's one link. Its ::after covers the whole card, so a click
+              anywhere opens the board, while screen readers hear a single link
+              named after the org. The follow button sits above it (z-10). */}
+          <Link
+            href={publicBoardPath(org.slug)}
+            data-card-link
+            aria-label={`View ${org.name}’s board`}
+            className="block truncate font-semibold leading-tight outline-none after:absolute after:inset-0 after:rounded-lg group-hover:text-primary"
+          >
+            {org.name}
+          </Link>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <FileText className="h-3 w-3" />
@@ -343,6 +356,16 @@ function OrgCard({
         >
           {org.description || 'No description yet.'}
         </p>
+
+        {/* Says the card opens a board. Always visible: phones have no hover.
+            Decorative — the card link above already carries this name. */}
+        <span
+          aria-hidden
+          className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary"
+        >
+          View board
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        </span>
       </div>
 
       {/* Recent-bills preview */}
@@ -369,20 +392,14 @@ function OrgCard({
           <p className="text-xs italic text-muted-foreground/60">No bills tracked yet.</p>
         )}
 
-        {/* Anyone can open a public board — no follow or account needed. Following
-            is per-user state, so logged-out visitors get a sign-in prompt
-            rather than a button whose request the API would reject. */}
-        <div className="mt-4 flex gap-2">
-          <Button asChild variant="outline" size="sm" className="flex-1">
-            <Link href={publicBoardPath(org.slug)}>
-              <Eye className="mr-1.5 h-4 w-4" />
-              View board
-            </Link>
-          </Button>
+        {/* Following is per-user state, so logged-out visitors get a sign-in
+            prompt rather than a button whose request the API would reject.
+            relative z-10 lifts it above the card-wide link so it stays clickable. */}
+        <div className="relative z-10 mt-4 flex gap-2">
           {isLoggedOut ? (
             <Button asChild size="sm" className="flex-1">
               <LoginLink>
-                <LogIn className="mr-1.5 h-4 w-4" />
+                <LogIn className="mr-1 h-4 w-4" />
                 Login to follow
               </LoginLink>
             </Button>
