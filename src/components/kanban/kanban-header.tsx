@@ -141,9 +141,13 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
     setDeadFilter('all');
   };
 
-  // Chips-row variant also resets archived (the popover handles that itself).
+  // Chips-row variant also resets archived (the popover handles that itself)
+  // and the search: on phones the search box is tucked inside the Filters
+  // panel, so leaving it would keep the board narrowed by a query nobody can
+  // see once the chips are gone. On desktop it's "all" too, in plain view.
   const clearAllFilters = () => {
     clearPopoverFilters();
+    setSearchQuery('');
     if (!isPublic && showArchived) {
       toggleShowArchived();
     }
