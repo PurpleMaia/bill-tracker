@@ -7,10 +7,43 @@ import { toast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Check, CircleDashed, Globe, Lock, Pencil, type LucideIcon } from 'lucide-react';
+import { cn } from '@/lib/core/utils';
 import { CopyLinkButton } from '@/components/boards/copy-link-button';
 import { publicBoardUrl } from '@/lib/boards/board-routes';
 
 const DESCRIPTION_MAX = 200;
+
+const CHIP_TONES = {
+  on: 'bg-olive/15 text-olive-dark',
+  off: 'bg-muted text-muted-foreground',
+  pending: 'bg-amber-100 text-amber-800',
+  // Matches the red Private badge on the Browse org card.
+  private: 'bg-red-100 text-red-700',
+} as const;
+
+/** Small status pill: what a setting currently is, at a glance. */
+function StatusChip({
+  tone,
+  icon: Icon,
+  label,
+}: {
+  tone: keyof typeof CHIP_TONES;
+  icon: LucideIcon;
+  label: string;
+}) {
+  return (
+    <span
+      className={cn(
+        'inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
+        CHIP_TONES[tone],
+      )}
+    >
+      <Icon className="h-3 w-3" />
+      {label}
+    </span>
+  );
+}
 
 /**
  * The org's own settings — the Organization dialog's Settings tab. Loads on
@@ -91,6 +124,14 @@ export function OrgSettingsPanel() {
     }
   };
 
+  const descriptionStatus: 'saving' | 'unsaved' | 'empty' | 'saved' = savingDescription
+    ? 'saving'
+    : description.trim() !== savedDescription
+      ? 'unsaved'
+      : savedDescription === ''
+        ? 'empty'
+        : 'saved';
+
   return (
     <div className="flex flex-col gap-6 py-2">
       {/* Public board visibility */}
@@ -106,10 +147,22 @@ export function OrgSettingsPanel() {
             onCheckedChange={handleToggle}
           />
         </div>
-        <p className="text-xs text-muted-foreground">
-          When on, anyone — even without an account — can view this board (read-only)
-          at its public link and find it under Browse.
-        </p>
+        {/* Current state, spelled out: the switch alone doesn't say what
+            public/private means for sharing the board. */}
+        {publicBoard !== null && (
+          <div className="flex flex-col gap-1.5 rounded-md bg-muted/50 p-3">
+            <StatusChip
+              tone={publicBoard ? 'on' : 'private'}
+              icon={publicBoard ? Globe : Lock}
+              label={publicBoard ? 'Your board is public' : 'Your board is private'}
+            />
+            <p className="text-xs text-muted-foreground">
+              {publicBoard
+                ? 'Anyone, even without an account, can view your board (read-only) at the link below and find it under Browse. Share it, or link to it from your own website.'
+                : 'Only your members can see your board. It isn’t listed under Browse, and there’s no link to share or put on your own website. Turn this on to get one.'}
+            </p>
+          </div>
+        )}
         {publicBoard && activeTenant && (
           <div className="flex items-center gap-2">
             <code className="min-w-0 flex-1 truncate rounded-md border bg-muted/50 px-2 py-1.5 text-xs">
@@ -130,6 +183,21 @@ export function OrgSettingsPanel() {
             {description.length}/{DESCRIPTION_MAX}
           </span>
         </div>
+        {loaded && (
+          <StatusChip
+            tone={descriptionStatus === 'unsaved' ? 'pending' : descriptionStatus === 'empty' ? 'off' : 'on'}
+            icon={descriptionStatus === 'unsaved' || descriptionStatus === 'saving' ? Pencil : descriptionStatus === 'empty' ? CircleDashed : Check}
+            label={
+              descriptionStatus === 'saving'
+                ? 'Saving…'
+                : descriptionStatus === 'unsaved'
+                  ? 'Not saved yet — click away to save'
+                  : descriptionStatus === 'empty'
+                    ? 'No description yet'
+                    : 'This is your current description'
+            }
+          />
+        )}
         <Textarea
           id="org-description"
           rows={3}
@@ -141,7 +209,9 @@ export function OrgSettingsPanel() {
           onBlur={handleDescriptionBlur}
         />
         <p className="text-xs text-muted-foreground">
-          Shown on your org&apos;s card under Browse. Saved when you click away.
+          {descriptionStatus === 'empty'
+            ? 'Your card under Browse says “No description yet.” until you add one.'
+            : 'Shown on your org’s card under Browse.'}
         </p>
       </section>
     </div>
