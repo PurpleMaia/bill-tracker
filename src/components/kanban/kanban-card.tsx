@@ -134,7 +134,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const { acceptLLMChange, rejectLLMChange, testimonyStatuses, showArchived } = useBills();
     const { user, activeTenant } = useAuth();
     const committeeNames = useCommitteeNames();
-    const vis = cardVisibility(boardMode);
+    const vis = cardVisibility(boardMode, { signedIn: !!user });
 
     const canSeeTracking = activeTenant?.orgRole === 'admin';
     const trackedBy = bill.tracked_by ?? [];
