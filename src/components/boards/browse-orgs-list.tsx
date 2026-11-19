@@ -12,13 +12,14 @@ import { ToastAction } from '@/components/ui/toast';
 import { toast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowRight, Building2, Check, ExternalLink, Eye, FileText, Globe, Lock, LogIn, Plus, Search, Star, Users } from 'lucide-react';
+import { ArrowRight, Building2, Check, ExternalLink, Eye, FileText, Globe, Lock, LogIn, Plus, Search, Settings, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { RISE_IN, riseDelay } from '@/lib/core/motion';
 import { LoginLink } from '@/components/auth/login-link';
 import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
 import { publicBoardPath, publicBoardUrl } from '@/lib/boards/board-routes';
 import { CopyLinkButton } from './copy-link-button';
+import { OrganizationDialog, type OrganizationTab } from '@/components/admin/organization-dialog';
 
 // Skeleton mirroring one OrgCard's shape while the list loads.
 function OrgCardSkeleton() {
@@ -140,6 +141,10 @@ function MyOrgCard() {
   const { activeTenant } = useAuth();
   const [org, setOrg] = useState<MyOrg | null>(null);
   const [loaded, setLoaded] = useState(false);
+  // Admins open Organization Settings right from the card; closing it reloads
+  // the card so a new description or visibility shows at once.
+  const [orgTab, setOrgTab] = useState<OrganizationTab | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const tenantId = activeTenant?.tenantId;
   const isAdmin = activeTenant?.orgRole === 'admin';
@@ -147,7 +152,8 @@ function MyOrgCard() {
   useEffect(() => {
     if (!tenantId) return;
     let cancelled = false;
-    setLoaded(false);
+    // Only the first load shows placeholders; a reload swaps data in place.
+    if (reloadKey === 0) setLoaded(false);
     data.boards
       .getMyOrgStats({ tenantId })
       .then((res) => {
@@ -163,7 +169,23 @@ function MyOrgCard() {
     return () => {
       cancelled = true;
     };
-  }, [tenantId]);
+  }, [tenantId, reloadKey]);
+
+  const handleOrgTabChange = (tab: OrganizationTab | null) => {
+    setOrgTab(tab);
+    if (tab === null) setReloadKey((k) => k + 1);
+  };
+
+  const settingsLink = (
+    <button
+      type="button"
+      onClick={() => setOrgTab('settings')}
+      className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+    >
+      <Settings className="h-3 w-3" />
+      Organization Settings
+    </button>
+  );
 
   // Not a member of any org (public/logged-out) — nothing to show.
   if (!activeTenant) return null;
@@ -216,9 +238,13 @@ function MyOrgCard() {
           </div>
 
           <p className="mt-3 text-xs text-muted-foreground">
-            {isAdmin
-              ? 'Edit what’s displayed here in Organization Settings.'
-              : 'Ask your organization admin to update these details.'}
+            {!isAdmin ? (
+              'Ask your organization admin to update these details.'
+            ) : org && !org.publicBoard ? (
+              <>Your board is private. Make it public in {settingsLink} to get a shareable link.</>
+            ) : (
+              <>Edit what’s displayed here in {settingsLink}.</>
+            )}
           </p>
 
           {org && <PublicLinkRow publicBoard={org.publicBoard} slug={org.slug} isAdmin={isAdmin} />}
@@ -250,22 +276,23 @@ function MyOrgCard() {
           )}
         </div>
       </div>
+
+      {isAdmin && <OrganizationDialog tab={orgTab} onTabChange={handleOrgTabChange} />}
     </div>
   );
 }
 
 /**
  * Your org's shareable board link — what an org pastes on its website, in a
- * newsletter or in an email. Private boards have no link yet, so say how to
- * get one instead.
+ * newsletter or in an email. Private boards have no link yet; admins are told
+ * how to get one in the card's hint line, members here.
  */
 function PublicLinkRow({ publicBoard, slug, isAdmin }: { publicBoard: boolean; slug: string; isAdmin: boolean }) {
   if (!publicBoard) {
+    if (isAdmin) return null;
     return (
       <p className="mt-3 text-xs text-muted-foreground">
-        {isAdmin
-          ? 'Turn on public board visibility in Organization Settings to get a shareable link.'
-          : 'Your board is private. Ask your admin to make it public to get a shareable link.'}
+        Your board is private. Ask your admin to make it public to get a shareable link.
       </p>
     );
   }
