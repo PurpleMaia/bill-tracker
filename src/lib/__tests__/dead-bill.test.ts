@@ -617,6 +617,30 @@ describe('getFinalReadingVotes', () => {
     ])).toEqual({ passed: ['House'], failed: ['Senate'] });
   });
 
+  it('a new conference draft clears votes on the earlier draft', () => {
+    // House passed CD 1, then the bill went back and CD 2 passed only the Senate.
+    expect(getFinalReadingVotes([
+      { statustext: 'Reported from Conference Committee as amended CD 1.', date: '4/20/2026', chamber: 'H' },
+      { statustext: 'Passed Final Reading as amended in CD 1.', date: '4/22/2026', chamber: 'H' },
+      { statustext: 'Reported from Conference Committee as amended CD 2.', date: '4/24/2026', chamber: 'S' },
+      { statustext: 'Passed Final Reading.', date: '4/27/2026', chamber: 'S' },
+    ])).toEqual({ passed: ['Senate'], failed: [] });
+  });
+
+  it('votes dated the same day as a new report belong to the earlier draft', () => {
+    expect(getFinalReadingVotes([
+      { statustext: 'Reported from Conference Committee as amended CD 2.', date: '4/24/2026', chamber: 'S' },
+      { statustext: 'Passed Final Reading as amended in CD 1.', date: '4/24/2026', chamber: 'H' },
+    ])).toEqual({ passed: [], failed: [] });
+  });
+
+  it('conflicting same-day results in one chamber resolve to failed, in any input order', () => {
+    const pass = { statustext: 'Passed Final Reading.', date: '5/8/2026', chamber: 'S' };
+    const fail = { statustext: 'Failed to pass Final Reading.', date: '5/8/2026', chamber: 'S' };
+    expect(getFinalReadingVotes([pass, fail])).toEqual({ passed: [], failed: ['Senate'] });
+    expect(getFinalReadingVotes([fail, pass])).toEqual({ passed: [], failed: ['Senate'] });
+  });
+
   it('a later vote supersedes an earlier one in the same chamber', () => {
     expect(getFinalReadingVotes([
       { statustext: 'Passed Final Reading.', date: '5/9/2026', chamber: 'S' },
