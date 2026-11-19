@@ -60,7 +60,7 @@ export function ProtectedKanbanBoardOrSpreadsheet() {
           <div className="text-center space-y-4">
             <h2 className="text-2xl font-semibold">No Tracked Bills Yet</h2>
             <p className="text-muted-foreground max-w-md">
-              Find bills on Discover and track them to build your board.
+              Find bills under Bills and track them to build your board.
             </p>
           </div>
           {/* The action lives here, not in the header: with no bills there are

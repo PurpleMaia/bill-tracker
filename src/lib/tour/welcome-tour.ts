@@ -26,14 +26,14 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'discover',
     target: '/discover',
-    title: 'Discover',
+    title: 'Bills',
     body: 'Search every bill by number, title, or topic. Use the filters to narrow results, then press Track on the ones you care about.',
   },
   {
     id: 'your-bills',
     target: '/your-bills',
-    title: 'Track',
-    body: 'Tracked bills show up here. See them as a Kanban board, a spreadsheet, or a calendar of key dates.',
+    title: 'Board',
+    body: 'Bills you track show up here, on your organization’s board. See them as a Kanban board, a spreadsheet, or a calendar of key dates.',
   },
   {
     // id kept as 'testimonies': it names the tutorial video file.

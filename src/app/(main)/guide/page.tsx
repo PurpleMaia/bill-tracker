@@ -34,7 +34,7 @@ const STEPS: Step[] = [
     icon: Search,
     video: 'discover',
     title: 'Find bills',
-    where: 'Discover',
+    where: 'Bills',
     href: '/discover',
     body: (
       <>
@@ -64,7 +64,7 @@ const STEPS: Step[] = [
     icon: SquareKanban,
     video: 'your-bills',
     title: 'Follow your bills',
-    where: 'Track',
+    where: 'Board',
     href: '/your-bills',
     body: <>Everything you track lives here. Switch between three views with the tabs at the top.</>,
     tips: [

@@ -74,7 +74,7 @@ export function NewTestimonyButton() {
             <>
               <CommandEmpty className="px-6 py-8 text-center text-sm text-muted-foreground">
                 {options?.length === 0
-                  ? 'None of the bills you follow can take testimony right now. Follow a bill from Discover or Track to write testimony for it — failed and archived bills don’t appear here.'
+                  ? 'None of the bills you follow can take testimony right now. Track a bill from Bills or your Board to write testimony for it — failed and archived bills don’t appear here.'
                   : 'No bills you follow match your search.'}
               </CommandEmpty>
               {scheduled.length === 0 && others.length > 0 && (

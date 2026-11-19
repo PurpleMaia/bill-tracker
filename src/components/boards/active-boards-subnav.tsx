@@ -13,8 +13,9 @@ import { isActiveBoardsTabActive } from '@/lib/boards/board-routes';
 const TABS = [
   { href: '/boards/browse', label: 'Browse', icon: Compass, adminOnly: false },
   { href: '/boards', label: 'Following', icon: Star, adminOnly: false },
-  // An admin's preview of their own org's board as others see it.
-  { href: '/boards/mine', label: 'Your Board', icon: Building2, adminOnly: true },
+  // An admin's preview of their own org's board as others see it. Not "Your
+  // Board": the main nav's Board is the editable one.
+  { href: '/boards/mine', label: 'Public View', icon: Building2, adminOnly: true },
 ] as const;
 
 /**
