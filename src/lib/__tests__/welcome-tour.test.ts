@@ -17,7 +17,7 @@ describe('shouldAutoStartTour', () => {
   });
   it('does not interrupt deep links', () => {
     expect(shouldAutoStartTour('/your-bills', false)).toBe(false);
-    expect(shouldAutoStartTour('/testimonies/drafts', false)).toBe(false);
+    expect(shouldAutoStartTour('/take-action/testimony/drafts', false)).toBe(false);
     expect(shouldAutoStartTour('/guide', false)).toBe(false);
   });
 });
@@ -50,7 +50,7 @@ describe('tourStepPath', () => {
   it('walks to the page a step describes', () => {
     expect(tourStepPath(step('your-bills'), '/discover')).toBe('/your-bills');
     expect(tourStepPath(step('discover'), '/your-bills')).toBe('/discover');
-    expect(tourStepPath(step('boards'), '/testimonies')).toBe('/boards');
+    expect(tourStepPath(step('boards'), '/take-action')).toBe('/boards');
   });
   it('stays put when already on that page or a sub-page', () => {
     expect(tourStepPath(step('your-bills'), '/your-bills')).toBeNull();

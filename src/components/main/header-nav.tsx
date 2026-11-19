@@ -2,13 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FileText, KanbanSquareIcon, LayoutGrid, Search } from 'lucide-react';
+import { KanbanSquareIcon, LayoutGrid, Megaphone, Search } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
+import { TAKE_ACTION_ROOT, isTakeActionPath } from '@/lib/take-action/routes';
 
 export const NAV_ITEMS = [
   { href: '/discover', label: 'Discover', icon: Search },
   { href: '/your-bills', label: 'Your Bills', icon: KanbanSquareIcon },
-  { href: '/testimonies', label: 'Testimonies', icon: FileText },
+  // Testimony + Contact Legislators; /take-action lands on the Testimony tab.
+  { href: TAKE_ACTION_ROOT, label: 'Take Action', icon: Megaphone },
   // Lands on Following; its empty state and login wall both point to Browse.
   { href: '/boards', label: 'Active Boards', mobileLabel: 'Boards', icon: LayoutGrid },
 ] as const;
@@ -19,6 +21,7 @@ export function isNavItemActive(href: string, pathname: string) {
   // Active Boards owns the whole /boards tree, so the tab stays highlighted on
   // /boards/browse too.
   if (href === '/boards') return pathname.startsWith('/boards');
+  if (href === TAKE_ACTION_ROOT) return isTakeActionPath(pathname);
   return pathname.startsWith(href);
 }
 

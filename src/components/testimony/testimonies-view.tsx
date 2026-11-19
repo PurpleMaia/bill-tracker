@@ -61,6 +61,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { TestimoniesSidebar } from './testimonies-sidebar';
 import { NewTestimonyButton } from './new-testimony-dialog';
+import { TestimonyFilterTabs } from './testimony-filter-tabs';
+import { FROM_TESTIMONY, TESTIMONY_DRAFTS_HREF } from '@/lib/take-action/routes';
 
 export type TestimoniesFilter = 'all' | 'drafts' | 'submitted';
 
@@ -239,6 +241,7 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
             <span> · {submitted.length} submitted</span>
           </p>
         )}
+        {user && <TestimonyFilterTabs className="mt-3" />}
       </div>
 
       {/* Testimony list grounded left; guide rail fills the right */}
@@ -340,7 +343,7 @@ function FilteredList({
         icon={Check}
         title="Nothing submitted yet"
         description="When you mark a testimony as submitted on the capitol site, it will appear here."
-        cta={{ href: '/testimonies/drafts', label: 'View your drafts' }}
+        cta={{ href: TESTIMONY_DRAFTS_HREF, label: 'View your drafts' }}
       />
     ) : (
       <TestimonyCardList entries={submitted} onDeleted={onDeleted} />
@@ -528,7 +531,7 @@ function ProspectCard({ prospect }: { prospect: DecoratedProspect }) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
             <Link
-              href={`/bills/${item.billId}/testimony?from=testimonies&round=current`}
+              href={`/bills/${item.billId}/testimony?from=${FROM_TESTIMONY}&round=current`}
               onClick={(e) => {
                 if (!isModifiedClick(e)) setNavigating(true);
               }}
@@ -608,7 +611,7 @@ function TestimonyCard({
             <div className="flex flex-wrap items-center gap-1.5">
               {/* Stretched link — the whole card navigates to the testimony writer */}
               <Link
-                href={`/bills/${item.billId}/testimony?from=testimonies&t=${item.id}`}
+                href={`/bills/${item.billId}/testimony?from=${FROM_TESTIMONY}&t=${item.id}`}
                 onClick={(e) => {
                   if (!isModifiedClick(e)) setNavigating(true);
                 }}

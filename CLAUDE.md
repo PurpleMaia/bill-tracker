@@ -76,7 +76,7 @@ src/
 ```
 
 **Where things live (navigation rule for agents):**
-- A database query? → `src/db/queries/*` (e.g. `bills-read.ts`, `bills-write.ts`, `bill-assignment.ts`, `proposals.ts`, `admin.ts`, `tags.ts`, `tenants.ts`, `access.ts`, `derived-status.ts`). Mappers (DB row → client `Bill`) are in `bill-mappers.ts`.
+- A database query? → `src/db/queries/*` (e.g. `bills-read.ts`, `bills-write.ts`, `bill-assignment.ts`, `proposals.ts`, `admin.ts`, `tags.ts`, `tenants.ts`, `access.ts`, `derived-status.ts`, `legislator-contacts.ts`). Mappers (DB row → client `Bill`) are in `bill-mappers.ts`.
 - A call to a third-party API (LLM/email/scraper)? → `src/services/*`.
 - A client component fetching/mutating data? → it calls `data.*` from `@/lib/data-client` (NOT raw `fetch`).
 - Auth/authorization in a route or action? → `@/lib/auth/auth-guards`.
@@ -98,7 +98,7 @@ Every data operation has TWO interchangeable implementations over the SAME `db/q
 
 A flag picks which one runs, invisibly to callers. This exists because Server Actions are idiomatic but were observed to perform worse, so we keep both and can flip between them.
 
-- **Client components/hooks call `data.*`**, never raw `fetch`. e.g. `import { data } from '@/lib/data-client'; await data.bills.getBills({ viewMode, showArchived, tenantId })`. Domains (see `data-client/index.ts`): `data.auth`, `data.bills`, `data.proposals`, `data.access`, `data.preferences`, `data.profile`, `data.testimony`, `data.boards`, `data.summaries`, `data.legislators`, `data.committees`.
+- **Client components/hooks call `data.*`**, never raw `fetch`. e.g. `import { data } from '@/lib/data-client'; await data.bills.getBills({ viewMode, showArchived, tenantId })`. Domains (see `data-client/index.ts`): `data.auth`, `data.bills`, `data.proposals`, `data.access`, `data.preferences`, `data.profile`, `data.testimony`, `data.boards`, `data.summaries`, `data.legislators`, `data.committees`, `data.calendar`, `data.contacts`.
 - **Transport selection** lives in `src/lib/data-client/transport.ts`: global default `NEXT_PUBLIC_DATA_TRANSPORT` (`'fetch'` | `'action'`, defaults to `'fetch'`) plus a per-operation `OVERRIDES` map keyed `'domain.op'`. `NEXT_PUBLIC_*` is build-time inlined, so the global default is a per-deploy choice; `OVERRIDES` gives code-level per-op control.
 - **The contract** (what makes the flag flip with zero caller edits): for every operation, the `action` and `fetch` arms take identical params and return the SAME already-unwrapped value (throw on error). The data-client is the ONE place `ActionResult<T>` and the HTTP envelope get unwrapped. `defineClient` (in `define-client.ts`) structurally requires the fetch arm's signature to match the action arm.
 - **Adding an operation:** write the `db/queries` function (the source of truth), add an action wrapper in `actions/<domain>.ts`, add a fetch wrapper hitting the route in `lib/data-client/<domain>.client.ts`, and register the `{ action, fetch }` pair in that domain's `defineClient`.

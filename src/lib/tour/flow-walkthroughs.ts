@@ -12,6 +12,7 @@
  */
 
 import { committeePhrase } from '@/lib/legislators/contact-script';
+import type { ContactStage } from '@/lib/legislators/contact-stage';
 
 /** localStorage flags — each tour auto-starts once per flow. Bump to re-show. */
 export const TESTIMONY_WALKTHROUGH_KEY = 'billtracker:walkthrough-testimony-v1';
@@ -115,7 +116,8 @@ export function testimonyWalkthrough({ billNumber }: { billNumber: string }): Wa
 export const REQUESTS_MATTER = 'The more requests a legislator gets, the more likely the bill gets heard.';
 
 /** Which ask the contact page is making — mirrors the page's own stage branches. */
-export type ContactStage = 'hearing' | 'conference' | 'governor' | 'intentToVeto' | 'override';
+// Defined with the contact log's stages; re-exported for existing importers.
+export type { ContactStage };
 
 const CONTACT_REFERENCE_STEP: WalkthroughStep = {
   target: 'reference',

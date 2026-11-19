@@ -8,6 +8,7 @@ import { data } from '@/lib/data-client';
 import { invalidateTestimonies } from '@/hooks/use-testimonies';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Check, CheckCircle2, ExternalLink, FileText, Loader2, SquareKanban, TriangleAlert } from 'lucide-react';
+import { TESTIMONY_HREF } from '@/lib/take-action/routes';
 
 interface TestimonySubmitGuideProps {
   bill: BillDetails;
@@ -54,7 +55,7 @@ export function TestimonySubmitGuide({
 }: TestimonySubmitGuideProps) {
   const router = useRouter();
   const [marking, setMarking] = useState(false);
-  const fromTestimonies = doneHref === '/testimonies';
+  const fromTestimonies = doneHref === TESTIMONY_HREF;
 
   const handleMarkSubmitted = async () => {
     if (!testimonyId) return;
@@ -154,7 +155,7 @@ export function TestimonySubmitGuide({
           ) : (
             <SquareKanban className="mr-1.5 h-4 w-4" />
           )}
-          {fromTestimonies ? 'Back to Testimonies' : 'Back to Kanban Board'}
+          {fromTestimonies ? 'Back to Take Action' : 'Back to Kanban Board'}
         </Button>
       </div>
     </div>

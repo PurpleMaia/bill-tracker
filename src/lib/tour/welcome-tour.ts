@@ -36,10 +36,11 @@ export const TOUR_STEPS: readonly TourStep[] = [
     body: 'Tracked bills show up here. See them as a Kanban board, a spreadsheet, or a calendar of key dates.',
   },
   {
+    // id kept as 'testimonies': it names the tutorial video file.
     id: 'testimonies',
-    target: '/testimonies',
-    title: 'Testimonies',
-    body: 'Write testimony on a bill and download it, then submit it yourself on the Capitol website. Your drafts and submitted testimony are tracked here.',
+    target: '/take-action',
+    title: 'Take Action',
+    body: 'Speak up on your bills. Write testimony and submit it yourself on the Capitol website, or contact the legislators who can act on a bill. Your testimony and the legislators you have contacted are tracked here.',
   },
   {
     id: 'boards',

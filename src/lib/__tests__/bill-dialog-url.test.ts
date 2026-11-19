@@ -46,7 +46,7 @@ describe('stripBillParam', () => {
   });
 
   it('leaves paths without bill alone', () => {
-    expect(stripBillParam('/testimonies')).toBe('/testimonies');
+    expect(stripBillParam('/take-action/testimony')).toBe('/take-action/testimony');
     expect(stripBillParam('/')).toBe('/');
   });
 });

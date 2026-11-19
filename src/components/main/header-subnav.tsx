@@ -2,7 +2,8 @@
 
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/contexts/auth-context';
-import { TestimoniesSubNav } from '@/components/testimony/testimonies-subnav';
+import { TakeActionSubNav } from '@/components/take-action/take-action-subnav';
+import { isTakeActionPath } from '@/lib/take-action/routes';
 import { ActiveBoardsSubNav } from '@/components/boards/active-boards-subnav';
 import { ViewToggle } from './view-toggle';
 
@@ -11,8 +12,8 @@ import { ViewToggle } from './view-toggle';
  * '/your-bills' hosts the board view toggle (logged-in only — hidden over
  * the login wall); compact icon-only variant on mobile. It lives in the global header
  * rather than the board header so it stays reachable from the admin view.
- * /testimonies renders its All/Drafts/Submitted tabs (both logged-in only
- * — hidden over the login wall). /boards renders its Following/Browse tabs
+ * /take-action renders its Testimony/Contact Legislators tabs (logged-in only
+ * — both tabs sit behind a login wall). /boards renders its Following/Browse tabs
  * for everyone, since browsing public orgs needs no account; the Following
  * tab itself gates. '/' and /discover render nothing yet; their sub-nav lands here later.
  */
@@ -33,14 +34,14 @@ export function HeaderSubNav() {
     );
   }
 
-  if (pathname.startsWith('/testimonies') && user) {
+  if (isTakeActionPath(pathname) && user) {
     return (
       <>
         <div className="hidden md:block">
-          <TestimoniesSubNav />
+          <TakeActionSubNav />
         </div>
         <div className="md:hidden flex justify-center">
-          <TestimoniesSubNav compact />
+          <TakeActionSubNav compact />
         </div>
       </>
     );
