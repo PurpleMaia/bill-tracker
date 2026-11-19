@@ -16,6 +16,7 @@ import { toast } from '@/hooks/use-toast';
 import { useViewOnBoard } from '@/hooks/use-view-on-board';
 import { ToastAction } from '@/components/ui/toast';
 import type { Bill } from '@/types/legislation';
+import { useBills } from '@/hooks/contexts/bills-context';
 import { cn } from '@/lib/core/utils';
 import { RISE_IN } from '@/lib/core/motion';
 
@@ -26,6 +27,9 @@ export function ActiveBoardView() {
   } = useActiveBoards();
   const { activeTenant } = useAuth();
   const viewOnBoard = useViewOnBoard();
+  // The root BillsProvider (Your Bills) — this component sits outside the
+  // ActiveBoardsBillsBridge, so this is the user's own board, not the viewed org's.
+  const { refreshBills } = useBills();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -60,6 +64,10 @@ export function ActiveBoardView() {
         });
         if (!res.ok) throw new Error('Failed');
         markBillTracked(bill.id);
+        // markBillTracked only updates this view. Your Bills reads the root
+        // BillsProvider, which doesn't refetch on navigation — refresh it so
+        // "View on board" lands on a board that actually has the bill.
+        void refreshBills();
         toast({
           title: 'Bill tracked',
           description: `${bill.bill_number} added to your board.`,
@@ -80,7 +88,7 @@ export function ActiveBoardView() {
         });
       }
     },
-    [activeTenant?.tenantId, markBillTracked, viewOnBoard],
+    [activeTenant?.tenantId, markBillTracked, refreshBills, viewOnBoard],
   );
 
   // Skeleton while the followed list loads (an empty list isn't "follows no

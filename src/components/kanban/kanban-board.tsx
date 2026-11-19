@@ -34,7 +34,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, boardMode = 'own', orgTestimonyBillIds, trackedBillIds, onTrackForSelf }: KanbanBoardProps) {
-  const { searchQuery, selectedTagIds, selectedYears, columnView, registerPhaseScroll } = useKanbanBoard();
+  const { searchQuery, setSearchQuery, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, columnView, registerPhaseScroll } = useKanbanBoard();
   const { toast } = useToast();
   const { user, activeTenant } = useAuth();
   // Status changes are org-scoped; users with no org can't move cards.
@@ -545,9 +545,22 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
       billsByColumn[c.id]?.some((b) => b.id === focusBillId),
     );
     if (columnIndex === -1) {
-      // The just-tracked bill may still be arriving (the board refetches after
-      // a track). If it never shows — e.g. a board filter hides it — give up
-      // quietly so the param doesn't linger.
+      // On the board but hidden by the search/tag/year filters: clear them so
+      // the bill can show (this effect re-runs on the new columns), and say so.
+      // A just-tracked bill is never archived, and the failed/active filter only
+      // applies to the spreadsheet, so these three are what can hide it.
+      // Only when a filter is actually on — resetting already-empty filters
+      // would hand out fresh [] refs, re-run this effect, and loop.
+      const filtersActive = searchQuery.trim() !== '' || selectedTagIds.length > 0 || selectedYears.length > 0;
+      if (filtersActive && bills.some((b) => b.id === focusBillId)) {
+        setSearchQuery('');
+        setSelectedTagIds([]);
+        setSelectedYears([]);
+        toast({ title: 'Board filters cleared', description: 'So the bill you tracked is visible.' });
+        return;
+      }
+      // Not loaded yet (the board refetches after a track). If it never
+      // arrives, give up quietly so the param doesn't linger.
       const giveUp = setTimeout(dropParam, 4000);
       return () => clearTimeout(giveUp);
     }
@@ -558,7 +571,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
     // searchParams/router/pathname only feed dropParam; re-running on their
     // churn would re-scroll after the param is already gone.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusBillId, loading, billsByColumn, activeColumns, scrollToColumnByIndex, scrollCardIntoColumn]);
+  }, [focusBillId, loading, billsByColumn, bills, searchQuery, selectedTagIds, selectedYears, activeColumns, scrollToColumnByIndex, scrollCardIntoColumn]);
 
   // The highlight clears once its three pulses (3 × 1.6s) have played.
   useEffect(() => {
