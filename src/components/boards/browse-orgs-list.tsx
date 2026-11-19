@@ -12,11 +12,13 @@ import { ToastAction } from '@/components/ui/toast';
 import { toast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowRight, Building2, Check, Eye, FileText, Globe, Lock, LogIn, Plus, Search, Star, Users } from 'lucide-react';
+import { Building2, Check, ExternalLink, Eye, FileText, Globe, Lock, LogIn, Plus, Search, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { RISE_IN, riseDelay } from '@/lib/core/motion';
 import { LoginLink } from '@/components/auth/login-link';
 import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
+import { publicBoardPath, publicBoardUrl } from '@/lib/boards/board-routes';
+import { CopyLinkButton } from './copy-link-button';
 
 // Skeleton mirroring one OrgCard's shape while the list loads.
 function OrgCardSkeleton() {
@@ -92,7 +94,7 @@ function BrowseSkeleton() {
 function BrowseIntro({ orgCount }: { orgCount: number }) {
   const steps = [
     { icon: Star, title: 'Follow an org', text: 'Its board shows up under the Following tab.' },
-    { icon: Eye, title: 'See what they track', text: 'Open their board to view the bills they’re following. You can’t edit it.' },
+    { icon: Eye, title: 'Open any board', text: 'Public boards open for anyone — no account needed. They’re read-only.' },
     { icon: Plus, title: 'Track this bill', text: 'Track any of their bills onto your own board with one click.' },
   ];
   return (
@@ -218,6 +220,8 @@ function MyOrgCard() {
               ? 'Edit what’s displayed here in Organization Settings.'
               : 'Ask your organization admin to update these details.'}
           </p>
+
+          {org && <PublicLinkRow publicBoard={org.publicBoard} slug={org.slug} isAdmin={isAdmin} />}
         </div>
 
         {/* Bills-they-track preview — 2/3 width */}
@@ -245,6 +249,43 @@ function MyOrgCard() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Your org's shareable board link — what an org pastes on its website, in a
+ * newsletter or in an email. Private boards have no link yet, so say how to
+ * get one instead.
+ */
+function PublicLinkRow({ publicBoard, slug, isAdmin }: { publicBoard: boolean; slug: string; isAdmin: boolean }) {
+  if (!publicBoard) {
+    return (
+      <p className="mt-3 text-xs text-muted-foreground">
+        {isAdmin
+          ? 'Turn on public board visibility in Organization Settings to get a shareable link.'
+          : 'Your board is private. Ask your admin to make it public to get a shareable link.'}
+      </p>
+    );
+  }
+  const url = publicBoardUrl(slug);
+  return (
+    <div className="mt-3">
+      <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        Public link · anyone can view
+      </p>
+      <div className="flex items-center gap-2">
+        <code className="min-w-0 flex-1 truncate rounded-md border border-olive/20 bg-background/70 px-2 py-1.5 text-xs">
+          {url}
+        </code>
+        <CopyLinkButton url={url} variant="default" />
+        <Button asChild size="sm" variant="outline" className="shrink-0">
+          <Link href={publicBoardPath(slug)} aria-label="Open your public board">
+            <ExternalLink className="h-4 w-4 sm:mr-1.5" />
+            <span className="sr-only sm:not-sr-only">Open</span>
+          </Link>
+        </Button>
       </div>
     </div>
   );
@@ -328,17 +369,24 @@ function OrgCard({
           <p className="text-xs italic text-muted-foreground/60">No bills tracked yet.</p>
         )}
 
-        {/* Following is per-user state, so logged-out visitors get a prompt to
-            sign in rather than a button whose request the API would reject. */}
-        {isLoggedOut ? (
-          <Button asChild variant="outline" size="sm" className="mt-4 w-full">
-            <LoginLink>
-              <LogIn className="mr-1.5 h-4 w-4" />
-              Login to follow
-            </LoginLink>
+        {/* Anyone can open a public board — no follow or account needed. Following
+            is per-user state, so logged-out visitors get a sign-in prompt
+            rather than a button whose request the API would reject. */}
+        <div className="mt-4 flex gap-2">
+          <Button asChild variant="outline" size="sm" className="flex-1">
+            <Link href={publicBoardPath(org.slug)}>
+              <Eye className="mr-1.5 h-4 w-4" />
+              View board
+            </Link>
           </Button>
-        ) : (
-          <div className="mt-4 flex gap-2">
+          {isLoggedOut ? (
+            <Button asChild size="sm" className="flex-1">
+              <LoginLink>
+                <LogIn className="mr-1.5 h-4 w-4" />
+                Login to follow
+              </LoginLink>
+            </Button>
+          ) : (
             <Button
               variant={org.isFollowing ? 'outline' : 'default'}
               size="sm"
@@ -357,18 +405,8 @@ function OrgCard({
                 </>
               )}
             </Button>
-            {/* The Following tab only lists orgs you follow, so the link
-                appears once you do. */}
-            {org.isFollowing && (
-              <Button asChild size="sm" className="flex-1">
-                <Link href={boardHref(org.tenantId)}>
-                  View board
-                  <ArrowRight className="ml-1.5 h-4 w-4" />
-                </Link>
-              </Button>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </li>
   );

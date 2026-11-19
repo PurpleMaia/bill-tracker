@@ -19,11 +19,13 @@ import { initials } from './active-board-banner';
  */
 function FollowControl({ tenantId, orgName }: { tenantId: string; orgName: string }) {
   const { user, loading } = useAuth();
+  // Keyed on the id, not the object, so a session refresh doesn't refetch.
+  const userId = user?.id;
   const [following, setFollowing] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       setFollowing(null);
       return;
     }
@@ -40,7 +42,7 @@ function FollowControl({ tenantId, orgName }: { tenantId: string; orgName: strin
     return () => {
       cancelled = true;
     };
-  }, [user?.id, tenantId]);
+  }, [userId, tenantId]);
 
   if (loading) return null;
 

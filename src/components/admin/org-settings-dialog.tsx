@@ -7,6 +7,8 @@ import { toast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { CopyLinkButton } from '@/components/boards/copy-link-button';
+import { publicBoardUrl } from '@/lib/boards/board-routes';
 
 const DESCRIPTION_MAX = 200;
 
@@ -105,8 +107,17 @@ export function OrgSettingsPanel() {
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          When on, anyone can view this org&apos;s board (read-only) under Active Boards.
+          When on, anyone — even without an account — can view this board (read-only)
+          at its public link and find it under Browse.
         </p>
+        {publicBoard && activeTenant && (
+          <div className="flex items-center gap-2">
+            <code className="min-w-0 flex-1 truncate rounded-md border bg-muted/50 px-2 py-1.5 text-xs">
+              {publicBoardUrl(activeTenant.slug)}
+            </code>
+            <CopyLinkButton url={publicBoardUrl(activeTenant.slug)} />
+          </div>
+        )}
       </section>
 
       {/* Public description */}

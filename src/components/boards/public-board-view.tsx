@@ -23,6 +23,8 @@ import { PublicBoardBanner } from './public-board-banner';
  */
 export function PublicBoardView({ slug }: { slug: string }) {
   const { user } = useAuth();
+  // Keyed on the id, not the object, so a session refresh doesn't refetch.
+  const userId = user?.id;
   const [board, setBoard] = useState<PublicBoard | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'not-found'>('loading');
   const [trackedBillIds, setTrackedBillIds] = useState<Set<string>>(new Set());
@@ -49,7 +51,7 @@ export function PublicBoardView({ slug }: { slug: string }) {
 
   // The viewer's own tracked bills, so cards they already track say "Tracked".
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       setTrackedBillIds(new Set());
       return;
     }
@@ -63,7 +65,7 @@ export function PublicBoardView({ slug }: { slug: string }) {
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [userId]);
 
   const markBillTracked = useCallback((billId: string) => {
     setTrackedBillIds((prev) => (prev.has(billId) ? prev : new Set(prev).add(billId)));
