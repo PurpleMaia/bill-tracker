@@ -358,6 +358,20 @@ export async function getPublicTenant(tenantId: string) {
   return row ?? null;
 }
 
+/**
+ * A public org by slug, for its shareable /org/<slug> board. Null when the slug
+ * is unknown OR the board is private — callers must not tell the two apart.
+ */
+export async function getPublicTenantBySlug(slug: string) {
+  const row = await db
+    .selectFrom('tenants')
+    .select(['id', 'name', 'slug', 'description'])
+    .where('slug', '=', slug)
+    .where('public_board', '=', true)
+    .executeTakeFirst();
+  return row ?? null;
+}
+
 /** Admin write: toggle this org's public board visibility. */
 export async function setPublicBoard(tenantId: string, enabled: boolean): Promise<void> {
   await db

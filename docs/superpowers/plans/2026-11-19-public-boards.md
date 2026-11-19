@@ -4,7 +4,7 @@
 
 **Goal:** Anyone, signed in or not, can view a public org's board at `/org/<slug>`; Browse lets everyone preview any board, and orgs get a copyable link.
 
-**Architecture:** One new read path (`getPublicTenantBySlug` → `data.boards.getPublicBoard` with action + fetch arms, both `optionalSession`) feeds a new client page that reuses the read-only Active Boards kanban through a generalized bills bridge. Browse, Org Settings and nav get small UI edits driven by pure helpers in `src/lib/boards/board-routes.ts`.
+**Architecture:** One new read path (`getPublicTenantBySlug` → `data.boards.getPublicBoard` with action + fetch arms, no session needed) feeds a new client page that reuses the read-only Active Boards kanban through a generalized bills bridge. Browse, Org Settings and nav get small UI edits driven by pure helpers in `src/lib/boards/board-routes.ts`.
 
 **Tech Stack:** Next.js 15 App Router, Kysely, data-client (`defineClient`), shadcn/ui, Vitest.
 
@@ -14,7 +14,7 @@
 
 - `public_board = true` means listed on Browse **and** viewable without an account. No new setting.
 - Public page URL: `/org/<slug>`. Unknown slug and private board render the same "This board isn't public" state.
-- Public read endpoints use `optionalSession`, never `requireSession`; bills via `getAllTrackedBills(false, tenantId, false)` (no tracked-by data).
+- Public read endpoints need no session (none is resolved; the response is viewer-independent); bills via `getAllTrackedBills(false, tenantId, false)` (no tracked-by data).
 - Existing `/boards?org=` Following flow and its endpoints stay as they are.
 - `db/queries/*` is not `'use server'`; `'use server'` files export only async functions; `src/lib` stays DB-free; no barrel files.
 - Client code calls `data.*`, not raw `fetch`.
@@ -106,7 +106,7 @@ expect(cardVisibility('active-boards').showTrackForSelf).toBe(true);
 - `interface PublicBoardParams { slug: string }`
 - `data.boards.getPublicBoard(params: PublicBoardParams): Promise<PublicBoard>` — throws `ApiError('BOARD_NOT_FOUND', 404, 'Board not found')` / HTTP 404 `{ error: 'Board not found' }` when missing or private.
 
-Both arms: `optionalSession`, then tenant lookup, then `getAllTrackedBills(false, org.id, false)`, then `getOrgTestimonyBillIds(org.id, bills.map(b => b.id))`. Route maps `error.statusCode` like `boards/[tenantId]/bills/route.ts`.
+Both arms: no session; tenant lookup, then `getAllTrackedBills(false, org.id, false)`, then `getOrgTestimonyBillIds(org.id, bills.map(b => b.id))`. Route maps `error.statusCode` like `boards/[tenantId]/bills/route.ts`.
 
 - [ ] **Step 1:** Implement. **Step 2:** `pnpm typecheck` → clean (defineClient enforces matching arms).
 - [ ] **Step 3:** Commit `feat: add public board read endpoint`

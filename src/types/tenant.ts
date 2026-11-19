@@ -1,3 +1,5 @@
+import type { Bill } from '@/types/legislation';
+
 export type SystemRole = 'sysadmin' | 'user';
 export type OrgRole = 'admin' | 'worker';
 
@@ -21,6 +23,21 @@ export interface Tenant {
   slug: string;
   createdAt: Date | string;
   brandingConfig: Record<string, unknown> | null;
+}
+
+/** The org shown on a public /org/<slug> board. */
+export interface PublicBoardOrg {
+  tenantId: string;
+  name: string;
+  slug: string;
+  description: string;
+}
+
+/** Everything a public board page renders; identical for every viewer. */
+export interface PublicBoard {
+  org: PublicBoardOrg;
+  bills: Bill[];
+  testimonyBillIds: string[];
 }
 
 export interface OrgSampleBill {

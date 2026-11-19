@@ -67,8 +67,8 @@ anyone, no account needed". There is no separate setting.
   gated on `public_board = true`.
 - New data-client op `data.boards.getPublicBoard({ slug })` →
   `{ org: PublicBoardOrg; bills: Bill[]; testimonyBillIds: string[] }`, with both
-  arms: `getPublicBoardAction` and `GET /api/boards/public/[slug]`. Both use
-  `optionalSession` — never `requireSession`.
+  arms: `getPublicBoardAction` and `GET /api/boards/public/[slug]`. Neither resolves
+  or requires a session — the response is the same for every viewer.
 - Bills come from the same `getAllTrackedBills(false, tenantId, false)` the
   signed-in board already uses (`includeTrackedBy: false`, no per-person data).
   Since anyone can register an account today, this exposes nothing a stranger

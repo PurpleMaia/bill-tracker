@@ -1,7 +1,7 @@
 'use server';
 
 import type { Bill } from '@/types/legislation';
-import type { PublicOrg, MyOrg } from '@/types/tenant';
+import type { PublicOrg, MyOrg, PublicBoard } from '@/types/tenant';
 import { optionalSession, requireSession, requireAdmin, requireMembership } from '@/lib/auth/auth-guards';
 import { ApiError } from '@/lib/core/errors';
 import {
@@ -10,6 +10,7 @@ import {
   followOrg,
   unfollowOrg,
   getPublicTenant,
+  getPublicTenantBySlug,
   getMyOrgStats,
   getTenantSettings,
   setPublicBoard,
@@ -25,6 +26,7 @@ import type {
   SetOrgDescriptionParams,
   OrgSettingsParams,
   MyOrgStatsParams,
+  PublicBoardParams,
 } from '@/lib/data-client/boards.params';
 
 export async function listPublicOrgsAction(): Promise<PublicOrg[]> {
@@ -63,6 +65,21 @@ export async function getBoardAction(params: GetBoardParams): Promise<Bill[]> {
   if (!org) throw new ApiError('BOARD_NOT_FOUND', 404, 'Board not found');
   // includeTrackedBy: false — person-tracking data never leaves the DB here.
   return getAllTrackedBills(params.showArchived, params.tenantId, false);
+}
+
+// A public board needs no account: public_board means anyone can view it. No
+// session is resolved because nothing in the response depends on the viewer.
+export async function getPublicBoardAction(params: PublicBoardParams): Promise<PublicBoard> {
+  const org = await getPublicTenantBySlug(params.slug);
+  if (!org) throw new ApiError('BOARD_NOT_FOUND', 404, 'Board not found');
+  // includeTrackedBy: false — person-tracking data never leaves the DB here.
+  const bills = await getAllTrackedBills(false, org.id, false);
+  const testimonyBillIds = await getOrgTestimonyBillIds(org.id, bills.map((b) => b.id));
+  return {
+    org: { tenantId: org.id, name: org.name, slug: org.slug, description: org.description },
+    bills,
+    testimonyBillIds,
+  };
 }
 
 export async function getMyTrackedBillIdsAction(): Promise<string[]> {
