@@ -112,7 +112,6 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
             style={{
               backgroundColor: tag.color || '#3b82f6',
               color: 'white',
-              fontSize: '10px',
               padding: '2px 6px',
             }}
             className="text-xs rounded-md"
@@ -137,7 +136,6 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
               style={{
                 backgroundColor: tag.color || '#3b82f6',
                 color: 'white',
-                fontSize: '10px',
                 padding: '2px 6px',
               }}
               className="text-xs rounded-md"
@@ -187,7 +185,6 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
                         color: isSelected ? 'white' : undefined,
                         cursor: saving ? 'not-allowed' : 'pointer',
                         opacity: saving ? 0.6 : 1,
-                        fontSize: '10px',
                         padding: '2px 6px',
                       }}
                       onClick={() => !saving && handleToggleTag(tag)}

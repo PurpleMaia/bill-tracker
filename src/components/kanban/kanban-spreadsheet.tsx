@@ -240,7 +240,6 @@ export function KanbanSpreadsheet() {
                                 style={{
                                   backgroundColor: tag.color || '#3b82f6',
                                   color: 'white',
-                                  fontSize: '10px',
                                   padding: '2px 6px',
                                 }}
                                 className="text-xs rounded-md"
