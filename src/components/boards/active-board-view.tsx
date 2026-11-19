@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AlertCircle, ArrowRight, RotateCw, Star } from 'lucide-react';
@@ -11,12 +11,7 @@ import { Button } from '@/components/ui/button';
 import KanbanBoardSkeleton from '@/components/kanban/skeletons/skeleton-board';
 import { ActiveBoardBanner } from './active-board-banner';
 import { ActiveBoardsBillsBridge } from './active-boards-bills-bridge';
-import { useAuth } from '@/hooks/contexts/auth-context';
-import { toast } from '@/hooks/use-toast';
-import { useViewOnBoard } from '@/hooks/use-view-on-board';
-import { ToastAction } from '@/components/ui/toast';
-import type { Bill } from '@/types/legislation';
-import { useBills } from '@/hooks/contexts/bills-context';
+import { useTrackForSelf } from '@/hooks/use-track-for-self';
 import { cn } from '@/lib/core/utils';
 import { RISE_IN } from '@/lib/core/motion';
 
@@ -25,11 +20,6 @@ export function ActiveBoardView() {
     followedOrgs, followedStatus, retryFollowed, selectOrg,
     testimonyBillIds, trackedBillIds, markBillTracked,
   } = useActiveBoards();
-  const { activeTenant } = useAuth();
-  const viewOnBoard = useViewOnBoard();
-  // The root BillsProvider (Your Bills) — this component sits outside the
-  // ActiveBoardsBillsBridge, so this is the user's own board, not the viewed org's.
-  const { refreshBills } = useBills();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -52,44 +42,7 @@ export function ActiveBoardView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgParam]);
 
-  // Stable identity so the KanbanCard memo comparator (which compares
-  // onTrackForSelf) does not re-render every card on each parent render.
-  const handleTrackForSelf = useCallback(
-    async (bill: Bill) => {
-      try {
-        const res = await fetch('/api/bills', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tenantId: activeTenant?.tenantId, billUrl: bill.bill_url }),
-        });
-        if (!res.ok) throw new Error('Failed');
-        markBillTracked(bill.id);
-        // markBillTracked only updates this view. Your Bills reads the root
-        // BillsProvider, which doesn't refetch on navigation — refresh it so
-        // "View on board" lands on a board that actually has the bill.
-        void refreshBills();
-        toast({
-          title: 'Bill tracked',
-          description: `${bill.bill_number} added to your board.`,
-          // Longer than the 4s default: long enough to reach the action.
-          duration: 6000,
-          action: (
-            <ToastAction altText={`View ${bill.bill_number} on your board`} onClick={() => viewOnBoard(bill.id)}>
-              View on board
-            </ToastAction>
-          ),
-        });
-      } catch {
-        toast({
-          title: 'Could not track bill',
-          description: 'Please try again.',
-          variant: 'destructive',
-          duration: 5000,
-        });
-      }
-    },
-    [activeTenant?.tenantId, markBillTracked, refreshBills, viewOnBoard],
-  );
+  const handleTrackForSelf = useTrackForSelf(markBillTracked);
 
   // Skeleton while the followed list loads (an empty list isn't "follows no
   // one" yet) and for the one render before a ?org= pick is applied, so the

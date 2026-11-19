@@ -6,7 +6,7 @@ import { OrgSwitcherDropdown } from './org-switcher-dropdown';
 // First letter/digit of the first two words. Array.from splits by code point
 // (so an emoji isn't cut in half), and words with no letter, like "🌺" or "&",
 // are skipped rather than rendered.
-function initials(name: string) {
+export function initials(name: string) {
   const firsts = name
     .split(/\s+/)
     .map((w) => Array.from(w).find((ch) => /[\p{L}\p{N}]/u.test(ch)))
