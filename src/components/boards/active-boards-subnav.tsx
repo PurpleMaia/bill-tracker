@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Star, Building2, Eye } from 'lucide-react';
+import { Star, Building2, Compass } from 'lucide-react';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { cn } from '@/lib/core/utils';
 import { isActiveBoardsTabActive } from '@/lib/boards/board-routes';
@@ -11,11 +11,11 @@ import { isActiveBoardsTabActive } from '@/lib/boards/board-routes';
 // the first step. "Following" + a star, not "View Board" + the kanban icon, so
 // it can't be mistaken for Your Bills.
 const TABS = [
-  { href: '/boards/browse', label: 'Browse', icon: Building2, adminOnly: false },
+  { href: '/boards/browse', label: 'Browse', icon: Compass, adminOnly: false },
   { href: '/boards', label: 'Following', icon: Star, adminOnly: false },
   // An admin's preview of their own org's board as others see it. "Your Org",
   // not "Your Board", so it isn't mistaken for Your Bills.
-  { href: '/boards/mine', label: 'Your Org', icon: Eye, adminOnly: true },
+  { href: '/boards/mine', label: 'Your Org', icon: Building2, adminOnly: true },
 ] as const;
 
 /**
