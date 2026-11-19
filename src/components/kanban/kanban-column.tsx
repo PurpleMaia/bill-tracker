@@ -106,7 +106,7 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
     },
     ref
   ) => {
-    const { activeTenant } = useAuth();
+    const { user } = useAuth();
 
     // Use shared refs from parent, or create local ones if not provided
     const localBillCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -266,9 +266,11 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
 
         {/* Pinned footer: outside the scroll area, so "Track bills" sits at the
             bottom of the column however long the card list runs, instead of
-            waiting at the end of it. Own board only — it links to the search
-            page pre-filtered to this stage. */}
-        {activeTenant && boardMode === 'own' && (
+            waiting at the end of it. Own board, signed in — tracking works
+            without an org (it then lands in the user's own bills), and phones
+            have no other in-board Track action. It links to the search page
+            pre-filtered to this stage. */}
+        {user && boardMode === 'own' && (
           <div className="shrink-0 px-2 pb-2">
             <Link
               href={columnTrackSearchHref(columnId)}

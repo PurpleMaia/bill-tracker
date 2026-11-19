@@ -132,20 +132,22 @@ export function DeadBillInfoPopover({
   // off the right edge of a narrow screen.
   if (isMobile) {
     return (
-      <Dialog>
-        <DialogTrigger asChild onClick={(e) => e.stopPropagation()}>
-          {children}
-        </DialogTrigger>
-        {/* Portaled, but React still bubbles its clicks (overlay included) up
-            to the card, which would open the bill details behind it. */}
-        <DialogContent
-          className="flex max-h-[85dvh] w-[calc(100vw-2rem)] max-w-[340px] flex-col gap-0 overflow-y-auto rounded-lg p-0"
-          aria-describedby={undefined}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {content}
-        </DialogContent>
-      </Dialog>
+      // The dialog is portaled, but React still bubbles its clicks up the
+      // component tree to the card, which would open the bill details behind
+      // it — including the backdrop tap that dismisses it (the overlay is a
+      // sibling of DialogContent). This box-less wrapper stops every click
+      // from the trigger, content and overlay at once, without touching layout.
+      <span className="contents" onClick={(e) => e.stopPropagation()}>
+        <Dialog>
+          <DialogTrigger asChild>{children}</DialogTrigger>
+          <DialogContent
+            className="flex max-h-[85dvh] w-[calc(100vw-2rem)] max-w-[340px] flex-col gap-0 overflow-y-auto rounded-lg p-0"
+            aria-describedby={undefined}
+          >
+            {content}
+          </DialogContent>
+        </Dialog>
+      </span>
     );
   }
 
