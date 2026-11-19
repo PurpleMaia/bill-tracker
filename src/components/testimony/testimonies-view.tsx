@@ -23,7 +23,7 @@ import { useTestimonies } from '@/hooks/use-testimonies';
 import { toast } from '@/hooks/use-toast';
 import { tiptapPlainText } from '@/lib/testimony/tiptap-text';
 import { getTestimonyEligibility } from '@/lib/testimony/testimony-eligibility';
-import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
+import { HAWAII_TIME_ZONE, getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import { getNextDeadline } from '@/lib/bills/dead-bill';
 import { groupByBill } from '@/lib/testimony/testimony-round';
 import type { DeadlineEntry } from '@/lib/bills/dead-bill';
@@ -1000,5 +1000,6 @@ function formatHearing(hearingAt: Date): string {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: HAWAII_TIME_ZONE,
   });
 }

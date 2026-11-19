@@ -14,13 +14,29 @@ const HEARING_DATETIME_PATTERN =
   /(\d{1,2})-(\d{1,2})-(\d{2,4})[,\s]+(?:at\s+)?(\d{1,2}):(\d{2})\s*([AP])\.?M\.?/i;
 
 const HOUR_MS = 60 * 60 * 1000;
+/** Hawaii Standard Time is UTC-10 year-round (no daylight saving). */
+const HST_OFFSET_HOURS = 10;
+/** Hearings are Hawaii Legislature events — display their times in Hawaii time for every viewer. */
+export const HAWAII_TIME_ZONE = 'Pacific/Honolulu';
+
+/** Hawaii wall-clock parts of an instant (HST, fixed UTC-10). */
+export function hawaiiWallClock(d: Date): { year: number; month: number; day: number; hour: number; minute: number } {
+  const shifted = new Date(d.getTime() - HST_OFFSET_HOURS * HOUR_MS);
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: shifted.getUTCDate(),
+    hour: shifted.getUTCHours(),
+    minute: shifted.getUTCMinutes(),
+  };
+}
 const TESTIMONY_WINDOW_MS = 24 * HOUR_MS;
 /** Deadline (hearing minus 24h) within this window counts as imminent. */
 const URGENT_WINDOW_MS = 48 * HOUR_MS;
 
 /**
- * Extracts the hearing datetime from a scraped status-update text.
- * Returns null when the text carries no recognizable hearing datetime.
+ * Extracts the hearing datetime (as Hawaii time) from a scraped status-update
+ * text. Returns null when the text carries no recognizable hearing datetime.
  */
 export function parseHearingDatetime(statusText: string): Date | null {
   const match = statusText.match(HEARING_DATETIME_PATTERN);
@@ -35,7 +51,10 @@ export function parseHearingDatetime(statusText: string): Date | null {
   if (meridiem.toUpperCase() === 'P') hour += 12;
 
   if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-  return new Date(year, month - 1, day, hour, minute);
+  // Notices are in Hawaii time with no zone in the text. Pin it explicitly
+  // (HST is UTC-10, no daylight saving) so the instant is the same on a UTC
+  // server and in any viewer's browser.
+  return new Date(Date.UTC(year, month - 1, day, hour + HST_OFFSET_HOURS, minute));
 }
 
 /**

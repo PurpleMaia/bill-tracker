@@ -47,7 +47,7 @@ import { BillBreakdownButton } from './bill-breakdown';
 import { getNextDeadline, isFiscalBill, isEnacted } from '@/lib/bills/dead-bill';
 import { getGovernorStage } from '@/lib/legislators/governor-contact';
 import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
-import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
+import { HAWAII_TIME_ZONE, getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import type { BoardMode } from '@/lib/bills/board-display';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
@@ -337,7 +337,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   const hearingAt = testimonyDeadline.hearingAt;
   const testimonyCountdown = testimonyEligibility.allowed ? testimonyDeadline.countdown : null;
   const urgentTooltip = hearingAt
-    ? `Hearing ${hearingAt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Submit testimony at least 24 hours before the hearing.`
+    ? `Hearing ${hearingAt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: HAWAII_TIME_ZONE })}. Submit testimony at least 24 hours before the hearing.`
     : 'Hearing scheduled! Submit testimony at least 24 hours before the hearing.';
 
   // Once a bill is signed into law, legislators can no longer act on it — the

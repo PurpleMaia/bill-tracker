@@ -1,5 +1,5 @@
 import { findPermanentDeferral } from '@/lib/bills/dead-bill';
-import { parseHearingDatetime } from '@/lib/testimony/hearing-schedule';
+import { hawaiiWallClock, parseHearingDatetime } from '@/lib/testimony/hearing-schedule';
 
 /**
  * Calendar milestones — the dated moments in a bill's life that the Calendar
@@ -78,18 +78,16 @@ export function toIsoDay(raw: string | null | undefined): string | null {
 /** Types found by matching the action's text; testimony and failed are derived differently. */
 type TextMilestoneType = Exclude<MilestoneType, 'testimony' | 'failed'>;
 
-/** 12-hour clock label for a Date, e.g. "9:00 AM" or "12:30 PM". */
+/** 12-hour Hawaii-time clock label for a hearing instant, e.g. "9:00 AM" or "12:30 PM". */
 export function formatClockTime(d: Date): string {
-  const hours = d.getHours();
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  return `${hours % 12 || 12}:${minutes} ${hours < 12 ? 'AM' : 'PM'}`;
+  const { hour, minute } = hawaiiWallClock(d);
+  return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`;
 }
 
-/** Local YYYY-MM-DD for a Date. */
+/** Hawaii-time YYYY-MM-DD for a hearing instant. */
 function dayOf(d: Date): string {
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${mm}-${dd}`;
+  const { year, month, day } = hawaiiWallClock(d);
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 /** A notice that schedules a hearing, as opposed to any other action that happens to mention a time. */

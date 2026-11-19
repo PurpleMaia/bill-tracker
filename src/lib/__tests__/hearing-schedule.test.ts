@@ -7,7 +7,7 @@ describe('parseHearingDatetime', () => {
       parseHearingDatetime(
         'Bill scheduled to be heard by HSG on Friday, 01-31-25 9:15AM in House conference room 430 VIA VIDEOCONFERENCE.',
       ),
-    ).toEqual(new Date(2025, 0, 31, 9, 15));
+    ).toEqual(new Date('2025-01-31T09:15:00-10:00'));
   });
 
   it('parses senate committee notices with PM times', () => {
@@ -15,24 +15,24 @@ describe('parseHearingDatetime', () => {
       parseHearingDatetime(
         'The committee(s) on HRE has scheduled a public hearing on 03-13-25 3:05PM; Conference Room 229 & Videoconference.',
       ),
-    ).toEqual(new Date(2025, 2, 13, 15, 5));
+    ).toEqual(new Date('2025-03-13T15:05:00-10:00'));
   });
 
   it('parses conference committee meetings', () => {
     expect(
       parseHearingDatetime('Conference committee meeting scheduled for 04-22-25 1:30PM; Conference Room 229.'),
-    ).toEqual(new Date(2025, 3, 22, 13, 30));
+    ).toEqual(new Date('2025-04-22T13:30:00-10:00'));
   });
 
   it('parses 4-digit years and "at" with spaced meridiem', () => {
     expect(
       parseHearingDatetime('The committee(s) on WAM will hold a public decision making on 02-13-2026 at 1:30 PM.'),
-    ).toEqual(new Date(2026, 1, 13, 13, 30));
+    ).toEqual(new Date('2026-02-13T13:30:00-10:00'));
   });
 
   it('handles 12AM and 12PM correctly', () => {
-    expect(parseHearingDatetime('hearing on 02-01-26 12:00PM')).toEqual(new Date(2026, 1, 1, 12, 0));
-    expect(parseHearingDatetime('hearing on 02-01-26 12:15AM')).toEqual(new Date(2026, 1, 1, 0, 15));
+    expect(parseHearingDatetime('hearing on 02-01-26 12:00PM')).toEqual(new Date('2026-02-01T12:00:00-10:00'));
+    expect(parseHearingDatetime('hearing on 02-01-26 12:15AM')).toEqual(new Date('2026-02-01T00:15:00-10:00'));
   });
 
   it('returns null when no hearing datetime is present', () => {
@@ -42,35 +42,35 @@ describe('parseHearingDatetime', () => {
 });
 
 describe('getTestimonyCountdownLabel', () => {
-  const hearing = new Date(2026, 6, 4, 10, 0); // Jul 4 2026, 10:00
+  const hearing = new Date('2026-07-04T10:00:00-10:00'); // Jul 4 2026, 10:00
 
   it('counts down to the 24-hours-before deadline in hours', () => {
-    expect(getTestimonyCountdownLabel(hearing, new Date(2026, 6, 2, 20, 0))).toBe('due in 14h');
+    expect(getTestimonyCountdownLabel(hearing, new Date('2026-07-02T20:00:00-10:00'))).toBe('due in 14h');
   });
 
   it('uses days when the deadline is more than 48 hours away', () => {
-    expect(getTestimonyCountdownLabel(hearing, new Date(2026, 6, 1, 4, 0))).toBe('due in 3d');
+    expect(getTestimonyCountdownLabel(hearing, new Date('2026-07-01T04:00:00-10:00'))).toBe('due in 3d');
   });
 
   it('says due now inside the 24-hour window', () => {
-    expect(getTestimonyCountdownLabel(hearing, new Date(2026, 6, 3, 12, 0))).toBe('due now');
+    expect(getTestimonyCountdownLabel(hearing, new Date('2026-07-03T12:00:00-10:00'))).toBe('due now');
   });
 
   it('returns null once the hearing has started or passed', () => {
-    expect(getTestimonyCountdownLabel(hearing, new Date(2026, 6, 4, 10, 0))).toBeNull();
-    expect(getTestimonyCountdownLabel(hearing, new Date(2026, 6, 5, 9, 0))).toBeNull();
+    expect(getTestimonyCountdownLabel(hearing, new Date('2026-07-04T10:00:00-10:00'))).toBeNull();
+    expect(getTestimonyCountdownLabel(hearing, new Date('2026-07-05T09:00:00-10:00'))).toBeNull();
   });
 });
 
 describe('getTestimonyDeadline', () => {
   const notice = 'Bill scheduled to be heard by AGR on 07-04-26 10:00AM in conference room 312.';
-  const hearing = new Date(2026, 6, 4, 10, 0);
+  const hearing = new Date('2026-07-04T10:00:00-10:00');
 
   it('returns the full picture for a scheduled bill with an upcoming hearing', () => {
     const result = getTestimonyDeadline({
       billStatus: 'scheduled1',
       latestStatusText: notice,
-      now: new Date(2026, 6, 1, 4, 0),
+      now: new Date('2026-07-01T04:00:00-10:00'),
     });
     expect(result).toEqual({
       hearingAt: hearing,
@@ -84,7 +84,7 @@ describe('getTestimonyDeadline', () => {
     const result = getTestimonyDeadline({
       billStatus: 'scheduled1',
       latestStatusText: notice,
-      now: new Date(2026, 6, 2, 20, 0),
+      now: new Date('2026-07-02T20:00:00-10:00'),
     });
     expect(result.countdown).toBe('due in 14h');
     expect(result.urgent).toBe(true);
@@ -94,7 +94,7 @@ describe('getTestimonyDeadline', () => {
     const result = getTestimonyDeadline({
       billStatus: 'scheduled1',
       latestStatusText: notice,
-      now: new Date(2026, 6, 4, 10, 0),
+      now: new Date('2026-07-04T10:00:00-10:00'),
     });
     expect(result).toEqual({ hearingAt: hearing, countdown: null, urgent: false, hearingPassed: true });
   });
@@ -121,10 +121,10 @@ describe('getTestimonyDeadline', () => {
     const result = getTestimonyDeadline({
       billStatus: 'waiting2',
       latestStatusText: passedNotice,
-      now: new Date(2026, 8, 1, 9, 0), // Sep 1 2026 — after the Aug 31 hearing
+      now: new Date('2026-09-01T09:00:00-10:00'), // Sep 1 2026 — after the Aug 31 hearing
     });
     expect(result).toEqual({
-      hearingAt: new Date(2026, 7, 31, 14, 0),
+      hearingAt: new Date('2026-08-31T14:00:00-10:00'),
       countdown: null,
       urgent: false,
       hearingPassed: true,
@@ -137,7 +137,7 @@ describe('getTestimonyDeadline', () => {
     const result = getTestimonyDeadline({
       billStatus: 'waiting2',
       latestStatusText: passedNotice,
-      now: new Date(2026, 7, 30, 9, 0), // Aug 30 2026 — before the Aug 31 hearing
+      now: new Date('2026-08-30T09:00:00-10:00'), // Aug 30 2026 — before the Aug 31 hearing
     });
     expect(result.hearingPassed).toBe(false);
   });
@@ -158,8 +158,20 @@ describe('getTestimonyDeadline', () => {
     const result = getTestimonyDeadline({
       billStatus: 'deferred2',
       latestStatusText: deferredNotice,
-      now: new Date(2026, 8, 1, 9, 0),
+      now: new Date('2026-09-01T09:00:00-10:00'),
     });
     expect(result.hearingPassed).toBe(true);
+  });
+});
+
+describe('hearing times are Hawaii time regardless of the runtime timezone', () => {
+  it('a 3:00PM notice is 3:00PM HST, so it has not passed at 4:00PM UTC the same day', () => {
+    const result = getTestimonyDeadline({
+      billStatus: 'scheduled1',
+      latestStatusText: 'The committee(s) on AGR has scheduled a public hearing on 03-13-26 3:00PM; Conference Room 325.',
+      now: new Date('2026-03-13T16:00:00Z'), // 6:00 AM in Hawaii
+    });
+    expect(result.hearingAt).toEqual(new Date('2026-03-14T01:00:00Z'));
+    expect(result.hearingPassed).toBe(false);
   });
 });
