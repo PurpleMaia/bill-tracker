@@ -243,7 +243,7 @@ function MyOrgCard() {
             ) : org && !org.publicBoard ? (
               <>Your board is private. Make it public in {settingsLink} to get a shareable link.</>
             ) : (
-              <>Edit what’s displayed here in {settingsLink}.</>
+              <>Edit how your organization is viewed in {settingsLink}.</>
             )}
           </p>
 
