@@ -147,18 +147,16 @@ export function explainDeadBill(
     };
   }
 
-  // Stuck at transmittedGovernor: the legislature passed it, but it was never
-  // signed before the session's final deadline. Always blame Adjournment Sine
-  // Die — that's the deadline it missed, whatever the deadline walk returned.
+  // Stuck at transmittedGovernor: the legislature passed it, but no Governor
+  // action is on record. The Governor can still act after adjournment (and an
+  // unvetoed bill becomes law without signature), so don't blame a deadline —
+  // this is most likely a gap in the scraped status history.
   if (billStatus === 'transmittedGovernor') {
     return {
-      heading: 'Why did this bill fail?',
-      summary: 'This bill failed because the Governor did not sign it before the Adjournment Sine Die deadline.',
-      missedDeadline: {
-        name: 'Adjournment Sine Die',
-        date: formatDeadlineDate(deadlines.deadlines.adjournment_sine_die),
-      },
-      committeeExplanation: `It passed the legislature and was transmitted to the Governor, but it was not signed into law in time. Its referrals were ${committeeLabel}.`,
+      heading: 'Where did this bill end up?',
+      summary: 'This bill passed the legislature and was transmitted to the Governor, but no action by the Governor has been recorded.',
+      missedDeadline: null,
+      committeeExplanation: `The Governor can still sign or veto a bill after the session adjourns, and a bill that isn't vetoed in time becomes law without a signature. Check the official bill page for its latest status. Its referrals were ${committeeLabel}.`,
       showRevivalNote: false,
     };
   }

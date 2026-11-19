@@ -67,14 +67,15 @@ describe('explainDeadBill', () => {
     expect(e.showRevivalNote).toBe(false);
   });
 
-  it('stuck at transmittedGovernor: missed Adjournment Sine Die, Governor did not sign in time', () => {
+  it('stuck at transmittedGovernor: no Governor action recorded, no deadline blamed', () => {
     const e = explainDeadBill({ billNumber: 'HB10', billStatus: 'transmittedGovernor', committeeAssignment: 'AGR, FIN' },
       [{ statustext: 'Transmitted to Governor.', date: '5/5/2025', chamber: 'H' }], MOCK_DEADLINES, '2025-06-01');
-    expect(e.heading).toBe('Why did this bill fail?');
-    expect(e.summary).toBe('This bill failed because the Governor did not sign it before the Adjournment Sine Die deadline.');
-    expect(e.missedDeadline).toEqual({ name: 'Adjournment Sine Die', date: 'May 8, 2025' });
-    expect(e.committeeExplanation).toBe('It passed the legislature and was transmitted to the Governor, but it was not signed into law in time. Its referrals were AGR, FIN.');
-    expect(e.committeeExplanation).not.toMatch(/process for it has concluded/);
+    expect(e.heading).toBe('Where did this bill end up?');
+    expect(e.summary).toBe('This bill passed the legislature and was transmitted to the Governor, but no action by the Governor has been recorded.');
+    expect(e.missedDeadline).toBeNull();
+    expect(e.committeeExplanation).toContain('becomes law without a signature');
+    expect(e.committeeExplanation).toContain('Its referrals were AGR, FIN.');
+    expect(JSON.stringify(e)).not.toMatch(/Sine Die|process for it has concluded/);
     expect(e.showRevivalNote).toBe(false);
   });
 
