@@ -179,6 +179,44 @@ export function getDeadReasonFromUpdate(latestStatusText: string | null): string
   return 'Missed deadline';
 }
 
+// --- Final Reading Votes ---
+
+export type ChamberName = 'House' | 'Senate';
+
+export interface FinalReadingVotes {
+  passed: ChamberName[];
+  failed: ChamberName[];
+}
+
+/**
+ * Each chamber's latest Final Reading result, from status updates like
+ *   "Passed Final Reading as amended in CD 1 ..."  /  "Conference committee report adopted. Passed Final Reading."
+ *   "Failed to pass Final Reading. Ayes, 11; ... Noes, 12 ..."
+ * "Received notice of passage on Final Reading in House" is the other chamber's
+ * notice, not a vote, so it is ignored. A conference draft needs both chambers.
+ */
+export function getFinalReadingVotes(statusUpdates: StatusUpdate[]): FinalReadingVotes {
+  const sorted = [...statusUpdates].sort((a, b) =>
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  const latest = new Map<ChamberName, boolean>();
+  for (const u of sorted) {
+    const chamber: ChamberName | null =
+      u.chamber === 'H' ? 'House' : u.chamber === 'S' ? 'Senate' : null;
+    if (!chamber) continue;
+    const text = u.statustext.toLowerCase();
+    if (text.includes('failed to pass final reading')) latest.set(chamber, false);
+    else if (text.includes('passed final reading')) latest.set(chamber, true);
+  }
+
+  const order: ChamberName[] = ['House', 'Senate'];
+  return {
+    passed: order.filter((c) => latest.get(c) === true),
+    failed: order.filter((c) => latest.get(c) === false),
+  };
+}
+
 /** Escalation tier for an upcoming deadline, by days remaining. */
 export type DeadlineTier = 'safe' | 'warning' | 'urgent';
 
