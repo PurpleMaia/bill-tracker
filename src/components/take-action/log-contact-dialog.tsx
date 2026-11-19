@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -24,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { useContacts } from '@/hooks/use-contacts';
+import { useBillLegislators } from '@/hooks/use-bill-legislators';
 import {
   CONTACT_METHODS,
   CONTACT_METHOD_LABELS,
@@ -62,7 +62,8 @@ export function LogContactDialog({
 }: LogContactDialogProps) {
   const { log } = useContacts();
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [other, setOther] = useState('');
+  // Legislators picked from the dropdown, shown as extra checkboxes below the suggestions.
+  const [added, setAdded] = useState<string[]>([]);
   const [method, setMethod] = useState<ContactMethod>(defaultMethod);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
@@ -71,14 +72,24 @@ export function LogContactDialog({
   useEffect(() => {
     if (!open) return;
     setSelected(new Set(suggestedRecipients.length === 1 ? suggestedRecipients : []));
-    setOther('');
+    setAdded([]);
     setMethod(defaultMethod);
     setNote('');
     // suggestedRecipients is often a fresh array each render; key on its content.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, defaultMethod, suggestedRecipients.join('\n')]);
 
-  const recipients = [...selected, ...(other.trim() ? [other.trim()] : [])];
+  const { data: billLegislators = [], isLoading: legislatorsLoading } = useBillLegislators(billId, open);
+  const listed = new Set([...suggestedRecipients, ...added]);
+  const pickable = billLegislators.filter((l) => !listed.has(l.name));
+  const checkboxNames = [...suggestedRecipients, ...added];
+
+  const recipients = [...selected];
+
+  const addLegislator = (name: string) => {
+    setAdded((prev) => [...prev, name]);
+    toggle(name, true);
+  };
 
   const toggle = (name: string, checked: boolean) => {
     setSelected((prev) => {
@@ -125,7 +136,7 @@ export function LogContactDialog({
         <div className="space-y-4">
           <fieldset className="space-y-2">
             <legend className="mb-1 text-sm font-medium">Who did you contact?</legend>
-            {suggestedRecipients.map((name) => {
+            {checkboxNames.map((name) => {
               const id = `recipient-${name.replace(/\W+/g, '-')}`;
               return (
                 <div key={name} className="flex items-center gap-2">
@@ -140,13 +151,31 @@ export function LogContactDialog({
                 </div>
               );
             })}
-            <Input
-              value={other}
-              onChange={(e) => setOther(e.target.value)}
-              placeholder={suggestedRecipients.length > 0 ? 'Someone else (optional)' : 'e.g. Sen. Jane Doe'}
-              aria-label="Someone else you contacted"
-              maxLength={200}
-            />
+            {legislatorsLoading ? (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> Loading legislators on this bill…
+              </p>
+            ) : pickable.length > 0 ? (
+              <Select value="" onValueChange={addLegislator}>
+                <SelectTrigger aria-label="Add a legislator on this bill">
+                  <SelectValue
+                    placeholder={checkboxNames.length > 0 ? 'Add another legislator on this bill' : 'Choose a legislator on this bill'}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {pickable.map((l) => (
+                    <SelectItem key={l.name} value={l.name}>
+                      {l.name}
+                      <span className="ml-1.5 text-xs text-muted-foreground">{l.role}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              checkboxNames.length === 0 && (
+                <p className="text-xs text-muted-foreground">No legislators on file for this bill.</p>
+              )
+            )}
           </fieldset>
 
           <div className="space-y-1.5">
