@@ -60,6 +60,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { TestimoniesSidebar } from './testimonies-sidebar';
+import { MobileHelpSheet } from '@/components/take-action/mobile-help-sheet';
 import { NewTestimonyButton } from './new-testimony-dialog';
 import { TestimonyFilterTabs } from './testimony-filter-tabs';
 import { FROM_TESTIMONY, TESTIMONY_DRAFTS_HREF } from '@/lib/take-action/routes';
@@ -225,7 +226,15 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
       <div className={cn('mb-6', RISE_IN)}>
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-2xl font-semibold tracking-tight">Your Testimonies</h2>
-          {user && <NewTestimonyButton />}
+          <div className="flex shrink-0 items-center gap-2">
+            <MobileHelpSheet
+              title="How testimony works"
+              description="The official how-to video, the steps to submit, and this session's deadlines."
+            >
+              <TestimoniesSidebar />
+            </MobileHelpSheet>
+            {user && <NewTestimonyButton />}
+          </div>
         </div>
         {items !== null && hasAnything && (
           <p className="mt-1 text-sm text-muted-foreground">
@@ -276,7 +285,7 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
         </div>
 
         <aside
-          className={cn('w-full shrink-0 lg:sticky lg:top-24 lg:w-80', RISE_IN)}
+          className={cn('hidden shrink-0 lg:sticky lg:top-24 lg:block lg:w-80', RISE_IN)}
           style={riseDelay(2)}
           aria-label="Testimony help"
         >

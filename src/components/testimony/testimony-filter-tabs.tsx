@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Check, Layers, PenLine } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
+import { FilterPillCount, filterPillClassName } from '@/components/take-action/filter-pill';
 import { useTestimonies } from '@/hooks/use-testimonies';
 import {
   TESTIMONY_DRAFTS_HREF,
@@ -48,26 +49,11 @@ export function TestimonyFilterTabs({ className }: { className?: string }) {
             key={href}
             href={href}
             aria-current={active ? 'page' : undefined}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background',
-              active
-                ? 'border-primary bg-primary text-white'
-                : 'border-border bg-background text-muted-foreground hover:text-foreground',
-            )}
+            className={filterPillClassName(active)}
           >
             <Icon className="h-3.5 w-3.5" />
             {label}
-            {counts !== null && (
-              <span
-                className={cn(
-                  'rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none',
-                  active ? 'bg-white/20 text-white' : 'bg-secondary text-muted-foreground',
-                )}
-              >
-                {counts[count]}
-              </span>
-            )}
+            {counts !== null && <FilterPillCount active={active} count={counts[count]} />}
           </Link>
         );
       })}

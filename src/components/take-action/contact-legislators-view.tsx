@@ -36,8 +36,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoginLink } from '@/components/auth/login-link';
 import { LogContactDialog } from './log-contact-dialog';
+import { FilterPillCount, filterPillClassName } from './filter-pill';
+import { MobileHelpSheet } from './mobile-help-sheet';
 
 type Opportunity = ContactOpportunity<Bill, LegislatorContact>;
+type ContactFilter = 'toContact' | 'contacted';
 
 /** How many history rows a card shows before "Show all". */
 const HISTORY_PREVIEW = 3;
@@ -51,13 +54,30 @@ export function ContactLegislatorsView() {
   const { user, loading: authLoading } = useAuth();
   const { viewMode } = useBills();
   const { toContact, contacted, earlier, contacts, ready } = useContactOpportunities();
+  // null = not chosen yet: open on "Need to contact", or "Contacted" when there's nothing to do.
+  const [chosenFilter, setChosenFilter] = useState<ContactFilter | null>(null);
+  const filter: ContactFilter = chosenFilter ?? (toContact.length === 0 ? 'contacted' : 'toContact');
 
   if (!authLoading && !user) return <ContactLoginWall />;
+
+  const hasAnything = toContact.length > 0 || contacted.length > 0 || earlier.length > 0;
+  const pills: Array<{ key: ContactFilter; label: string; icon: typeof Check; count: number }> = [
+    { key: 'toContact', label: 'Need to contact', icon: Megaphone, count: toContact.length },
+    { key: 'contacted', label: 'Contacted', icon: Check, count: contacted.length },
+  ];
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
       <div className={cn('mb-6', RISE_IN)}>
-        <h2 className="text-2xl font-semibold tracking-tight">Contact Legislators</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-2xl font-semibold tracking-tight">Contact Legislators</h2>
+          <MobileHelpSheet
+            title="Requests matter"
+            description="How contacting legislators works here."
+          >
+            <ContactSidebar />
+          </MobileHelpSheet>
+        </div>
         {ready && (
           <p className="mt-1 text-sm text-muted-foreground">
             {toContact.length > 0 && (
@@ -74,6 +94,26 @@ export function ContactLegislatorsView() {
             </span>
           </p>
         )}
+        {ready && hasAnything && (
+          <nav aria-label="Filter contacts" className="mt-3 flex flex-wrap gap-1.5">
+            {pills.map(({ key, label, icon: Icon, count }) => {
+              const active = filter === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setChosenFilter(key)}
+                  aria-pressed={active}
+                  className={filterPillClassName(active)}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                  <FilterPillCount active={active} count={count} />
+                </button>
+              );
+            })}
+          </nav>
+        )}
       </div>
 
       <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
@@ -87,7 +127,7 @@ export function ContactLegislatorsView() {
               description={contacts.error}
               action={{ label: 'Try again', onClick: contacts.refetch }}
             />
-          ) : toContact.length === 0 && contacted.length === 0 && earlier.length === 0 ? (
+          ) : !hasAnything ? (
             <EmptyState
               icon={Users}
               title="No one to contact right now"
@@ -96,25 +136,36 @@ export function ContactLegislatorsView() {
             />
           ) : (
             <div className="space-y-8">
-              {toContact.length > 0 && (
-                <section aria-label="To contact">
-                  <SectionHeading icon={Megaphone} label="To contact" count={toContact.length} />
+              {filter === 'toContact' ? (
+                toContact.length > 0 ? (
                   <OpportunityList items={toContact} />
-                </section>
+                ) : (
+                  <EmptyState
+                    icon={Check}
+                    title="You're all caught up"
+                    description="None of your bills need a call or email right now. Check back as they move."
+                  />
+                )
+              ) : (
+                <>
+                  {contacted.length > 0 ? (
+                    <OpportunityList items={contacted} />
+                  ) : (
+                    <EmptyState
+                      icon={Users}
+                      title="No one contacted yet"
+                      description="Bills you mark as contacted show up here, along with who you reached out to."
+                    />
+                  )}
+                  {earlier.length > 0 && <EarlierSection items={earlier} />}
+                </>
               )}
-              {contacted.length > 0 && (
-                <section aria-label="Contacted">
-                  <SectionHeading icon={Check} label="Contacted" count={contacted.length} />
-                  <OpportunityList items={contacted} staggerFrom={toContact.length} />
-                </section>
-              )}
-              {earlier.length > 0 && <EarlierSection items={earlier} />}
             </div>
           )}
         </div>
 
         <aside
-          className={cn('w-full shrink-0 lg:sticky lg:top-24 lg:w-80', RISE_IN)}
+          className={cn('hidden shrink-0 lg:sticky lg:top-24 lg:block lg:w-80', RISE_IN)}
           style={riseDelay(2)}
           aria-label="Contacting legislators help"
         >
@@ -394,18 +445,6 @@ function ContactLoginWall() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function SectionHeading({ icon: Icon, label, count }: { icon: typeof Check; label: string; count: number }) {
-  return (
-    <h3 className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-      <Icon className="h-3.5 w-3.5" />
-      {label}
-      <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground">
-        {count}
-      </span>
-    </h3>
   );
 }
 
