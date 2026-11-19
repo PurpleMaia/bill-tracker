@@ -113,6 +113,26 @@ describe('explainDeadBill', () => {
       expect(e.committeeExplanation).toMatch(/^The House passed it on Final Reading, but the Senate did not\./);
     });
 
+    it('partial history: never claims a chamber did not vote', () => {
+      // A card has only the latest update — here the Senate's passage notice of
+      // the House vote — so it can't tell what the House or Senate did.
+      const e = explainDeadBill(bill, [houseNotice], MOCK_DEADLINES, '2025-06-01', true);
+      expect(e.summary).toBe('This bill passed conference committee but did not pass Final Reading in both chambers before the session ended.');
+      expect(e.committeeExplanation).toBe('Both the House and the Senate must pass the conference draft on Final Reading for it to go to the Governor. Its referrals were HED, CPC, FIN.');
+    });
+
+    it('partial history with a failed vote in view: names that chamber only', () => {
+      const e = explainDeadBill(bill, [senateFailed], MOCK_DEADLINES, '2025-06-01', true);
+      expect(e.summary).toBe('This bill passed conference committee but failed Final Reading in the Senate.');
+      expect(e.committeeExplanation).not.toMatch(/House passed|did not\./);
+    });
+
+    it('partial history where both votes look passed: still explains, never "process concluded"', () => {
+      const e = explainDeadBill(bill, [housePassed], MOCK_DEADLINES, '2025-06-01', true);
+      expect(e.heading).toBe('Why did this bill fail?');
+      expect(e.committeeExplanation).not.toMatch(/process for it has concluded/);
+    });
+
     it('no Final Reading data (e.g. only the latest update): still says it did not finish', () => {
       const e = explainDeadBill(bill, [houseNotice], MOCK_DEADLINES, '2025-06-01');
       expect(e.heading).toBe('Why did this bill fail?');

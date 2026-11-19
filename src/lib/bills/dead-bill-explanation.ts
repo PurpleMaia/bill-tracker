@@ -38,15 +38,31 @@ function chamberList(chambers: ChamberName[]): string {
  * still needs Final Reading in both chambers. Say which chamber stopped it
  * rather than implying the process concluded. Returns null when both chambers
  * passed it (nothing went wrong at Final Reading).
+ *
+ * With partial history (a card that only has the latest update), a chamber
+ * with no vote in view may well have voted, so only a failure actually seen is
+ * named and nothing is claimed about the other chamber.
  */
 function explainFinalReading(
   statusUpdates: StatusUpdate[],
   committeeLabel: string,
+  partialHistory: boolean,
 ): { summary: string; committeeExplanation: string } | null {
   const { passed, failed } = getFinalReadingVotes(statusUpdates);
+  const referrals = `Its referrals were ${committeeLabel}.`;
+  const notBothSummary =
+    'This bill passed conference committee but did not pass Final Reading in both chambers before the session ended.';
+
+  if (partialHistory) {
+    return {
+      summary: failed.length > 0
+        ? `This bill passed conference committee but failed Final Reading in ${chamberList(failed)}.`
+        : notBothSummary,
+      committeeExplanation: `${BOTH_CHAMBERS_RULE} ${referrals}`,
+    };
+  }
   if (passed.length === 2) return null;
 
-  const referrals = `Its referrals were ${committeeLabel}.`;
   const passedClause = passed.length === 1 ? `The ${passed[0]} passed it on Final Reading, but ` : '';
 
   if (failed.length > 0) {
@@ -61,7 +77,7 @@ function explainFinalReading(
 
   const missing: ChamberName[] = (['House', 'Senate'] as const).filter((c) => !passed.includes(c));
   return {
-    summary: 'This bill passed conference committee but did not pass Final Reading in both chambers before the session ended.',
+    summary: notBothSummary,
     committeeExplanation: passed.length === 1
       ? `${passedClause}the ${missing[0]} did not. ${BOTH_CHAMBERS_RULE} ${referrals}`
       : `${BOTH_CHAMBERS_RULE} ${referrals}`,
@@ -83,6 +99,8 @@ export function explainDeadBill(
   statusUpdates: StatusUpdate[],
   deadlines: SessionDeadlines,
   today: string, // YYYY-MM-DD
+  /** True when statusUpdates is only the latest update, not the full history. */
+  partialHistory = false,
 ): DeadBillExplanation {
   const { billNumber, billStatus, committeeAssignment } = bill;
   const committees = committeeAssignment ? parseCommittees(committeeAssignment) : [];
@@ -118,7 +136,7 @@ export function explainDeadBill(
   const committeeLabel = committeeList || 'committee';
 
   const finalReading = billStatus === 'conferencePassed'
-    ? explainFinalReading(statusUpdates, committeeLabel)
+    ? explainFinalReading(statusUpdates, committeeLabel, partialHistory)
     : null;
   if (finalReading) {
     return {
