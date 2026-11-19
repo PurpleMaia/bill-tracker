@@ -50,7 +50,13 @@ export function CopyLinkButton({
       onClick={copy}
       aria-label={label}
       title={copied ? 'Copied' : label}
-      className={cn('h-9 w-9 shrink-0', className)}
+      className={cn(
+        'h-9 w-9 shrink-0',
+        // A light teal tint on hover, not the outline variant's solid fill —
+        // the icon keeps its color, so the check stays visible.
+        variant !== 'default' && 'hover:bg-primary/10 hover:text-foreground',
+        className,
+      )}
     >
       {copied ? <Check className="h-4 w-4 text-olive-dark" /> : <Copy className="h-4 w-4" />}
       {/* The icon swap is silent to screen readers; announce it. */}
