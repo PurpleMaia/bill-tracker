@@ -82,7 +82,7 @@ export function ActiveBoardView() {
           <h2 className="mt-2 text-lg font-semibold">See what other organizations are tracking</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Boards from orgs you follow show up here. They&rsquo;re read-only and separate
-            from your <span className="font-medium text-foreground">Tracker</span>, and you can
+            from your own board under <span className="font-medium text-foreground">Track</span>, and you can
             copy any of their bills onto your own board.
           </p>
           <ol className="mt-4 grid grid-cols-1 gap-2 rounded-lg bg-secondary/50 p-2 text-left sm:grid-cols-3">
