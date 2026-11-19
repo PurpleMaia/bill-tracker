@@ -1,15 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { BillDetails } from '@/types/legislation';
-import type { TestimonyPosition } from '@/types/testimony';
+import type { TestimonyDraft, TestimonyPosition } from '@/types/testimony';
 import { data } from '@/lib/data-client';
 import { safeReturnPath } from '@/lib/core/safe-return-path';
 import { fullNameOrUsername } from '@/lib/auth/profile';
 import { tiptapHasText } from '@/lib/testimony/tiptap-text';
 import { RETURN_TO_PARAM, stripBillParam } from '@/lib/bills/bill-dialog-url';
+import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
+import { coversRound, currentTestimonyRound, opensNewRound, testimonyOpenNow, roundLabel, sameRound } from '@/lib/testimony/testimony-round';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { invalidateTestimonies } from '@/hooks/use-testimonies';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -22,6 +24,7 @@ import { TestimonyHeaderForm, type TestimonyHeaderValue } from '@/components/tes
 import { TestimonyEditor } from '@/components/testimony/testimony-editor';
 import { TestimonyExportStep } from '@/components/testimony/testimony-export-step';
 import { TestimonySubmitGuide } from '@/components/testimony/testimony-submit-guide';
+import { TestimonyRoundSwitcher } from '@/components/testimony/testimony-round-switcher';
 import { FlowWalkthrough } from '@/components/tour/flow-walkthrough';
 import { TESTIMONY_WALKTHROUGH_KEY, testimonyWalkthrough } from '@/lib/tour/flow-walkthroughs';
 import { ArrowLeft, ArrowRight, Loader2, Lock } from 'lucide-react';
@@ -32,6 +35,14 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 const EMPTY_DOC = { type: 'doc', content: [{ type: 'paragraph' }] };
 
+/** The draft's body, or an empty doc when it has none yet. */
+function draftContent(draft: TestimonyDraft): unknown {
+  const hasContent =
+    draft.contentJson && typeof draft.contentJson === 'object' &&
+    Array.isArray((draft.contentJson as { content?: unknown[] }).content);
+  return hasContent ? draft.contentJson : EMPTY_DOC;
+}
+
 /** Whether focus landed somewhere that opens the on-screen keyboard. */
 function isTextEntry(target: EventTarget): boolean {
   return target instanceof HTMLElement && (target.isContentEditable || target.matches('input:not([type="radio"]), textarea'));
@@ -40,7 +51,10 @@ function isTextEntry(target: EventTarget): boolean {
 export default function TestimonyPage() {
   const { id: billId } = useParams<{ id: string }>();
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+  // Which of the user's testimonies for this bill (one per hearing round) to open.
+  const requestedId = searchParams.get('t');
   const { user, activeTenant, loading: authLoading } = useAuth();
   const isMobile = useIsMobile();
 
@@ -60,6 +74,12 @@ export default function TestimonyPage() {
   });
   const [contentJson, setContentJson] = useState<unknown>(EMPTY_DOC);
   const [submitted, setSubmitted] = useState(false);
+  // The user's testimonies for this bill, and which one is open (null until the first save creates it).
+  const [testimonies, setTestimonies] = useState<TestimonyDraft[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [switching, setSwitching] = useState(false);
+  // Bumped when a different testimony is loaded, to remount the editor (not when a first save assigns an id).
+  const [editorKey, setEditorKey] = useState(0);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   // A text field or the editor has focus — on a phone, the keyboard is up.
   const [typing, setTyping] = useState(false);
@@ -69,43 +89,117 @@ export default function TestimonyPage() {
   const formRef = useRef(form);
   const contentRef = useRef(contentJson);
   const dirtyRef = useRef(false); // edits not yet persisted
-  const inFlightRef = useRef(false); // a saveDraft request is running
+  const inFlightRef = useRef(false); // a save request is running
+  const savePromiseRef = useRef<Promise<void> | null>(null); // the running save, for flushSave
+  const activeIdRef = useRef<string | null>(null); // the testimony saves go to
+  const testimoniesRef = useRef<TestimonyDraft[]>([]);
+  testimoniesRef.current = testimonies;
+  const requestedIdRef = useRef(requestedId); // read once on load; switching updates the URL itself
+  const startCurrentRoundRef = useRef(searchParams.get('round') === 'current');
+  const authorDefaultRef = useRef('');
+  authorDefaultRef.current = user ? fullNameOrUsername(user) : '';
 
-  // Load bill + draft together.
+  /** URL of this page with `t` pointing at the given testimony (other params kept). */
+  const hrefFor = useCallback(
+    (testimonyId: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('t', testimonyId);
+      return `${pathname}?${params.toString()}`;
+    },
+    [pathname, searchParams],
+  );
+  const hrefForRef = useRef(hrefFor);
+  hrefForRef.current = hrefFor;
+
+  /** Loads one testimony (or a fresh blank one when null) into the editor state. */
+  const hydrate = useCallback((draft: TestimonyDraft | null) => {
+    const nextForm: TestimonyHeaderValue = draft
+      ? { authorName: draft.authorName, organization: draft.organization, position: draft.position }
+      : { authorName: authorDefaultRef.current, organization: '', position: 'comments' };
+    const nextContent = draft ? draftContent(draft) : EMPTY_DOC;
+    setForm(nextForm);
+    setContentJson(nextContent);
+    setSubmitted(draft?.submittedAt != null);
+    setActiveId(draft?.id ?? null);
+    setStep(1);
+    setEditorKey((k) => k + 1);
+    formRef.current = nextForm;
+    contentRef.current = nextContent;
+    activeIdRef.current = draft?.id ?? null;
+    dirtyRef.current = false;
+  }, []);
+
+  /** Replaces (or adds) a testimony in the local list after a save/create/submit. */
+  const upsertLocal = useCallback((draft: TestimonyDraft) => {
+    setTestimonies((prev) => {
+      const rest = prev.filter((t) => t.id !== draft.id);
+      return [draft, ...rest].sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
+    });
+  }, []);
+
+  // Load the bill and the user's testimonies for it together, then open the
+  // requested one (?t=), else the one for the bill's current hearing round,
+  // else the newest. No testimony yet → a blank one, created on first save.
   useEffect(() => {
     if (!billId || authLoading || !user) return;
     let cancelled = false;
     (async () => {
       try {
-        const [details, draft] = await Promise.all([
+        const [details, fetched] = await Promise.all([
           data.bills.getBillDetails({ billId }),
-          data.testimony.getDraft(billId),
+          data.testimony.listForBill(billId),
         ]);
         if (cancelled) return;
         details.updates = [...(details.updates ?? [])].sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
         );
         setBill(details);
-        if (draft) {
-          const nextForm: TestimonyHeaderValue = {
-            authorName: draft.authorName,
-            organization: draft.organization,
-            position: draft.position,
-          };
-          const hasContent =
-            draft.contentJson && typeof draft.contentJson === 'object' &&
-            Array.isArray((draft.contentJson as { content?: unknown[] }).content);
-          const nextContent = hasContent ? draft.contentJson : EMPTY_DOC;
-          setForm(nextForm);
-          setContentJson(nextContent);
-          setSubmitted(draft.submittedAt !== null);
-          formRef.current = nextForm;
-          contentRef.current = nextContent;
-        } else {
-          const nextForm: TestimonyHeaderValue = { ...formRef.current, authorName: fullNameOrUsername(user) };
-          setForm(nextForm);
-          formRef.current = nextForm;
+        let list = fetched;
+        setTestimonies(list);
+        const round = currentTestimonyRound({
+          billNumber: details.bill_number,
+          billStatus: details.current_bill_status,
+          currentCommittee: details.current_committee ?? null,
+          committeeAssignment: details.committee_assignment,
+          updates: details.updates,
+          dead: details.dead,
+        });
+        let picked =
+          list.find((t) => t.id === requestedIdRef.current) ??
+          list.find((t) => sameRound(t, round)) ??
+          null;
+        // From "Needs testimony" or the New testimony picker (?round=current) on a bill
+        // testified on in an earlier round: start this round's testimony now, copied
+        // from the newest one. (Pre-round testimonies alone count as covering it.)
+        if (
+          !picked &&
+          startCurrentRoundRef.current &&
+          list.length > 0 &&
+          !coversRound(list, round) &&
+          opensNewRound(round) &&
+          testimonyOpenNow({
+            dead: details.dead,
+            billStatus: details.current_bill_status,
+            committeeAssignment: details.committee_assignment,
+            latestStatusText: details.updates[0]?.statustext ?? null,
+            deadlines: SESSION_DEADLINES,
+            now: new Date(),
+          })
+        ) {
+          const created = await data.testimony.create({
+            billId,
+            tenantId: activeTenant?.tenantId ?? null,
+            copyFromId: list[0].id,
+          });
+          if (cancelled) return;
+          list = [created, ...list];
+          setTestimonies(list);
+          invalidateTestimonies();
+          picked = created;
         }
+        picked ??= list[0] ?? null;
+        hydrate(picked);
+        if (picked && picked.id !== requestedIdRef.current) router.replace(hrefForRef.current(picked.id));
         hydrated.current = true;
       } catch {
         if (!cancelled) {
@@ -120,42 +214,61 @@ export default function TestimonyPage() {
     return () => {
       cancelled = true;
     };
-  }, [billId, authLoading, user, router, backHref]);
+    // activeTenant is read once at load (like the rest of the load); later tenant
+    // switches don't reload the writer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [billId, authLoading, user, router, backHref, hydrate]);
 
   // Serialized save: only one saveDraft request runs at a time, so slow responses
   // can never complete out of order and overwrite newer content. Edits that arrive
   // while a request is in flight set dirtyRef and trigger a follow-up save.
   // Reads formRef/contentRef inside the callback so it always sees the latest values,
   // avoiding stale-closure data loss when both halves change within the debounce window.
+  // The target testimony id is read once at the start, so a save can never land
+  // in a different round than the one the edits were made in.
   const performSave = useCallback(async () => {
     if (!billId || inFlightRef.current || !dirtyRef.current) return;
     inFlightRef.current = true;
     dirtyRef.current = false;
     const f = formRef.current;
     const c = contentRef.current;
-    try {
-      await data.testimony.saveDraft({
-        billId,
-        tenantId: activeTenant?.tenantId ?? null,
-        authorName: f.authorName,
-        organization: f.organization,
-        position: f.position,
-        contentJson: c,
-      });
-      inFlightRef.current = false;
-      invalidateTestimonies();
-      if (dirtyRef.current) {
-        void performSaveRef.current();
-      } else {
-        setSaveState('saved');
+    const tenantId = activeTenant?.tenantId ?? null;
+    const run = (async () => {
+      try {
+        let targetId = activeIdRef.current;
+        if (!targetId) {
+          // First save for this bill: start the testimony for its current hearing round.
+          const created = await data.testimony.create({ billId, tenantId, authorName: f.authorName });
+          targetId = created.id;
+          activeIdRef.current = created.id;
+          setActiveId(created.id);
+          router.replace(hrefForRef.current(created.id));
+        }
+        const saved = await data.testimony.update(targetId, {
+          tenantId,
+          authorName: f.authorName,
+          organization: f.organization,
+          position: f.position,
+          contentJson: c,
+        });
+        upsertLocal(saved);
+        inFlightRef.current = false;
+        invalidateTestimonies();
+        if (dirtyRef.current) {
+          void performSaveRef.current();
+        } else {
+          setSaveState('saved');
+        }
+      } catch {
+        inFlightRef.current = false;
+        dirtyRef.current = true;
+        setSaveState('error');
+        toast({ title: 'Save failed', description: 'Your draft could not be saved. Retrying on next edit.', variant: 'destructive' });
       }
-    } catch {
-      inFlightRef.current = false;
-      dirtyRef.current = true;
-      setSaveState('error');
-      toast({ title: 'Save failed', description: 'Your draft could not be saved. Retrying on next edit.', variant: 'destructive' });
-    }
-  }, [billId, activeTenant?.tenantId]);
+    })();
+    savePromiseRef.current = run;
+    await run;
+  }, [billId, activeTenant?.tenantId, upsertLocal, router]);
 
   const performSaveRef = useRef(performSave);
   performSaveRef.current = performSave;
@@ -170,6 +283,71 @@ export default function TestimonyPage() {
       void performSaveRef.current();
     }, 1500);
   }, [billId]);
+
+  /**
+   * Persists pending edits now and waits for every running save (including the
+   * follow-up a save chains for edits made meanwhile). A failed save leaves
+   * dirtyRef set, which callers check before moving on.
+   */
+  const flushSave = useCallback(async () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    while (inFlightRef.current) await savePromiseRef.current;
+    if (!dirtyRef.current) return;
+    await performSaveRef.current();
+    while (inFlightRef.current) await savePromiseRef.current;
+  }, []);
+
+  /** Leaving Write saves right away, so Review/Submit always act on a stored testimony. */
+  const goToStep = useCallback(
+    (next: TestimonyStep) => {
+      setStep(next);
+      void flushSave();
+    },
+    [flushSave],
+  );
+
+  const handleSelectTestimony = useCallback(
+    async (testimonyId: string) => {
+      setSwitching(true);
+      try {
+        await flushSave();
+        if (dirtyRef.current) return; // save failed — stay put rather than drop edits
+        const next = testimoniesRef.current.find((t) => t.id === testimonyId);
+        if (!next) return;
+        hydrate(next);
+        router.replace(hrefFor(testimonyId));
+      } finally {
+        setSwitching(false);
+      }
+    },
+    [flushSave, hydrate, hrefFor, router],
+  );
+
+  // Starts a testimony for the bill's current hearing round, copied from the newest one.
+  const handleCreateTestimony = useCallback(async () => {
+    if (!billId) return;
+    setSwitching(true);
+    try {
+      await flushSave();
+      if (dirtyRef.current) return;
+      const created = await data.testimony.create({
+        billId,
+        tenantId: activeTenant?.tenantId ?? null,
+        copyFromId: testimoniesRef.current[0]?.id ?? null,
+      });
+      upsertLocal(created);
+      // Edits typed while the create was in flight belong to the old testimony — save them first.
+      await flushSave();
+      if (dirtyRef.current) return;
+      hydrate(created);
+      router.replace(hrefFor(created.id));
+      invalidateTestimonies();
+    } catch {
+      toast({ title: 'Error', description: 'Could not start a new testimony.', variant: 'destructive' });
+    } finally {
+      setSwitching(false);
+    }
+  }, [billId, activeTenant?.tenantId, flushSave, upsertLocal, hydrate, hrefFor, router]);
 
   // On unmount (e.g. the Back button), flush any pending edits immediately instead
   // of dropping the debounce — the request keeps running after navigation.
@@ -249,12 +427,47 @@ export default function TestimonyPage() {
   const saveLabel =
     saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : saveState === 'error' ? 'Save failed' : '';
 
+  const currentRound = currentTestimonyRound({
+    billNumber: bill.bill_number,
+    billStatus: bill.current_bill_status,
+    currentCommittee: bill.current_committee ?? null,
+    committeeAssignment: bill.committee_assignment,
+    updates: bill.updates,
+    dead: bill.dead,
+  });
+  // Offer a new testimony only once one exists, none covers the bill's current
+  // committee round, and public testimony is still open (same rule as the bill dialog).
+  const newRoundLabel =
+    activeId &&
+    opensNewRound(currentRound) &&
+    !testimonies.some((t) => sameRound(t, currentRound)) &&
+    testimonyOpenNow({
+      dead: bill.dead,
+      billStatus: bill.current_bill_status,
+      committeeAssignment: bill.committee_assignment,
+      latestStatusText: bill.updates[0]?.statustext ?? null,
+      deadlines: SESSION_DEADLINES,
+      now: new Date(),
+    })
+      ? roundLabel(currentRound)
+      : null;
+  const roundSwitcher = activeId ? (
+    <TestimonyRoundSwitcher
+      testimonies={testimonies}
+      activeId={activeId}
+      newRoundLabel={newRoundLabel}
+      onSelect={(id) => void handleSelectTestimony(id)}
+      onCreate={() => void handleCreateTestimony()}
+      disabled={switching}
+    />
+  ) : null;
+
   const referencePanel = <BillReferencePanel bill={bill} />;
-  const stepper = <TestimonyStepper step={step} onStepChange={setStep} maxStep={hasText ? 3 : 1} />;
+  const stepper = <TestimonyStepper step={step} onStepChange={goToStep} maxStep={hasText ? 3 : 1} />;
   const nextRow = (
     <div className="flex items-center justify-end gap-3">
       {!hasText && <p className="text-xs text-muted-foreground">Write your testimony to continue.</p>}
-      <Button onClick={() => setStep(2)} disabled={!hasText} data-flow-tour="next">
+      <Button onClick={() => goToStep(2)} disabled={!hasText} data-flow-tour="next">
         Next: Review
         <ArrowRight className="ml-1.5 h-4 w-4" />
       </Button>
@@ -270,9 +483,13 @@ export default function TestimonyPage() {
             <ArrowLeft className="h-4 w-4" />
             <span className="ml-1 hidden sm:inline">Back</span>
           </Button>
-          <div className="min-w-0">
-            <h1 className="truncate text-sm font-semibold">Testimony — {bill.bill_number}</h1>
+          <div className="min-w-0" data-flow-tour="versions">
+            <div className="flex min-w-0 items-center gap-2">
+              <h1 className="truncate text-sm font-semibold">Testimony — {bill.bill_number}</h1>
+              {!isMobile && roundSwitcher}
+            </div>
             <p className="truncate text-xs text-muted-foreground">{bill.bill_title}</p>
+            {isMobile && roundSwitcher && <div className="mt-1">{roundSwitcher}</div>}
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -309,7 +526,8 @@ export default function TestimonyPage() {
                   {/* Phones: Next sits above the editor so it isn't buried under the keyboard. */}
                   {isMobile && nextRow}
                   <div data-flow-tour="editor">
-                    <TestimonyEditor initialContent={contentJson} onChange={handleContentChange} />
+                    {/* Remounts when switching rounds so the editor shows that round's body. */}
+                    <TestimonyEditor key={editorKey} initialContent={contentJson} onChange={handleContentChange} />
                   </div>
                   {!isMobile && nextRow}
                 </>
@@ -321,15 +539,21 @@ export default function TestimonyPage() {
                   form={form}
                   contentJson={contentJson}
                   onBack={() => setStep(1)}
-                  onNext={() => setStep(3)}
+                  onNext={() => goToStep(3)}
                 />
               )}
 
               {step === 3 && (
                 <TestimonySubmitGuide
                   bill={bill}
+                  testimonyId={activeId}
                   submitted={submitted}
-                  onMarkSubmitted={() => setSubmitted(true)}
+                  onMarkSubmitted={() => {
+                    setSubmitted(true);
+                    setTestimonies((prev) =>
+                      prev.map((t) => (t.id === activeId ? { ...t, submittedAt: new Date().toISOString() } : t)),
+                    );
+                  }}
                   onBack={() => setStep(2)}
                   doneHref={backHref}
                 />

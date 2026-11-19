@@ -11,6 +11,8 @@ import { ArrowLeft, Check, CheckCircle2, ExternalLink, FileText, Loader2, Square
 
 interface TestimonySubmitGuideProps {
   bill: BillDetails;
+  /** The testimony (hearing round) being marked submitted; null until its first save lands. */
+  testimonyId: string | null;
   /** Whether the user already marked this testimony as submitted. */
   submitted: boolean;
   onMarkSubmitted: () => void;
@@ -44,6 +46,7 @@ const STEPS: Array<{ title: string; body: string }> = [
 
 export function TestimonySubmitGuide({
   bill,
+  testimonyId,
   submitted,
   onMarkSubmitted,
   onBack,
@@ -54,9 +57,10 @@ export function TestimonySubmitGuide({
   const fromTestimonies = doneHref === '/testimonies';
 
   const handleMarkSubmitted = async () => {
+    if (!testimonyId) return;
     setMarking(true);
     try {
-      await data.testimony.markSubmitted(bill.id);
+      await data.testimony.markSubmittedById(testimonyId);
       invalidateTestimonies();
       onMarkSubmitted();
       toast({ title: 'Testimony submitted', description: `Marked your ${bill.bill_number} testimony as submitted.` });
@@ -131,7 +135,7 @@ export function TestimonySubmitGuide({
               Submitted
             </span>
           ) : (
-            <Button size="sm" onClick={handleMarkSubmitted} disabled={marking}>
+            <Button size="sm" onClick={handleMarkSubmitted} disabled={marking || !testimonyId}>
               {marking ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5" />}
               I submitted it on the Capitol site
             </Button>

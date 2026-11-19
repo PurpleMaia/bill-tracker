@@ -1,3 +1,5 @@
+import type { TestimonyChamber } from '@/lib/testimony/testimony-round';
+
 /**
  * A testimony position. Mirrors the `testimonies.position` CHECK constraint
  * (`support | oppose | comments`). Defined here — not imported from generated
@@ -7,8 +9,18 @@
  */
 export type TestimonyPosition = 'support' | 'oppose' | 'comments';
 
-/** A user's saved testimony draft for one bill (already unwrapped for the client). */
-export interface TestimonyDraft {
+/** Which hearing round a testimony is for (null on testimonies written before rounds existed). */
+export interface TestimonyRoundFields {
+  chamber: TestimonyChamber | null;
+  /** Committee step ("AGR", "AGL/WTL"); null for conference or unknown. */
+  committee: string | null;
+  /** Display label: "House · AGR", "Conference", "Earlier testimony". */
+  label: string;
+}
+
+/** One of a user's testimonies for a bill — one per hearing round (already unwrapped for the client). */
+export interface TestimonyDraft extends TestimonyRoundFields {
+  id: string;
   billId: string;
   authorName: string;
   organization: string;
@@ -49,7 +61,9 @@ export interface TestimonyProspect {
  * context to render state, deadlines, and links (already unwrapped for the
  * client).
  */
-export interface TestimonyListItem {
+export interface TestimonyListItem extends TestimonyRoundFields {
+  /** The testimony's id — a bill can have several, one per hearing round. */
+  id: string;
   billId: string;
   billNumber: string;
   billTitle: string | null;
@@ -69,6 +83,13 @@ export interface TestimonyListItem {
   submittedAt: string | null;
   /** Most recent scraped status update, for hearing-datetime parsing. */
   latestStatusText: string | null;
+  /**
+   * This testimony is for the bill's current hearing round, so the latest
+   * hearing notice (countdown, urgency) applies to it. False for earlier rounds.
+   */
+  isCurrentRound: boolean;
+  /** Label of the bill's current hearing round ("Senate · AGL"). */
+  currentRoundLabel: string;
 }
 
 /** Payload for saving a draft. */
@@ -80,4 +101,32 @@ export interface TestimonyDraftInput {
   organization: string;
   position: TestimonyPosition;
   contentJson: unknown;
+}
+
+/** Payload for saving an existing testimony by id (the bill is fixed by the row). */
+export type TestimonyUpdateInput = Omit<TestimonyDraftInput, 'billId'>;
+
+/** Payload for starting a testimony for a bill's current hearing round. */
+export interface TestimonyCreateInput {
+  billId: string;
+  tenantId?: string | null;
+  /** Copy header + body from this testimony (the caller's own) instead of starting blank. */
+  copyFromId?: string | null;
+  /** Prefill for the author field when starting blank. */
+  authorName?: string;
+}
+
+/** A followed bill offered in the "New testimony" picker on Your Testimonies. */
+export interface TestimonyBillOption {
+  billId: string;
+  billNumber: string;
+  billTitle: string | null;
+  nickname: string | null;
+  billStatus: string;
+  /** Label of the bill's current hearing round ("Senate · AGL"). */
+  roundLabel: string;
+  /** A hearing is scheduled and its submission window hasn't closed — testimony can be submitted now. */
+  scheduled: boolean;
+  /** The user already has a testimony covering the current round (picking it opens that one). */
+  written: boolean;
 }

@@ -24,8 +24,9 @@ import { useTestimonies } from '@/hooks/use-testimonies';
 import { toast } from '@/hooks/use-toast';
 import { tiptapPlainText } from '@/lib/testimony/tiptap-text';
 import { getTestimonyEligibility } from '@/lib/testimony/testimony-eligibility';
-import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
+import { HAWAII_TIME_ZONE, getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import { getNextDeadline } from '@/lib/bills/dead-bill';
+import { groupByBill } from '@/lib/testimony/testimony-round';
 import type { DeadlineEntry } from '@/lib/bills/dead-bill';
 import type { BillStatus } from '@/db/types';
 import type { TestimonyListItem, TestimonyPosition, TestimonyProspect } from '@/types/testimony';
@@ -59,6 +60,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { TestimoniesSidebar } from './testimonies-sidebar';
+import { NewTestimonyButton } from './new-testimony-dialog';
 
 export type TestimoniesFilter = 'all' | 'drafts' | 'submitted';
 
@@ -89,7 +91,12 @@ function decorate(item: TestimonyListItem, now: Date): DecoratedTestimony {
   let closed = false;
   let closedNote: string | null = null;
 
-  if (isDraft) {
+  if (isDraft && !item.isCurrentRound) {
+    // An earlier round's draft: the bill's latest hearing notice belongs to a
+    // later round, so its countdown/urgency must not show on this testimony.
+    closed = true;
+    closedNote = item.dead ? null : `That hearing has passed — the bill is now at ${item.currentRoundLabel}`;
+  } else if (isDraft) {
     const eligibility = getTestimonyEligibility({
       dead: item.dead,
       billStatus: item.billStatus as BillStatus,
@@ -195,6 +202,18 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
     };
   }, [items, prospects, now]);
 
+  // The All view keeps a bill's hearing rounds on one card: a bill with any
+  // draft round sits under Drafts with its submitted rounds alongside. The
+  // Drafts / Submitted filters show only their own kind.
+  const { listDrafts, listSubmitted } = useMemo(() => {
+    if (filter !== 'all') return { listDrafts: drafts, listSubmitted: submitted };
+    const draftBills = new Set(drafts.map((d) => d.item.billId));
+    return {
+      listDrafts: [...drafts, ...submitted.filter((d) => draftBills.has(d.item.billId))],
+      listSubmitted: submitted.filter((d) => !draftBills.has(d.item.billId)),
+    };
+  }, [filter, drafts, submitted]);
+
   const dueSoonCount = drafts.filter((d) => d.urgent).length;
   const hasAnything = (items?.length ?? 0) > 0 || needed.length > 0;
 
@@ -202,7 +221,10 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
     <div className="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
       {/* Page heading + summary */}
       <div className={cn('mb-6', RISE_IN)}>
-        <h2 className="text-2xl font-semibold tracking-tight">Your Testimonies</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-2xl font-semibold tracking-tight">Your Testimonies</h2>
+          {user && <NewTestimonyButton />}
+        </div>
         {items !== null && hasAnything && (
           <p className="mt-1 text-sm text-muted-foreground">
             {needed.length > 0 && (
@@ -242,8 +264,8 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
               <FilteredList
                 filter={filter}
                 needed={needed}
-                drafts={drafts}
-                submitted={submitted}
+                drafts={listDrafts}
+                submitted={listSubmitted}
                 onDeleted={removeItem}
               />
             </TooltipProvider>
@@ -273,7 +295,7 @@ function FilteredList({
   needed: DecoratedProspect[];
   drafts: DecoratedTestimony[];
   submitted: DecoratedTestimony[];
-  onDeleted: (billId: string) => void;
+  onDeleted: (testimonyId: string) => void;
 }) {
   const neededSection = needed.length > 0 && (
     <section aria-label="Needs testimony">
@@ -304,7 +326,7 @@ function FilteredList({
         {neededSection}
         {drafts.length > 0 && (
           <section aria-label="Drafts">
-            <SectionHeading icon={PenLine} label="Drafts" count={drafts.length} />
+            <SectionHeading icon={PenLine} label="Drafts" count={billCount(drafts)} />
             <TestimonyCardList entries={drafts} onDeleted={onDeleted} staggerFrom={needed.length} />
           </section>
         )}
@@ -341,17 +363,17 @@ function FilteredList({
       {neededSection}
       {drafts.length > 0 && (
         <section aria-label="Drafts">
-          <SectionHeading icon={PenLine} label="Drafts" count={drafts.length} />
+          <SectionHeading icon={PenLine} label="Drafts" count={billCount(drafts)} />
           <TestimonyCardList entries={drafts} onDeleted={onDeleted} staggerFrom={needed.length} />
         </section>
       )}
       {submitted.length > 0 && (
         <section aria-label="Submitted">
-          <SectionHeading icon={Check} label="Submitted" count={submitted.length} />
+          <SectionHeading icon={Check} label="Submitted" count={billCount(submitted)} />
           <TestimonyCardList
             entries={submitted}
             onDeleted={onDeleted}
-            staggerFrom={needed.length + drafts.length}
+            staggerFrom={needed.length + billCount(drafts)}
           />
         </section>
       )}
@@ -379,22 +401,29 @@ function SectionHeading({
   );
 }
 
+/** Cards in a section — one per bill, however many hearing rounds it has. */
+function billCount(entries: DecoratedTestimony[]): number {
+  return new Set(entries.map((entry) => entry.item.billId)).size;
+}
+
 function TestimonyCardList({
   entries,
   onDeleted,
   staggerFrom = 0,
 }: {
   entries: DecoratedTestimony[];
-  onDeleted: (billId: string) => void;
+  onDeleted: (testimonyId: string) => void;
   /** Cards in the sections above, so the cascade runs top to bottom across
    *  sections instead of every section starting at once. */
   staggerFrom?: number;
 }) {
+  // One card per bill; a bill with several hearing-round testimonies gets round pills.
+  const groups = groupByBill(entries.map((entry) => ({ billId: entry.item.billId, entry })));
   return (
     <ul className="space-y-3">
-      {entries.map((entry, i) => (
-        <li key={entry.item.billId} className={RISE_IN} style={riseDelay(staggerFrom + i)}>
-          <TestimonyCard entry={entry} onDeleted={onDeleted} />
+      {groups.map((group, i) => (
+        <li key={group.billId} className={RISE_IN} style={riseDelay(staggerFrom + i)}>
+          <TestimonyCard entries={group.items.map((g) => g.entry)} onDeleted={onDeleted} />
         </li>
       ))}
     </ul>
@@ -499,7 +528,7 @@ function ProspectCard({ prospect }: { prospect: DecoratedProspect }) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
             <Link
-              href={`/bills/${item.billId}/testimony?from=testimonies`}
+              href={`/bills/${item.billId}/testimony?from=testimonies&round=current`}
               onClick={(e) => {
                 if (!isModifiedClick(e)) setNavigating(true);
               }}
@@ -545,12 +574,16 @@ function ProspectCard({ prospect }: { prospect: DecoratedProspect }) {
 }
 
 function TestimonyCard({
-  entry,
+  entries,
   onDeleted,
 }: {
-  entry: DecoratedTestimony;
-  onDeleted: (billId: string) => void;
+  /** This bill's testimonies in this section — one per hearing round. */
+  entries: DecoratedTestimony[];
+  onDeleted: (testimonyId: string) => void;
 }) {
+  const [selectedId, setSelectedId] = useState(entries[0].item.id);
+  // Falls back to the first round when the selected one is deleted or filtered out.
+  const entry = entries.find((e) => e.item.id === selectedId) ?? entries[0];
   const { item, isDraft, hearingAt, countdown, urgent, nextDeadline, closed, closedNote } = entry;
   const billLabel = item.nickname || item.billTitle || '';
   const [navigating, setNavigating] = useState(false);
@@ -575,7 +608,7 @@ function TestimonyCard({
             <div className="flex flex-wrap items-center gap-1.5">
               {/* Stretched link — the whole card navigates to the testimony writer */}
               <Link
-                href={`/bills/${item.billId}/testimony?from=testimonies`}
+                href={`/bills/${item.billId}/testimony?from=testimonies&t=${item.id}`}
                 onClick={(e) => {
                   if (!isModifiedClick(e)) setNavigating(true);
                 }}
@@ -610,6 +643,10 @@ function TestimonyCard({
           </div>
           <PositionBadge position={item.position} />
         </div>
+
+        {entries.length > 1 && (
+          <RoundPills entries={entries} selectedId={entry.item.id} onSelect={setSelectedId} />
+        )}
 
         {/* Testimony excerpt */}
         {item.excerpt ? (
@@ -672,8 +709,47 @@ function TestimonyCard({
 
       {/* Card actions menu — layered above the stretched link */}
       <div className="relative z-10 flex items-start p-2">
-        <TestimonyCardMenu item={item} isDraft={isDraft} onDeleted={onDeleted} />
+        <TestimonyCardMenu item={item} isDraft={isDraft} showRound={entries.length > 1} onDeleted={onDeleted} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Switches a card between a bill's hearing-round testimonies. Layered above the
+ * card's stretched link so a pill click selects instead of navigating.
+ */
+function RoundPills({
+  entries,
+  selectedId,
+  onSelect,
+}: {
+  entries: DecoratedTestimony[];
+  selectedId: string;
+  onSelect: (testimonyId: string) => void;
+}) {
+  return (
+    <div className="relative z-10 flex flex-wrap gap-1.5" role="group" aria-label="Hearing round">
+      {entries.map(({ item, isDraft }) => {
+        const selected = item.id === selectedId;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => onSelect(item.id)}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
+              selected
+                ? 'border-primary/40 bg-primary/10 text-foreground ring-1 ring-primary/30'
+                : 'border-border bg-background text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {isDraft ? <PenLine className="h-3 w-3" /> : <Check className="h-3 w-3 text-green-700" />}
+            {item.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -681,25 +757,29 @@ function TestimonyCard({
 function TestimonyCardMenu({
   item,
   isDraft,
+  showRound,
   onDeleted,
 }: {
   item: TestimonyListItem;
   isDraft: boolean;
-  onDeleted: (billId: string) => void;
+  /** The bill has several testimonies — name the round in messages. */
+  showRound: boolean;
+  onDeleted: (testimonyId: string) => void;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const which = showRound ? `${item.billNumber} (${item.label})` : item.billNumber;
   const [deleting, setDeleting] = useState(false);
 
   const handleCopy = async () => {
     try {
-      const draft = await data.testimony.getDraft(item.billId);
+      const draft = await data.testimony.getById(item.id);
       const text = tiptapPlainText(draft?.contentJson);
       if (!text) {
         toast({ title: 'Nothing to copy', description: 'This testimony has no text yet.' });
         return;
       }
       await navigator.clipboard.writeText(text);
-      toast({ title: 'Copied', description: `Testimony for ${item.billNumber} copied to clipboard.` });
+      toast({ title: 'Copied', description: `Testimony for ${which} copied to clipboard.` });
     } catch {
       toast({ title: 'Copy failed', description: 'Could not copy the testimony text.', variant: 'destructive' });
     }
@@ -708,13 +788,13 @@ function TestimonyCardMenu({
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      await data.testimony.remove(item.billId);
-      onDeleted(item.billId);
+      await data.testimony.removeById(item.id);
+      onDeleted(item.id);
       toast({
         title: isDraft ? 'Draft deleted' : 'Testimony removed',
         description: isDraft
-          ? `Your ${item.billNumber} testimony draft was deleted.`
-          : `Your ${item.billNumber} testimony record was removed.`,
+          ? `Your ${which} testimony draft was deleted.`
+          : `Your ${which} testimony record was removed.`,
       });
       setConfirmOpen(false);
     } catch {
@@ -767,8 +847,8 @@ function TestimonyCardMenu({
             </AlertDialogTitle>
             <AlertDialogDescription>
               {isDraft
-                ? `Your testimony draft for ${item.billNumber} will be permanently deleted. This cannot be undone.`
-                : `Your ${item.billNumber} testimony record will be removed from the Hawaiʻi Bill Tracker. This does not withdraw testimony already submitted on the Capitol website, and it cannot be undone.`}
+                ? `Your testimony draft for ${which} will be permanently deleted. This cannot be undone.`
+                : `Your ${which} testimony record will be removed from the Hawaiʻi Bill Tracker. This does not withdraw testimony already submitted on the Capitol website, and it cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -933,5 +1013,6 @@ function formatHearing(hearingAt: Date): string {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: HAWAII_TIME_ZONE,
   });
 }

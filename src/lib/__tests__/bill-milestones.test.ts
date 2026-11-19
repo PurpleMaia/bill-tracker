@@ -103,12 +103,12 @@ describe('extractMilestones', () => {
 
 describe('formatClockTime', () => {
   it('uses a 12-hour clock with AM/PM', () => {
-    expect(formatClockTime(new Date(2026, 0, 15, 9, 0))).toBe('9:00 AM');
-    expect(formatClockTime(new Date(2026, 0, 15, 15, 5))).toBe('3:05 PM');
+    expect(formatClockTime(new Date('2026-01-15T09:00:00-10:00'))).toBe('9:00 AM');
+    expect(formatClockTime(new Date('2026-01-15T15:05:00-10:00'))).toBe('3:05 PM');
   });
   it('handles noon and midnight', () => {
-    expect(formatClockTime(new Date(2026, 0, 15, 12, 30))).toBe('12:30 PM');
-    expect(formatClockTime(new Date(2026, 0, 15, 0, 15))).toBe('12:15 AM');
+    expect(formatClockTime(new Date('2026-01-15T12:30:00-10:00'))).toBe('12:30 PM');
+    expect(formatClockTime(new Date('2026-01-15T00:15:00-10:00'))).toBe('12:15 AM');
   });
 });
 

@@ -26,7 +26,7 @@ import { Button } from '@/components/ui/button';
 import { CardTagSelector } from '../tags/card-tag-selector';
 import { getNextDeadline, getDeadlineTier, formatDeadlineStanding } from '@/lib/bills/dead-bill';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
-import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
+import { HAWAII_TIME_ZONE, getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import { hasCommitteeRecommendation } from '@/lib/testimony/testimony-eligibility';
 import { DeadBillInfoPopover } from './dead-bill-info-popover';
 import type { BillStatus as DBBillStatus } from '@/db/types';
@@ -271,10 +271,10 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
       isAwaitingHearing(bill.current_bill_status);
     const deadlineTier = deadlineDaysAway !== null ? getDeadlineTier(deadlineDaysAway) : null;
     const testimonyChipTitle = hearingAt
-      ? `Hearing ${hearingAt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} — submit testimony at least 24 hours before the hearing`
+      ? `Hearing ${hearingAt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: HAWAII_TIME_ZONE })} — submit testimony at least 24 hours before the hearing`
       : 'Hearing scheduled — submit testimony at least 24 hours before the hearing';
     const testimonyClosedTitle = hearingAt
-      ? `Hearing was held ${hearingAt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} — the testimony submission window has closed`
+      ? `Hearing was held ${hearingAt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: HAWAII_TIME_ZONE })} — the testimony submission window has closed`
       : 'The testimony submission window has closed';
 
     return (

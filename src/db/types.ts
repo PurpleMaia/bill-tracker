@@ -261,6 +261,8 @@ export interface Tenants {
 export interface Testimonies {
   author_name: Generated<string>;
   bill_id: string;
+  chamber: string | null;
+  committee: string | null;
   content_json: Generated<Json>;
   created_at: Generated<Timestamp>;
   id: Generated<string>;
