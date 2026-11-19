@@ -120,7 +120,7 @@ export function PendingInvitesSection() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-1">Pending Invites</h1>
+      <h2 className="text-2xl font-bold mb-1">Pending Invites</h2>
       <h2 className="text-sm mb-6 text-muted-foreground">Manage organization invitations</h2>
 
       {invites.length === 0 ? (

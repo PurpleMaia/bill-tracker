@@ -105,7 +105,7 @@ function AccountsTab(
           
           {/* Pending Account Requests */}
           <div>
-            <h1 className="text-2xl font-bold mb-1">Pending Account Requests</h1>
+            <h2 className="text-2xl font-bold mb-1">Pending Account Requests</h2>
             <h2 className="text-sm mb-6 text-muted-foreground">Review and manage user account requests</h2>
             <div className="space-y-4">
               {pendingUsers.length === 0 ? (
@@ -295,7 +295,7 @@ function AllAccountsSection({ allAccounts }: { allAccounts: PendingUser[] }) {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-1">All Accounts</h1>
+      <h2 className="text-2xl font-bold mb-1">All Accounts</h2>
       <h2 className="text-sm mb-6 text-muted-foreground">Manage user roles and archive accounts</h2>
 
       {/* Filter Controls */}
@@ -517,7 +517,7 @@ function AllInternsTab(
     <TabsContent value="all-interns" className="mx-4 sm:mx-8 space-y-8 mt-6">
           {/* All Interns */}
           <div>
-            <h1 className="text-2xl font-bold mb-1 ">All Users</h1>
+            <h2 className="text-2xl font-bold mb-1 ">All Users</h2>
             <h2 className="text-sm mb-6 text-muted-foreground">View all user accounts</h2>
               <div className="space-y-4">
                 {interns.length === 0 ? (
@@ -736,7 +736,7 @@ function AllSupervisorsTab(
   return (
     <TabsContent value="all-supervisors" className="mx-4 sm:mx-8 space-y-8 mt-6">
       <div>
-        <h1 className="text-2xl font-bold mb-1 ">All Supervisors</h1>
+        <h2 className="text-2xl font-bold mb-1 ">All Supervisors</h2>
         <h2 className="text-sm mb-6 text-muted-foreground">View all supervisor accounts and their users</h2>
 
         <div className='bg-white rounded-lg shadow-sm border'>
@@ -875,7 +875,7 @@ function AllInternBillsTab(
       <div>
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold mb-1">All Tracked Bills</h1>
+            <h2 className="text-2xl font-bold mb-1">All Tracked Bills</h2>
             <h2 className="text-sm text-muted-foreground">View all bills tracked by users</h2>
           </div>
           <AssignMultipleBillsDialog

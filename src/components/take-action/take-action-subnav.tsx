@@ -72,7 +72,7 @@ export function TakeActionSubNav({
               <span
                 title={countLabel(count)}
                 className={cn(
-                  'rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none',
+                  'rounded-full px-1.5 py-0.5 text-xs font-semibold leading-none',
                   compact ? 'ml-1' : 'ml-1.5',
                   active ? 'bg-white/20 text-white' : 'bg-background text-muted-foreground',
                 )}

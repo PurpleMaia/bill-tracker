@@ -18,6 +18,7 @@ import { invalidateTestimonies } from '@/hooks/use-testimonies';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { ClampText } from '@/components/ui/clamp-text';
 import { TestimonyStepper, type TestimonyStep } from '@/components/testimony/testimony-stepper';
 import { BillReferencePanel } from '@/components/bills/bill-reference-panel';
 import { BillInfoFab } from '@/components/bills/bill-info-fab';
@@ -480,7 +481,7 @@ export default function TestimonyPage() {
       {/* Top bar */}
       <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
-          <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => router.push(backHref)}>
+          <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => router.push(backHref)} aria-label="Back">
             <ArrowLeft className="h-4 w-4" />
             <span className="ml-1 hidden sm:inline">Back</span>
           </Button>
@@ -489,7 +490,7 @@ export default function TestimonyPage() {
               <h1 className="truncate text-sm font-semibold">Testimony — {bill.bill_number}</h1>
               {!isMobile && roundSwitcher}
             </div>
-            <p className="truncate text-xs text-muted-foreground">{bill.bill_title}</p>
+            <ClampText lines={1} className="text-xs text-muted-foreground">{bill.bill_title}</ClampText>
             {isMobile && roundSwitcher && <div className="mt-1">{roundSwitcher}</div>}
           </div>
         </div>

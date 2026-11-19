@@ -22,13 +22,28 @@ export default function YourBills() {
     );
   }
 
-  if (!user) return <LoginWall />;
+  // The header brand is not a heading, so the page names itself (sr-only:
+  // the board and dashboards already make the context visually obvious).
+  const title = !user
+    ? 'Your Bills'
+    : view === 'admin'
+      ? 'Admin dashboard'
+      : view === 'supervisor'
+        ? 'Supervisor dashboard'
+        : 'Your Bills';
 
-  return view === 'admin' ? (
-    <AdminDashboard />
-  ) : view === 'supervisor' ? (
-    <SupervisorDashboard />
-  ) : (
-    <ProtectedKanbanBoardOrSpreadsheet />
+  return (
+    <>
+      <h1 className="sr-only">{title}</h1>
+      {!user ? (
+        <LoginWall />
+      ) : view === 'admin' ? (
+        <AdminDashboard />
+      ) : view === 'supervisor' ? (
+        <SupervisorDashboard />
+      ) : (
+        <ProtectedKanbanBoardOrSpreadsheet />
+      )}
+    </>
   );
 }

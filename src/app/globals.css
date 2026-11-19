@@ -25,12 +25,12 @@ body {
     --secondary-foreground: 170 11% 19%; /* Dark text */
 
     --muted: 34 33% 97%; /* Cream (matches background) */
-    --muted-foreground: 210 7% 46%; /* Muted gray #6C757D */
+    --muted-foreground: 210 8% 40%; /* Muted gray #5E666E — 5.5:1 on cream (WCAG AA) */
 
     --accent: 181 50% 24%; /* Deep teal (matches primary) */
     --accent-foreground: 0 0% 100%; /* White */
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 72% 45%; /* #C52020 — 5.8:1 on white, readable as text (WCAG AA) */
     --destructive-foreground: 0 0% 98%;
 
     --border: 30 19% 87%; /* Warm border #E5E0D8 */
@@ -47,7 +47,7 @@ body {
 
     /* Food+ brand accent tokens */
     --olive: 69 34% 54%; /* #A8B660 */
-    --olive-dark: 75 33% 45%; /* #8A9A4D */
+    --olive-dark: 75 40% 30%; /* #5C6B2E — 5.8:1 on white, readable as text (WCAG AA) */
     --olive-soft: 72 38% 91%; /* #EAEED4 */
     --teal-light: 181 46% 33%; /* #2C7A7C */
     --coral: 0 40% 62%; /* #C97474 */

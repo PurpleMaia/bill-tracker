@@ -112,7 +112,7 @@ export function VersionDiffAccordion({ comparison, billId, olderId, newerId }: V
   return (
     <div className="space-y-2.5">
       <div className="rounded-md border bg-muted/40 p-2.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Summary of changes
         </span>
         <p className="mt-1 text-[12.5px] text-foreground/80">
@@ -123,16 +123,16 @@ export function VersionDiffAccordion({ comparison, billId, olderId, newerId }: V
           <div className="mt-2 flex flex-col gap-1">
             <Button
               variant="ghost"
-              size="sm"
+              size="xs"
               onClick={summarizeDiff}
               disabled={aiState.status === 'loading'}
-              className="h-7 gap-1 self-start px-1.5 text-xs text-olive-dark hover:bg-transparent hover:text-olive-dark/80 focus-visible:bg-transparent"
+              className="gap-1 self-start px-1.5 text-olive-dark hover:bg-transparent hover:text-olive-dark/80 focus-visible:bg-transparent"
             >
               {aiState.status === 'loading' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
               {aiState.status === 'loading' ? 'Summarizing…' : 'Summarize changes'}
             </Button>
             {aiState.status === 'error' && (
-              <span className="px-1.5 text-[11px] text-destructive">{aiState.message}</span>
+              <span className="px-1.5 text-xs text-destructive">{aiState.message}</span>
             )}
           </div>
         )}
@@ -146,7 +146,7 @@ export function VersionDiffAccordion({ comparison, billId, olderId, newerId }: V
       </div>
 
       {comparison.parseIncomplete && (
-        <p className="flex items-start gap-1.5 px-0.5 text-[11.5px] text-muted-foreground">
+        <p className="flex items-start gap-1.5 px-0.5 text-xs text-muted-foreground">
           <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           <span>Some sections couldn&apos;t be parsed and aren&apos;t shown below.</span>
         </p>
@@ -162,14 +162,14 @@ export function VersionDiffAccordion({ comparison, billId, olderId, newerId }: V
                 <AccordionTrigger className="min-h-11 px-3 py-2 text-left hover:no-underline">
                   <span className="flex flex-1 flex-wrap items-center gap-2 pr-2">
                     <span className="text-[13px] font-semibold">SECTION {section.sectionNumber}</span>
-                    <Badge variant={badge.variant} className="h-4 px-1.5 text-[10px]">{badge.label}</Badge>
+                    <Badge variant={badge.variant} className="h-4 px-1.5 text-xs">{badge.label}</Badge>
                     {section.changeCount > 0 && (
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {section.changeCount} {section.changeCount === 1 ? 'change' : 'changes'}
                       </span>
                     )}
                     {section.presence !== 'both' && (
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {section.presence === 'newerOnly'
                           ? `only in ${comparison.newerLabel}`
                           : `only in ${comparison.olderLabel}`}
@@ -193,7 +193,7 @@ export function VersionDiffAccordion({ comparison, billId, olderId, newerId }: V
       )}
 
       {unchanged.length > 0 && (
-        <p className="px-0.5 text-[11.5px] text-muted-foreground">
+        <p className="px-0.5 text-xs text-muted-foreground">
           {unchanged.length} unchanged {unchanged.length === 1 ? 'section' : 'sections'} not shown
           {' ('}
           {unchanged.map((s) => s.sectionNumber).join(', ')}

@@ -65,6 +65,7 @@ import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
 import { NewTestimonyButton } from './new-testimony-dialog';
 import { TestimonyFilterTabs } from './testimony-filter-tabs';
 import { FROM_TESTIMONY, TESTIMONY_DRAFTS_HREF } from '@/lib/take-action/routes';
+import { NewTabHint } from '@/components/ui/new-tab-hint';
 
 export type TestimoniesFilter = 'all' | 'drafts' | 'submitted';
 
@@ -226,7 +227,7 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
       {/* Page heading + summary */}
       <div className={cn('mb-6', RISE_IN)}>
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-2xl font-semibold tracking-tight">Your Testimonies</h2>
+          <h1 className="text-2xl font-semibold tracking-tight">Your Testimonies</h1>
           <div className="flex shrink-0 items-center gap-2">
             <MobileHelpSheet
               title="How testimony works"
@@ -240,7 +241,7 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
         {items !== null && hasAnything && (
           <p className="mt-1 text-sm text-muted-foreground">
             {needed.length > 0 && (
-              <span className="font-medium text-amber-600">
+              <span className="font-medium text-ochre">
                 {needed.length} bill{needed.length === 1 ? ' needs' : 's need'} testimony ·{' '}
               </span>
             )}
@@ -409,7 +410,7 @@ function SectionHeading({
     <h3 className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
       <Icon className="h-3.5 w-3.5" />
       {label}
-      <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground">
+      <span className="rounded-full bg-secondary px-1.5 py-0.5 text-xs font-medium text-secondary-foreground">
         {count}
       </span>
     </h3>
@@ -485,7 +486,7 @@ function HearingCountdown({
         <TooltipTrigger asChild>
           <span
             className={cn(
-              'inline-flex cursor-default items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium',
+              'inline-flex cursor-default items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium',
               urgent
                 ? 'border-red-200 bg-red-50 text-red-700'
                 : 'border-amber-200 bg-amber-50 text-amber-700',
@@ -499,7 +500,7 @@ function HearingCountdown({
           Testimony must be submitted at least 24 hours before the hearing.
         </TooltipContent>
       </Tooltip>
-      <span className="text-[11px] text-muted-foreground">Hearing {formatHearing(hearingAt)}</span>
+      <span className="text-xs text-muted-foreground">Hearing {formatHearing(hearingAt)}</span>
     </>
   );
 }
@@ -553,7 +554,7 @@ function ProspectCard({ prospect }: { prospect: DecoratedProspect }) {
               <span className="sr-only"> — start testimony</span>
             </Link>
             {item.year && (
-              <Badge variant="secondary" className="h-4 rounded-md px-1 text-[10px] text-muted-foreground">
+              <Badge variant="secondary" className="h-4 rounded-md px-1 text-xs text-muted-foreground">
                 {item.year}
               </Badge>
             )}
@@ -562,7 +563,7 @@ function ProspectCard({ prospect }: { prospect: DecoratedProspect }) {
             </span>
           </div>
           {billLabel && (
-            <p className="mt-0.5 truncate text-sm text-muted-foreground">{billLabel}</p>
+            <p className="mt-0.5 line-clamp-2 sm:line-clamp-1 text-sm text-muted-foreground">{billLabel}</p>
           )}
         </div>
 
@@ -576,7 +577,7 @@ function ProspectCard({ prospect }: { prospect: DecoratedProspect }) {
           {countdown && hearingAt ? (
             <HearingCountdown hearingAt={hearingAt} countdown={countdown} urgent={urgent} />
           ) : (
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Hearing scheduled — time not posted yet
             </span>
           )}
@@ -639,12 +640,12 @@ function TestimonyCard({
                 </span>
               </Link>
               {item.year && (
-                <Badge variant="secondary" className="h-4 rounded-md px-1 text-[10px] text-muted-foreground">
+                <Badge variant="secondary" className="h-4 rounded-md px-1 text-xs text-muted-foreground">
                   {item.year}
                 </Badge>
               )}
               {item.dead && (
-                <Badge variant="destructive" className="h-4 rounded-full px-1.5 text-[10px] text-white">
+                <Badge variant="destructive" className="h-4 rounded-full px-1.5 text-xs text-white">
                   Failed
                 </Badge>
               )}
@@ -653,7 +654,7 @@ function TestimonyCard({
               </span>
             </div>
             {billLabel && (
-              <p className="mt-0.5 truncate text-sm text-muted-foreground">{billLabel}</p>
+              <p className="mt-0.5 line-clamp-2 sm:line-clamp-1 text-sm text-muted-foreground">{billLabel}</p>
             )}
           </div>
           <PositionBadge position={item.position} />
@@ -675,7 +676,7 @@ function TestimonyCard({
           {!isDraft && <SubmittedChip submittedAt={item.submittedAt} />}
 
           {closed && closedNote && (
-            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <XCircle className="h-3 w-3" />
               {closedNote}
             </span>
@@ -688,7 +689,7 @@ function TestimonyCard({
           {!countdown && nextDeadline && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="inline-flex cursor-default items-center gap-1 text-[11px] text-muted-foreground underline decoration-dotted underline-offset-2">
+                <span className="inline-flex cursor-default items-center gap-1 text-xs text-muted-foreground underline decoration-dotted underline-offset-2">
                   <CalendarClock className="h-3 w-3" />
                   Next deadline: {nextDeadline.name} · {formatDate(nextDeadline.date + 'T00:00:00')}
                 </span>
@@ -702,7 +703,7 @@ function TestimonyCard({
           )}
 
           {isDraft && item.updatedAt && (
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Edited {formatDate(item.updatedAt)}
             </span>
           )}
@@ -754,7 +755,7 @@ function RoundPills({
             aria-pressed={selected}
             onClick={() => onSelect(item.id)}
             className={cn(
-              'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
+              'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors',
               selected
                 ? 'border-primary/40 bg-primary/10 text-foreground ring-1 ring-primary/30'
                 : 'border-border bg-background text-muted-foreground hover:text-foreground',
@@ -837,6 +838,7 @@ function TestimonyCardMenu({
             <a href={item.billUrl} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="mr-2 h-4 w-4" />
               Open on Capitol site
+              <NewTabHint />
             </a>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleCopy}>
@@ -945,7 +947,7 @@ function PositionBadge({ position }: { position: TestimonyPosition }) {
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium',
+        'inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-xs font-medium',
         className,
       )}
     >
@@ -956,7 +958,7 @@ function PositionBadge({ position }: { position: TestimonyPosition }) {
 
 function SubmittedChip({ submittedAt }: { submittedAt: string | null }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
+    <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
       <Check className="h-3 w-3" />
       Submitted{submittedAt ? ` ${formatDate(submittedAt)}` : ''}
     </span>

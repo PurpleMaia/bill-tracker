@@ -186,13 +186,13 @@ export function BillSpotlightTour({ open, onOpenChange, steps, onViewList }: Bil
           </div>
 
           <div className="mt-2 flex items-center justify-between border-t pt-2">
-            <Button variant="ghost" size="sm" className="-ml-2 h-7 text-xs text-muted-foreground" onClick={close}>
+            <Button variant="ghost" size="xs" className="-ml-2 text-muted-foreground" onClick={close}>
               Skip
             </Button>
             <Button
               variant="ghost"
-              size="sm"
-              className="h-7 text-xs text-muted-foreground"
+              size="xs"
+              className="text-muted-foreground"
               onClick={() => {
                 close();
                 onViewList();

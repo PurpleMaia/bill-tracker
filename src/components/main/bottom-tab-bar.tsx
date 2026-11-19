@@ -31,7 +31,7 @@ export function BottomTabBar() {
             className={cn(
               // flex-1 + basis-0: every tab gets an identical share of the
               // bar, regardless of label length
-              'flex flex-1 basis-0 min-w-0 flex-col items-center gap-1 px-1 py-1 text-[11px] transition-colors',
+              'flex flex-1 basis-0 min-w-0 flex-col items-center gap-1 px-1 py-1 text-xs transition-colors',
               active ? 'text-primary font-semibold' : 'text-muted-foreground'
             )}
           >

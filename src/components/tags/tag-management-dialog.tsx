@@ -162,6 +162,7 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
           <div className="flex gap-2">
             <Input
               placeholder="Tag name"
+              aria-label="New tag name"
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
               onKeyDown={(e) => {
@@ -175,6 +176,7 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
               value={newTagColor}
               onChange={(e) => setNewTagColor(e.target.value)}
               className="w-16 h-10 rounded border"
+              aria-label="New tag color"
             />
             <Button onClick={handleCreateTag}>
               <Plus className="h-4 w-4 mr-2" />
@@ -202,6 +204,7 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
                           setEditingTag({ ...editingTag, name: e.target.value })
                         }
                         className="flex-1"
+                        aria-label="Tag name"
                       />
                       <input
                         type="color"
@@ -210,6 +213,7 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
                           setEditingTag({ ...editingTag, color: e.target.value })
                         }
                         className="w-12 h-10 rounded border"
+                        aria-label="Tag color"
                       />
                       <Button
                         size="sm"

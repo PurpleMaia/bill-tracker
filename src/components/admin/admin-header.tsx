@@ -16,7 +16,7 @@ export default function AdminHeader({ count }: AdminHeaderProps) {
   // badges, so nothing scrolls sideways; sm+ keeps the content-width row.
   const tabStyle =
     'min-w-0 gap-1 px-1.5 text-xs sm:gap-0 sm:px-3 sm:text-sm data-[state=active]:bg-accent data-[state=active]:text-white'
-  const badgeStyle = 'px-1.5 py-0 text-[10px] sm:ml-1 sm:px-2.5 sm:py-0.5 sm:text-xs'
+  const badgeStyle = 'px-1.5 py-0 text-xs sm:ml-1 sm:px-2.5 sm:py-0.5'
   return (
     <div className='px-3 sm:px-6 py-2 border-b bg-white flex items-center justify-between shadow-md'>
         <div className='w-full'>

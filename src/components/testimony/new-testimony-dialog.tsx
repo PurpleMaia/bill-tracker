@@ -127,7 +127,7 @@ function BillOptionItem({
       <span className="mt-0.5 w-16 shrink-0 text-sm font-semibold">{option.billNumber}</span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm">{name}</span>
-        <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
           {option.scheduled && <CalendarClock className="!size-3" />}
           {option.roundLabel}
         </span>
@@ -135,7 +135,7 @@ function BillOptionItem({
       {opening === option.billId ? (
         <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
       ) : option.written ? (
-        <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
+        <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
           <Check className="!size-3" />
           Started
         </span>

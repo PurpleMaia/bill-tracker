@@ -139,7 +139,7 @@ export function LegislatorCombobox({
                       {checked && <span className="sr-only"> (selected)</span>}
                     </span>
                     {roles && (
-                      <span className="block text-[11px] leading-tight text-muted-foreground">
+                      <span className="block text-xs leading-tight text-muted-foreground">
                         {roles}
                       </span>
                     )}

@@ -28,7 +28,7 @@ export function KanbanPillStrip({ onScrollTo }: KanbanPillStripProps) {
           key={phase}
           variant="outline"
           size="sm"
-          className="h-8 min-w-0 overflow-hidden rounded-full px-1 text-[11px]"
+          className="h-8 min-w-0 overflow-hidden rounded-full px-1 text-xs"
           onClick={() => onScrollTo(phase)}
         >
           {label}

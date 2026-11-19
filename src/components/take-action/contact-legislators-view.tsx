@@ -73,7 +73,7 @@ export function ContactLegislatorsView() {
     <div className="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
       <div className={cn('mb-6', RISE_IN)}>
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-2xl font-semibold tracking-tight">Contact Legislators</h2>
+          <h1 className="text-2xl font-semibold tracking-tight">Contact Legislators</h1>
           <MobileHelpSheet
             title="Requests matter"
             description="How contacting legislators works here."
@@ -84,7 +84,7 @@ export function ContactLegislatorsView() {
         {ready && (
           <p className="mt-1 text-sm text-muted-foreground">
             {toContact.length > 0 && (
-              <span className="font-medium text-amber-600">
+              <span className="font-medium text-ochre">
                 {toContact.length} bill{toContact.length === 1 ? '' : 's'} to contact ·{' '}
               </span>
             )}
@@ -200,7 +200,7 @@ function EarlierSection({ items }: { items: Opportunity[] }) {
         {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
         <History className="h-3.5 w-3.5" />
         Earlier contacts
-        <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground">
+        <span className="rounded-full bg-secondary px-1.5 py-0.5 text-xs font-medium text-secondary-foreground">
           {items.length}
         </span>
       </button>
@@ -258,7 +258,7 @@ function OpportunityCard({ item }: { item: Opportunity }) {
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-sm font-semibold tracking-tight">{bill.bill_number}</span>
             {bill.year && (
-              <Badge variant="secondary" className="h-4 rounded-md px-1 text-[10px] text-muted-foreground">
+              <Badge variant="secondary" className="h-4 rounded-md px-1 text-xs text-muted-foreground">
                 {bill.year}
               </Badge>
             )}
@@ -266,7 +266,7 @@ function OpportunityCard({ item }: { item: Opportunity }) {
               {formatBillStatusName(bill.current_bill_status)}
             </span>
           </div>
-          {billLabel && <p className="mt-0.5 truncate text-sm text-muted-foreground">{billLabel}</p>}
+          {billLabel && <p className="mt-0.5 line-clamp-2 sm:line-clamp-1 text-sm text-muted-foreground">{billLabel}</p>}
         </div>
 
         {stage && (
@@ -330,7 +330,7 @@ function ContactHistory({ contacts }: { contacts: LegislatorContact[] }) {
         <button
           type="button"
           onClick={() => setShowAll((v) => !v)}
-          className="mt-1 text-[11px] font-medium text-primary hover:underline"
+          className="mt-1 text-xs font-medium text-primary hover:underline"
         >
           {showAll ? 'Show less' : `Show all ${contacts.length}`}
         </button>
@@ -355,7 +355,7 @@ function ContactRow({ contact }: { contact: LegislatorContact }) {
   };
 
   return (
-    <li className="flex items-start gap-2 text-[11px] text-muted-foreground">
+    <li className="flex items-start gap-2 text-xs text-muted-foreground">
       <Check className="mt-0.5 h-3 w-3 shrink-0 text-green-700" />
       <div className="min-w-0 flex-1">
         <span className="font-medium text-foreground">{contact.recipient}</span>
@@ -406,7 +406,7 @@ function ContactSidebar() {
       <ol className="space-y-3">
         {steps.map((step, i) => (
           <li key={step.title} className="flex gap-2.5">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
               {i + 1}
             </span>
             <div>
@@ -426,7 +426,7 @@ function ContactLoginWall() {
       <Card className={cn('w-full max-w-md text-center', RISE_IN)}>
         <CardHeader>
           <Lock className="mx-auto h-10 w-10 text-muted-foreground" />
-          <CardTitle>Login to contact legislators</CardTitle>
+          <CardTitle><h1>Login to contact legislators</h1></CardTitle>
           <CardDescription>
             See which of your bills a call or email can help right now, and keep track of who you
             and your team have contacted.

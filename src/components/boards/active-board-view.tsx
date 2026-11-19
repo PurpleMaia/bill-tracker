@@ -135,7 +135,7 @@ export function ActiveBoardView() {
           <ol className="mt-4 grid grid-cols-1 gap-2 rounded-lg bg-secondary/50 p-2 text-left sm:grid-cols-3">
             {steps.map((step, i) => (
               <li key={i} className="flex items-start gap-2 rounded-md bg-background p-2 text-sm text-muted-foreground">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-white">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
                   {i + 1}
                 </span>
                 <span>{step}</span>

@@ -85,11 +85,11 @@ export const TempBillCard: React.FC<TempBillCardProps> = ({
                                 {billNumber}
                             </CardTitle>
                             {billTitle ? (
-                                <p className="text-xs text-gray-600 line-clamp-1 break-words">
+                                <p className="text-xs text-muted-foreground line-clamp-1 break-words">
                                     {billTitle}
                                 </p>
                             ) : (
-                                <p className="text-xs text-gray-400 italic">
+                                <p className="text-xs text-muted-foreground italic">
                                     No title available
                                 </p>
                             )}
@@ -102,7 +102,7 @@ export const TempBillCard: React.FC<TempBillCardProps> = ({
                     
                     <CardContent className="p-3 pt-0">
                     {description && (
-                        <p className="text-xs text-gray-500 mb-3 line-clamp-2 text-wrap">
+                        <p className="text-xs text-muted-foreground mb-3 line-clamp-2 text-wrap">
                             {description}
                         </p>
                     )}
@@ -112,13 +112,13 @@ export const TempBillCard: React.FC<TempBillCardProps> = ({
                         <Badge variant="outline" className="text-xs bg-gray-100">
                         {tempBill.current_status}
                         </Badge>
-                        <ArrowRight className="h-3 w-3 text-gray-400" />
+                        <ArrowRight className="h-3 w-3 text-muted-foreground" />
                         <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700">
                         {tempBill.proposed_status}
                         </Badge>
                     </div>
 
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-muted-foreground">
                       Requested by {proposerName}
                     </div>
 

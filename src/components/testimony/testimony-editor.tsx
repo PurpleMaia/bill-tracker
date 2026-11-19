@@ -125,7 +125,7 @@ export function TestimonyEditor({ initialContent, onChange }: TestimonyEditorPro
             else editor.chain().focus().setFontFamily(value).run();
           }}
         >
-          <SelectTrigger className="h-8 w-[120px] text-xs sm:w-[150px]">
+          <SelectTrigger className="h-8 w-[120px] text-xs sm:w-[150px]" aria-label="Font">
             <SelectValue placeholder="Font" />
           </SelectTrigger>
           <SelectContent>
@@ -144,7 +144,7 @@ export function TestimonyEditor({ initialContent, onChange }: TestimonyEditorPro
             else editor.chain().focus().toggleHeading({ level: Number(value) as 1 | 2 | 3 }).run();
           }}
         >
-          <SelectTrigger className="h-8 w-[110px] text-xs sm:w-[130px]">
+          <SelectTrigger className="h-8 w-[110px] text-xs sm:w-[130px]" aria-label="Text style">
             <SelectValue placeholder="Style" />
           </SelectTrigger>
           <SelectContent>

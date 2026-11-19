@@ -4,6 +4,7 @@ import { CalendarDays, CheckCircle2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
+import { NewTabHint } from '@/components/ui/new-tab-hint';
 
 // Official video by the Hawai'i State Senate: "Participate in the
 // Legislative Process" — https://www.youtube.com/watch?v=88kLYLFaCOU
@@ -96,6 +97,7 @@ export function TestimoniesSidebar() {
           >
             <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
             Submit Testimony on capitol.hawaii.gov
+            <NewTabHint />
           </a>
         </Button>
       </section>

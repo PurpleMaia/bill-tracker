@@ -9,6 +9,7 @@ import { PROGRESS_STAGES } from '@/lib/bills/progress-stages';
 import { deriveBillStanding, type BillStanding } from '@/lib/bills/bill-standing';
 import { getBillChamber } from '@/lib/bills/dead-bill';
 import { data } from '@/lib/data-client';
+import { NewTabHint } from '@/components/ui/new-tab-hint';
 
 export function LearnWalkthrough() {
   const searchParams = useSearchParams();
@@ -207,6 +208,7 @@ export function LearnWalkthrough() {
           className="underline underline-offset-2"
         >
           capitol.hawaii.gov
+          <NewTabHint />
         </a>
         . Always read the bill text before relying on it or testifying.
       </p>

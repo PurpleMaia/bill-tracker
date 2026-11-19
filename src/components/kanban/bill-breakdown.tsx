@@ -186,7 +186,7 @@ function BillReadingGuide({
                       : 'border-transparent bg-background/60 opacity-60 hover:opacity-100'
                   )}
                 >
-                  <span className="block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <span className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     {step.label}
                   </span>
                   <span className="block truncate font-mono text-xs font-semibold">{step.value}</span>

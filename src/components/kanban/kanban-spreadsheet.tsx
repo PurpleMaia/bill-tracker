@@ -243,7 +243,7 @@ export function KanbanSpreadsheet() {
                                   fontSize: '10px',
                                   padding: '2px 6px',
                                 }}
-                                className="text-[10px] rounded-md"
+                                className="text-xs rounded-md"
                               >
                                 {tag.name}
                               </Badge>
@@ -304,7 +304,7 @@ export function KanbanSpreadsheet() {
                         <div className="flex items-center gap-2">
                           {bill.bill_number}
                           {bill.dead && (
-                            <Badge variant="destructive" className="text-[10px] h-5 px-2 text-white rounded-full shrink-0">
+                            <Badge variant="destructive" className="text-xs h-5 px-2 text-white rounded-full shrink-0">
                               Failed
                             </Badge>
                           )}
@@ -325,7 +325,7 @@ export function KanbanSpreadsheet() {
                       {/* Next Deadline — placed right after Current Status */}
                       <TableCell className="w-[8rem] md:w-[10rem] py-2 md:py-4">
                         {deadline ? (
-                          <div className={`text-sm ${isUrgent ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
+                          <div className={`text-sm ${isUrgent ? 'text-ochre font-medium' : 'text-muted-foreground'}`}>
                             <div>{new Date(deadline.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
                             <div className="text-xs">{deadline.name}</div>
                           </div>
