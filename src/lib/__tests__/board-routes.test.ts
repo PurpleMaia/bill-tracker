@@ -54,4 +54,10 @@ describe('isActiveBoardsTabActive', () => {
     expect(isActiveBoardsTabActive('/boards/browse', '/org/x')).toBe(true);
     expect(isActiveBoardsTabActive('/boards/browse', '/boards')).toBe(false);
   });
+
+  it('highlights only the Your Org tab on the admin preview', () => {
+    expect(isActiveBoardsTabActive('/boards/mine', '/boards/mine')).toBe(true);
+    expect(isActiveBoardsTabActive('/boards', '/boards/mine')).toBe(false);
+    expect(isActiveBoardsTabActive('/boards/browse', '/boards/mine')).toBe(false);
+  });
 });

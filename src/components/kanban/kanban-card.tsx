@@ -638,7 +638,8 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
               </div>
             )}
 
-            {vis.showTrackForSelf && (
+            {/* No handler = nothing to track into (e.g. previewing your own org). */}
+            {vis.showTrackForSelf && onTrackForSelf && (
               <div className="px-3 pb-3 pt-2 border-t border-border">
                 {isTracked ? (
                   <button

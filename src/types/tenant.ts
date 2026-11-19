@@ -40,6 +40,11 @@ export interface PublicBoard {
   testimonyBillIds: string[];
 }
 
+/** An admin's preview of their own org's board — shown even while private. */
+export interface MyOrgBoard extends PublicBoard {
+  publicBoard: boolean;
+}
+
 export interface OrgSampleBill {
   id: string;
   billNumber: string | null;

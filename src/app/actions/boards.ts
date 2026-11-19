@@ -1,7 +1,7 @@
 'use server';
 
 import type { Bill } from '@/types/legislation';
-import type { PublicOrg, MyOrg, PublicBoard } from '@/types/tenant';
+import type { PublicOrg, MyOrg, PublicBoard, MyOrgBoard } from '@/types/tenant';
 import { optionalSession, requireSession, requireAdmin, requireMembership } from '@/lib/auth/auth-guards';
 import { ApiError } from '@/lib/core/errors';
 import {
@@ -18,6 +18,7 @@ import {
 } from '@/db/queries/tenants';
 import { getOrgTestimonyBillIds } from '@/db/queries/testimony';
 import { getAllTrackedBills, getUserTrackedBillIds } from '@/db/queries/bills-read';
+import { getOrgBoardContents, getOrgBoardInfo } from '@/db/queries/org-board';
 import type {
   GetBoardParams,
   FollowParams,
@@ -27,6 +28,7 @@ import type {
   OrgSettingsParams,
   MyOrgStatsParams,
   PublicBoardParams,
+  MyOrgBoardParams,
 } from '@/lib/data-client/boards.params';
 
 export async function listPublicOrgsAction(): Promise<PublicOrg[]> {
@@ -72,13 +74,22 @@ export async function getBoardAction(params: GetBoardParams): Promise<Bill[]> {
 export async function getPublicBoardAction(params: PublicBoardParams): Promise<PublicBoard> {
   const org = await getPublicTenantBySlug(params.slug);
   if (!org) throw new ApiError('BOARD_NOT_FOUND', 404, 'Board not found');
-  // includeTrackedBy: false — person-tracking data never leaves the DB here.
-  const bills = await getAllTrackedBills(false, org.id, false);
-  const testimonyBillIds = await getOrgTestimonyBillIds(org.id, bills.map((b) => b.id));
   return {
     org: { tenantId: org.id, name: org.name, slug: org.slug, description: org.description },
-    bills,
-    testimonyBillIds,
+    ...(await getOrgBoardContents(org.id)),
+  };
+}
+
+// An admin's preview of their own org's board, as visitors see it. Works while
+// the board is private, so admins can check it before making it public.
+export async function getMyOrgBoardAction(params: MyOrgBoardParams): Promise<MyOrgBoard> {
+  await requireAdmin.fromAction(params.tenantId);
+  const org = await getOrgBoardInfo(params.tenantId);
+  if (!org) throw new ApiError('TENANT_NOT_FOUND', 404, 'Organization not found');
+  return {
+    org: { tenantId: org.id, name: org.name, slug: org.slug, description: org.description },
+    publicBoard: org.public_board,
+    ...(await getOrgBoardContents(org.id)),
   };
 }
 
