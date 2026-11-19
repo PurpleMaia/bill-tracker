@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getTestimonyEligibility, isPastPublicTestimony, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
+import { getTestimonyEligibility, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
 import { testimonyOpenNow } from '@/lib/testimony/testimony-round';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 
@@ -200,24 +200,6 @@ describe('isTestimonyUrgent', () => {
     ] as const) {
       expect(isTestimonyUrgent(status)).toBe(false);
     }
-  });
-});
-
-describe('isPastPublicTestimony', () => {
-  it('is true from conference onward and once enacted', () => {
-    expect(isPastPublicTestimony('conferenceScheduled')).toBe(true);
-    expect(isPastPublicTestimony('transmittedGovernor')).toBe(true);
-    expect(isPastPublicTestimony('governorSigns')).toBe(true);
-    expect(isPastPublicTestimony('lawWithoutSignature')).toBe(true);
-  });
-  it('is false while the bill is still in committee in either chamber', () => {
-    expect(isPastPublicTestimony('scheduled1')).toBe(false);
-    expect(isPastPublicTestimony('crossoverScheduled2')).toBe(false);
-    expect(isPastPublicTestimony('introduced')).toBe(false);
-  });
-  it('is false for unknown or missing statuses', () => {
-    expect(isPastPublicTestimony(null)).toBe(false);
-    expect(isPastPublicTestimony('unassigned')).toBe(false);
   });
 });
 

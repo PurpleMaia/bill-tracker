@@ -1,8 +1,8 @@
 import { sql } from 'kysely';
 import { db } from '@/db/kysely/client';
 import { tiptapExcerpt } from '@/lib/testimony/tiptap-text';
-import { SCHEDULED_STATUSES, isPastPublicTestimony } from '@/lib/testimony/testimony-eligibility';
-import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
+import { SCHEDULED_STATUSES } from '@/lib/testimony/testimony-eligibility';
+import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { ApiError } from '@/lib/core/errors';
 import {
   coversRound,
@@ -10,6 +10,7 @@ import {
   isCurrentRoundTestimony,
   roundLabel,
   sameRound,
+  testimonyOpenNow,
   type TestimonyChamber,
   type TestimonyRound,
 } from '@/lib/testimony/testimony-round';
@@ -406,14 +407,25 @@ export async function listTestimonyProspects(userId: string): Promise<TestimonyP
     .where('b.bill_status', 'in', SCHEDULED_STATUSES)
     .execute();
 
-  // conferenceScheduled is a "scheduled" status, but conference takes no public testimony.
-  const open = rows.filter((row) => !isPastPublicTestimony(row.bill_status));
+  if (rows.length === 0) return [];
+
+  // Same open-to-testimony rule as the bill dialog and the picker — e.g.
+  // conferenceScheduled is a "scheduled" status but takes no public testimony.
+  const latestByBillId = await latestStatusTextByBillId(rows.map((r) => r.id));
+  const now = new Date();
+  const open = rows.filter((row) =>
+    testimonyOpenNow({
+      dead: row.dead,
+      billStatus: row.bill_status ?? 'unassigned',
+      committeeAssignment: row.committee_assignment,
+      latestStatusText: latestByBillId[row.id] ?? null,
+      deadlines: SESSION_DEADLINES,
+      now,
+    }),
+  );
   if (open.length === 0) return [];
 
-  const [latestByBillId, coverage] = await Promise.all([
-    latestStatusTextByBillId(open.map((r) => r.id)),
-    currentRoundCoverage(userId, open),
-  ]);
+  const coverage = await currentRoundCoverage(userId, open);
 
   return open
     .filter((row) => !coverage.get(row.id)?.covered)
@@ -553,9 +565,9 @@ export async function getOrgTestimonyBillIds(
 }
 
 /**
- * Every bill the user follows that can still take public testimony (not dead,
- * archived, in conference or later, or enacted), for the "New testimony"
- * picker: bills with a hearing scheduled first, then by bill number.
+ * Every non-archived bill the user follows that is still open to public
+ * testimony (testimonyOpenNow), for the "New testimony" picker: bills with a
+ * hearing scheduled first, then by bill number.
  */
 export async function listTestimonyBillOptions(userId: string): Promise<TestimonyBillOption[]> {
   const rows = await db
@@ -577,24 +589,25 @@ export async function listTestimonyBillOptions(userId: string): Promise<Testimon
     .where('b.archived', '=', false)
     .execute();
 
-  // Bills in conference or later (or enacted) take no public testimony.
-  const open = rows.filter((row) => !isPastPublicTestimony(row.bill_status));
-  const [coverage, latestByBillId] = await Promise.all([
-    currentRoundCoverage(userId, open),
-    latestStatusTextByBillId(open.map((r) => r.id)),
-  ]);
-  const scheduled = new Set<string>(SCHEDULED_STATUSES);
+  // Only bills still open to public testimony by the same rule the bill dialog
+  // uses (testimonyOpenNow: enacted, conference-or-later, hearing held, final
+  // hearing deadline, …), so the picker never leads into a closed flow.
+  const latestByBillId = await latestStatusTextByBillId(rows.map((r) => r.id));
   const now = new Date();
-  // "Hearing scheduled" only while the hearing's submission window is still open —
-  // a bill can sit in a scheduled status after its hearing was held.
-  const hearingOpen = (row: (typeof open)[number]) =>
-    row.bill_status !== null &&
-    scheduled.has(row.bill_status) &&
-    !getTestimonyDeadline({
-      billStatus: row.bill_status,
+  const open = rows.filter((row) =>
+    testimonyOpenNow({
+      dead: row.dead,
+      billStatus: row.bill_status ?? 'unassigned',
+      committeeAssignment: row.committee_assignment,
       latestStatusText: latestByBillId[row.id] ?? null,
+      deadlines: SESSION_DEADLINES,
       now,
-    }).hearingPassed;
+    }),
+  );
+  const coverage = await currentRoundCoverage(userId, open);
+  const scheduled = new Set<string>(SCHEDULED_STATUSES);
+  // A scheduled status on an open bill means its hearing is still ahead.
+  const hearingOpen = (row: (typeof open)[number]) => row.bill_status !== null && scheduled.has(row.bill_status);
 
   return open
     .map((row) => {
