@@ -12,7 +12,7 @@ import { BoardBillsBridge } from './active-boards-bills-bridge';
 /**
  * An org's board as visitors see it: the read-only Active Boards kanban under
  * a caller-supplied banner. Shared by the public /org/<slug> page and an
- * admin's /community/public-view preview. `trackable` offers "Track this bill" (signed-in
+ * admin's /community/your-organization preview. `trackable` offers "Track this bill" (signed-in
  * viewers only — cardVisibility hides it otherwise); off for your own org,
  * whose bills are already on your board.
  */

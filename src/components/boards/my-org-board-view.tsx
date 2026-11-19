@@ -84,7 +84,7 @@ function MyOrgBoardBanner({ board, onOpenSettings }: { board: MyOrgBoard; onOpen
 }
 
 /**
- * /community/public-view — an org admin's preview of their own org's board as visitors
+ * /community/your-organization — an org admin's preview of their own org's board as visitors
  * see it. Unlike /org/<slug>, it works while the board is private, so admins
  * can check what they'd be sharing before turning it on.
  */

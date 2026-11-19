@@ -34,7 +34,7 @@ describe('isActiveBoardsPath', () => {
   it('covers the /community tree and public board pages', () => {
     expect(isActiveBoardsPath('/community')).toBe(true);
     expect(isActiveBoardsPath('/community/following')).toBe(true);
-    expect(isActiveBoardsPath('/community/public-view')).toBe(true);
+    expect(isActiveBoardsPath('/community/your-organization')).toBe(true);
     expect(isActiveBoardsPath('/org/food-plus')).toBe(true);
   });
 
@@ -52,10 +52,10 @@ describe('isActiveBoardsTabActive', () => {
     expect(isActiveBoardsTabActive('/community', '/community/following')).toBe(false);
   });
 
-  it('highlights Following and Public View on their own pages only', () => {
+  it('highlights Following and Your Organization on their own pages only', () => {
     expect(isActiveBoardsTabActive('/community/following', '/community/following')).toBe(true);
     expect(isActiveBoardsTabActive('/community/following', '/community')).toBe(false);
-    expect(isActiveBoardsTabActive('/community/public-view', '/community/public-view')).toBe(true);
-    expect(isActiveBoardsTabActive('/community/following', '/community/public-view')).toBe(false);
+    expect(isActiveBoardsTabActive('/community/your-organization', '/community/your-organization')).toBe(true);
+    expect(isActiveBoardsTabActive('/community/following', '/community/your-organization')).toBe(false);
   });
 });

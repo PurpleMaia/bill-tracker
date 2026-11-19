@@ -32,7 +32,8 @@ const nextConfig: NextConfig = {
       { source: '/your-bills', destination: '/tracker', permanent: false },
       { source: '/boards', destination: '/community/following', permanent: false },
       { source: '/boards/browse', destination: '/community', permanent: false },
-      { source: '/boards/mine', destination: '/community/public-view', permanent: false },
+      { source: '/boards/mine', destination: '/community/your-organization', permanent: false },
+      { source: '/community/public-view', destination: '/community/your-organization', permanent: false },
     ];
   },
   webpack: (config, { isServer }) => {

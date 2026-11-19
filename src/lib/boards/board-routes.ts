@@ -15,7 +15,7 @@ export function publicBoardUrl(slug: string): string {
   return `${getAppUrl()}${publicBoardPath(slug)}`;
 }
 
-/** Whether a path belongs to Community (Browse, Following, Public View, a public board). */
+/** Whether a path belongs to Community (Browse, Following, Your Organization, a public board). */
 export function isActiveBoardsPath(pathname: string): boolean {
   return pathname === '/community' || pathname.startsWith('/community/') || pathname.startsWith('/org/');
 }
