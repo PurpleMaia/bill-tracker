@@ -50,11 +50,12 @@ describe('tourStepPath', () => {
   it('walks to the page a step describes', () => {
     expect(tourStepPath(step('your-bills'), '/discover')).toBe('/your-bills');
     expect(tourStepPath(step('discover'), '/your-bills')).toBe('/discover');
-    expect(tourStepPath(step('boards'), '/take-action')).toBe('/boards');
+    expect(tourStepPath(step('boards'), '/take-action')).toBe('/boards/browse');
   });
   it('stays put when already on that page or a sub-page', () => {
     expect(tourStepPath(step('your-bills'), '/your-bills')).toBeNull();
     expect(tourStepPath(step('boards'), '/boards/browse')).toBeNull();
+    expect(tourStepPath(step('boards'), '/boards')).toBe('/boards/browse');
     expect(tourStepPath(step('discover'), '/')).toBeNull();
   });
   it('does not treat a shared prefix as the same page', () => {

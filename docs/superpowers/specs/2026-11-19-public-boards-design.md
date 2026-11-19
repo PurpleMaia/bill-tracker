@@ -33,8 +33,8 @@ anyone, no account needed". There is no separate setting.
   org's board is private — the two are indistinguishable to the visitor.
 - Server-rendered `<title>`/description (`generateMetadata`) so a pasted link
   previews as "<Org name> · Food+ board" in Slack, email, social.
-- Chrome: the existing olive org banner (name, "Public board · read-only"), a
-  **Copy link** button, and a follow control: **Follow / Following** when signed
+- Chrome: the existing olive org banner (name, "Public board · read-only") and a
+  follow control (no Copy link here — sharing lives on Browse and Org Settings): **Follow / Following** when signed
   in, **Login to follow** (returns to this page) when signed out.
 - Board body: the existing `KanbanHeader variant="active-boards"` +
   `KanbanBoard readOnly boardMode="active-boards"`, with org testimony badges.

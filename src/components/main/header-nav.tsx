@@ -12,16 +12,17 @@ export const NAV_ITEMS = [
   { href: '/your-bills', label: 'Your Bills', icon: KanbanSquareIcon },
   // Testimony + Contact Legislators; /take-action lands on the Testimony tab.
   { href: TAKE_ACTION_ROOT, label: 'Take Action', icon: Megaphone },
-  // Lands on Following; its empty state and login wall both point to Browse.
-  { href: '/boards', label: 'Active Boards', mobileLabel: 'Boards', icon: LayoutGrid },
+  // Lands on Browse, the first tab: every public board opens from there, even
+  // signed out. Following is one tab over.
+  { href: '/boards/browse', label: 'Active Boards', mobileLabel: 'Boards', icon: LayoutGrid },
 ] as const;
 
 export function isNavItemActive(href: string, pathname: string) {
   // '/' is Discover (the landing page), so the bare root highlights that tab.
   if (href === '/discover') return pathname === '/' || pathname.startsWith('/discover');
   // Active Boards owns the whole /boards tree plus public /org/<slug> boards, so
-  // the tab stays highlighted on /boards/browse and shared board links too.
-  if (href === '/boards') return isActiveBoardsPath(pathname);
+  // the tab stays highlighted on Following and shared board links too.
+  if (href === '/boards/browse') return isActiveBoardsPath(pathname);
   if (href === TAKE_ACTION_ROOT) return isTakeActionPath(pathname);
   return pathname.startsWith(href);
 }

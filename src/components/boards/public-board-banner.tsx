@@ -8,8 +8,6 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { LoginLink } from '@/components/auth/login-link';
-import { publicBoardUrl } from '@/lib/boards/board-routes';
-import { CopyLinkButton } from './copy-link-button';
 import { initials } from './active-board-banner';
 
 /**
@@ -92,8 +90,8 @@ function FollowControl({ tenantId, orgName }: { tenantId: string; orgName: strin
 
 /**
  * "Whose board is this?" banner for a public /org/<slug> board. Same olive
- * strip as the Following board's banner, plus the share and follow actions a
- * visitor arriving from a link needs.
+ * strip as the Following board's banner, plus a follow action for visitors
+ * arriving from a link. Sharing lives with the org (Browse, Org Settings), not here.
  */
 export function PublicBoardBanner({ org }: { org: PublicBoardOrg }) {
   return (
@@ -110,7 +108,6 @@ export function PublicBoardBanner({ org }: { org: PublicBoardOrg }) {
           {org.description || 'Public board · read-only'}
         </p>
       </div>
-      <CopyLinkButton url={publicBoardUrl(org.slug)} />
       <FollowControl tenantId={org.tenantId} orgName={org.name} />
     </div>
   );
