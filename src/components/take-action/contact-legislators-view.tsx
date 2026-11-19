@@ -20,7 +20,6 @@ import {
 import { cn, formatBillStatusName } from '@/lib/core/utils';
 import { RISE_IN, riseDelay } from '@/lib/core/motion';
 import { useAuth } from '@/hooks/contexts/auth-context';
-import { useBills } from '@/hooks/contexts/bills-context';
 import { useContactOpportunities, useContacts } from '@/hooks/use-contacts';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -38,6 +37,7 @@ import { LoginLink } from '@/components/auth/login-link';
 import { LogContactDialog } from './log-contact-dialog';
 import { FilterPillCount, filterPillClassName } from './filter-pill';
 import { MobileHelpSheet } from './mobile-help-sheet';
+import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
 
 type Opportunity = ContactOpportunity<Bill, LegislatorContact>;
 type ContactFilter = 'toContact' | 'contacted';
@@ -52,7 +52,6 @@ const HISTORY_PREVIEW = 3;
  */
 export function ContactLegislatorsView() {
   const { user, loading: authLoading } = useAuth();
-  const { viewMode } = useBills();
   const { toContact, contacted, earlier, contacts, ready } = useContactOpportunities();
   // null = not chosen yet: open on "Need to contact", or "Contacted" when there's nothing to do.
   const [chosenFilter, setChosenFilter] = useState<ContactFilter | null>(null);
@@ -86,12 +85,6 @@ export function ContactLegislatorsView() {
               </span>
             )}
             {contacted.length} contacted
-            <span>
-              {' '}· from {viewMode === 'my-bills' ? 'My Bills' : 'All Bills'} on{' '}
-              <Link href="/your-bills" className="underline underline-offset-2 hover:text-foreground">
-                Your Bills
-              </Link>
-            </span>
           </p>
         )}
         {ready && hasAnything && (
@@ -172,6 +165,8 @@ export function ContactLegislatorsView() {
           <ContactSidebar />
         </aside>
       </div>
+
+      <ScrollToTopButton label="Scroll back to top" />
     </div>
   );
 }
