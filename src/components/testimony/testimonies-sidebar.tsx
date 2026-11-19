@@ -61,8 +61,8 @@ function flattenDeadlines(deadlines: SessionDeadlines): FlatDeadline[] {
 }
 
 /**
- * Right rail for the Testimonies pages: the official how-to video, a
- * condensed submission guide, and the session's upcoming deadlines.
+ * Right rail for the Testimonies pages: a condensed submission guide, the
+ * official how-to video, and the session's upcoming deadlines.
  */
 export function TestimoniesSidebar() {
   const deadlines = flattenDeadlines(SESSION_DEADLINES);
@@ -72,27 +72,6 @@ export function TestimoniesSidebar() {
 
   return (
     <div className="space-y-4">
-      {/* Official how-to video */}
-      <section className="overflow-hidden rounded-lg border bg-card" aria-label="Video guide">
-        <div className="aspect-video w-full">
-          <iframe
-            className="h-full w-full"
-            src={`https://www.youtube-nocookie.com/embed/${VIDEO_ID}`}
-            title={VIDEO_TITLE}
-            loading="lazy"
-            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerPolicy="strict-origin-when-cross-origin"
-            allowFullScreen
-          />
-        </div>
-        <div className="p-3">
-          <p className="text-sm font-medium leading-snug">{VIDEO_TITLE}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Official video by the Hawai&lsquo;i State Senate.
-          </p>
-        </div>
-      </section>
-
       {/* Condensed submission guide */}
       <section className="rounded-lg border bg-card p-4" aria-label="How testimony works">
         <h3 className="mb-3 text-sm font-semibold">How testimony works</h3>
@@ -119,6 +98,27 @@ export function TestimoniesSidebar() {
             Submit Testimony on capitol.hawaii.gov
           </a>
         </Button>
+      </section>
+
+      {/* Official how-to video */}
+      <section className="overflow-hidden rounded-lg border bg-card" aria-label="Video guide">
+        <div className="aspect-video w-full">
+          <iframe
+            className="h-full w-full"
+            src={`https://www.youtube-nocookie.com/embed/${VIDEO_ID}`}
+            title={VIDEO_TITLE}
+            loading="lazy"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+          />
+        </div>
+        <div className="p-3">
+          <p className="text-sm font-medium leading-snug">{VIDEO_TITLE}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Official video by the Hawai&lsquo;i State Senate.
+          </p>
+        </div>
       </section>
 
       {/* Session deadlines */}

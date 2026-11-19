@@ -57,8 +57,8 @@ export function NewTestimonyButton() {
   return (
     <>
       <Button size="sm" onClick={() => setOpen(true)}>
-        <Plus className="mr-1.5 h-4 w-4" />
-        New testimony
+        <Plus className="h-4 w-4" />
+        Testimony
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder="Search bills you follow…" />

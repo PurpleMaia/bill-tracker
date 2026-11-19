@@ -61,6 +61,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { TestimoniesSidebar } from './testimonies-sidebar';
 import { MobileHelpSheet } from '@/components/take-action/mobile-help-sheet';
+import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
 import { NewTestimonyButton } from './new-testimony-dialog';
 import { TestimonyFilterTabs } from './testimony-filter-tabs';
 import { FROM_TESTIMONY, TESTIMONY_DRAFTS_HREF } from '@/lib/take-action/routes';
@@ -229,7 +230,7 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
           <div className="flex shrink-0 items-center gap-2">
             <MobileHelpSheet
               title="How testimony works"
-              description="The official how-to video, the steps to submit, and this session's deadlines."
+              description="The steps to submit, the official how-to video, and this session's deadlines."
             >
               <TestimoniesSidebar />
             </MobileHelpSheet>
@@ -292,6 +293,8 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
           <TestimoniesSidebar />
         </aside>
       </div>
+
+      <ScrollToTopButton label="Scroll back to top" />
     </div>
   );
 }
