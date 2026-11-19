@@ -32,7 +32,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'your-bills',
     target: '/your-bills',
-    title: 'Your Bills',
+    title: 'Tracker',
     body: 'Tracked bills show up here. See them as a Kanban board, a spreadsheet, or a calendar of key dates.',
   },
   {

@@ -9,7 +9,7 @@ import { isActiveBoardsPath } from '@/lib/boards/board-routes';
 
 export const NAV_ITEMS = [
   { href: '/discover', label: 'Discover', icon: Search },
-  { href: '/your-bills', label: 'Your Bills', icon: KanbanSquareIcon },
+  { href: '/your-bills', label: 'Tracker', icon: KanbanSquareIcon },
   // Testimony + Contact Legislators; /take-action lands on the Testimony tab.
   { href: TAKE_ACTION_ROOT, label: 'Take Action', icon: Megaphone },
   // Lands on Browse, the first tab: every public board opens from there, even

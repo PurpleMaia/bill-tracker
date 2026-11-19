@@ -332,7 +332,7 @@ function FilteredList({
           icon={PenLine}
           title="No drafts in progress"
           description="Start a testimony from any bill on your board — drafts save automatically and show up here."
-          cta={{ href: '/', label: 'Go to Your Bills' }}
+          cta={{ href: '/', label: 'Go to Tracker' }}
         />
       );
     }
@@ -368,7 +368,7 @@ function FilteredList({
         icon={FileText}
         title="No testimonies yet"
         description="Open a bill on your board and choose Write Testimony — your drafts and submissions will be tracked here."
-        cta={{ href: '/', label: 'Go to Your Bills' }}
+        cta={{ href: '/', label: 'Go to Tracker' }}
       />
     );
   }

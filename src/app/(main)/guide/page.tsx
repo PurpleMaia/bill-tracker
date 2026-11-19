@@ -64,7 +64,7 @@ const STEPS: Step[] = [
     icon: SquareKanban,
     video: 'your-bills',
     title: 'Follow your bills',
-    where: 'Your Bills',
+    where: 'Tracker',
     href: '/your-bills',
     body: <>Everything you track lives here. Switch between three views with the tabs at the top.</>,
     tips: [
@@ -92,7 +92,7 @@ const STEPS: Step[] = [
     tips: [
       'Testimony is generally due 24 hours before the hearing, so check the hearing date first.',
       'Your drafts are saved on the Testimony tab. After you submit on the Capitol site, mark it submitted to keep track.',
-      'The Contact Legislators tab lists the bills on Your Bills where a call or email can help right now. After you reach out, mark who you contacted so you and your team can see it.',
+      'The Contact Legislators tab lists the bills on your Tracker where a call or email can help right now. After you reach out, mark who you contacted so you and your team can see it.',
       'Open any bill and press Contact Legislator to write to the lawmakers who can act on it. The message is sent from your own email app, not by the Hawaiʻi Bill Tracker. Once a bill reaches the Governor, the button becomes Contact Governor.',
     ],
   },
