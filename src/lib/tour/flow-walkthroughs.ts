@@ -25,6 +25,7 @@ export type FlowTourTarget =
   | 'stepper'
   | 'details'
   | 'editor'
+  | 'versions'
   | 'reference'
   | 'next'
   | 'goal'
@@ -88,6 +89,11 @@ export function testimonyWalkthrough({ billNumber }: { billNumber: string }): Wa
         target: 'editor',
         title: 'Your testimony',
         body: `Write why ${billNumber} matters to you. Your draft saves as you type, so you can come back to it later.`,
+      },
+      {
+        target: 'versions',
+        title: 'A version for each hearing',
+        body: `${billNumber} may be heard by more than one committee, in the House and then the Senate, and each hearing takes its own testimony. When it reaches a new hearing, a menu next to the bill number lets you start a new version (copied from your last one) and switch between them.`,
       },
       {
         target: 'reference',

@@ -453,7 +453,7 @@ export default function TestimonyPage() {
             <ArrowLeft className="h-4 w-4" />
             <span className="ml-1 hidden sm:inline">Back</span>
           </Button>
-          <div className="min-w-0">
+          <div className="min-w-0" data-flow-tour="versions">
             <div className="flex min-w-0 items-center gap-2">
               <h1 className="truncate text-sm font-semibold">Testimony — {bill.bill_number}</h1>
               {!isMobile && roundSwitcher}

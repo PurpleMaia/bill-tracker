@@ -27,6 +27,11 @@ describe('testimonyWalkthrough', () => {
     expect(w.steps.map((s) => s.target)).toContain('editor');
     expect(w.steps.at(-1)?.target).toBe('help');
   });
+  it('explains per-hearing versions, pointed at the always-shown title block', () => {
+    const step = w.steps.find((s) => s.target === 'versions');
+    expect(step?.body).toContain('HB123');
+    expect(step?.body).toMatch(/version/);
+  });
   it('has unique step titles', () => {
     const titles = w.steps.map((s) => s.title);
     expect(new Set(titles).size).toBe(titles.length);

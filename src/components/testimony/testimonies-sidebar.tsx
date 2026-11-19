@@ -31,10 +31,6 @@ const GUIDE_STEPS: Array<{ title: string; body: string }> = [
     title: 'Mark it submitted',
     body: 'Back here, mark the testimony as submitted so your board and this page track your progress.',
   },
-  {
-    title: 'Write a version for each hearing',
-    body: 'A bill can be heard by several committees, in the House and then the Senate. Each hearing gets its own version: switch between them with the pills on a bill’s card here, or the menu next to the bill number in the writer. Start one with New testimony.',
-  },
 ];
 
 interface FlatDeadline {
