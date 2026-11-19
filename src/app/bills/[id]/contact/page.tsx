@@ -24,6 +24,7 @@ import {
   buildGovernorCallScript,
   GOVERNOR_COMMENTS_URL,
   GOVERNOR_CONTACT_URL,
+  GOVERNOR_OFFICE_RECIPIENT,
   GOVERNOR_PHONE,
   getGovernorStage,
   parseIntroducers,
@@ -326,7 +327,7 @@ export default function ContactLegislatorPage() {
     contactStage === 'override'
       ? introducers.map((c) => c.legislatorName)
       : governorStage
-        ? ["Governor's office"]
+        ? [GOVERNOR_OFFICE_RECIPIENT]
         : atConference
           ? conferees.map((c) => c.legislatorName)
           : [...currentGroups, ...otherGroups].flatMap((g) => g.chairs.map((c) => c.legislatorName));

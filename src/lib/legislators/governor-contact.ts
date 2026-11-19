@@ -18,6 +18,9 @@ export const GOVERNOR_PHONE = '(808) 586-0034';
 /** Greeting for the Governor scripts. No name — it survives a change of administration. */
 export const GOVERNOR_GREETING = 'Dear Governor,';
 
+/** How a contact with the Governor is recorded in the contact log. */
+export const GOVERNOR_OFFICE_RECIPIENT = "Governor's office";
+
 /** The two contact routes, in display order. Shared by the briefing and the contact page. */
 export const GOVERNOR_CONTACT_OPTIONS = [
   { label: 'commenting on this legislation', href: GOVERNOR_COMMENTS_URL },

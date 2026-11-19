@@ -37,10 +37,14 @@ import { LoginLink } from '@/components/auth/login-link';
 import { LogContactDialog } from './log-contact-dialog';
 import { FilterPillCount, filterPillClassName } from './filter-pill';
 import { MobileHelpSheet } from './mobile-help-sheet';
+import { GOVERNOR_OFFICE_RECIPIENT } from '@/lib/legislators/governor-contact';
 import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
 
 type Opportunity = ContactOpportunity<Bill, LegislatorContact>;
 type ContactFilter = 'toContact' | 'contacted';
+
+/** At the Governor stages the card's dialog offers the Governor's office, like the contact page. */
+const GOVERNOR_SUGGESTION = [GOVERNOR_OFFICE_RECIPIENT];
 
 /** How many history rows a card shows before "Show all". */
 const HISTORY_PREVIEW = 3;
@@ -302,6 +306,7 @@ function OpportunityCard({ item }: { item: Opportunity }) {
               billId={bill.id}
               billNumber={bill.bill_number}
               stage={stage}
+              suggestedRecipients={stage === 'governor' || stage === 'intentToVeto' ? GOVERNOR_SUGGESTION : undefined}
               defaultMethod={stage === 'governor' || stage === 'intentToVeto' ? 'form' : 'email'}
             />
           </div>
