@@ -10,10 +10,8 @@ import { safeReturnPath } from '@/lib/core/safe-return-path';
 import { fullNameOrUsername } from '@/lib/auth/profile';
 import { tiptapHasText } from '@/lib/testimony/tiptap-text';
 import { RETURN_TO_PARAM, stripBillParam } from '@/lib/bills/bill-dialog-url';
-import { isPastPublicTestimony } from '@/lib/testimony/testimony-eligibility';
-import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
-import type { BillStatus } from '@/db/types';
-import { coversRound, currentTestimonyRound, opensNewRound, roundLabel, sameRound } from '@/lib/testimony/testimony-round';
+import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
+import { coversRound, currentTestimonyRound, opensNewRound, testimonyOpenNow, roundLabel, sameRound } from '@/lib/testimony/testimony-round';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { invalidateTestimonies } from '@/hooks/use-testimonies';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -177,12 +175,14 @@ export default function TestimonyPage() {
           list.length > 0 &&
           !coversRound(list, round) &&
           opensNewRound(round) &&
-          !isPastPublicTestimony(details.current_bill_status) &&
-          !getTestimonyDeadline({
-            billStatus: details.current_bill_status as BillStatus,
+          testimonyOpenNow({
+            dead: details.dead,
+            billStatus: details.current_bill_status,
+            committeeAssignment: details.committee_assignment,
             latestStatusText: details.updates[0]?.statustext ?? null,
+            deadlines: SESSION_DEADLINES,
             now: new Date(),
-          }).hearingPassed
+          })
         ) {
           const created = await data.testimony.create({
             billId,
@@ -433,17 +433,20 @@ export default function TestimonyPage() {
     updates: bill.updates,
     dead: bill.dead,
   });
-  // Offer a new testimony only once one exists, the bill still takes public testimony,
-  // and none covers its current round.
+  // Offer a new testimony only once one exists, none covers the bill's current
+  // committee round, and public testimony is still open (same rule as the bill dialog).
   const newRoundLabel =
-    activeId && !bill.dead && !isPastPublicTestimony(bill.current_bill_status) &&
-    opensNewRound(currentRound) && !testimonies.some((t) => sameRound(t, currentRound)) &&
-    // No new version for a round whose hearing is already over.
-    !getTestimonyDeadline({
-      billStatus: bill.current_bill_status as BillStatus,
+    activeId &&
+    opensNewRound(currentRound) &&
+    !testimonies.some((t) => sameRound(t, currentRound)) &&
+    testimonyOpenNow({
+      dead: bill.dead,
+      billStatus: bill.current_bill_status,
+      committeeAssignment: bill.committee_assignment,
       latestStatusText: bill.updates[0]?.statustext ?? null,
+      deadlines: SESSION_DEADLINES,
       now: new Date(),
-    }).hearingPassed
+    })
       ? roundLabel(currentRound)
       : null;
   const roundSwitcher = activeId ? (

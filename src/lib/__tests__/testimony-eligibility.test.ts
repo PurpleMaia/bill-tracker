@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getTestimonyEligibility, isPastPublicTestimony, isTestimonyUrgent } from '@/lib/testimony/testimony-eligibility';
+import { testimonyOpenNow } from '@/lib/testimony/testimony-round';
 import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 
 const DEADLINES: SessionDeadlines = {
@@ -217,5 +218,30 @@ describe('isPastPublicTestimony', () => {
   it('is false for unknown or missing statuses', () => {
     expect(isPastPublicTestimony(null)).toBe(false);
     expect(isPastPublicTestimony('unassigned')).toBe(false);
+  });
+});
+
+describe('testimonyOpenNow', () => {
+  const bill = { dead: false, billStatus: 'crossoverScheduled1', committeeAssignment: 'AGL', latestStatusText: null };
+  it('is open for an in-committee bill before the final hearing deadline', () => {
+    expect(testimonyOpenNow({ ...bill, deadlines: DEADLINES, now: new Date('2026-04-01T20:00:00Z') })).toBe(true);
+  });
+  it('closes after the final decking deadline (Hawaii date)', () => {
+    expect(testimonyOpenNow({ ...bill, deadlines: DEADLINES, now: new Date('2026-04-30T20:00:00Z') })).toBe(false);
+  });
+  it('closes once the scheduled hearing has been held', () => {
+    expect(
+      testimonyOpenNow({
+        ...bill,
+        latestStatusText: 'The committee(s) on AGL has scheduled a public hearing on 04-01-26 9:00AM.',
+        deadlines: DEADLINES,
+        now: new Date('2026-04-02T20:00:00Z'),
+      }),
+    ).toBe(false);
+  });
+  it('closes in conference and for failed bills', () => {
+    const now = new Date('2026-04-01T20:00:00Z');
+    expect(testimonyOpenNow({ ...bill, billStatus: 'conferenceScheduled', deadlines: DEADLINES, now })).toBe(false);
+    expect(testimonyOpenNow({ ...bill, dead: true, deadlines: DEADLINES, now })).toBe(false);
   });
 });

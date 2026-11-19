@@ -1,6 +1,10 @@
 import type { BillStatus } from '@/db/types';
 import { PROGRESS_STAGES } from '@/lib/bills/progress-stages';
 import { currentCommitteeStep, type StatusLine } from '@/lib/testimony/committees';
+import { getTestimonyEligibility } from '@/lib/testimony/testimony-eligibility';
+import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
+import { todayHawaii } from '@/lib/core/utils';
+import type { SessionDeadlines } from '@/lib/bills/dead-bill';
 
 /** Which chamber's hearing a testimony is for. Mirrors the `testimonies.chamber` CHECK. */
 export type TestimonyChamber = 'house' | 'senate' | 'conference';
@@ -94,6 +98,37 @@ export function isCurrentRoundTestimony(testimony: TestimonyRound, current: Test
  */
 export function opensNewRound(round: TestimonyRound): boolean {
   return round.committee !== null && round.chamber !== 'conference';
+}
+
+/**
+ * Whether public testimony is open for the bill right now, by the app's full
+ * eligibility rule (enacted, failed, conference-or-later, hearing held,
+ * committee already voted, final hearing deadline). Gates starting another
+ * testimony version so it matches what the bill dialog says.
+ */
+export function testimonyOpenNow(bill: {
+  dead: boolean;
+  billStatus: string;
+  committeeAssignment: string | null;
+  latestStatusText: string | null;
+  deadlines: SessionDeadlines;
+  now: Date;
+}): boolean {
+  const status = bill.billStatus as BillStatus;
+  const { hearingPassed } = getTestimonyDeadline({
+    billStatus: status,
+    latestStatusText: bill.latestStatusText,
+    now: bill.now,
+  });
+  return getTestimonyEligibility({
+    dead: bill.dead,
+    billStatus: status,
+    committeeAssignment: bill.committeeAssignment,
+    deadlines: bill.deadlines,
+    today: todayHawaii(bill.now),
+    hearingPassed,
+    latestStatusText: bill.latestStatusText,
+  }).allowed;
 }
 
 const CHAMBER_LABELS: Record<TestimonyChamber, string> = {
