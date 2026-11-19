@@ -31,6 +31,13 @@ interface ExportCsvDialogProps {
    */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /**
+   * Whether "Apply current search & filters" starts checked. Off when opened
+   * away from the board (e.g. the avatar menu on Discover), where the board's
+   * saved filters aren't on screen and would silently drop bills. The option
+   * still shows, so the user can opt in.
+   */
+  applyFiltersByDefault?: boolean;
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -44,7 +51,7 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export function ExportCsvDialog({ children, open, onOpenChange }: ExportCsvDialogProps) {
+export function ExportCsvDialog({ children, open, onOpenChange, applyFiltersByDefault = true }: ExportCsvDialogProps) {
   const { activeTenant, memberships } = useAuth();
   const { viewMode, showArchived } = useBills();
   const { searchQuery, selectedTagIds, selectedYears, deadFilter, view } = useKanbanBoard();
@@ -77,7 +84,7 @@ export function ExportCsvDialog({ children, open, onOpenChange }: ExportCsvDialo
     if (!isOpen) return;
     setIncludeAllOrg(belongsToOrg && viewMode === 'all-bills');
     setIncludeArchived(showArchived);
-    setApplyBoardFilters(true);
+    setApplyBoardFilters(applyFiltersByDefault);
     // Seed once per open, not on every board change while it's showing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);

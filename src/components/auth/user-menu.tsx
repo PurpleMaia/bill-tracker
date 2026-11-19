@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Building2, CircleHelp, Download, LogOut, MessageSquareText, Settings, Shield, SlidersHorizontal, UserPen, UserPlus } from 'lucide-react';
 import { FEEDBACK_FORM_URL } from '@/lib/core/feedback';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
@@ -32,6 +33,7 @@ export function UserMenu() {
   //gets user info and logout function from context
   const { user, logout, activeTenant, memberships, setActiveTenant, isPublicUser } = useAuth();
   const { setView } = useKanbanBoard();
+  const pathname = usePathname();
   const [createOrgOpen, setCreateOrgOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   // Each tabbed dialog is open on a tab, or closed (null).
@@ -234,7 +236,13 @@ export function UserMenu() {
         </DropdownMenuContent>
       </DropdownMenu>
       <CreateOrgDialog open={createOrgOpen} onOpenChange={setCreateOrgOpen} />
-      <ExportCsvDialog open={exportOpen} onOpenChange={setExportOpen} />
+      {/* This menu is app-wide: only on the board, where the filters are on
+          screen, does the export default to applying them. */}
+      <ExportCsvDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        applyFiltersByDefault={pathname === '/your-bills'}
+      />
       <SettingsDialog tab={settingsTab} onTabChange={setSettingsTab} />
       <OrganizationDialog tab={orgTab} onTabChange={setOrgTab} />
     </>
