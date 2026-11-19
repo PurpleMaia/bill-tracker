@@ -132,7 +132,7 @@ export function MyOrgBoardView() {
       <MessageCard
         icon={Lock}
         title="For organization admins"
-        body="Org admins can preview how their organization’s board looks to others here."
+        body="Organization admins can preview how their organization’s board looks to others here."
       >
         <Button asChild className="mt-5">
           <Link href="/boards/browse">

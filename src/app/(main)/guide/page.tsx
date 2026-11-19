@@ -4,7 +4,7 @@ import {
   BookOpen,
   BookmarkPlus,
   FileText,
-  LayoutGrid,
+  Users,
   Search,
   SquareKanban,
   type LucideIcon,
@@ -97,10 +97,10 @@ const STEPS: Step[] = [
     ],
   },
   {
-    icon: LayoutGrid,
+    icon: Users,
     video: 'boards',
     title: 'See what other groups are tracking',
-    where: 'Active Boards',
+    where: 'Community',
     href: '/boards/browse',
     body: (
       <>

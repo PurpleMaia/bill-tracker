@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { KanbanSquareIcon, LayoutGrid, Megaphone, Search } from 'lucide-react';
+import { KanbanSquareIcon, Megaphone, Search, Users } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { TAKE_ACTION_ROOT, isTakeActionPath } from '@/lib/take-action/routes';
 import { isActiveBoardsPath } from '@/lib/boards/board-routes';
@@ -14,13 +14,13 @@ export const NAV_ITEMS = [
   { href: TAKE_ACTION_ROOT, label: 'Take Action', icon: Megaphone },
   // Lands on Browse, the first tab: every public board opens from there, even
   // signed out. Following is one tab over.
-  { href: '/boards/browse', label: 'Active Boards', mobileLabel: 'Boards', icon: LayoutGrid },
+  { href: '/boards/browse', label: 'Community', icon: Users },
 ] as const;
 
 export function isNavItemActive(href: string, pathname: string) {
   // '/' is Discover (the landing page), so the bare root highlights that tab.
   if (href === '/discover') return pathname === '/' || pathname.startsWith('/discover');
-  // Active Boards owns the whole /boards tree plus public /org/<slug> boards, so
+  // Community owns the whole /boards tree plus public /org/<slug> boards, so
   // the tab stays highlighted on Following and shared board links too.
   if (href === '/boards/browse') return isActiveBoardsPath(pathname);
   if (href === TAKE_ACTION_ROOT) return isTakeActionPath(pathname);

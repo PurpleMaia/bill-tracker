@@ -13,9 +13,9 @@ import { isActiveBoardsTabActive } from '@/lib/boards/board-routes';
 const TABS = [
   { href: '/boards/browse', label: 'Browse', icon: Compass, adminOnly: false },
   { href: '/boards', label: 'Following', icon: Star, adminOnly: false },
-  // An admin's preview of their own org's board as others see it. "Your Org",
-  // not "Your Board", so it isn't mistaken for Your Bills.
-  { href: '/boards/mine', label: 'Your Org', icon: Building2, adminOnly: true },
+  // An admin's preview of their own org's board as others see it. "Your
+  // Organization", not "Your Board", so it isn't mistaken for Your Bills.
+  { href: '/boards/mine', label: 'Your Organization', icon: Building2, adminOnly: true },
 ] as const;
 
 /**

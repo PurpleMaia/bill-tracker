@@ -45,8 +45,8 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'boards',
     target: '/boards/browse',
-    title: 'Active Boards',
-    body: 'Browse the bills other organizations are tracking (view only).',
+    title: 'Community',
+    body: 'See what other organizations are tracking: open any public board (view only) and follow the ones you care about.',
   },
 ];
 

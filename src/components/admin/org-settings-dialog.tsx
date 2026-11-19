@@ -186,7 +186,7 @@ export function OrgSettingsPanel() {
         <p className="text-xs text-muted-foreground">
           {loaded && savedDescription === ''
             ? 'Your card under Browse says “No description yet.” until you add one.'
-            : 'Shown on your org’s card under Browse.'}
+            : 'Shown on your organization’s card under Browse.'}
         </p>
       </section>
     </div>

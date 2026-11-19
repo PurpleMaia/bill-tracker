@@ -20,7 +20,6 @@ export function BottomTabBar() {
     >
       {NAV_ITEMS.map((item) => {
         const { href, label, icon: Icon } = item;
-        const shortLabel = 'mobileLabel' in item ? item.mobileLabel : label;
         const active = isNavItemActive(href, pathname);
         return (
           <Link
@@ -36,7 +35,7 @@ export function BottomTabBar() {
             )}
           >
             <Icon className="h-5 w-5" />
-            <span className="truncate">{shortLabel}</span>
+            <span className="truncate">{label}</span>
           </Link>
         );
       })}

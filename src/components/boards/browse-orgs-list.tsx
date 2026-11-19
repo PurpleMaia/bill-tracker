@@ -101,8 +101,8 @@ function BrowseIntro({ orgCount }: { orgCount: number }) {
   return (
     <div className={cn('mb-6 bg-gradient-to-br from-muted/60 to-background p-6', RISE_IN)}>
       <div className="flex items-center gap-2 text-primary">
-        <Building2 className="h-5 w-5" />
-        <h2 className="text-lg font-semibold text-foreground">Active Boards</h2>
+        <Users className="h-5 w-5" />
+        <h2 className="text-lg font-semibold text-foreground">Community</h2>
       </div>
       <p className="mt-1 w-full text-sm text-muted-foreground">
         See which bills other organizations are following, and pull the ones you
@@ -597,7 +597,7 @@ export function BrowseOrgsList() {
     <div className="mx-auto w-full max-w-6xl">
       <BrowseIntro orgCount={orgs.length} />
 
-      {/* Your org: full-width under the Active Boards section, above the columns */}
+      {/* Your org: full-width under the Community intro, above the columns */}
       <MyOrgCard />
 
       <div className="flex flex-col gap-6 lg:flex-row">
