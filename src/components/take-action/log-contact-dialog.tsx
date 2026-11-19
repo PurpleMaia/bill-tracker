@@ -62,8 +62,6 @@ export function LogContactDialog({
 }: LogContactDialogProps) {
   const { log } = useContacts();
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  // Legislators picked from the dropdown, shown as extra checkboxes below the suggestions.
-  const [added, setAdded] = useState<string[]>([]);
   const [method, setMethod] = useState<ContactMethod>(defaultMethod);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
@@ -72,7 +70,6 @@ export function LogContactDialog({
   useEffect(() => {
     if (!open) return;
     setSelected(new Set(suggestedRecipients.length === 1 ? suggestedRecipients : []));
-    setAdded([]);
     setMethod(defaultMethod);
     setNote('');
     // suggestedRecipients is often a fresh array each render; key on its content.
@@ -80,16 +77,10 @@ export function LogContactDialog({
   }, [open, defaultMethod, suggestedRecipients.join('\n')]);
 
   const { data: billLegislators = [], isLoading: legislatorsLoading } = useBillLegislators(billId, open);
-  const listed = new Set([...suggestedRecipients, ...added]);
-  const pickable = billLegislators.filter((l) => !listed.has(l.name));
-  const checkboxNames = [...suggestedRecipients, ...added];
+  // The page's suggestions first, then everyone else on the bill.
+  const checkboxNames = [...new Set([...suggestedRecipients, ...billLegislators])];
 
   const recipients = [...selected];
-
-  const addLegislator = (name: string) => {
-    setAdded((prev) => [...prev, name]);
-    toggle(name, true);
-  };
 
   const toggle = (name: string, checked: boolean) => {
     setSelected((prev) => {
@@ -155,22 +146,6 @@ export function LogContactDialog({
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Loader2 className="h-3 w-3 animate-spin" /> Loading legislators on this bill…
               </p>
-            ) : pickable.length > 0 ? (
-              <Select value="" onValueChange={addLegislator}>
-                <SelectTrigger aria-label="Add a legislator on this bill">
-                  <SelectValue
-                    placeholder={checkboxNames.length > 0 ? 'Add another legislator on this bill' : 'Choose a legislator on this bill'}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {pickable.map((l) => (
-                    <SelectItem key={l.name} value={l.name}>
-                      {l.name}
-                      <span className="ml-1.5 text-xs text-muted-foreground">{l.role}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             ) : (
               checkboxNames.length === 0 && (
                 <p className="text-xs text-muted-foreground">No legislators on file for this bill.</p>
