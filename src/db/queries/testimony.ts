@@ -1,7 +1,7 @@
 import { sql } from 'kysely';
 import { db } from '@/db/kysely/client';
 import { tiptapExcerpt } from '@/lib/testimony/tiptap-text';
-import { SCHEDULED_STATUSES } from '@/lib/testimony/testimony-eligibility';
+import { SCHEDULED_STATUSES, isPastPublicTestimony } from '@/lib/testimony/testimony-eligibility';
 import { ApiError } from '@/lib/core/errors';
 import {
   coversRound,
@@ -255,8 +255,13 @@ export async function upsertTestimonyDraft(
   const target =
     (await getTestimonyDraft(userId, input.billId)) ??
     (await createTestimonyForCurrentRound(userId, { billId: input.billId, tenantId: input.tenantId }));
-  const { billId: _billId, ...update } = input;
-  return updateTestimony(userId, target.id, update);
+  return updateTestimony(userId, target.id, {
+    tenantId: input.tenantId,
+    authorName: input.authorName,
+    organization: input.organization,
+    position: input.position,
+    contentJson: input.contentJson,
+  });
 }
 
 /** Marks the newest testimony for the bill as submitted (starting one if none exists). */
@@ -400,14 +405,16 @@ export async function listTestimonyProspects(userId: string): Promise<TestimonyP
     .where('b.bill_status', 'in', SCHEDULED_STATUSES)
     .execute();
 
-  if (rows.length === 0) return [];
+  // conferenceScheduled is a "scheduled" status, but conference takes no public testimony.
+  const open = rows.filter((row) => !isPastPublicTestimony(row.bill_status));
+  if (open.length === 0) return [];
 
   const [latestByBillId, coverage] = await Promise.all([
-    latestStatusTextByBillId(rows.map((r) => r.id)),
-    currentRoundCoverage(userId, rows),
+    latestStatusTextByBillId(open.map((r) => r.id)),
+    currentRoundCoverage(userId, open),
   ]);
 
-  return rows
+  return open
     .filter((row) => !coverage.get(row.id)?.covered)
     .map((row) => ({
       billId: row.id,
@@ -545,7 +552,8 @@ export async function getOrgTestimonyBillIds(
 }
 
 /**
- * Every non-dead, non-archived bill the user follows, for the "New testimony"
+ * Every bill the user follows that can still take public testimony (not dead,
+ * archived, in conference or later, or enacted), for the "New testimony"
  * picker: bills with a hearing scheduled first, then by bill number.
  */
 export async function listTestimonyBillOptions(userId: string): Promise<TestimonyBillOption[]> {
@@ -568,10 +576,12 @@ export async function listTestimonyBillOptions(userId: string): Promise<Testimon
     .where('b.archived', '=', false)
     .execute();
 
-  const coverage = await currentRoundCoverage(userId, rows);
+  // Bills in conference or later (or enacted) take no public testimony.
+  const open = rows.filter((row) => !isPastPublicTestimony(row.bill_status));
+  const coverage = await currentRoundCoverage(userId, open);
   const scheduled = new Set<string>(SCHEDULED_STATUSES);
 
-  return rows
+  return open
     .map((row) => {
       const { round, covered } = coverage.get(row.id)!;
       return {

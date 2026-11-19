@@ -10,6 +10,7 @@ import { safeReturnPath } from '@/lib/core/safe-return-path';
 import { fullNameOrUsername } from '@/lib/auth/profile';
 import { tiptapHasText } from '@/lib/testimony/tiptap-text';
 import { RETURN_TO_PARAM, stripBillParam } from '@/lib/bills/bill-dialog-url';
+import { isPastPublicTestimony } from '@/lib/testimony/testimony-eligibility';
 import { coversRound, currentTestimonyRound, roundLabel, sameRound } from '@/lib/testimony/testimony-round';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { invalidateTestimonies } from '@/hooks/use-testimonies';
@@ -168,7 +169,13 @@ export default function TestimonyPage() {
         // From "Needs testimony" or the New testimony picker (?round=current) on a bill
         // testified on in an earlier round: start this round's testimony now, copied
         // from the newest one. (Pre-round testimonies alone count as covering it.)
-        if (!picked && startCurrentRoundRef.current && list.length > 0 && !coversRound(list, round)) {
+        if (
+          !picked &&
+          startCurrentRoundRef.current &&
+          list.length > 0 &&
+          !coversRound(list, round) &&
+          !isPastPublicTestimony(details.current_bill_status)
+        ) {
           const created = await data.testimony.create({
             billId,
             tenantId: activeTenant?.tenantId ?? null,
@@ -418,9 +425,13 @@ export default function TestimonyPage() {
     updates: bill.updates,
     dead: bill.dead,
   });
-  // Offer a new testimony only once one exists and none covers the bill's current round.
+  // Offer a new testimony only once one exists, the bill still takes public testimony,
+  // and none covers its current round.
   const newRoundLabel =
-    activeId && !bill.dead && !testimonies.some((t) => sameRound(t, currentRound)) ? roundLabel(currentRound) : null;
+    activeId && !bill.dead && !isPastPublicTestimony(bill.current_bill_status) &&
+    !testimonies.some((t) => sameRound(t, currentRound))
+      ? roundLabel(currentRound)
+      : null;
   const roundSwitcher = activeId ? (
     <TestimonyRoundSwitcher
       testimonies={testimonies}

@@ -43,6 +43,16 @@ export function isTestimonyUrgent(billStatus: BillStatus): boolean {
   return SCHEDULED_STATUSES.includes(billStatus);
 }
 
+/**
+ * True once a bill has reached conference (or the Governor / law after it) or
+ * been enacted — public testimony is no longer taken, so no new testimony
+ * should be offered. Unknown/missing statuses are not past it.
+ */
+export function isPastPublicTestimony(billStatus: string | null | undefined): boolean {
+  if (!billStatus) return false;
+  return isEnacted(billStatus) || isConferenceOrLater(billStatus as BillStatus);
+}
+
 export interface TestimonyEligibility {
   allowed: boolean;
   /** Human-readable reason testimony is closed; null when allowed. */
