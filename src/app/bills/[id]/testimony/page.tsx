@@ -11,6 +11,8 @@ import { fullNameOrUsername } from '@/lib/auth/profile';
 import { tiptapHasText } from '@/lib/testimony/tiptap-text';
 import { RETURN_TO_PARAM, stripBillParam } from '@/lib/bills/bill-dialog-url';
 import { isPastPublicTestimony } from '@/lib/testimony/testimony-eligibility';
+import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
+import type { BillStatus } from '@/db/types';
 import { coversRound, currentTestimonyRound, opensNewRound, roundLabel, sameRound } from '@/lib/testimony/testimony-round';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { invalidateTestimonies } from '@/hooks/use-testimonies';
@@ -175,7 +177,12 @@ export default function TestimonyPage() {
           list.length > 0 &&
           !coversRound(list, round) &&
           opensNewRound(round) &&
-          !isPastPublicTestimony(details.current_bill_status)
+          !isPastPublicTestimony(details.current_bill_status) &&
+          !getTestimonyDeadline({
+            billStatus: details.current_bill_status as BillStatus,
+            latestStatusText: details.updates[0]?.statustext ?? null,
+            now: new Date(),
+          }).hearingPassed
         ) {
           const created = await data.testimony.create({
             billId,
@@ -430,7 +437,13 @@ export default function TestimonyPage() {
   // and none covers its current round.
   const newRoundLabel =
     activeId && !bill.dead && !isPastPublicTestimony(bill.current_bill_status) &&
-    opensNewRound(currentRound) && !testimonies.some((t) => sameRound(t, currentRound))
+    opensNewRound(currentRound) && !testimonies.some((t) => sameRound(t, currentRound)) &&
+    // No new version for a round whose hearing is already over.
+    !getTestimonyDeadline({
+      billStatus: bill.current_bill_status as BillStatus,
+      latestStatusText: bill.updates[0]?.statustext ?? null,
+      now: new Date(),
+    }).hearingPassed
       ? roundLabel(currentRound)
       : null;
   const roundSwitcher = activeId ? (

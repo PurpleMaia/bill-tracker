@@ -125,7 +125,7 @@ export interface TestimonyBillOption {
   billStatus: string;
   /** Label of the bill's current hearing round ("Senate · AGL"). */
   roundLabel: string;
-  /** A hearing is scheduled — testimony can be submitted now. */
+  /** A hearing is scheduled and its submission window hasn't closed — testimony can be submitted now. */
   scheduled: boolean;
   /** The user already has a testimony covering the current round (picking it opens that one). */
   written: boolean;

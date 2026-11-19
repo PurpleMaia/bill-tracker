@@ -2,6 +2,7 @@ import { sql } from 'kysely';
 import { db } from '@/db/kysely/client';
 import { tiptapExcerpt } from '@/lib/testimony/tiptap-text';
 import { SCHEDULED_STATUSES, isPastPublicTestimony } from '@/lib/testimony/testimony-eligibility';
+import { getTestimonyDeadline } from '@/lib/testimony/hearing-schedule';
 import { ApiError } from '@/lib/core/errors';
 import {
   coversRound,
@@ -578,8 +579,22 @@ export async function listTestimonyBillOptions(userId: string): Promise<Testimon
 
   // Bills in conference or later (or enacted) take no public testimony.
   const open = rows.filter((row) => !isPastPublicTestimony(row.bill_status));
-  const coverage = await currentRoundCoverage(userId, open);
+  const [coverage, latestByBillId] = await Promise.all([
+    currentRoundCoverage(userId, open),
+    latestStatusTextByBillId(open.map((r) => r.id)),
+  ]);
   const scheduled = new Set<string>(SCHEDULED_STATUSES);
+  const now = new Date();
+  // "Hearing scheduled" only while the hearing's submission window is still open —
+  // a bill can sit in a scheduled status after its hearing was held.
+  const hearingOpen = (row: (typeof open)[number]) =>
+    row.bill_status !== null &&
+    scheduled.has(row.bill_status) &&
+    !getTestimonyDeadline({
+      billStatus: row.bill_status,
+      latestStatusText: latestByBillId[row.id] ?? null,
+      now,
+    }).hearingPassed;
 
   return open
     .map((row) => {
@@ -591,7 +606,7 @@ export async function listTestimonyBillOptions(userId: string): Promise<Testimon
         nickname: row.nickname,
         billStatus: row.bill_status ?? 'unassigned',
         roundLabel: roundLabel(round),
-        scheduled: row.bill_status !== null && scheduled.has(row.bill_status),
+        scheduled: hearingOpen(row),
         written: covered,
       };
     })
