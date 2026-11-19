@@ -7,7 +7,7 @@ import { toast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Check, CircleDashed, Globe, Lock, Pencil, type LucideIcon } from 'lucide-react';
+import { Globe, Lock, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { CopyLinkButton } from '@/components/boards/copy-link-button';
 import { publicBoardUrl } from '@/lib/boards/board-routes';
@@ -16,8 +16,6 @@ const DESCRIPTION_MAX = 200;
 
 const CHIP_TONES = {
   on: 'bg-olive/15 text-olive-dark',
-  off: 'bg-muted text-muted-foreground',
-  pending: 'bg-amber-100 text-amber-800',
   // Matches the red Private badge on the Browse org card.
   private: 'bg-red-100 text-red-700',
 } as const;
@@ -124,14 +122,6 @@ export function OrgSettingsPanel() {
     }
   };
 
-  const descriptionStatus: 'saving' | 'unsaved' | 'empty' | 'saved' = savingDescription
-    ? 'saving'
-    : description.trim() !== savedDescription
-      ? 'unsaved'
-      : savedDescription === ''
-        ? 'empty'
-        : 'saved';
-
   return (
     <div className="flex flex-col gap-6 py-2">
       {/* Public board visibility */}
@@ -183,21 +173,6 @@ export function OrgSettingsPanel() {
             {description.length}/{DESCRIPTION_MAX}
           </span>
         </div>
-        {loaded && (
-          <StatusChip
-            tone={descriptionStatus === 'unsaved' ? 'pending' : descriptionStatus === 'empty' ? 'off' : 'on'}
-            icon={descriptionStatus === 'unsaved' || descriptionStatus === 'saving' ? Pencil : descriptionStatus === 'empty' ? CircleDashed : Check}
-            label={
-              descriptionStatus === 'saving'
-                ? 'Saving…'
-                : descriptionStatus === 'unsaved'
-                  ? 'Not saved yet — click away to save'
-                  : descriptionStatus === 'empty'
-                    ? 'No description yet'
-                    : 'This is your current description'
-            }
-          />
-        )}
         <Textarea
           id="org-description"
           rows={3}
@@ -209,7 +184,7 @@ export function OrgSettingsPanel() {
           onBlur={handleDescriptionBlur}
         />
         <p className="text-xs text-muted-foreground">
-          {descriptionStatus === 'empty'
+          {loaded && savedDescription === ''
             ? 'Your card under Browse says “No description yet.” until you add one.'
             : 'Shown on your org’s card under Browse.'}
         </p>
