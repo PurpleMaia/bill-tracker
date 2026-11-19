@@ -10,6 +10,7 @@ import { safeReturnPath } from '@/lib/core/safe-return-path';
 import { fullNameOrUsername } from '@/lib/auth/profile';
 import { tiptapHasText } from '@/lib/testimony/tiptap-text';
 import { RETURN_TO_PARAM, stripBillParam } from '@/lib/bills/bill-dialog-url';
+import { takeActionBackHref } from '@/lib/take-action/routes';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
 import { coversRound, currentTestimonyRound, opensNewRound, testimonyOpenNow, roundLabel, sameRound } from '@/lib/testimony/testimony-round';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -60,9 +61,9 @@ export default function TestimonyPage() {
 
   // Where the user came from — back navigation returns there, not always the board.
   // Back returns to where the user came from: the bill dialog's host page
-  // (`returnTo`, validated), else the testimonies list, else home.
+  // (`returnTo`, validated), else the Take Action tab it came from, else home.
   const backHref = safeReturnPath(searchParams.get(RETURN_TO_PARAM))
-    ?? (searchParams.get('from') === 'testimonies' ? '/testimonies' : '/');
+    ?? takeActionBackHref(searchParams.get('from'));
 
   const [bill, setBill] = useState<BillDetails | null>(null);
   const [loading, setLoading] = useState(true);

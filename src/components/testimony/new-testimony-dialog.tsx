@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CalendarClock, Check, Loader2, Plus } from 'lucide-react';
 import { data } from '@/lib/data-client';
+import { FROM_TESTIMONY } from '@/lib/take-action/routes';
 import type { TestimonyBillOption } from '@/types/testimony';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,7 +48,7 @@ export function NewTestimonyButton() {
 
   const choose = (billId: string) => {
     setOpening(billId);
-    router.push(`/bills/${billId}/testimony?from=testimonies&round=current`);
+    router.push(`/bills/${billId}/testimony?from=${FROM_TESTIMONY}&round=current`);
   };
 
   const scheduled = options?.filter((o) => o.scheduled) ?? [];
@@ -56,8 +57,8 @@ export function NewTestimonyButton() {
   return (
     <>
       <Button size="sm" onClick={() => setOpen(true)}>
-        <Plus className="mr-1.5 h-4 w-4" />
-        New testimony
+        <Plus className="h-4 w-4" />
+        Testimony
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder="Search bills you follow…" />

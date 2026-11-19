@@ -18,6 +18,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Testimonies became the Testimony tab of Take Action; old links and
+  // bookmarks keep working.
+  async redirects() {
+    return [
+      { source: '/testimonies', destination: '/take-action/testimony', permanent: true },
+      { source: '/testimonies/:path*', destination: '/take-action/testimony/:path*', permanent: true },
+    ];
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // Don't resolve 'fs' module on the client to prevent this error on build

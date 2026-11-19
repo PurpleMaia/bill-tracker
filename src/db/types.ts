@@ -139,6 +139,18 @@ export interface InviteTokens {
   token: string;
 }
 
+export interface LegislatorContacts {
+  bill_id: string;
+  contacted_at: Generated<Timestamp>;
+  id: Generated<string>;
+  method: Generated<string>;
+  note: string | null;
+  recipient: string;
+  stage: string;
+  tenant_id: string | null;
+  user_id: string;
+}
+
 export interface Legislators {
   area: string | null;
   chamber: string | null;
@@ -328,6 +340,7 @@ export interface DB {
   committee_reports: CommitteeReports;
   committees: Committees;
   invite_tokens: InviteTokens;
+  legislator_contacts: LegislatorContacts;
   legislators: Legislators;
   members: Members;
   org_bills: OrgBills;

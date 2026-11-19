@@ -2,27 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Check, Layers, PenLine } from 'lucide-react';
+import { FileText, Users } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { useTestimonies } from '@/hooks/use-testimonies';
-
-const TABS = [
-  { href: '/testimonies', label: 'All', icon: Layers, count: 'all' },
-  { href: '/testimonies/drafts', label: 'Drafts', icon: PenLine, count: 'drafts' },
-  { href: '/testimonies/submitted', label: 'Submitted', icon: Check, count: 'submitted' },
-] as const;
-
-export function isTestimoniesTabActive(href: string, pathname: string) {
-  return href === '/testimonies' ? pathname === '/testimonies' : pathname.startsWith(href);
-}
+import { useContactOpportunities } from '@/hooks/use-contacts';
+import { CONTACT_HREF, TESTIMONY_HREF } from '@/lib/take-action/routes';
 
 /**
- * Sub-navigation for the Testimonies section — link-based tabs styled to
- * match the board's ViewToggle, with live counts from the shared testimony
- * cache. `compact` renders icon-only tabs (counts kept, accessible labels)
- * for tight spots like the mobile header's center slot.
+ * Header tabs for Take Action — Testimony and Contact Legislators — styled
+ * like the board's ViewToggle. Each badge counts that tab's to-dos: open
+ * testimony drafts, and bills waiting on a contact. `compact` renders
+ * icon-only tabs (counts kept, accessible labels) for the mobile header.
  */
-export function TestimoniesSubNav({
+export function TakeActionSubNav({
   compact = false,
   className,
 }: {
@@ -31,30 +23,40 @@ export function TestimoniesSubNav({
 }) {
   const pathname = usePathname();
   const { items } = useTestimonies();
+  const { toContact, ready } = useContactOpportunities();
 
-  const counts =
-    items === null
-      ? null
-      : {
-          all: items.length,
-          drafts: items.filter((item) => item.submittedAt === null).length,
-          submitted: items.filter((item) => item.submittedAt !== null).length,
-        };
+  const drafts = items === null ? null : items.filter((item) => item.submittedAt === null).length;
+  const tabs = [
+    {
+      href: TESTIMONY_HREF,
+      label: 'Testimony',
+      icon: FileText,
+      count: drafts,
+      countLabel: (n: number) => `${n} draft${n === 1 ? '' : 's'}`,
+    },
+    {
+      href: CONTACT_HREF,
+      label: 'Contact Legislators',
+      icon: Users,
+      count: ready ? toContact.length : null,
+      countLabel: (n: number) => `${n} bill${n === 1 ? '' : 's'} to contact`,
+    },
+  ];
 
   return (
     <nav
-      aria-label="Testimony views"
+      aria-label="Take Action"
       className={cn('inline-flex h-10 items-center rounded-md bg-secondary p-1 shadow-sm', className)}
     >
-      {TABS.map(({ href, label, icon: Icon, count }) => {
-        const active = isTestimoniesTabActive(href, pathname);
+      {tabs.map(({ href, label, icon: Icon, count, countLabel }) => {
+        const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link
             key={href}
             href={href}
             aria-current={active ? 'page' : undefined}
-            aria-label={compact ? `${label} testimonies` : undefined}
-            title={compact ? `${label} testimonies` : undefined}
+            aria-label={compact ? label : undefined}
+            title={compact ? label : undefined}
             className={cn(
               'inline-flex items-center justify-center whitespace-nowrap rounded-sm py-1.5 text-sm font-medium transition-all',
               compact ? 'px-2' : 'px-3',
@@ -66,15 +68,17 @@ export function TestimoniesSubNav({
           >
             <Icon className={cn(compact ? 'h-5 w-5' : 'h-4 w-4 mr-2')} />
             {!compact && label}
-            {counts !== null && (
+            {count !== null && count > 0 && (
               <span
+                title={countLabel(count)}
                 className={cn(
                   'rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none',
                   compact ? 'ml-1' : 'ml-1.5',
                   active ? 'bg-white/20 text-white' : 'bg-background text-muted-foreground',
                 )}
               >
-                {counts[count]}
+                {count}
+                <span className="sr-only"> ({countLabel(count)})</span>
               </span>
             )}
           </Link>

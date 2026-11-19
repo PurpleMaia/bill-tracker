@@ -60,7 +60,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { TestimoniesSidebar } from './testimonies-sidebar';
+import { MobileHelpSheet } from '@/components/take-action/mobile-help-sheet';
+import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
 import { NewTestimonyButton } from './new-testimony-dialog';
+import { TestimonyFilterTabs } from './testimony-filter-tabs';
+import { FROM_TESTIMONY, TESTIMONY_DRAFTS_HREF } from '@/lib/take-action/routes';
 
 export type TestimoniesFilter = 'all' | 'drafts' | 'submitted';
 
@@ -223,7 +227,15 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
       <div className={cn('mb-6', RISE_IN)}>
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-2xl font-semibold tracking-tight">Your Testimonies</h2>
-          {user && <NewTestimonyButton />}
+          <div className="flex shrink-0 items-center gap-2">
+            <MobileHelpSheet
+              title="How testimony works"
+              description="The steps to submit, the official how-to video, and this session's deadlines."
+            >
+              <TestimoniesSidebar />
+            </MobileHelpSheet>
+            {user && <NewTestimonyButton />}
+          </div>
         </div>
         {items !== null && hasAnything && (
           <p className="mt-1 text-sm text-muted-foreground">
@@ -239,6 +251,7 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
             <span> · {submitted.length} submitted</span>
           </p>
         )}
+        {user && <TestimonyFilterTabs className="mt-3" />}
       </div>
 
       {/* Testimony list grounded left; guide rail fills the right */}
@@ -273,13 +286,15 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
         </div>
 
         <aside
-          className={cn('w-full shrink-0 lg:sticky lg:top-24 lg:w-80', RISE_IN)}
+          className={cn('hidden shrink-0 lg:sticky lg:top-24 lg:block lg:w-80', RISE_IN)}
           style={riseDelay(2)}
           aria-label="Testimony help"
         >
           <TestimoniesSidebar />
         </aside>
       </div>
+
+      <ScrollToTopButton label="Scroll back to top" />
     </div>
   );
 }
@@ -340,7 +355,7 @@ function FilteredList({
         icon={Check}
         title="Nothing submitted yet"
         description="When you mark a testimony as submitted on the capitol site, it will appear here."
-        cta={{ href: '/testimonies/drafts', label: 'View your drafts' }}
+        cta={{ href: TESTIMONY_DRAFTS_HREF, label: 'View your drafts' }}
       />
     ) : (
       <TestimonyCardList entries={submitted} onDeleted={onDeleted} />
@@ -528,7 +543,7 @@ function ProspectCard({ prospect }: { prospect: DecoratedProspect }) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
             <Link
-              href={`/bills/${item.billId}/testimony?from=testimonies&round=current`}
+              href={`/bills/${item.billId}/testimony?from=${FROM_TESTIMONY}&round=current`}
               onClick={(e) => {
                 if (!isModifiedClick(e)) setNavigating(true);
               }}
@@ -608,7 +623,7 @@ function TestimonyCard({
             <div className="flex flex-wrap items-center gap-1.5">
               {/* Stretched link — the whole card navigates to the testimony writer */}
               <Link
-                href={`/bills/${item.billId}/testimony?from=testimonies&t=${item.id}`}
+                href={`/bills/${item.billId}/testimony?from=${FROM_TESTIMONY}&t=${item.id}`}
                 onClick={(e) => {
                   if (!isModifiedClick(e)) setNavigating(true);
                 }}

@@ -20,7 +20,7 @@ export function isActiveBoardsTabActive(href: string, pathname: string) {
 
 /**
  * Sub-navigation for the Active Boards section — link-based tabs styled to
- * match TestimoniesSubNav (same bg-secondary pill, active = bg-primary
+ * match TakeActionSubNav (same bg-secondary pill, active = bg-primary
  * text-white). No counts. `compact` renders icon-only tabs for tight spots
  * like the mobile header's center slot.
  */

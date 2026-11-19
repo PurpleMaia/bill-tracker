@@ -6,6 +6,7 @@ import type { BillDetails } from '@/types/legislation';
 import { data } from '@/lib/data-client';
 import { safeReturnPath } from '@/lib/core/safe-return-path';
 import { RETURN_TO_PARAM } from '@/lib/bills/bill-dialog-url';
+import { takeActionBackHref } from '@/lib/take-action/routes';
 import type { CommitteeChair } from '@/db/queries/committee-chairs';
 import type { Conferee } from '@/db/queries/conferees';
 import {
@@ -23,6 +24,7 @@ import {
   buildGovernorCallScript,
   GOVERNOR_COMMENTS_URL,
   GOVERNOR_CONTACT_URL,
+  GOVERNOR_OFFICE_RECIPIENT,
   GOVERNOR_PHONE,
   getGovernorStage,
   parseIntroducers,
@@ -34,6 +36,9 @@ import {
   JOINT_REFERRAL_NOTE,
 } from '@/lib/testimony/committees';
 import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
+import { useAuth } from '@/hooks/contexts/auth-context';
+import { LoginLink } from '@/components/auth/login-link';
+import { LogContactDialog } from '@/components/take-action/log-contact-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -49,6 +54,7 @@ import { RISE_IN, riseDelay } from '@/lib/core/motion';
 import {
   ArrowLeft,
   Check,
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
   Copy,
@@ -57,6 +63,8 @@ import {
   Info,
   Landmark,
   Loader2,
+  Lock,
+  LogIn,
   MessageSquareText,
   Mail,
   Megaphone,
@@ -93,11 +101,13 @@ export default function ContactLegislatorPage() {
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
   const committeeNames = useCommitteeNames();
+  const { user, loading: authLoading } = useAuth();
+  const [logOpen, setLogOpen] = useState(false);
 
   // Back returns to where the user came from: the bill dialog's host page
-  // (`returnTo`, validated), else the testimonies list, else home.
+  // (`returnTo`, validated), else the Take Action tab it came from, else home.
   const backHref = safeReturnPath(searchParams.get(RETURN_TO_PARAM))
-    ?? (searchParams.get('from') === 'testimonies' ? '/testimonies' : '/');
+    ?? takeActionBackHref(searchParams.get('from'));
 
   const [bill, setBill] = useState<BillDetails | null>(null);
   const [chairs, setChairs] = useState<CommitteeChair[]>([]);
@@ -218,6 +228,35 @@ export default function ContactLegislatorPage() {
 
   const referencePanel = bill ? <BillReferencePanel bill={bill} /> : null;
 
+  // Contacting is for signed-in users (the bill dialog already gates its
+  // button); a pasted URL gets the same wall.
+  if (!authLoading && !user) {
+    return (
+      <div className={cn('flex h-dvh flex-col items-center justify-center gap-4 p-8 text-center', RISE_IN)}>
+        <Lock className="h-10 w-10 text-muted-foreground" aria-hidden="true" />
+        <div className="space-y-1">
+          <h1 className="text-lg font-semibold">Login to contact legislators</h1>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Get a ready-to-send email and call script for the people who can act on this bill, and
+            keep track of who you have contacted.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => router.push(backHref)}>
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
+            Back
+          </Button>
+          <Button asChild>
+            <LoginLink>
+              <LogIn className="mr-1.5 h-4 w-4" />
+              Login
+            </LoginLink>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return <ContactSkeleton onBack={() => router.push(backHref)} />;
   }
@@ -283,6 +322,16 @@ export default function ContactLegislatorPage() {
             : 'hearing';
   // Mirrors the render below: everything but the two empty states has contacts.
   const hasContacts = governorStage !== null || (atConference ? conferees.length > 0 : hasChairs);
+  // Who "Mark as contacted" offers, matching the cards on screen.
+  const suggestedRecipients =
+    contactStage === 'override'
+      ? introducers.map((c) => c.legislatorName)
+      : governorStage
+        ? [GOVERNOR_OFFICE_RECIPIENT]
+        : atConference
+          ? conferees.map((c) => c.legislatorName)
+          : [...currentGroups, ...otherGroups].flatMap((g) => g.chairs.map((c) => c.legislatorName));
+  const uniqueRecipients = [...new Set(suggestedRecipients.filter(Boolean))];
 
   return (
     <div className="flex h-dvh flex-col">
@@ -303,14 +352,30 @@ export default function ContactLegislatorPage() {
         {/* Only where there's someone to contact: the empty states have no scripts or
             recipients to tour, and running it there would use up the first-visit tour. */}
         {bill && hasContacts && (
-          <FlowWalkthrough
-            walkthrough={contactWalkthrough({
-              stage: contactStage,
-              billNumber: bill.bill_number,
-              committeeName: currentCommitteeName,
-            })}
-            storageKey={CONTACT_WALKTHROUGH_KEY}
-          />
+          <div className="flex shrink-0 items-center gap-2">
+            <Button size="sm" variant="outline" className="h-8" onClick={() => setLogOpen(true)}>
+              <CheckCircle2 className="h-4 w-4" />
+              <span className="ml-1.5 hidden sm:inline">Mark as contacted</span>
+              <span className="sr-only sm:hidden">Mark as contacted</span>
+            </Button>
+            <FlowWalkthrough
+              walkthrough={contactWalkthrough({
+                stage: contactStage,
+                billNumber: bill.bill_number,
+                committeeName: currentCommitteeName,
+              })}
+              storageKey={CONTACT_WALKTHROUGH_KEY}
+            />
+            <LogContactDialog
+              open={logOpen}
+              onOpenChange={setLogOpen}
+              billId={bill.id}
+              billNumber={bill.bill_number}
+              stage={contactStage}
+              suggestedRecipients={uniqueRecipients}
+              defaultMethod={governorStage && governorStage !== 'vetoed' ? 'form' : 'email'}
+            />
+          </div>
         )}
       </header>
 

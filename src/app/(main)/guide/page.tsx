@@ -78,20 +78,21 @@ const STEPS: Step[] = [
     icon: FileText,
     video: 'testimonies',
     title: 'Speak up on a bill',
-    where: 'Testimonies',
-    href: '/testimonies',
+    where: 'Take Action',
+    href: '/take-action',
     body: (
       <>
         Testimony is your chance to tell a committee what you think of a bill. The guided editor
         helps you <strong>write</strong> it and <strong>download</strong> it, then shows you how to{' '}
         <strong>submit it yourself</strong> on capitol.hawaii.gov. The Hawaiʻi Bill Tracker can&rsquo;t submit testimony
         for you. You can also ask lawmakers to act on a bill, like scheduling a hearing or meeting
-        with you, with <strong>Contact Legislator</strong>.
+        with you, from the <strong>Contact Legislators</strong> tab.
       </>
     ),
     tips: [
       'Testimony is generally due 24 hours before the hearing, so check the hearing date first.',
-      'Your drafts are saved here. After you submit on the Capitol site, mark it submitted to keep track.',
+      'Your drafts are saved on the Testimony tab. After you submit on the Capitol site, mark it submitted to keep track.',
+      'The Contact Legislators tab lists the bills on Your Bills where a call or email can help right now. After you reach out, mark who you contacted so you and your team can see it.',
       'Open any bill and press Contact Legislator to write to the lawmakers who can act on it. The message is sent from your own email app, not by the Hawaiʻi Bill Tracker. Once a bill reaches the Governor, the button becomes Contact Governor.',
     ],
   },

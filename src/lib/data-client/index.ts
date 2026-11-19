@@ -18,6 +18,7 @@ import { summariesClient } from './summaries.client';
 import { legislatorsClient } from './legislators.client';
 import { committeesClient } from './committees.client';
 import { calendarClient } from './calendar.client';
+import { contactsClient } from './contacts.client';
 
 export const data = {
   auth: authClient,
@@ -32,6 +33,7 @@ export const data = {
   legislators: legislatorsClient,
   committees: committeesClient,
   calendar: calendarClient,
+  contacts: contactsClient,
 };
 
 export type { Transport } from './transport';
