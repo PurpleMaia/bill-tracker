@@ -74,6 +74,19 @@ export default {
   				soft: 'hsl(var(--ochre-soft))'
   			}
   		},
+  		// App-wide stacking layers, lowest to highest. Use these names for
+  		// anything fixed/sticky at page level; plain z-0/z-10/z-20 stay fine for
+  		// local stacking inside a single component.
+  		zIndex: {
+  			floating: '20', // scroll-to-top: tucks under the chrome on phones
+  			chrome: '30', // app header, mobile tab bar, fixed bottom action bars
+  			fab: '40', // bill-info FAB, floats above the chrome
+  			overlay: '50', // dialogs, sheets, popovers, menus, tooltips, skip link
+  			tour: '60', // welcome tour
+  			spotlight: '70', // tour/spotlight dimmer + highlight ring
+  			'spotlight-card': '71', // the step card above the spotlight
+  			toast: '100' // toasts sit above everything
+  		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',

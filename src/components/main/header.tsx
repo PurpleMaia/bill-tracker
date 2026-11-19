@@ -13,7 +13,7 @@ export function Header() {
     // their content instead: the logo is tiny but the signed-out cluster
     // (Login + Guide + Feedback) is wide, and equal tracks would push that
     // cluster over the sub-nav. The sub-nav centers in the space left between.
-    <header className="sticky top-0 z-10 grid grid-cols-[auto_minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 md:gap-4 px-3 md:px-8 py-3 md:py-4 border-b-[3px] border-olive bg-primary text-primary-foreground">
+    <header className="sticky top-0 z-chrome grid grid-cols-[auto_minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 md:gap-4 px-3 md:px-8 py-3 md:py-4 border-b-[3px] border-olive bg-primary text-primary-foreground">
       {/* Brand — logo only on mobile, logo + name on md+. The build credit now
           lives in the Discover hero (the landing page), not under the logo.
           A div, not an h1: the brand repeats on every page, so each page owns

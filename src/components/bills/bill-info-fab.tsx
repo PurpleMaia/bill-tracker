@@ -28,7 +28,7 @@ export function BillInfoFab({ panel, className }: BillInfoFabProps) {
           size="sm"
           variant="secondary"
           className={cn(
-            'fixed bottom-4 left-4 z-40 h-10 rounded-full border border-primary/20 px-4 shadow-lg hover:bg-secondary hover:brightness-95',
+            'fixed bottom-4 left-4 z-fab h-10 rounded-full border border-primary/20 px-4 shadow-lg hover:bg-secondary hover:brightness-95',
             className,
           )}
           data-flow-tour="reference"

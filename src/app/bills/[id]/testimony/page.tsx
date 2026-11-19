@@ -570,7 +570,7 @@ export default function TestimonyPage() {
       {isMobile && !typing && (
         <>
           <nav
-            className="fixed inset-x-0 bottom-0 z-30 flex justify-center border-t bg-background px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+            className="fixed inset-x-0 bottom-0 z-chrome flex justify-center border-t bg-background px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
             data-flow-tour="stepper"
           >
             {stepper}
