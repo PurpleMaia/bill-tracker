@@ -1,9 +1,10 @@
 'use client';
 
-import { useLayoutEffect, useState, type ElementType, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useState, type ElementType, type ReactNode } from 'react';
 import { cn } from '@/lib/core/utils';
 
 const CLAMP = { 1: 'line-clamp-1', 2: 'line-clamp-2', 3: 'line-clamp-3' } as const;
+const MOBILE_QUERY = '(max-width: 639px)';
 
 interface ClampTextProps {
   /** Element to render — keep the original semantics (p, h2, h3, ...). */
@@ -17,8 +18,9 @@ interface ClampTextProps {
 /**
  * Text that clamps instead of being cut off for good. Touch screens have no
  * hover, so a `title` tooltip can't reveal truncated text on mobile; instead,
- * when the text actually overflows it becomes a button that expands in place
- * (tap again to collapse). Desktop keeps the one-line look plus the tooltip.
+ * on mobile, text that actually overflows becomes a button that expands in
+ * place (tap again to collapse). Desktop keeps the one-line look plus the
+ * tooltip, and stays non-interactive.
  * Text that fits renders as plain text — no dead button for screen readers.
  *
  * Don't use inside another button or link (nested interactive elements).
@@ -30,6 +32,20 @@ export function ClampText({ as: Tag = 'p', lines = 2, className, children }: Cla
   const [expanded, setExpanded] = useState(false);
   const [overflowing, setOverflowing] = useState(false);
   const [fullText, setFullText] = useState<string>();
+  // Below Tailwind's `sm` — the only width where tap-to-expand applies. On
+  // desktop the text stays non-interactive (no extra tab stops) with a tooltip.
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia(MOBILE_QUERY);
+    const update = () => {
+      setIsMobile(query.matches);
+      if (!query.matches) setExpanded(false);
+    };
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
 
   useLayoutEffect(() => {
     // Measured only while collapsed: expanded text never overflows, and the
@@ -56,7 +72,7 @@ export function ClampText({ as: Tag = 'p', lines = 2, className, children }: Cla
 
   return (
     <Tag className={cn('min-w-0', className)} title={overflowing && !expanded ? fullText : undefined}>
-      {overflowing || expanded ? (
+      {isMobile && (overflowing || expanded) ? (
         <button
           type="button"
           onClick={() => setExpanded((open) => !open)}
