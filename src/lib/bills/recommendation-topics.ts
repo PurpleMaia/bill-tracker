@@ -9,47 +9,47 @@ export const RECOMMENDATION_TOPICS: RecommendationTopic[] = [
   {
     id: 'food-access',
     label: 'Food Access',
-    terms: ['food insecurity', 'food bank', 'food pantry', 'snap', 'ebt', 'wic', 'double up food bucks', 'hunger'],
+    terms: ['food insecurity', 'food bank', 'food pantry', 'supplemental nutrition assistance', 'nutrition assistance', 'electronic benefits transfer', 'double up food bucks', 'hunger', 'food assistance', 'emergency food', 'free meals', 'child nutrition', 'school meal'],
   },
   {
     id: 'farmer-support',
     label: 'Farmer Support',
-    terms: ['farmer', 'rancher', 'agricultural loan', 'agricultural grant', 'beginning farmer', 'agricultural workforce', 'farm labor'],
+    terms: ['farmer', 'rancher', 'agricultural loan', 'agricultural grant', 'beginning farmer', 'agricultural workforce', 'farm labor', 'agricultural producer', 'farm employee', 'agribusiness development', 'livestock'],
   },
   {
     id: 'local-food-system',
     label: 'Local Food System Development',
-    terms: ['local food', 'locally grown', 'food hub', 'food processing', 'value-added', 'food self-sufficiency', 'food sustainability'],
+    terms: ['local food', 'locally grown', 'food hub', 'food processing', 'value-added', 'food self-sufficiency', 'food sustainability', 'food system', 'food production', 'local agricultural products', 'hawaii grown'],
   },
   {
     id: 'soil-ecosystem',
     label: 'Soil & Ecosystem Health',
-    terms: ['soil health', 'regenerative', 'carbon sequestration', 'compost', 'pesticide', 'invasive species', 'watershed'],
+    terms: ['soil', 'soil health', 'regenerative', 'carbon sequestration incentive', 'compost', 'pesticide', 'invasive species', 'watershed'],
   },
   {
     id: 'land-access',
     label: 'Land Access',
-    terms: ['agricultural land', 'important agricultural lands', 'agricultural lease', 'agricultural park', 'land trust', 'kuleana'],
+    terms: ['agricultural land', 'important agricultural lands', 'agricultural lease', 'agricultural park', 'land trust', 'kuleana', 'agricultural district', 'conservation easement', 'farmland'],
   },
   {
     id: 'farm-to-school',
     label: 'Farm to School',
-    terms: ['farm to school', 'school meal', 'school lunch', 'school garden', 'cafeteria', 'keiki'],
+    terms: ['farm to school', 'school meal', 'school lunch', 'school breakfast', 'school garden', 'school cafeteria', 'child nutrition'],
   },
   {
     id: 'aquaponics-fishpond',
     label: 'Aquaponics/Fishpond',
-    terms: ['aquaponics', 'aquaculture', 'fishpond', "loko i'a", 'loko iʻa', 'fisheries', 'limu'],
+    terms: ['aquaponics', 'aquaculture', 'fishpond', 'loko iʻa', "loko i'a", 'fisheries', 'limu', 'mariculture'],
   },
   {
     id: 'emergency-preparedness',
     label: 'Emergency Preparedness',
-    terms: ['emergency preparedness', 'food security', 'disaster', 'resilience', 'food stockpile'],
+    terms: ['emergency preparedness', 'disaster preparedness', 'food security', 'food shortage', 'food supply', 'food stockpile', 'disaster recovery'],
   },
   {
     id: 'water',
     label: 'Water',
-    terms: ['water', 'irrigation', 'water rights', 'stream', 'aquifer', 'ditch'],
+    terms: ['water resource', 'irrigation', 'water rights', 'aquifer', 'groundwater', 'water quality', 'water conservation', 'drinking water', 'water use', 'water supply', 'ditch'],
   },
 ];
 
