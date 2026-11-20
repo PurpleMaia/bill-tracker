@@ -357,15 +357,22 @@ export async function bulkUpdateBillTags(
   }
 
   // Only bills the bulk dialog could have listed: tracked by someone in this
-  // org (the org board) or by the caller in any tenant (My Bills, which also
-  // covers user_bills rows left with tenant_id = NULL). Stops a crafted call
-  // from attaching the org's tags to bills outside its board.
+  // org (the org board), or by the caller or their supervised interns in any
+  // tenant (My Bills, which also covers user_bills rows left with
+  // tenant_id = NULL). Stops a crafted call from attaching the org's tags to
+  // bills outside its board.
   const boardBills = await db
     .selectFrom('user_bills')
     .select('bill_id')
     .distinct()
     .where('bill_id', 'in', billIds)
-    .where((eb) => eb.or([eb('tenant_id', '=', tenantId), eb('user_id', '=', userId)]))
+    .where((eb) =>
+      eb.or([
+        eb('tenant_id', '=', tenantId),
+        eb('user_id', '=', userId),
+        eb('user_id', 'in', eb.selectFrom('supervisor_users').select('user_id').where('supervisor_id', '=', userId)),
+      ])
+    )
     .execute();
   const existingIds = boardBills.map((b) => b.bill_id).filter((id): id is string => id !== null);
   if (existingIds.length === 0) return {};

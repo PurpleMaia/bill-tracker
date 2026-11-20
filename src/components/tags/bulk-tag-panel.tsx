@@ -11,6 +11,7 @@ import { Search } from 'lucide-react';
 import { bulkUpdateBillTagsAction, getTagsAction } from '@/app/actions/tags';
 import { searchBillsLocal } from '@/lib/bills/bill-search';
 import { matchBillNumberList } from '@/lib/bills/bill-number-list';
+import { BULK_TAG_MAX_BILLS } from '@/lib/auth/validators';
 import { cn } from '@/lib/core/utils';
 import { FADE_IN } from '@/lib/core/motion';
 import type { Tag } from '@/types/legislation';
@@ -125,7 +126,9 @@ export function BulkTagPanel({ onDone }: BulkTagPanelProps) {
     }
   };
 
-  const canApply = selectedTagIds.length > 0 && selectedBillIds.size > 0 && !saving;
+  // Mirror the server's cap so an oversized selection is flagged here, not on Apply.
+  const overLimit = selectedBillIds.size > BULK_TAG_MAX_BILLS;
+  const canApply = selectedTagIds.length > 0 && selectedBillIds.size > 0 && !overLimit && !saving;
 
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4">
@@ -285,8 +288,9 @@ export function BulkTagPanel({ onDone }: BulkTagPanelProps) {
         </div>
 
         <div className="flex flex-col-reverse gap-2 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-muted-foreground" aria-live="polite">
+          <p className={cn('text-xs', overLimit ? 'text-destructive' : 'text-muted-foreground')} aria-live="polite">
             {plural(selectedBillIds.size, 'bill')} selected
+            {overLimit && ` (max ${BULK_TAG_MAX_BILLS.toLocaleString()} at a time)`}
             {selectedBillIds.size > 0 && (
               <>
                 {' · '}
