@@ -64,7 +64,7 @@ import { MobileHelpSheet } from '@/components/take-action/mobile-help-sheet';
 import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
 import { NewTestimonyButton } from './new-testimony-dialog';
 import { TestimonyFilterTabs } from './testimony-filter-tabs';
-import { FROM_TESTIMONY, TESTIMONY_DRAFTS_HREF } from '@/lib/take-action/routes';
+import { FROM_TESTIMONY, TESTIMONY_FILTER_HREFS } from '@/lib/take-action/routes';
 import { NewTabHint } from '@/components/ui/new-tab-hint';
 
 export type TestimoniesFilter = 'all' | 'drafts' | 'submitted';
@@ -183,8 +183,18 @@ function compareDrafts(a: DecoratedTestimony, b: DecoratedTestimony): number {
   return (b.item.updatedAt ?? '').localeCompare(a.item.updatedAt ?? '');
 }
 
-export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
+export function TestimoniesView({ filter: routeFilter }: { filter: TestimoniesFilter }) {
   const { user, loading: authLoading } = useAuth();
+
+  // The pills switch the list in place, like Contact Legislators: state, not
+  // navigation, so the heading and sidebar stay put and only the list rises
+  // in. The URL still follows (replaceState) so refresh and shared links
+  // land on the same pill, without stacking history entries per click.
+  const [filter, setFilter] = useState<TestimoniesFilter>(routeFilter);
+  const selectFilter = (next: TestimoniesFilter) => {
+    setFilter(next);
+    window.history.replaceState(null, '', TESTIMONY_FILTER_HREFS[next]);
+  };
   const { items, prospects, error, refetch, removeItem } = useTestimonies();
 
   // Coarse clock so countdowns/urgency/closed states stay live while the
@@ -252,7 +262,7 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
             <span> · {submitted.length} submitted</span>
           </p>
         )}
-        {user && <TestimonyFilterTabs className="mt-3" />}
+        {user && <TestimonyFilterTabs filter={filter} onSelect={selectFilter} className="mt-3" />}
       </div>
 
       {/* Testimony list grounded left; guide rail fills the right */}
@@ -275,8 +285,11 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
             />
           ) : (
             <TooltipProvider delayDuration={300}>
+              {/* Keyed by filter: a pill switch remounts just the list, replaying its rise-in. */}
               <FilteredList
+                key={filter}
                 filter={filter}
+                onSelectFilter={selectFilter}
                 needed={needed}
                 drafts={listDrafts}
                 submitted={listSubmitted}
@@ -302,12 +315,14 @@ export function TestimoniesView({ filter }: { filter: TestimoniesFilter }) {
 
 function FilteredList({
   filter,
+  onSelectFilter,
   needed,
   drafts,
   submitted,
   onDeleted,
 }: {
   filter: TestimoniesFilter;
+  onSelectFilter: (filter: TestimoniesFilter) => void;
   needed: DecoratedProspect[];
   drafts: DecoratedTestimony[];
   submitted: DecoratedTestimony[];
@@ -356,7 +371,7 @@ function FilteredList({
         icon={Check}
         title="Nothing submitted yet"
         description="When you mark a testimony as submitted on the capitol site, it will appear here."
-        cta={{ href: TESTIMONY_DRAFTS_HREF, label: 'View your drafts' }}
+        action={{ label: 'View your drafts', onClick: () => onSelectFilter('drafts') }}
       />
     ) : (
       <TestimonyCardList entries={submitted} onDeleted={onDeleted} />
