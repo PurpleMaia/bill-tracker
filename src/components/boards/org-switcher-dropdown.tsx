@@ -24,7 +24,7 @@ export function OrgSwitcherDropdown() {
           size="sm"
           className="shrink-0 gap-1 border-transparent bg-olive-dark text-white hover:bg-olive-dark/90 hover:text-white"
         >
-          View other trackers
+          Switch
           <ChevronDown className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
