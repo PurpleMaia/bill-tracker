@@ -1,13 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -18,12 +11,8 @@ import { toast } from '@/hooks/use-toast';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
 
-interface TagManagementDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProps) {
+/** Create, rename, recolor and delete the org's tags. The Tags dialog's Manage tab. */
+export function TagManagementPanel() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
@@ -32,12 +21,9 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
   const { refreshBills } = useBills();
   const { activeTenant } = useAuth();
 
-
   useEffect(() => {
-    if (isOpen) {
-      loadTags();
-    }
-  }, [isOpen]);
+    loadTags();
+  }, []);
 
   const loadTags = async () => {
     setLoading(true);
@@ -144,21 +130,8 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) {
-        onClose();
-      }
-    }}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Manage Tags</DialogTitle>
-          <DialogDescription>
-            Create, edit, and delete tags. Tags can be used to filter bills.
-          </DialogDescription>
-        </DialogHeader>
-
-        {/* Create new tag */}
-        <div className="space-y-4">
+    // Create new tag, then the tag list
+    <div className="space-y-4">
           <div className="flex gap-2">
             <Input
               placeholder="Tag name"
@@ -175,10 +148,10 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
               type="color"
               value={newTagColor}
               onChange={(e) => setNewTagColor(e.target.value)}
-              className="w-16 h-10 rounded border"
+              className="w-16 h-10 shrink-0 rounded border"
               aria-label="New tag color"
             />
-            <Button onClick={handleCreateTag}>
+            <Button onClick={handleCreateTag} className="shrink-0">
               <Plus className="h-4 w-4 mr-2" />
               Add Tag
             </Button>
@@ -260,9 +233,7 @@ export function TagManagementDialog({ isOpen, onClose }: TagManagementDialogProp
               ))
             )}
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+    </div>
   );
 }
 

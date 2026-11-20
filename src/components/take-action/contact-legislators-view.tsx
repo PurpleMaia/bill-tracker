@@ -2,21 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import {
-  AlertCircle,
-  ArrowRight,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  History,
-  Lock,
-  LogIn,
-  Loader2,
-  Megaphone,
-  Trash2,
-  Users,
-} from 'lucide-react';
+import { AlertCircle, ArrowRight, Check, CheckCircle2, ChevronDown, ChevronRight, History, Landmark, Loader2, Lock, LogIn, Megaphone, Trash2 } from 'lucide-react';
 import { cn, formatBillStatusName } from '@/lib/core/utils';
 import { RISE_IN, riseDelay } from '@/lib/core/motion';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -126,7 +112,7 @@ export function ContactLegislatorsView() {
             />
           ) : !hasAnything ? (
             <EmptyState
-              icon={Users}
+              icon={Landmark}
               title="No one to contact right now"
               description="Bills you track show up here when a call or email can help: waiting for a hearing, in conference, with the Governor, or vetoed."
               cta={{ href: '/find-bills', label: 'Find bills to track' }}
@@ -149,7 +135,7 @@ export function ContactLegislatorsView() {
                     <OpportunityList items={contacted} />
                   ) : (
                     <EmptyState
-                      icon={Users}
+                      icon={Landmark}
                       title="No one contacted yet"
                       description="Bills you mark as contacted show up here, along with who you reached out to."
                     />
@@ -290,7 +276,7 @@ function OpportunityCard({ item }: { item: Opportunity }) {
                 {navigating ? (
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <Users className="mr-1.5 h-3.5 w-3.5" />
+                  <Landmark className="mr-1.5 h-3.5 w-3.5" />
                 )}
                 {pending ? 'Contact' : 'Contact again'}
                 {!navigating && <ArrowRight className="ml-1 h-3.5 w-3.5" />}

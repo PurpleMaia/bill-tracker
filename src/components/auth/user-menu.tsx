@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, CircleHelp, Download, LogOut, MessageSquareText, Settings, Shield, SlidersHorizontal, UserPen, UserPlus } from 'lucide-react';
+import { Building2, CircleHelp, FileSpreadsheet, LogOut, MessageSquareText, Settings, Shield, ToggleRight, UserPen, UserPlus } from 'lucide-react';
 import { FEEDBACK_FORM_URL } from '@/lib/core/feedback';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useState, useCallback } from 'react';
@@ -169,7 +169,7 @@ export function UserMenu() {
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="w-48">
               <DropdownMenuItem onSelect={() => openSettings('preferences')} className='cursor-pointer'>
-                <SlidersHorizontal className="mr-2 h-4 w-4" />
+                <ToggleRight className="mr-2 h-4 w-4" />
                 <span>Preferences</span>
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => openSettings('profile')} className='cursor-pointer'>
@@ -215,7 +215,7 @@ export function UserMenu() {
           {/* Board-level action, like Trello's board menu: on phones it's the
               only home for export (the board toolbar keeps just Filters). */}
           <DropdownMenuItem onSelect={openExportDialog} className='cursor-pointer'>
-            <Download className="mr-2 h-4 w-4" />
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
             <span>Export bills</span>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className='cursor-pointer'>

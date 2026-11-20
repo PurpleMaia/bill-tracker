@@ -10,6 +10,13 @@ export const TESTIMONY_DRAFTS_HREF = '/take-action/testimony/drafts';
 export const TESTIMONY_SUBMITTED_HREF = '/take-action/testimony/submitted';
 export const CONTACT_HREF = '/take-action/contact';
 
+/** URL for each Testimony filter pill (All / Drafts / Submitted). */
+export const TESTIMONY_FILTER_HREFS = {
+  all: TESTIMONY_HREF,
+  drafts: TESTIMONY_DRAFTS_HREF,
+  submitted: TESTIMONY_SUBMITTED_HREF,
+} as const;
+
 /**
  * `?from=` values the testimony writer and contact page accept to send Back
  * to the right Take Action tab. 'testimonies' is the pre-rename value, kept

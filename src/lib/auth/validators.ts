@@ -55,6 +55,15 @@ export const tagsSchema = z.object({
     tagIds: z.array(z.string().uuid())
 });
 
+/** Most bills one bulk tag request may change (a full session board fits). */
+export const BULK_TAG_MAX_BILLS = 1000;
+
+export const bulkTagsSchema = z.object({
+    billIds: z.array(uuidSchema).min(1, { message: "Select at least one bill." }).max(BULK_TAG_MAX_BILLS),
+    tagIds: z.array(uuidSchema).min(1, { message: "Select at least one tag." }),
+    mode: z.enum(["add", "remove"]),
+});
+
 export const nicknameSchema = z.object({
     billId: uuidSchema,
     nickname: z.string().min(1, { message: "Nickname cannot be empty." }).max(100, { message: "Nickname cannot exceed 100 characters." })

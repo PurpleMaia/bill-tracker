@@ -365,32 +365,35 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
             <div
                 className="flex flex-col w-full cursor-pointer p-3 pb-2"
             >
-                {/* Tags row + failed-bill corner X */}
-                <div className="flex items-start justify-between gap-1">
-                  <div className={cn("flex-1 min-w-0", bill.dead && deadDim)}>
-                    <CardTagSelector billId={bill.id} billTags={bill.tags} />
-                  </div>
-                  {/* Always visible on failed cards (phones have no hover) and
-                      outside the grayed content so it isn't dimmed. */}
-                  {bill.dead && canRemoveFromBoard && (
-                    <RemoveFromBoardDialog bill={bill} trigger={failedCornerX(`Remove ${bill.bill_number} from the board`, 'Remove from board')} />
-                  )}
-                  {bill.dead && canUntrack && failedCornerX(`Untrack ${bill.bill_number}`, 'Untrack bill', () => onUnadopt?.(bill.id))}
+                {/* Tags row (renders nothing for users without an org) */}
+                <div className={cn("min-w-0", bill.dead && deadDim)}>
+                  <CardTagSelector billId={bill.id} billTags={bill.tags} />
                 </div>
 
-                <div className={bill.dead ? cn("flex flex-col", deadDim) : "contents"}>
                 {/* Bill number + year + X remove button */}
                 <div className="flex items-center gap-1.5 mt-1">
-                  {/* Reference label — the headline below is the card's primary text */}
-                  <span className="text-xs font-medium tracking-wide text-muted-foreground">
-                    {bill.bill_number}
-                  </span>
-                  {/* Year only matters when archived (older-session) bills are
-                      mixed into the board — redundant on a single-session view */}
-                  {bill.year && showArchived && (
-                    <Badge variant="secondary" className="text-xs h-5 px-1.5 rounded-md text-muted-foreground">
-                      {bill.year}
-                    </Badge>
+                  <div className={cn("flex items-center gap-1.5 min-w-0", bill.dead && deadDim)}>
+                    {/* Reference label — the headline below is the card's primary text */}
+                    <span className="text-xs font-medium tracking-wide text-muted-foreground">
+                      {bill.bill_number}
+                    </span>
+                    {/* Year only matters when archived (older-session) bills are
+                        mixed into the board — redundant on a single-session view */}
+                    {bill.year && showArchived && (
+                      <Badge variant="secondary" className="text-xs h-5 px-1.5 rounded-md text-muted-foreground">
+                        {bill.year}
+                      </Badge>
+                    )}
+                  </div>
+                  {/* Failed cards: always visible (phones have no hover) and
+                      outside the grayed content so it isn't dimmed. */}
+                  {bill.dead && (canRemoveFromBoard || canUntrack) && (
+                    <div className="ml-auto flex items-center shrink-0">
+                      {canRemoveFromBoard && (
+                        <RemoveFromBoardDialog bill={bill} trigger={failedCornerX(`Remove ${bill.bill_number} from the board`, 'Remove from board')} />
+                      )}
+                      {canUntrack && failedCornerX(`Untrack ${bill.bill_number}`, 'Untrack bill', () => onUnadopt?.(bill.id))}
+                    </div>
                   )}
                   {/* Hover-revealed on desktop, but also shown while a button inside has
                       keyboard focus (so focus never lands on an invisible control) and
@@ -447,6 +450,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                   )}
                 </div>
 
+                <div className={bill.dead ? cn("flex flex-col", deadDim) : "contents"}>
                 {/* Headline — curated nickname or cleaned-up official title */}
                 {headline && (
                   <p className="mt-1 text-sm font-semibold leading-snug truncate" title={headline}>

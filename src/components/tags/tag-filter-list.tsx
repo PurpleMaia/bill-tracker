@@ -5,18 +5,23 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { X, Settings, Filter, Check, Archive } from 'lucide-react';
+import { X, Filter, Check, Archive, SlidersHorizontal, Tags, Settings } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import type { Tag } from '@/types/legislation';
-import { TagManagementDialog } from './tag-management-dialog';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useBills } from '@/hooks/contexts/bills-context';
 
 interface TagFilterListProps {
   tags: Tag[];
   loadingTags: boolean;
-  /** Called after the tag management dialog closes so the owner can refetch. */
-  onTagsChanged: () => void;
+  /** Opens the Tags dialog (owned by the header). Org admins only. */
+  onManageTags?: () => void;
+  /**
+   * Phones: one "Filters & tags" settings button (sliders icon) instead of
+   * separate Filters and Tags buttons, so the Tags section gets its own
+   * "Settings" button. Desktop has the Tags button beside Filters.
+   */
+  merged?: boolean;
   selectedTagIds: string[];
   onTagToggle: (tagId: string) => void;
   selectedYears: number[];
@@ -35,6 +40,8 @@ interface TagFilterListProps {
    * instead of in the header. Pass the input here.
    */
   searchSlot?: React.ReactNode;
+  /** Phones: the My Bills / org board toggle, under the search. */
+  scopeSlot?: React.ReactNode;
   /** A search is active — counted in the badge, since the box is tucked away. */
   searchActive?: boolean;
   /** Extra classes for the Filters trigger (the phone toolbar slims it to pill height). */
@@ -74,7 +81,8 @@ function FilterOptionRow({
 export function TagFilterList({
   tags,
   loadingTags,
-  onTagsChanged,
+  onManageTags,
+  merged = false,
   selectedTagIds,
   onTagToggle,
   selectedYears,
@@ -87,15 +95,24 @@ export function TagFilterList({
   showArchived,
   onShowArchivedChange,
   searchSlot,
+  scopeSlot,
   searchActive = false,
   triggerClassName,
 }: TagFilterListProps) {
-  const [showManagementDialog, setShowManagementDialog] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { activeTenant } = useAuth();
   const { bills } = useBills();
 
-  const canManageTags = activeTenant?.orgRole === 'admin';
+  const canManageTags = activeTenant?.orgRole === 'admin' && !!onManageTags;
+
+  const panelTitle = merged && canManageTags ? 'Filters & tags' : 'Filters';
+
+  const openTags = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPopoverOpen(false);
+    onManageTags?.();
+  };
   // Tags are tenant-scoped; without a tenant the section is pure noise.
   const showTagsSection = !!activeTenant;
 
@@ -126,8 +143,19 @@ export function TagFilterList({
     <>
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" aria-label="Filters" className={cn('shrink-0', triggerClassName)}>
-            <Filter className="h-4 w-4 sm:mr-2" />
+          <Button
+            variant="outline"
+            aria-label={panelTitle}
+            className={cn(
+              'shrink-0 gap-1 [&_svg]:size-[18px]',
+              // Phones: the one settings button for filters + tags, solid like a primary action.
+              merged
+                ? 'border-olive-dark bg-olive-dark text-white hover:bg-olive-dark/90 hover:text-white'
+                : 'bg-white text-foreground hover:bg-secondary hover:text-foreground',
+              triggerClassName
+            )}
+          >
+            {merged ? <SlidersHorizontal className="sm:mr-1" /> : <Filter className="sm:mr-1" />}
             <span className="hidden sm:inline">Filters</span>
             {totalFiltersCount > 0 && (
               <Badge variant="secondary" className="ml-1.5 sm:ml-2 h-5 px-1.5">
@@ -139,7 +167,7 @@ export function TagFilterList({
         <PopoverContent className="w-80 p-0" align="end">
           <div className="p-3 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Filters</h3>
+              <h3 className="text-sm font-semibold">{panelTitle}</h3>
               <div className="flex gap-1">
                 {totalFiltersCount > 0 && (
                   <Button
@@ -155,26 +183,11 @@ export function TagFilterList({
                     Clear All
                   </Button>
                 )}
-                {canManageTags && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    aria-label="Manage tags"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setShowManagementDialog(true);
-                      setPopoverOpen(false);
-                    }}
-                    className="h-7 text-xs"
-                  >
-                    <Settings className="h-3 w-3" />
-                  </Button>
-                )}
               </div>
             </div>
 
             {searchSlot}
+            {scopeSlot}
 
             <div className="space-y-4">
               {/* Archived Section (logged-in users only) */}
@@ -247,7 +260,15 @@ export function TagFilterList({
               {/* Tags Section (tenant-scoped) */}
               {showTagsSection && (
                 <div className={availableYears.length > 0 || showArchivedFilter || showStatusFilter ? 'pt-2 border-t' : ''}>
-                  <h4 className="text-xs font-medium text-muted-foreground mb-2">TAGS</h4>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs font-medium text-muted-foreground">TAGS</h4>
+                    {canManageTags && merged && (
+                      <Button size="sm" variant="ghost" onClick={openTags} aria-label="Tags settings" className="h-7 -mr-2 text-xs">
+                        <Settings className="h-3.5 w-3.5" />
+                        Settings
+                      </Button>
+                    )}
+                  </div>
                   {loadingTags ? (
                     <p className="text-sm text-muted-foreground py-4 text-center">
                       Loading tags...
@@ -261,15 +282,10 @@ export function TagFilterList({
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setShowManagementDialog(true);
-                            setPopoverOpen(false);
-                          }}
+                          onClick={openTags}
                           className="w-full"
                         >
-                          <Settings className="h-4 w-4 mr-2" />
+                          <Tags className="h-4 w-4 mr-2" />
                           Create Tags
                         </Button>
                       )}
@@ -311,13 +327,6 @@ export function TagFilterList({
         </PopoverContent>
       </Popover>
 
-      <TagManagementDialog
-        isOpen={showManagementDialog}
-        onClose={() => {
-          setShowManagementDialog(false);
-          onTagsChanged();
-        }}
-      />
     </>
   );
 }

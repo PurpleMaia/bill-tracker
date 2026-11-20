@@ -322,3 +322,81 @@ export async function updateBillTags(billId: string, tagIds: string[], tenantId:
     throw error instanceof Error ? error : new Error('Failed to update bill tags');
   }
 }
+
+/** Rows per bill_tags insert in bulkUpdateBillTags (2 params each). */
+const BULK_TAG_INSERT_CHUNK = 5000;
+
+/**
+ * Adds or removes the given tags on many bills at once. Unlike updateBillTags
+ * this never touches tags outside `tagIds`, so each bill keeps its other tags.
+ * @param billIds - Bills to change; ids not on the caller's board are skipped
+ * @param tagIds - Tags to add or remove; all must belong to the tenant
+ * @param mode - 'add' (already-tagged bills are left alone) or 'remove'
+ * @param userId - The caller, for the My Bills half of the board check
+ * @returns Each changed bill's full tag list for this tenant
+ * @throws Error if any tag ID is invalid for the tenant
+ */
+export async function bulkUpdateBillTags(
+  billIds: string[],
+  tagIds: string[],
+  mode: 'add' | 'remove',
+  tenantId: string,
+  userId: string
+): Promise<Record<string, Tag[]>> {
+  if (billIds.length === 0 || tagIds.length === 0) return {};
+
+  const validTags = await db
+    .selectFrom('tags')
+    .select('id')
+    .where('id', 'in', tagIds)
+    .where('tenant_id', '=', tenantId)
+    .execute();
+
+  if (validTags.length !== new Set(tagIds).size) {
+    throw new Error('One or more tag IDs are invalid');
+  }
+
+  // Only bills the bulk dialog could have listed: tracked by someone in this
+  // org (the org board), or by the caller or their supervised interns in any
+  // tenant (My Bills, which also covers user_bills rows left with
+  // tenant_id = NULL). Stops a crafted call from attaching the org's tags to
+  // bills outside its board.
+  const boardBills = await db
+    .selectFrom('user_bills')
+    .select('bill_id')
+    .distinct()
+    .where('bill_id', 'in', billIds)
+    .where((eb) =>
+      eb.or([
+        eb('tenant_id', '=', tenantId),
+        eb('user_id', '=', userId),
+        eb('user_id', 'in', eb.selectFrom('supervisor_users').select('user_id').where('supervisor_id', '=', userId)),
+      ])
+    )
+    .execute();
+  const existingIds = boardBills.map((b) => b.bill_id).filter((id): id is string => id !== null);
+  if (existingIds.length === 0) return {};
+
+  if (mode === 'add') {
+    const rows = existingIds.flatMap((billId) => validTags.map((t) => ({ bill_id: billId, tag_id: t.id })));
+    // Two bound params per row; chunk so a big selection stays under
+    // Postgres's 65,535-parameter limit. One transaction keeps it all-or-nothing.
+    await db.transaction().execute(async (trx) => {
+      for (let i = 0; i < rows.length; i += BULK_TAG_INSERT_CHUNK) {
+        await trx
+          .insertInto('bill_tags')
+          .values(rows.slice(i, i + BULK_TAG_INSERT_CHUNK))
+          .onConflict((oc) => oc.columns(['bill_id', 'tag_id']).doNothing())
+          .execute();
+      }
+    });
+  } else {
+    await db
+      .deleteFrom('bill_tags')
+      .where('bill_id', 'in', existingIds)
+      .where('tag_id', 'in', validTags.map((t) => t.id))
+      .execute();
+  }
+
+  return getBatchBillTags(existingIds, tenantId);
+}
