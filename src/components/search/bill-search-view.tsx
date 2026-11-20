@@ -27,6 +27,7 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import type { BillSearchResult } from '@/types/legislation';
 import { hasNonBillParams } from '@/lib/bills/bill-dialog-url';
 import {
   DEFAULT_FILTERS,
@@ -111,6 +112,16 @@ export function BillSearchView() {
 
   const handleClear = useCallback(() => setFilters(DEFAULT_FILTERS), []);
   const handleCardClick = useCallback((billId: string) => openBillDialog(billId), [openBillDialog]);
+  // A recommended bill may not be in the loaded search pages, so remember it:
+  // the dialog's Track slot is built from whichever list holds the open bill.
+  const [openedRecommendation, setOpenedRecommendation] = useState<BillSearchResult | null>(null);
+  const handleRecommendationOpen = useCallback(
+    (bill: BillSearchResult) => {
+      setOpenedRecommendation(bill);
+      openBillDialog(bill.id);
+    },
+    [openBillDialog],
+  );
 
   // Auto-load the next page when the sentinel scrolls into view. The visible
   // "Load more" button below stays the keyboard-accessible path — scroll-driven
@@ -169,7 +180,10 @@ export function BillSearchView() {
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   // The dialog takes only a bill id; the Track control needs the bill number for
   // its label and toasts, so resolve the open row from the loaded results.
-  const openBill = openBillId ? bills.find((b) => b.id === openBillId) : undefined;
+  const openBill = openBillId
+    ? (bills.find((b) => b.id === openBillId) ??
+      (openedRecommendation?.id === openBillId ? openedRecommendation : undefined))
+    : undefined;
 
   const searchInput = (
     <>
@@ -243,7 +257,7 @@ export function BillSearchView() {
             {showRecommendations && isDesktop === false && (
               <div>
                 <div className="mt-4">
-                  <RecommendedBills variant="inline" onCardClick={handleCardClick} />
+                  <RecommendedBills variant="inline" onOpenBill={handleRecommendationOpen} />
                 </div>
                 <h2 className="mt-4 text-sm font-semibold">All bills</h2>
               </div>
@@ -379,7 +393,7 @@ export function BillSearchView() {
           screen height and Refresh moves to the next set. */}
       <aside className="sticky top-6 hidden w-80 shrink-0 lg:block" style={sideColumnStyle}>
         <div className="h-full min-h-0">
-          {isDesktop && <RecommendedBills variant="panel" onCardClick={handleCardClick} />}
+          {isDesktop && <RecommendedBills variant="panel" onOpenBill={handleRecommendationOpen} />}
         </div>
       </aside>
 

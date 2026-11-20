@@ -72,12 +72,12 @@ function ForYouChip() {
  */
 function CompactRecommendation({
   bill,
-  onCardClick,
+  onOpenBill,
 }: {
   bill: RecommendedBill;
-  onCardClick: (billId: string) => void;
+  onOpenBill: (bill: RecommendedBill) => void;
 }) {
-  const open = () => onCardClick(bill.id);
+  const open = () => onOpenBill(bill);
   const summary = matchSummary(bill);
   return (
     <div className="flex overflow-hidden rounded-md border bg-card shadow-sm transition-shadow hover:shadow-md has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
@@ -184,10 +184,14 @@ function HowRecommendationsWork() {
 interface RecommendedBillsProps {
   /** 'panel' = desktop side column (compact, all items); 'inline' = phone section above results. */
   variant: 'panel' | 'inline';
-  onCardClick: (billId: string) => void;
+  /**
+   * Opens the bill's details. Passes the whole bill (not just its id) so the
+   * page can show Track in the dialog even when the bill isn't in its search results.
+   */
+  onOpenBill: (bill: RecommendedBill) => void;
 }
 
-export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps) {
+export function RecommendedBills({ variant, onOpenBill }: RecommendedBillsProps) {
   const { user, activeTenant } = useAuth();
   const tenantId = activeTenant?.tenantId ?? null;
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -344,7 +348,7 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
           const hidden = i >= visibleCount;
           return (
             <li key={bill.id} className={cn(hidden && 'invisible')} aria-hidden={hidden || undefined}>
-              <CompactRecommendation bill={bill} onCardClick={onCardClick} />
+              <CompactRecommendation bill={bill} onOpenBill={onOpenBill} />
             </li>
           );
         })}
@@ -360,7 +364,7 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
               <BillSearchCard
                 bill={bill}
                 query=""
-                onCardClick={onCardClick}
+                onCardClick={() => onOpenBill(bill)}
                 badge={<ForYouChip />}
                 footer={<p className="mt-2 text-xs text-muted-foreground">{reasonLine(bill)}</p>}
               />
