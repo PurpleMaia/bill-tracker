@@ -9,14 +9,14 @@ import {
 describe('shouldAutoStartTour', () => {
   it('starts on the landing pages for a first-time visitor', () => {
     expect(shouldAutoStartTour('/', false)).toBe(true);
-    expect(shouldAutoStartTour('/discover', false)).toBe(true);
+    expect(shouldAutoStartTour('/find-bills', false)).toBe(true);
   });
   it('does not start once the tour has been seen', () => {
     expect(shouldAutoStartTour('/', true)).toBe(false);
-    expect(shouldAutoStartTour('/discover', true)).toBe(false);
+    expect(shouldAutoStartTour('/find-bills', true)).toBe(false);
   });
   it('does not interrupt deep links', () => {
-    expect(shouldAutoStartTour('/your-bills', false)).toBe(false);
+    expect(shouldAutoStartTour('/tracker', false)).toBe(false);
     expect(shouldAutoStartTour('/take-action/testimony/drafts', false)).toBe(false);
     expect(shouldAutoStartTour('/guide', false)).toBe(false);
   });
@@ -48,13 +48,13 @@ describe('tourStepPath', () => {
   const step = (id: string) => TOUR_STEPS.find((s) => s.id === id)!;
 
   it('walks to the page a step describes', () => {
-    expect(tourStepPath(step('your-bills'), '/discover')).toBe('/your-bills');
-    expect(tourStepPath(step('discover'), '/your-bills')).toBe('/discover');
-    expect(tourStepPath(step('boards'), '/take-action')).toBe('/boards');
+    expect(tourStepPath(step('your-bills'), '/find-bills')).toBe('/tracker');
+    expect(tourStepPath(step('discover'), '/tracker')).toBe('/find-bills');
+    expect(tourStepPath(step('boards'), '/take-action')).toBe('/community');
   });
   it('stays put when already on that page or a sub-page', () => {
-    expect(tourStepPath(step('your-bills'), '/your-bills')).toBeNull();
-    expect(tourStepPath(step('boards'), '/boards/browse')).toBeNull();
+    expect(tourStepPath(step('your-bills'), '/tracker')).toBeNull();
+    expect(tourStepPath(step('boards'), '/community/following')).toBeNull();
     expect(tourStepPath(step('discover'), '/')).toBeNull();
   });
   it('does not treat a shared prefix as the same page', () => {

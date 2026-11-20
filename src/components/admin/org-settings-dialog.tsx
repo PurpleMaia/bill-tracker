@@ -7,8 +7,41 @@ import { toast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Globe, Lock, type LucideIcon } from 'lucide-react';
+import { cn } from '@/lib/core/utils';
+import { CopyLinkButton } from '@/components/boards/copy-link-button';
+import { embedSnippet, publicBoardUrl } from '@/lib/boards/board-routes';
 
 const DESCRIPTION_MAX = 200;
+
+const CHIP_TONES = {
+  on: 'bg-olive/15 text-olive-dark',
+  // Matches the red Private badge on the Browse org card.
+  private: 'bg-red-100 text-red-700',
+} as const;
+
+/** Small status pill: what a setting currently is, at a glance. */
+function StatusChip({
+  tone,
+  icon: Icon,
+  label,
+}: {
+  tone: keyof typeof CHIP_TONES;
+  icon: LucideIcon;
+  label: string;
+}) {
+  return (
+    <span
+      className={cn(
+        'inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
+        CHIP_TONES[tone],
+      )}
+    >
+      <Icon className="h-3 w-3" />
+      {label}
+    </span>
+  );
+}
 
 /**
  * The org's own settings — the Organization dialog's Settings tab. Loads on
@@ -104,9 +137,44 @@ export function OrgSettingsPanel() {
             onCheckedChange={handleToggle}
           />
         </div>
-        <p className="text-xs text-muted-foreground">
-          When on, anyone can view this org&apos;s board (read-only) under Active Boards.
-        </p>
+        {/* Current state, spelled out: the switch alone doesn't say what
+            public/private means for sharing the board. */}
+        {publicBoard !== null && (
+          <div className="flex flex-col gap-1.5 rounded-md bg-muted/50 p-3">
+            <StatusChip
+              tone={publicBoard ? 'on' : 'private'}
+              icon={publicBoard ? Globe : Lock}
+              label={publicBoard ? 'Your board is public' : 'Your board is private'}
+            />
+            <p className="text-xs text-muted-foreground">
+              {publicBoard
+                ? 'Anyone, even without an account, can view your board (read-only) at the link below and find it under Browse. Share it, or link to it from your own website.'
+                : 'Only your members can see your board. It isn’t listed under Browse, and there’s no link to share or put on your own website. Turn this on to get one.'}
+            </p>
+          </div>
+        )}
+        {publicBoard && activeTenant && (
+          <div className="flex items-center gap-2">
+            <code className="min-w-0 flex-1 truncate rounded-md border bg-muted/50 px-2 py-1.5 text-xs">
+              {publicBoardUrl(activeTenant.slug)}
+            </code>
+            <CopyLinkButton url={publicBoardUrl(activeTenant.slug)} />
+          </div>
+        )}
+        {publicBoard && activeTenant && (
+          <div className="mt-2 flex flex-col gap-1.5">
+            <span className="text-xs font-medium">Embed on your website</span>
+            <div className="flex items-start gap-2">
+              <code className="min-w-0 flex-1 break-all rounded-md border bg-muted/50 px-2 py-1.5 text-[11px] leading-snug">
+                {embedSnippet(activeTenant.slug, activeTenant.name)}
+              </code>
+              <CopyLinkButton url={embedSnippet(activeTenant.slug, activeTenant.name)} label="Copy embed code" />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Paste this into your website&rsquo;s HTML to show your board there.
+            </p>
+          </div>
+        )}
       </section>
 
       {/* Public description */}
@@ -130,7 +198,9 @@ export function OrgSettingsPanel() {
           onBlur={handleDescriptionBlur}
         />
         <p className="text-xs text-muted-foreground">
-          Shown on your org&apos;s card under Browse. Saved when you click away.
+          {loaded && savedDescription === ''
+            ? 'Your card under Browse says “No description yet.” until you add one.'
+            : 'Shown on your organization’s card under Browse.'}
         </p>
       </section>
     </div>

@@ -25,12 +25,12 @@ export default function YourBills() {
   // The header brand is not a heading, so the page names itself (sr-only:
   // the board and dashboards already make the context visually obvious).
   const title = !user
-    ? 'Your Bills'
+    ? 'Your Tracker'
     : view === 'admin'
       ? 'Admin dashboard'
       : view === 'supervisor'
         ? 'Supervisor dashboard'
-        : 'Your Bills';
+        : 'Your Tracker';
 
   return (
     <>

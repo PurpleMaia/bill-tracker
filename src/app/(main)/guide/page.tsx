@@ -4,7 +4,7 @@ import {
   BookOpen,
   BookmarkPlus,
   FileText,
-  LayoutGrid,
+  Users,
   Search,
   SquareKanban,
   type LucideIcon,
@@ -34,8 +34,8 @@ const STEPS: Step[] = [
     icon: Search,
     video: 'discover',
     title: 'Find bills',
-    where: 'Discover',
-    href: '/discover',
+    where: 'Find Bills',
+    href: '/find-bills',
     body: (
       <>
         Search by bill number, title, or what a bill says. Not sure where to start? Try a topic
@@ -51,7 +51,7 @@ const STEPS: Step[] = [
     icon: BookmarkPlus,
     title: 'Track the ones you care about',
     where: 'Track button',
-    href: '/discover',
+    href: '/find-bills',
     body: (
       <>
         Press <strong>Track</strong> on any bill to add it to your own list. You&rsquo;ll need to be
@@ -64,8 +64,8 @@ const STEPS: Step[] = [
     icon: SquareKanban,
     video: 'your-bills',
     title: 'Follow your bills',
-    where: 'Your Bills',
-    href: '/your-bills',
+    where: 'Your Tracker',
+    href: '/tracker',
     body: <>Everything you track lives here. Switch between three views with the tabs at the top.</>,
     tips: [
       'Kanban: one column per stage, so you can see at a glance where each bill stands.',
@@ -92,16 +92,16 @@ const STEPS: Step[] = [
     tips: [
       'Testimony is generally due 24 hours before the hearing, so check the hearing date first.',
       'Your drafts are saved on the Testimony tab. After you submit on the Capitol site, mark it submitted to keep track.',
-      'The Contact Legislators tab lists the bills on Your Bills where a call or email can help right now. After you reach out, mark who you contacted so you and your team can see it.',
+      'The Contact Legislators tab lists the bills you track where a call or email can help right now. After you reach out, mark who you contacted so you and your team can see it.',
       'Open any bill and press Contact Legislator to write to the lawmakers who can act on it. The message is sent from your own email app, not by the Hawaiʻi Bill Tracker. Once a bill reaches the Governor, the button becomes Contact Governor.',
     ],
   },
   {
-    icon: LayoutGrid,
+    icon: Users,
     video: 'boards',
     title: 'See what other groups are tracking',
-    where: 'Active Boards',
-    href: '/boards/browse',
+    where: 'Community',
+    href: '/community',
     body: (
       <>
         Organizations share the bills they follow. Browse their boards (view only) to discover

@@ -8,9 +8,21 @@
 import React from 'react';
 import { BillsContext, type BillsContextType } from '@/hooks/contexts/bills-context';
 import { useActiveBoards } from '@/hooks/contexts/active-boards-context';
+import type { Bill } from '@/types/legislation';
 
-export function ActiveBoardsBillsBridge({ children }: { children: React.ReactNode }) {
-  const { bills, loadingBills } = useActiveBoards();
+/**
+ * Serves a read-only bill list to KanbanBoard/Card through BillsContext. Shared
+ * by the Following board (ActiveBoardsBillsBridge) and /community/<slug> org boards.
+ */
+export function BoardBillsBridge({
+  bills,
+  loadingBills,
+  children,
+}: {
+  bills: Bill[];
+  loadingBills: boolean;
+  children: React.ReactNode;
+}) {
   const asyncNoop = async () => {};
 
   const value: BillsContextType = {
@@ -61,4 +73,9 @@ export function ActiveBoardsBillsBridge({ children }: { children: React.ReactNod
   };
 
   return <BillsContext.Provider value={value}>{children}</BillsContext.Provider>;
+}
+
+export function ActiveBoardsBillsBridge({ children }: { children: React.ReactNode }) {
+  const { bills, loadingBills } = useActiveBoards();
+  return <BoardBillsBridge bills={bills} loadingBills={loadingBills}>{children}</BoardBillsBridge>;
 }

@@ -4,24 +4,25 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { TakeActionSubNav } from '@/components/take-action/take-action-subnav';
 import { isTakeActionPath } from '@/lib/take-action/routes';
+import { isActiveBoardsPath } from '@/lib/boards/board-routes';
 import { ActiveBoardsSubNav } from '@/components/boards/active-boards-subnav';
 import { ViewToggle } from './view-toggle';
 
 /**
  * Contextual sub-navigation for the header's center slot.
- * '/your-bills' hosts the board view toggle (logged-in only — hidden over
+ * '/tracker' hosts the board view toggle (logged-in only — hidden over
  * the login wall); compact icon-only variant on mobile. It lives in the global header
  * rather than the board header so it stays reachable from the admin view.
  * /take-action renders its Testimony/Contact Legislators tabs (logged-in only
- * — both tabs sit behind a login wall). /boards renders its Following/Browse tabs
+ * — both tabs sit behind a login wall). /community renders its Browse/Following tabs
  * for everyone, since browsing public orgs needs no account; the Following
- * tab itself gates. '/' and /discover render nothing yet; their sub-nav lands here later.
+ * tab itself gates. '/' and /find-bills render nothing yet; their sub-nav lands here later.
  */
 export function HeaderSubNav() {
   const pathname = usePathname();
   const { user } = useAuth();
 
-  if (pathname.startsWith('/your-bills') && user) {
+  if (pathname.startsWith('/tracker') && user) {
     return (
       <>
         <div className="hidden md:block">
@@ -49,7 +50,8 @@ export function HeaderSubNav() {
 
   // Shown logged out too: Browse is public, so the tabs must stay reachable.
   // Following is still gated — it renders BoardsLoginWall for signed-out users.
-  if (pathname.startsWith('/boards')) {
+  // Org boards (/community/<slug>) show the tabs too.
+  if (isActiveBoardsPath(pathname)) {
     return (
       <>
         <div className="hidden md:block">

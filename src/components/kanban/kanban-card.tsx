@@ -134,7 +134,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
     const { acceptLLMChange, rejectLLMChange, testimonyStatuses, showArchived } = useBills();
     const { user, activeTenant } = useAuth();
     const committeeNames = useCommitteeNames();
-    const vis = cardVisibility(boardMode);
+    const vis = cardVisibility(boardMode, { signedIn: !!user });
 
     const canSeeTracking = activeTenant?.orgRole === 'admin';
     const trackedBy = bill.tracked_by ?? [];
@@ -645,7 +645,8 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
               </div>
             )}
 
-            {vis.showTrackForSelf && (
+            {/* No handler = nothing to track into (e.g. previewing your own org). */}
+            {vis.showTrackForSelf && onTrackForSelf && (
               <div className="px-3 pb-3 pt-2 border-t border-border">
                 {isTracked ? (
                   <button

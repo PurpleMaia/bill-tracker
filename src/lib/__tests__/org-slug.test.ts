@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deriveOrgSlug, slugCandidate, MAX_SLUG_LENGTH } from '@/lib/tenants/org-slug';
+import { deriveOrgSlug, slugCandidate, isReservedSlug, MAX_SLUG_LENGTH } from '@/lib/tenants/org-slug';
 
 describe('deriveOrgSlug', () => {
   it('lowercases and hyphenates spaces', () => {
@@ -61,5 +61,19 @@ describe('slugCandidate', () => {
     const candidate = slugCandidate(base, 1);
     expect(candidate.includes('--')).toBe(false);
     expect(candidate.endsWith('-2')).toBe(true);
+  });
+});
+
+describe('isReservedSlug', () => {
+  it('reserves the Community tab paths an org board would otherwise shadow', () => {
+    expect(isReservedSlug('following')).toBe(true);
+    expect(isReservedSlug('your-organization')).toBe(true);
+    // Redirected by next.config, so a board there would be unreachable.
+    expect(isReservedSlug('public-view')).toBe(true);
+  });
+
+  it('allows ordinary slugs, including suffixed reserved words', () => {
+    expect(isReservedSlug('food-plus')).toBe(false);
+    expect(isReservedSlug('following-2')).toBe(false);
   });
 });

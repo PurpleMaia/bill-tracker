@@ -10,7 +10,7 @@
 import { SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED } from './kanban-columns';
 
 /** The Discover page — the primary "find a bill to track" destination. */
-export const SEARCH_TRACK_HREF = '/discover';
+export const SEARCH_TRACK_HREF = '/find-bills';
 
 /** Simplified stage ids the search rail's Stage filter understands. */
 const SIMPLIFIED_STAGE_IDS = new Set(SIMPLIFIED_COLUMNS.map((c) => c.id));

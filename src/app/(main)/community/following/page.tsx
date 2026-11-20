@@ -24,7 +24,7 @@ export default function BoardsPage() {
   if (!user) {
     return (
       <>
-        <h1 className="sr-only">Active Boards</h1>
+        <h1 className="sr-only">Following</h1>
         <BoardsLoginWall />
       </>
     );
@@ -34,7 +34,7 @@ export default function BoardsPage() {
   // boundary to build.
   return (
     <>
-      <h1 className="sr-only">Active Boards</h1>
+      <h1 className="sr-only">Following</h1>
       <Suspense fallback={null}>
         <ActiveBoardView />
       </Suspense>

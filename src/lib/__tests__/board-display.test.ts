@@ -21,4 +21,9 @@ describe('cardVisibility', () => {
       showTrackForSelf: true,
     });
   });
+
+  it('hides track-for-self from signed-out viewers of a public board', () => {
+    expect(cardVisibility('active-boards', { signedIn: false }).showTrackForSelf).toBe(false);
+    expect(cardVisibility('active-boards', { signedIn: true }).showTrackForSelf).toBe(true);
+  });
 });
