@@ -359,7 +359,7 @@ function StageRow({
                   exists both pre- and post-crossover). Only shown when a stage
                   has more than one phase group to separate. */}
               {groups.length > 1 && (
-                <p className="px-2 pt-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                <p className="px-2 pt-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   {group.heading}
                 </p>
               )}

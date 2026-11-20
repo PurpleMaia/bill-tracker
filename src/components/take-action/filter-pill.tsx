@@ -15,7 +15,7 @@ export function FilterPillCount({ active, count }: { active: boolean; count: num
   return (
     <span
       className={cn(
-        'rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none',
+        'rounded-full px-1.5 py-0.5 text-xs font-semibold leading-none',
         active ? 'bg-white/20 text-white' : 'bg-secondary text-muted-foreground',
       )}
     >

@@ -21,13 +21,23 @@ export default function BoardsPage() {
 
   // Viewing a specific org's board requires an account (following is per-user),
   // but browsing the list of public orgs stays open to everyone.
-  if (!user) return <BoardsLoginWall />;
+  if (!user) {
+    return (
+      <>
+        <h1 className="sr-only">Following</h1>
+        <BoardsLoginWall />
+      </>
+    );
+  }
 
   // ActiveBoardView reads ?org= via useSearchParams, which needs a Suspense
   // boundary to build.
   return (
-    <Suspense fallback={null}>
-      <ActiveBoardView />
-    </Suspense>
+    <>
+      <h1 className="sr-only">Following</h1>
+      <Suspense fallback={null}>
+        <ActiveBoardView />
+      </Suspense>
+    </>
   );
 }

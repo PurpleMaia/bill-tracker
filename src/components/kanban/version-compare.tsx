@@ -136,7 +136,7 @@ export function VersionCompare({
       </div>
 
       {reordered && (
-        <p className="mb-3 flex items-start gap-1.5 text-[11.5px] text-muted-foreground" role="status">
+        <p className="mb-3 flex items-start gap-1.5 text-xs text-muted-foreground" role="status">
           <ArrowLeftRight className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           <span>Swapped so the earlier version is on the left — a comparison only reads one way.</span>
         </p>
@@ -158,7 +158,7 @@ export function VersionCompare({
               html_link or an unparseable document never will, so no Retry is
               offered there. */}
           {RETRYABLE.has(comparison.error) && (
-            <Button variant="outline" size="sm" className="mt-2 h-7 text-xs" onClick={() => setAttempt((a) => a + 1)}>
+            <Button variant="outline" size="xs" className="mt-2" onClick={() => setAttempt((a) => a + 1)}>
               Retry
             </Button>
           )}

@@ -197,7 +197,7 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
         aria-label="Search bills"
       />
       {desktop && (
-        <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+        <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
           {shortcutHint}
         </kbd>
       )}

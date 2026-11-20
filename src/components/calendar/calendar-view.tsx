@@ -273,7 +273,7 @@ export function CalendarView() {
                     aria-pressed={key === selectedDay}
                     className={cn(
                       'flex h-12 flex-col items-center justify-start gap-0.5 border-b border-r pt-1 text-sm hover:bg-muted/60 sm:h-14 sm:gap-1 sm:pt-1.5',
-                      !inMonth && 'text-muted-foreground/40',
+                      !inMonth && 'text-muted-foreground/70',
                       key === selectedDay && 'bg-accent/15 ring-2 ring-inset ring-primary',
                     )}
                   >

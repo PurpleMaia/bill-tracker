@@ -2,6 +2,7 @@
 
 import { useActiveBoards } from '@/hooks/contexts/active-boards-context';
 import { OrgSwitcherDropdown } from './org-switcher-dropdown';
+import { ClampText } from '@/components/ui/clamp-text';
 
 // First letter/digit of the first two words. Array.from splits by code point
 // (so an emoji isn't cut in half), and words with no letter, like "🌺" or "&",
@@ -34,10 +35,10 @@ export function ActiveBoardBanner() {
         {initials(current.name)}
       </div>
       <div className="min-w-0 flex-1 leading-tight">
-        <h2 className="truncate text-base font-semibold">{current.name}&rsquo;s Tracker</h2>
-        <p className="truncate text-xs text-olive-dark">
+        <ClampText as="h2" className="text-base font-semibold">{current.name}&rsquo;s Tracker</ClampText>
+        <ClampText className="text-xs text-olive-dark">
           You&rsquo;re viewing another org&rsquo;s bills · read-only · track any bill onto your own board
-        </p>
+        </ClampText>
       </div>
       <OrgSwitcherDropdown />
     </div>

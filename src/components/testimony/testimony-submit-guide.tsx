@@ -9,6 +9,7 @@ import { invalidateTestimonies } from '@/hooks/use-testimonies';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Check, CheckCircle2, ExternalLink, FileText, Loader2, SquareKanban, TriangleAlert } from 'lucide-react';
 import { TESTIMONY_HREF } from '@/lib/take-action/routes';
+import { NewTabHint } from '@/components/ui/new-tab-hint';
 
 interface TestimonySubmitGuideProps {
   bill: BillDetails;
@@ -112,6 +113,7 @@ export function TestimonySubmitGuide({
               <a href={bill.bill_url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                 Open {bill.bill_number} on capitol.hawaii.gov
+                <NewTabHint />
               </a>
             </Button>
           )}
@@ -119,6 +121,7 @@ export function TestimonySubmitGuide({
             <a href="https://www.capitol.hawaii.gov/submittestimony.aspx" target="_blank" rel="noopener noreferrer">
               <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
               Go to Submit Testimony
+              <NewTabHint />
             </a>
           </Button>
         </div>

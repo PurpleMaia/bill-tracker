@@ -79,7 +79,7 @@ function FailedWhyPill(props: Omit<React.ComponentProps<typeof DeadBillInfoPopov
       <button
         type="button"
         className={cn(
-          'inline-flex h-[22px] shrink-0 items-stretch overflow-hidden rounded-full border border-destructive text-[10.5px] font-semibold leading-none',
+          'inline-flex h-[22px] shrink-0 items-stretch overflow-hidden rounded-full border border-destructive text-xs font-semibold leading-none',
           pulse && 'motion-safe:animate-why-ring'
         )}
         onClick={(e) => e.stopPropagation()}
@@ -388,17 +388,20 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                   {/* Year only matters when archived (older-session) bills are
                       mixed into the board — redundant on a single-session view */}
                   {bill.year && showArchived && (
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1 rounded-md text-muted-foreground">
+                    <Badge variant="secondary" className="text-xs h-5 px-1.5 rounded-md text-muted-foreground">
                       {bill.year}
                     </Badge>
                   )}
+                  {/* Hover-revealed on desktop, but also shown while a button inside has
+                      keyboard focus (so focus never lands on an invisible control) and
+                      always on touch screens, which have no hover. */}
                   {!bill.dead && (canAssign || canUntrack || canRemoveFromBoard) && (
-                    <div className="ml-auto flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="ml-auto flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
                       {canUntrack && (
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="cursor-pointer h-5 w-5 p-0 text-muted-foreground hover:bg-secondary hover:text-destructive"
+                          className="cursor-pointer h-6 w-6 p-0 text-muted-foreground hover:bg-secondary hover:text-destructive"
                           onClick={(e) => { e.stopPropagation(); onUnadopt?.(bill.id); }}
                           title="Untrack bill"
                           aria-label={`Untrack ${bill.bill_number}`}
@@ -413,7 +416,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="cursor-pointer h-5 w-5 p-0 text-muted-foreground hover:bg-secondary hover:text-primary"
+                              className="cursor-pointer h-6 w-6 p-0 text-muted-foreground hover:bg-secondary hover:text-primary"
                               onClick={(e) => e.stopPropagation()}
                               title="Assign to user"
                               aria-label={`Assign ${bill.bill_number} to a user`}
@@ -430,7 +433,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="cursor-pointer h-5 w-5 p-0 text-muted-foreground hover:bg-secondary hover:text-destructive"
+                              className="cursor-pointer h-6 w-6 p-0 text-muted-foreground hover:bg-secondary hover:text-destructive"
                               onClick={(e) => e.stopPropagation()}
                               title="Remove from board"
                               aria-label={`Remove ${bill.bill_number} from the board`}
@@ -477,7 +480,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                       <span className="shrink-0 text-xs font-medium text-foreground/70">
                         {formatRelativeDate(bill.latest_update.date)}
                       </span>
-                      <p className="min-w-0 truncate text-xs text-muted-foreground">
+                      <p className="min-w-0 line-clamp-2 sm:line-clamp-1 text-xs text-muted-foreground">
                         &mdash; {bill.latest_update.statustext}
                       </p>
                     </div>
@@ -493,7 +496,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                   <div className={bill.dead ? cn("flex items-center flex-wrap gap-1.5 min-w-0", deadDim) : "contents"}>
                     {testimonyState === 'submitted' && (
                       <ChipTooltip content="You submitted testimony for this bill">
-                        <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 h-5 text-[10px] font-medium text-primary shrink-0">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 h-5 text-xs font-medium text-primary shrink-0">
                           <Check className="h-2.5 w-2.5" />
                           Submitted
                         </span>
@@ -501,7 +504,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                     )}
                     {testimonyState === 'draft' && (
                       <ChipTooltip content="You have a testimony draft for this bill">
-                        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 h-5 text-[10px] font-medium text-secondary-foreground shrink-0">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 h-5 text-xs font-medium text-secondary-foreground shrink-0">
                           <PenLine className="h-2.5 w-2.5" />
                           Draft written
                         </span>
@@ -509,7 +512,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                     )}
                     {testimonyDue && (
                       <ChipTooltip content={testimonyChipTitle}>
-                        <span className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 h-5 text-[10px] font-medium text-destructive shrink-0">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 h-5 text-xs font-medium text-destructive shrink-0">
                           <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
                             <span className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75 motion-safe:animate-ping" />
                             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-destructive" />
@@ -521,7 +524,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                     )}
                     {testimonyClosed && (
                       <ChipTooltip content={testimonyClosedTitle}>
-                        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 h-5 text-[10px] font-medium text-muted-foreground shrink-0">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 h-5 text-xs font-medium text-muted-foreground shrink-0">
                           <History className="h-2.5 w-2.5" />
                           Testimony closed
                         </span>
@@ -533,16 +536,16 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                          hover; it opens nothing, so a tap just falls through to
                          the card. */
                       <ChipTooltip content={committeeTooltip}>
-                        <span className="inline-flex items-center rounded-full border border-border bg-secondary/60 px-2 h-5 text-[10px] font-medium text-secondary-foreground shrink-0">
+                        <span className="inline-flex items-center rounded-full border border-border bg-secondary/60 px-2 h-5 text-xs font-medium text-secondary-foreground shrink-0">
                           {committeeCodes}
                         </span>
                       </ChipTooltip>
                     )}
-                    {/* <Badge variant="outline" className="text-[10px] h-5 px-2 text-muted-foreground rounded-full">
+                    {/* <Badge variant="outline" className="text-xs h-5 px-2 text-muted-foreground rounded-full">
                       {formatBillStatusName(bill.current_bill_status)}
                     </Badge> */}
                     {vis.showTrackedCount && canSeeTracking && (
-                      <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                      <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
                         <Users className="h-2.5 w-2.5" />
                         <span>{trackedCount}</span>
                       </div>
@@ -589,7 +592,7 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
                       >
                         <span
                           className={cn(
-                            'inline-flex items-center gap-1 rounded-full border px-2 h-5 text-[10px] font-medium shrink-0',
+                            'inline-flex items-center gap-1 rounded-full border px-2 h-5 text-xs font-medium shrink-0',
                             deadlineTier === 'urgent' && 'border-destructive/30 bg-destructive/10 text-destructive',
                             deadlineTier === 'warning' && 'border-ochre/40 bg-ochre-soft text-ochre',
                             deadlineTier === 'safe' && 'border-border bg-secondary/60 text-muted-foreground'
@@ -615,14 +618,14 @@ const KanbanCardComponent = React.forwardRef<HTMLDivElement, KanbanCardProps>(
             {vis.showLlmActions && bill.llm_suggested && !bill.llm_processing && (
               <div className="px-3 pb-3 flex gap-2 pt-2 border-t border-border">
                 <Button
-                  size="sm" variant="outline" onClick={handleAccept} disabled={isProcessing}
-                  className="flex-1 text-xs h-7 bg-olive-soft border-olive/60 text-foreground hover:bg-olive/30"
+                  size="xs" variant="outline" onClick={handleAccept} disabled={isProcessing}
+                  className="flex-1 bg-olive-soft border-olive/60 text-foreground hover:bg-olive/30"
                 >
                   <Check className="h-3 w-3 mr-1" /> Accept
                 </Button>
                 <Button
-                  size="sm" variant="outline" onClick={handleReject} disabled={isProcessing}
-                  className="flex-1 text-xs h-7 bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20"
+                  size="xs" variant="outline" onClick={handleReject} disabled={isProcessing}
+                  className="flex-1 bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20"
                 >
                   <X className="h-3 w-3 mr-1" /> Reject
                 </Button>

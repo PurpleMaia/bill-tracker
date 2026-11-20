@@ -200,7 +200,7 @@ export function WelcomeTour() {
   }
 
   return (
-    <div className="fixed inset-0 z-[60]" role="presentation">
+    <div className="fixed inset-0 z-tour" role="presentation">
       {/* Click shield: blocks the page behind the tour without dismissing it. */}
       <div className={cn('absolute inset-0', !target && 'bg-black/55')} />
 

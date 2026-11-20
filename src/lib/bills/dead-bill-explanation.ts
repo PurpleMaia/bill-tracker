@@ -1,6 +1,6 @@
 import type { BillStatus } from '@/db/types';
-import { isBillDead, parseCommittees } from '@/lib/bills/dead-bill';
-import type { SessionDeadlines, StatusUpdate } from '@/lib/bills/dead-bill';
+import { getFinalReadingVotes, isBillDead, parseCommittees } from '@/lib/bills/dead-bill';
+import type { ChamberName, SessionDeadlines, StatusUpdate } from '@/lib/bills/dead-bill';
 
 /** Shown under the explanation when the bill merely stalled (not a closed status). */
 export const REVIVAL_NOTE =
@@ -23,9 +23,66 @@ const CLOSED_STATUS_SUMMARY: Record<string, string> = {
   governorSigns: 'This bill completed the legislative process and was signed into law.',
   lawWithoutSignature: 'This bill became law without the Governor’s signature.',
   vetoList: 'This bill passed the legislature but was vetoed by the Governor.',
-  transmittedGovernor: 'This bill passed the legislature and was transmitted to the Governor.',
   conferencePassed: 'This bill passed conference committee.',
 };
+
+const BOTH_CHAMBERS_RULE =
+  'Both the House and the Senate must pass the conference draft on Final Reading for it to go to the Governor.';
+
+function chamberList(chambers: ChamberName[]): string {
+  return chambers.length === 2 ? 'both the House and the Senate' : `the ${chambers[0]}`;
+}
+
+/**
+ * A dead bill sitting at conferencePassed did NOT finish: the conference draft
+ * still needs Final Reading in both chambers. Say which chamber stopped it
+ * rather than implying the process concluded. Returns null when both chambers
+ * passed it (nothing went wrong at Final Reading).
+ *
+ * With partial history (a card that only has the latest update), a chamber
+ * with no vote in view may well have voted, so only a failure actually seen is
+ * named and nothing is claimed about the other chamber.
+ */
+function explainFinalReading(
+  statusUpdates: StatusUpdate[],
+  committeeLabel: string,
+  partialHistory: boolean,
+): { summary: string; committeeExplanation: string } | null {
+  const { passed, failed } = getFinalReadingVotes(statusUpdates);
+  const referrals = `Its referrals were ${committeeLabel}.`;
+  const notBothSummary =
+    'This bill passed conference committee but did not pass Final Reading in both chambers before the session ended.';
+
+  if (partialHistory) {
+    return {
+      summary: failed.length > 0
+        ? `This bill passed conference committee but failed Final Reading in ${chamberList(failed)}.`
+        : notBothSummary,
+      committeeExplanation: `${BOTH_CHAMBERS_RULE} ${referrals}`,
+    };
+  }
+  if (passed.length === 2) return null;
+
+  const passedClause = passed.length === 1 ? `The ${passed[0]} passed it on Final Reading, but ` : '';
+
+  if (failed.length > 0) {
+    const votedDown = passed.length === 1
+      ? `the ${failed[0]} voted it down.`
+      : `it was voted down in ${chamberList(failed)}.`;
+    return {
+      summary: `This bill passed conference committee but failed Final Reading in ${chamberList(failed)}.`,
+      committeeExplanation: `${passedClause}${votedDown} ${BOTH_CHAMBERS_RULE} ${referrals}`,
+    };
+  }
+
+  const missing: ChamberName[] = (['House', 'Senate'] as const).filter((c) => !passed.includes(c));
+  return {
+    summary: notBothSummary,
+    committeeExplanation: passed.length === 1
+      ? `${passedClause}the ${missing[0]} did not. ${BOTH_CHAMBERS_RULE} ${referrals}`
+      : `${BOTH_CHAMBERS_RULE} ${referrals}`,
+  };
+}
 
 function formatDeadlineDate(date: string): string {
   return new Intl.DateTimeFormat('en-US', {
@@ -42,6 +99,8 @@ export function explainDeadBill(
   statusUpdates: StatusUpdate[],
   deadlines: SessionDeadlines,
   today: string, // YYYY-MM-DD
+  /** True when statusUpdates is only the latest update, not the full history. */
+  partialHistory = false,
 ): DeadBillExplanation {
   const { billNumber, billStatus, committeeAssignment } = bill;
   const committees = committeeAssignment ? parseCommittees(committeeAssignment) : [];
@@ -74,6 +133,34 @@ export function explainDeadBill(
   const isDeferral = lowerReason.includes('deferred');
   const isCommitteeAction = isNotAdopted || isDeferral;
 
+  const committeeLabel = committeeList || 'committee';
+
+  const finalReading = billStatus === 'conferencePassed'
+    ? explainFinalReading(statusUpdates, committeeLabel, partialHistory)
+    : null;
+  if (finalReading) {
+    return {
+      heading: 'Why did this bill fail?',
+      ...finalReading,
+      missedDeadline: null,
+      showRevivalNote: false,
+    };
+  }
+
+  // Stuck at transmittedGovernor: the legislature passed it, but no Governor
+  // action is on record. The Governor can still act after adjournment (and an
+  // unvetoed bill becomes law without signature), so don't blame a deadline —
+  // this is most likely a gap in the scraped status history.
+  if (billStatus === 'transmittedGovernor') {
+    return {
+      heading: 'Where did this bill end up?',
+      summary: 'This bill passed the legislature and was transmitted to the Governor, but no action by the Governor has been recorded.',
+      missedDeadline: null,
+      committeeExplanation: `The Governor can still sign or veto a bill after the session adjourns, and a bill that isn't vetoed in time becomes law without a signature. Check the official bill page for its latest status. Its referrals were ${committeeLabel}.`,
+      showRevivalNote: false,
+    };
+  }
+
   const closedSummary = CLOSED_STATUS_SUMMARY[billStatus];
 
   const summary = closedSummary
@@ -87,8 +174,6 @@ export function explainDeadBill(
           : deadlineName
             ? `This bill failed because it was not scheduled for a committee hearing before its ${deadlineName} deadline.`
             : 'This bill is no longer advancing this session.';
-
-  const committeeLabel = committeeList || 'committee';
 
   const committeeExplanation = closedSummary
     ? `It is no longer moving through committee because the process for it has concluded. Its referrals were ${committeeLabel}.`

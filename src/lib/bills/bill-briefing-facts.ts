@@ -144,11 +144,14 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   // foreground it. Elsewhere it's the committee chairs, shown after the reading
   // steps. Other steps (diff/reports) still appear when relevant.
   const nextSteps: BriefingStep[] = [];
+  // A failed bill has no one left to contact at ANY stage — no committee,
+  // conferee, Governor or override ask can move it — so it gets no contact step.
+  const contactable = !bill.dead;
   // In the governor phase the committees are done with the bill. Until a final
   // veto the Governor's office is the contact left; after one, only a
   // legislative override can save it. Either leads the list.
   const governorStage = getGovernorStage(status, bill.updates);
-  if (governorStage && !bill.dead) {
+  if (governorStage && contactable) {
     nextSteps.push(
       governorStage === 'vetoed'
         ? { text: "Urge legislators to override the Governor's veto.", action: 'contact' }
@@ -159,7 +162,7 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   // the status text). Before that there is no one to contact — the contact page
   // shows an "awaiting appointment" state — so offering it as a next step would
   // dead-end the user.
-  if (atConference && conferees.length > 0) {
+  if (atConference && conferees.length > 0 && contactable) {
     nextSteps.push({
       text: 'Urge the conferees to reach agreement on this bill.',
       action: 'contact',
@@ -178,7 +181,7 @@ export function deriveBriefingFacts(bill: BillDetails, today: string): BriefingF
   // law (the process is over) or in conference (it has cleared its committees —
   // the actionable ask is urging the conferees, pushed above instead) or with
   // the Governor (the Governor step above replaces it).
-  if (committeeCodes.length > 0 && !isEnacted(status) && !atConference && !governorStage) {
+  if (contactable && committeeCodes.length > 0 && !isEnacted(status) && !atConference && !governorStage) {
     nextSteps.push({ text: 'Contact the committee chairs to schedule a hearing.', action: 'contact' });
   }
 

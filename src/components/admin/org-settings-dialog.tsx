@@ -183,7 +183,7 @@ export function OrgSettingsPanel() {
           <Label htmlFor="org-description" className="text-sm font-medium">
             Description
           </Label>
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {description.length}/{DESCRIPTION_MAX}
           </span>
         </div>

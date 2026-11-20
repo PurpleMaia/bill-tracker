@@ -198,13 +198,13 @@ function MyOrgCard() {
       style={riseDelay(1)}
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-olive-dark">
+        <p className="text-xs font-semibold uppercase tracking-wide text-olive-dark">
           Your organization
         </p>
         {org && (
           <span
             className={cn(
-              'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
+              'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
               org.publicBoard
                 ? 'bg-olive/15 text-olive-dark'
                 : 'bg-red-100 text-red-700',
@@ -220,7 +220,7 @@ function MyOrgCard() {
         {/* Identity + counts — 1/3 width */}
         <div className="flex min-w-0 flex-col sm:basis-2/3">
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold leading-tight">{displayName}</p>
+            <p className="line-clamp-2 sm:line-clamp-1 font-semibold leading-tight">{displayName}</p>
             {org ? (
               <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
@@ -250,7 +250,7 @@ function MyOrgCard() {
 
         {/* Bills-they-track preview — 2/3 width */}
         <div className="min-w-0 sm:basis-1/3">
-          <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Bills they track
           </p>
           {org && org.sampleBills.length > 0 ? (
@@ -260,12 +260,12 @@ function MyOrgCard() {
                   <span className="shrink-0 font-mono font-medium text-foreground">
                     {b.billNumber ?? '—'}
                   </span>
-                  <span className="truncate text-muted-foreground">{b.billTitle ?? 'Untitled'}</span>
+                  <span className="line-clamp-2 sm:line-clamp-1 text-muted-foreground">{b.billTitle ?? 'Untitled'}</span>
                 </li>
               ))}
             </ul>
           ) : loaded ? (
-            <p className="text-xs italic text-muted-foreground/60">No bills tracked yet.</p>
+            <p className="text-xs italic text-muted-foreground">No bills tracked yet.</p>
           ) : (
             <div className="space-y-1.5">
               <div className="h-3 w-full animate-pulse rounded bg-olive/20" />
@@ -357,7 +357,7 @@ function OrgCard({
             href={publicBoardPath(org.slug)}
             data-card-link
             aria-label={`View ${org.name}’s board`}
-            className="block truncate font-semibold leading-tight outline-none after:absolute after:inset-0 after:rounded-lg group-hover:text-primary"
+            className="line-clamp-2 font-semibold sm:line-clamp-1 leading-tight outline-none after:absolute after:inset-0 after:rounded-lg group-hover:text-primary"
           >
             {org.name}
           </Link>
@@ -376,7 +376,7 @@ function OrgCard({
         <p
           className={cn(
             'mt-3 text-sm',
-            org.description ? 'text-muted-foreground' : 'italic text-muted-foreground/60',
+            org.description ? 'text-muted-foreground' : 'italic text-muted-foreground',
           )}
         >
           {org.description || 'No description yet.'}
@@ -397,7 +397,7 @@ function OrgCard({
       <div className="mt-4 shrink-0 sm:mt-0 sm:w-64">
         {org.sampleBills.length > 0 ? (
           <>
-            <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               BILLS THEY TRACK
             </p>
             <ul className="space-y-1">
@@ -406,7 +406,7 @@ function OrgCard({
                   <span className="shrink-0 font-mono font-medium text-foreground">
                     {b.billNumber ?? '—'}
                   </span>
-                  <span className="truncate text-muted-foreground">
+                  <span className="line-clamp-2 sm:line-clamp-1 text-muted-foreground">
                     {b.billTitle ?? 'Untitled'}
                   </span>
                 </li>
@@ -414,7 +414,7 @@ function OrgCard({
             </ul>
           </>
         ) : (
-          <p className="text-xs italic text-muted-foreground/60">No bills tracked yet.</p>
+          <p className="text-xs italic text-muted-foreground">No bills tracked yet.</p>
         )}
 
         {/* Following is per-user state, so logged-out visitors get a sign-in

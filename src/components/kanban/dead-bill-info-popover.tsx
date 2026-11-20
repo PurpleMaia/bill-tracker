@@ -11,6 +11,7 @@ import { explainDeadBill, REVIVAL_NOTE } from '@/lib/bills/dead-bill-explanation
 import type { StatusUpdate } from '@/lib/bills/dead-bill';
 import { cn, todayHawaii } from '@/lib/core/utils';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
+import { NewTabHint } from '@/components/ui/new-tab-hint';
 
 interface DeadBillInfoPopoverProps {
   billNumber: string;
@@ -45,6 +46,7 @@ export function DeadBillInfoPopover({
       updates,
       SESSION_DEADLINES,
       todayHawaii(),
+      statusUpdates === undefined,
     );
 
   const isMobile = useIsMobile();
@@ -78,7 +80,7 @@ export function DeadBillInfoPopover({
               deadline, not a committee action. */}
           {missedDeadline && (
             <div className="rounded-md border bg-muted/40 px-3.5 py-3">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">
                 Missed Deadline
               </p>
               <p className="text-sm font-semibold text-teal-700">{missedDeadline.name}</p>
@@ -112,6 +114,7 @@ export function DeadBillInfoPopover({
               onClick={(e) => e.stopPropagation()}
             >
               Read full bill <ExternalLink className="h-3 w-3" />
+              <NewTabHint />
             </a>
           ) : (
             <a
@@ -122,6 +125,7 @@ export function DeadBillInfoPopover({
               onClick={(e) => e.stopPropagation()}
             >
               Read full bill <ExternalLink className="h-3 w-3" />
+              <NewTabHint />
             </a>
           )}
         </div>

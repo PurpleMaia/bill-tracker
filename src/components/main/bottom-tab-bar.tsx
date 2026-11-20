@@ -16,7 +16,7 @@ export function BottomTabBar() {
     <nav
       aria-label="Primary"
       // Fixed h-16: the main layout reserves exactly this (pb-16).
-      className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex h-16 items-stretch border-t bg-background/95 backdrop-blur py-1.5"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-chrome flex h-16 items-stretch border-t bg-background/95 backdrop-blur py-1.5"
     >
       {NAV_ITEMS.map((item) => {
         const { href, label, icon: Icon } = item;
@@ -30,7 +30,7 @@ export function BottomTabBar() {
             className={cn(
               // flex-1 + basis-0: every tab gets an identical share of the
               // bar, regardless of label length
-              'flex flex-1 basis-0 min-w-0 flex-col items-center gap-1 px-1 py-1 text-[11px] transition-colors',
+              'flex flex-1 basis-0 min-w-0 flex-col items-center gap-1 px-1 py-1 text-xs transition-colors',
               active ? 'text-primary font-semibold' : 'text-muted-foreground'
             )}
           >

@@ -30,7 +30,7 @@ export function MobileHelpSheet({
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button size="sm" variant="outline" className="h-8 px-2.5 lg:hidden">
+        <Button size="sm" variant="outline" className="h-8 px-2.5 lg:hidden" aria-label="Help">
           <CircleHelp className="h-4 w-4" />
         </Button>
       </SheetTrigger>

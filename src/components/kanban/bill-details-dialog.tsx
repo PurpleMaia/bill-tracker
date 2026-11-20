@@ -52,6 +52,7 @@ import { HAWAII_TIME_ZONE, getTestimonyDeadline } from '@/lib/testimony/hearing-
 import type { BillStatus as DBBillStatus } from '@/db/types';
 import type { BoardMode } from '@/lib/bills/board-display';
 import { SESSION_DEADLINES } from '@/lib/testimony/session-deadlines';
+import { NewTabHint } from '@/components/ui/new-tab-hint';
 
 export interface BillDetailsDialogProps {
   billID: string | null;
@@ -343,11 +344,11 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
 
   // Once a bill is signed into law, legislators can no longer act on it — the
   // same enacted check that closes testimony also closes Contact Legislator.
-  // A failed bill in the governor phase has no one left to ask either (the
-  // briefing drops its Governor/override step for the same reason).
+  // A failed bill has no one left to ask at any stage either (the briefing
+  // drops every contact step for the same reason).
   const enacted = isEnacted(currentStatus as DBBillStatus);
   const governorStage = getGovernorStage(currentStatus, billDetails?.updates);
-  const contactDisabled = enacted || (governorStage !== null && bill.dead);
+  const contactDisabled = enacted || bill.dead;
   const contactDisabledReason = enacted
     ? 'This bill has become law! Legislators can no longer act on it.'
     : 'This bill is no longer moving, so there is no one left to contact about it.';
@@ -408,13 +409,13 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   {bill.bill_number}
                 </DialogTitle>
                 {bill.dead && (
-                  <Badge variant="destructive" className="text-[10px] h-5 text-white">Failed</Badge>
+                  <Badge variant="destructive" className="text-xs h-5 text-white">Failed</Badge>
                 )}
                 {/* Badge is a DIRECT flex child, with the term trigger inside it —
                     wrapping the badge in the trigger introduced an inline,
                     baseline-aligned button that broke items-center. */}
                 {fiscal && (
-                  <Badge variant="secondary" className="h-5 text-[10px]">
+                  <Badge variant="secondary" className="h-5 text-xs">
                     <Term slug="fiscal" variant="chip" billId={bill.id} className="leading-none">
                       Fiscal
                     </Term>
@@ -441,10 +442,11 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                 href={billDetails.bill_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hidden sm:inline-flex align-middle pt-4 text-sm shrink-0 items-center gap-1.5 text-blue-600 hover:text-blue-800 hover:underline whitespace-nowrap"
+                className="hidden sm:inline-flex align-middle pt-4 text-sm shrink-0 items-center gap-1.5 text-primary hover:text-primary/80 hover:underline whitespace-nowrap"
               >
                 <ExternalLink className="h-4 w-4" />
                 View on Hawaii State Legislature
+                <NewTabHint />
               </a>
             )}
           </div>
@@ -506,12 +508,14 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                       Login to write a testimony
                     </LoginLink>
                   </Button>
-                  <Button asChild size="sm" variant="outline">
-                    <LoginLink next={`/bills/${bill.id}/contact`}>
-                      <Users className="mr-1.5 h-3.5 w-3.5" />
-                      Login to contact a legislator
-                    </LoginLink>
-                  </Button>
+                  {!contactDisabled && (
+                    <Button asChild size="sm" variant="outline">
+                      <LoginLink next={`/bills/${bill.id}/contact`}>
+                        <Users className="mr-1.5 h-3.5 w-3.5" />
+                        Login to contact a legislator
+                      </LoginLink>
+                    </Button>
+                  )}
                 </>
               ) : testimonyEligibility.allowed ? (
                 <>
@@ -688,7 +692,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   </div>
                   <div className="flex gap-2">
                     <Select value={selectedStatus} onValueChange={setSelectedStatus} disabled={!canEditBill}>
-                      <SelectTrigger className="flex-1 h-9 text-sm">
+                      <SelectTrigger className="flex-1 h-9 text-sm" aria-label="Change status">
                         <SelectValue placeholder={!canEditBill ? "Only in 'My Bills'" : "Select status"} />
                       </SelectTrigger>
                       <SelectContent>
@@ -715,7 +719,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                 <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Status Updates
                   {billDetails?.updates && (
-                    <span className="ml-1.5 text-muted-foreground/60">({billDetails.updates.length})</span>
+                    <span className="ml-1.5 text-muted-foreground">({billDetails.updates.length})</span>
                   )}
                 </h3>
                 {user && (
@@ -739,11 +743,11 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                           <div className="flex items-center justify-between mb-1.5">
                             {/* A bare "H"/"S" is meaningless without context. */}
                             <Term slug="chamber" variant="chip" billId={bill.id}>
-                              <Badge variant={index === 0 ? "default" : "outline"} className="text-[10px] h-4 px-1.5">
+                              <Badge variant={index === 0 ? "default" : "outline"} className="text-xs h-5 px-1.5">
                                 {update.chamber}
                               </Badge>
                             </Term>
-                            <span className="text-[10px] text-muted-foreground tabular-nums">
+                            <span className="text-xs text-muted-foreground tabular-nums">
                               {parseLocalDate(update.date)?.toLocaleDateString('en-US', {
                                 month: 'short', day: 'numeric', year: 'numeric'
                               })}
@@ -800,19 +804,21 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                     {!user ? (
                       /* Logged-out: both flows require an account, so the CTAs
                          become login prompts instead of buttons that dead-end. */
-                      <div className="grid grid-cols-2 gap-1.5">
+                      <div className={cn('grid gap-1.5', contactDisabled ? 'grid-cols-1' : 'grid-cols-2')}>
                         <Button asChild variant="outline" className="h-11 w-full px-2">
                           <LoginLink next={`/bills/${bill.id}/testimony`}>
                             <PenLine className="mr-1.5 h-4 w-4 shrink-0" />
                             <span className="truncate">Login to testify</span>
                           </LoginLink>
                         </Button>
-                        <Button asChild variant="outline" className="h-11 w-full px-2">
-                          <LoginLink next={`/bills/${bill.id}/contact`}>
-                            <Users className="mr-1.5 h-4 w-4 shrink-0" />
-                            <span className="truncate">Login to contact</span>
-                          </LoginLink>
-                        </Button>
+                        {!contactDisabled && (
+                          <Button asChild variant="outline" className="h-11 w-full px-2">
+                            <LoginLink next={`/bills/${bill.id}/contact`}>
+                              <Users className="mr-1.5 h-4 w-4 shrink-0" />
+                              <span className="truncate">Login to contact</span>
+                            </LoginLink>
+                          </Button>
+                        )}
                       </div>
                     ) : (
                       <>

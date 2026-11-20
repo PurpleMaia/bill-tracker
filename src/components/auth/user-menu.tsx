@@ -28,6 +28,7 @@ import { SettingsDialog, type SettingsTab } from '@/components/settings/settings
 import { OrganizationDialog, type OrganizationTab } from '@/components/admin/organization-dialog';
 import { isProfileIncomplete } from '@/lib/auth/profile';
 import type { User } from '@/types/user';
+import { NewTabHint } from '@/components/ui/new-tab-hint';
 
 export function UserMenu() {
   //gets user info and logout function from context
@@ -227,6 +228,7 @@ export function UserMenu() {
             <a href={FEEDBACK_FORM_URL} target="_blank" rel="noopener noreferrer">
               <MessageSquareText className="mr-2 h-4 w-4" />
               <span>Feedback</span>
+              <NewTabHint />
             </a>
           </DropdownMenuItem>
           <DropdownMenuSeparator />

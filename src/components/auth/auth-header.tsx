@@ -68,7 +68,7 @@ export function AuthHeader() {
                 size="icon"
                 className="h-10 w-10 shadow-sm text-primary bg-white"
               >
-                <a href={FEEDBACK_FORM_URL} target="_blank" rel="noopener noreferrer" aria-label="Feedback">
+                <a href={FEEDBACK_FORM_URL} target="_blank" rel="noopener noreferrer" aria-label="Feedback (opens in new tab)">
                   <MessageSquareText className="h-4 w-4" />
                 </a>
               </Button>

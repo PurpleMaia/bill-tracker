@@ -142,7 +142,7 @@ export function SupervisorDashboard() {
       
       {/* My Adopted Interns */}
       <div>
-        <h1 className="text-2xl font-bold mb-6">My Adopted Interns</h1>
+        <h2 className="text-2xl font-bold mb-6">My Adopted Interns</h2>
         {isLoadingAdoptees ? (
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
@@ -189,7 +189,7 @@ export function SupervisorDashboard() {
       <div>
 
 
-        <h1 className="text-2xl font-bold mb-6">Available Users to Adopt</h1>
+        <h2 className="text-2xl font-bold mb-6">Available Users to Adopt</h2>
         {isLoadingUsers ? (
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (

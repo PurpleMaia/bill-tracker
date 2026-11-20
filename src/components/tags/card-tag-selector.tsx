@@ -112,10 +112,9 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
             style={{
               backgroundColor: tag.color || '#3b82f6',
               color: 'white',
-              fontSize: '10px',
               padding: '2px 6px',
             }}
-            className="text-[10px] rounded-md"
+            className="text-xs rounded-md"
           >
             {tag.name}
           </Badge>
@@ -137,10 +136,9 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
               style={{
                 backgroundColor: tag.color || '#3b82f6',
                 color: 'white',
-                fontSize: '10px',
                 padding: '2px 6px',
               }}
-              className="text-[10px] rounded-md"
+              className="text-xs rounded-md"
             >
               {tag.name}
               <X
@@ -160,7 +158,7 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
         <PopoverTrigger asChild>
           <Button            
             variant="ghost"
-            className="h-5 border px-2 py-0.5 text-[10px] rounded-md "
+            className="h-5 border px-2 py-0.5 text-xs rounded-md "
             onClick={(e) => e.stopPropagation()}
           >
             <Plus className="h-1 w-1" />
@@ -187,11 +185,10 @@ export function CardTagSelector({ billId, billTags = [], onTagsChange }: CardTag
                         color: isSelected ? 'white' : undefined,
                         cursor: saving ? 'not-allowed' : 'pointer',
                         opacity: saving ? 0.6 : 1,
-                        fontSize: '10px',
                         padding: '2px 6px',
                       }}
                       onClick={() => !saving && handleToggleTag(tag)}
-                      className="cursor-pointer text-[10px]"
+                      className="cursor-pointer text-xs"
                     >
                       {tag.name}
                     </Badge>
