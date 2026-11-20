@@ -33,7 +33,7 @@ export function RecommendedBillsRow({ onCardClick }: { onCardClick: (billId: str
   const { user } = useAuth();
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const { data: recs, isLoading } = useQuery({
+  const { data: recs, isLoading, isError } = useQuery({
     queryKey: ['recommendations'],
     queryFn: () => data.recommendations.get(),
     enabled: !!user,
@@ -47,6 +47,14 @@ export function RecommendedBillsRow({ onCardClick }: { onCardClick: (billId: str
           Sign in to get recommendations
         </Link>
       </section>
+    );
+  }
+
+  if (isError) {
+    return (
+      <p role="status" className="mb-4 text-sm text-muted-foreground">
+        Couldn&apos;t load recommendations.
+      </p>
     );
   }
 

@@ -175,8 +175,9 @@ function BillSearchCardComponent({ bill, query, onCardClick, footer }: BillSearc
             </div>
           )}
 
-          {footer}
           </div>
+
+          {footer}
 
           {/* Footer row: committee chips on the left, the failure-reason button
               on the right. Sits OUTSIDE the dimming wrapper above, because

@@ -32,6 +32,7 @@ import {
   parseSearchParams,
   resolveSortMode,
   SEARCH_PAGE_SIZE,
+  activeFilterCount,
   type SearchFilters,
   type SortMode,
 } from '@/lib/bills/search-params';
@@ -258,7 +259,9 @@ export function BillSearchView() {
             </div>
           </div>
 
-          <RecommendedBillsRow onCardClick={handleCardClick} />
+          {!hasQuery && activeFilterCount(filters) === 0 && (
+            <RecommendedBillsRow onCardClick={handleCardClick} />
+          )}
 
           {error && (
             <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
