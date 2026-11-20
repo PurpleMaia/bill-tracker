@@ -3,7 +3,7 @@
 // called directly from a client, so they need no server-action boundary — and
 // keeping them plain lets the module export the AdditionalBillData type.
 
-import type { Bill, BillTracker, Tag, BillDetails, StatusUpdate, BillVersion, CommitteeReport } from '@/types/legislation';
+import type { Bill, BillTracker, Tag, BillDetails, StatusUpdate, BillVersion, CommitteeReport, BillSearchResult } from '@/types/legislation';
 import { Bills, StatusUpdates, BillVersions, CommitteeReports } from '@/db/types';
 import { Selectable } from 'kysely';
 import { hasFinalVeto } from '@/lib/legislators/governor-contact';
@@ -192,4 +192,34 @@ export async function convertDataToBillShape(
   }
 
   return baseBill;
+}
+
+/** Maps a bills row (search/recommendation select) + its latest update to a BillSearchResult. */
+export function toBillSearchResult(
+  r: any,
+  update: StatusUpdate | undefined,
+  isTracked: boolean,
+): BillSearchResult {
+  return {
+    id: r.id,
+    bill_number: r.bill_number ?? '',
+    bill_title: r.bill_title ?? '',
+    description: r.description ?? '',
+    year: r.year,
+    bill_status: r.bill_status,
+    dead: r.dead,
+    bill_url: r.bill_url,
+    updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : null,
+    nickname: r.nickname ?? null,
+    committee_assignment: r.committee_assignment ?? null,
+    latest_update: update
+      ? {
+          id: update.id,
+          chamber: update.chamber,
+          date: update.date,
+          statustext: update.statustext,
+        }
+      : null,
+    is_tracked: isTracked,
+  };
 }

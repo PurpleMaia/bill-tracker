@@ -14,7 +14,7 @@ import { db } from '@/db/kysely/client';
 import { StatusUpdates } from '@/db/types';
 import { Selectable, sql } from 'kysely';
 import { getBatchBillTags } from '@/db/queries/tags';
-import { mapBillDataToBillClient, convertDataToBillShape, mapVersionRow, mapReportRow } from '@/db/queries/bill-mappers';
+import { mapBillDataToBillClient, convertDataToBillShape, mapVersionRow, mapReportRow, toBillSearchResult } from '@/db/queries/bill-mappers';
 
 // ==============================================
 // BILL FETCH FUNCTIONS
@@ -579,6 +579,30 @@ export async function findExistingBillByURL(billURl: string): Promise<BillDetail
 }
 
 /**
+ * Latest status update per bill, in ONE batched DISTINCT ON query — never one
+ * query per bill, which would make a 40-card page cost 41 round trips.
+ */
+export async function getLatestStatusUpdates(
+  billIds: string[],
+): Promise<Map<string, StatusUpdate>> {
+  if (billIds.length === 0) return new Map();
+  const rows = await db
+    .selectFrom('status_updates')
+    .select(['bill_id', 'id', 'chamber', 'date', 'statustext'])
+    .where('bill_id', 'in', billIds)
+    .distinctOn('bill_id')
+    .orderBy('bill_id')
+    .orderBy('date', 'desc')
+    .execute();
+  return new Map(
+    rows.map((u) => [
+      u.bill_id,
+      { id: u.id, chamber: u.chamber, date: u.date, statustext: u.statustext },
+    ]),
+  );
+}
+
+/**
  * Searches the FULL bills table — the only bill query with no user_bills join,
  * so it can surface bills nobody tracks yet.
  *
@@ -811,48 +835,12 @@ export async function searchBills(params: SearchBillsParams): Promise<BillSearch
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
 
-  // Latest status update per bill, for the card's activity line. ONE batched
-  // query with DISTINCT ON for the whole page — never one query per bill, which
-  // would make a 40-card page cost 41 round trips.
-  const pageIds = page.map((r: any) => r.id);
-  const latestUpdates = pageIds.length
-    ? await db
-        .selectFrom('status_updates')
-        .select(['bill_id', 'id', 'chamber', 'date', 'statustext'])
-        .where('bill_id', 'in', pageIds)
-        .distinctOn('bill_id')
-        .orderBy('bill_id')
-        .orderBy('date', 'desc')
-        .execute()
-    : [];
+  // Latest status update per bill, for the card's activity line (one batched query).
+  const updateByBillId = await getLatestStatusUpdates(page.map((r: any) => r.id));
 
-  const updateByBillId = new Map(latestUpdates.map((u) => [u.bill_id, u]));
-
-  const items: BillSearchResult[] = page.map((r: any) => {
-    const update = updateByBillId.get(r.id);
-    return {
-      id: r.id,
-      bill_number: r.bill_number ?? '',
-      bill_title: r.bill_title ?? '',
-      description: r.description ?? '',
-      year: r.year,
-      bill_status: r.bill_status,
-      dead: r.dead,
-      bill_url: r.bill_url,
-      updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : null,
-      nickname: r.nickname ?? null,
-      committee_assignment: r.committee_assignment ?? null,
-      latest_update: update
-        ? {
-            id: update.id,
-            chamber: update.chamber,
-            date: update.date,
-            statustext: update.statustext,
-          }
-        : null,
-      is_tracked: Boolean(r.is_tracked),
-    };
-  });
+  const items: BillSearchResult[] = page.map((r: any) =>
+    toBillSearchResult(r, updateByBillId.get(r.id), Boolean(r.is_tracked)),
+  );
 
   const last: any = page[page.length - 1];
   const nextCursor =
