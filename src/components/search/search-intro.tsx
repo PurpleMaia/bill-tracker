@@ -22,7 +22,7 @@ const SUGGESTIONS = [
   'water rights',
 ];
 
-/** The only suggestions shown on phones, where six chips crowd the hero. */
+/** The only suggestions shown on phones, where the full set crowds the hero. */
 const PHONE_SUGGESTIONS = new Set(['agriculture', 'water rights']);
 
 interface SearchIntroProps {
