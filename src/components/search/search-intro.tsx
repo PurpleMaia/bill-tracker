@@ -14,12 +14,19 @@ import { cn } from '@/lib/core/utils';
  * suggestion chips give them a one-click way in, since an empty box offers
  * nothing to act on.
  */
+// A spread of the subjects bills most often cover (2025–26 titles: housing,
+// education, health, budget, UH, AI…), led by the food-system ones this tracker
+// started from.
 const SUGGESTIONS = [
   'agriculture',
-  'food security',
-  'school meals',
-  'farm to school',
   'water rights',
+  'food security',
+  'housing',
+  'health care',
+  'education',
+  'budget',
+  'university of hawaii',
+  'artificial intelligence',
 ];
 
 /** The only suggestions shown on phones, where the full set crowds the hero. */
