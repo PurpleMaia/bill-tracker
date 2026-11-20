@@ -76,26 +76,31 @@ Pure helpers here (unit-tested): validate/normalize user keywords (trim, lowerca
 dedupe, length/count caps), and build the term list for a user (topic terms +
 custom keywords).
 
-### 2. Storage — one new table
+### 2. Storage — extend `user_preferences` (no new table)
 
-Migration `000038_user_interests`:
+Jaden's decision: store interests on the existing per-user `user_preferences` table
+rather than a new table. Migration `000038_user_interests`:
 
 ```sql
-CREATE TABLE user_interests (
-  user_id    uuid PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
-  topics     text[] NOT NULL DEFAULT '{}',
-  keywords   text[] NOT NULL DEFAULT '{}',
-  onboarded_at timestamptz,          -- set on save OR skip; drives "show picker?"
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
+ALTER TABLE user_preferences
+  ADD COLUMN interest_topics   text[] NOT NULL DEFAULT '{}',
+  ADD COLUMN interest_keywords text[] NOT NULL DEFAULT '{}',
+  ADD COLUMN onboarded_at      timestamptz;   -- set on save OR skip; drives "show picker?"
 ```
 
-Interests are per-user, not tenant-scoped. Regenerate `src/db/types.ts`.
+**No backfill (Jaden's decision):** every existing account starts non-onboarded and
+sees the picker on its next visit. `user_preferences` rows are created lazily by the
+upsert in `db/queries/user-preferences.ts`; a user with no row is treated as
+"no interests, not onboarded" (extend `getUserPreferences`' defaults accordingly).
 
-**Backfill (my call):** the migration sets `onboarded_at = now()` for every
-existing user, so only accounts created after release see the picker.
-Keyword caps (my call): at most 10 custom keywords, each 2–40 characters.
+Extend `src/types/preferences.ts` (`UserPreferences`) with `interest_topics`,
+`interest_keywords`, `onboarded_at`, and reuse the existing read/write path:
+`getUserPreferences` / `updateUserPreferences`, `data.preferences`, and
+`useAuth().preferences` / `updatePreferences`. No new data-client domain for
+interests. Regenerate `src/db/types.ts`.
+
+Keyword caps (my call): at most 10 custom keywords, each 2–40 characters; topics
+validated against `RECOMMENDATION_TOPICS` ids server-side (zod).
 
 ### 3. Matching — one query, `src/db/queries/recommendations.ts`
 
@@ -140,13 +145,13 @@ that opens Find Bills with those terms (builder's call on exact mechanism).
 
 ### 5. Transport — data-client pattern
 
-- `db/queries/recommendations.ts`: `getRecommendedBills(userId)`,
-  `getUserInterests(userId)`, `saveUserInterests(userId, {topics, keywords})`,
-  `markOnboarded(userId)`.
-- Action arm `app/actions/recommendations.ts` + API routes under
+- `db/queries/recommendations.ts`: `getRecommendedBills(userId)` — reads the
+  user's interests from `user_preferences` and runs the match.
+- Action arm `app/actions/recommendations.ts` + API route under
   `app/api/recommendations/` + `lib/data-client/recommendations.client.ts`,
-  registered as `data.recommendations`. All guarded with `requireSession`.
-- Validate topics against `RECOMMENDATION_TOPICS` ids server-side (zod).
+  registered as `data.recommendations`. Guarded with `requireSession`.
+- Saving interests / marking onboarded go through the existing preferences
+  update path (see §2).
 
 ### 6. UI
 
@@ -154,16 +159,16 @@ that opens Find Bills with those terms (builder's call on exact mechanism).
   the user's own keywords. **Sequenced after the welcome tour** (Jaden's decision).
   `WelcomeTour` (`components/tour/welcome-tour.tsx`, mounted in
   `app/(main)/layout.tsx`) is localStorage-gated and also runs for signed-out
-  visitors. Rule: open the picker when signed in, `user_interests.onboarded_at` is
+  visitors. Rule: open the picker when signed in, `preferences.onboarded_at` is
   null, and the tour is not currently running. Have the tour's `close()` dispatch a
   "tour finished" window event (alongside the existing `TOUR_START_EVENT`) so the
   picker opens the moment the tour ends; on later page loads the tour isn't
   running, so a user who toured while signed out gets the picker after signing in.
   "Skip" sets `onboarded_at` with empty interests.
-- **Profile: Interests section** in the existing settings dialog
-  (`components/settings/settings-dialog.tsx`, next to `EditProfilePanel`) — same
-  chips + own-keywords editor, saved to `user_interests` (Jaden's decision: users
-  write their own keywords and save them to their profile). The Recommended row's
+- **Settings: Interests section** in the existing settings dialog's Preferences
+  tab (`PreferencesPanel` in `components/settings/settings-dialog.tsx`) — same
+  chips + own-keywords editor, saved via `updatePreferences` (Jaden's decision:
+  users write their own keywords and edit them in their user settings). The Recommended row's
   "Edit interests" opens this section.
 - **Recommended row** on `/find-bills` (`components/search/bill-search-view.tsx`),
   reusing `bill-search-card.tsx` and `track-button.tsx`. `BillSearchCard` needs a new
