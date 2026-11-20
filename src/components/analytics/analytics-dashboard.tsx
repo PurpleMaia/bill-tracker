@@ -70,7 +70,7 @@ export function AnalyticsDashboard() {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {query.isFetching && dashboard && (
-            <Loader2 aria-label="Updating" className="hidden h-4 w-4 animate-spin text-muted-foreground sm:block" />
+            <Loader2 aria-label="Updating" className="h-4 w-4 animate-spin text-muted-foreground" />
           )}
           <Select value={range} onValueChange={(v) => setRange(v as AnalyticsRange)}>
             <SelectTrigger className="w-full sm:w-40" aria-label="Date range">

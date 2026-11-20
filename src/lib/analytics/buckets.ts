@@ -40,6 +40,16 @@ function honoluluMonday(date: Date): Date {
   return new Date(midnight - daysSinceMonday * DAY_MS);
 }
 
+/**
+ * Lower bound for the weekly series: Honolulu Monday 00:00 (as a UTC instant) of the
+ * week containing rangeStart, so the first bar covers a full week. `all` → null.
+ */
+export function seriesStart(range: AnalyticsRange, now: Date): Date | null {
+  const start = rangeStart(range, now);
+  if (!start) return null;
+  return new Date(honoluluMonday(start).getTime() - HONOLULU_OFFSET_MS);
+}
+
 /** Every Honolulu week from `from` to `to` (inclusive), ascending, zero-filled where `rows` has no value. */
 export function fillWeeks(rows: WeeklyPoint[], from: Date, to: Date): WeeklyPoint[] {
   const values = new Map(rows.map((r) => [r.week, r.value]));

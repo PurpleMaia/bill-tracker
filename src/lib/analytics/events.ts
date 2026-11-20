@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { NewUsageEvent } from '@/db/queries/usage-events';
+import { normalizePath } from '@/lib/analytics/paths';
 
 export const CLIENT_EVENTS = [
   'page_view',
@@ -17,6 +18,7 @@ export type ServerEventName = (typeof SERVER_EVENTS)[number];
 
 export const MAX_PROPS_BYTES = 2048;
 export const MAX_QUERY_CHARS = 100;
+const HOUR_MS = 60 * 60 * 1000;
 
 export type TrackInput = {
   event: ClientEventName;
@@ -60,15 +62,22 @@ export function resolveTenant(
 
 export function toStoredEvent(
   input: TrackInput,
-  ctx: { userId: string | null; memberTenantIds: string[] | null },
+  ctx: { userId: string | null; memberTenantIds: string[] | null; now?: Date },
 ): NewUsageEvent | null {
-  const props = input.props ?? {};
-  const path = input.path ?? null;
-
-  // Searches are stored fully anonymous.
+  // Searches are stored fully anonymous: no identity, no path, whitelisted props,
+  // and a timestamp coarsened to the hour so they can't be correlated to a session.
   if (input.event === 'bill_search') {
-    return { event: input.event, userId: null, tenantId: null, anonId: null, path, props };
+    const raw = input.props ?? {};
+    const props: Record<string, unknown> = {};
+    if (typeof raw.query === 'string') props.query = raw.query;
+    if (typeof raw.resultCount === 'number') props.resultCount = raw.resultCount;
+    const now = ctx.now ?? new Date();
+    const createdAt = new Date(Math.floor(now.getTime() / HOUR_MS) * HOUR_MS);
+    return { event: input.event, userId: null, tenantId: null, anonId: null, path: null, props, createdAt };
   }
+
+  const props = input.props ?? {};
+  const path = input.path ? normalizePath(input.path) : null;
 
   if (ctx.userId) {
     return {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fillWeeks, rangeStart, previousRangeStart, percentChange } from '../analytics/buckets';
+import { fillWeeks, rangeStart, previousRangeStart, percentChange, seriesStart } from '../analytics/buckets';
 
 describe('fillWeeks', () => {
   it('zero-fills an empty series across the range', () => {
@@ -27,5 +27,21 @@ describe('rangeStart / percentChange', () => {
   it('percentChange handles zero baseline', () => {
     expect(percentChange(15, 10)).toBe(50);
     expect(percentChange(5, 0)).toBeNull();
+  });
+});
+
+describe('seriesStart', () => {
+  it('aligns a 30d range start to the Honolulu Monday 00:00', () => {
+    // rangeStart = 2026-10-21T00:00Z = Tue Oct 20 14:00 HST -> Mon Oct 19 00:00 HST
+    expect(seriesStart('30d', new Date('2026-11-20T00:00:00Z'))?.toISOString()).toBe('2026-10-19T10:00:00.000Z');
+  });
+  it('returns null for all', () => {
+    expect(seriesStart('all', new Date('2026-11-20T00:00:00Z'))).toBeNull();
+  });
+  it('maps Monday 00:00 HST to its own week', () => {
+    // now such that rangeStart = Mon 2026-10-19T10:00Z (Mon 00:00 HST)
+    const now = new Date('2026-11-18T10:00:00Z');
+    expect(rangeStart('30d', now)?.toISOString()).toBe('2026-10-19T10:00:00.000Z');
+    expect(seriesStart('30d', now)?.toISOString()).toBe('2026-10-19T10:00:00.000Z');
   });
 });

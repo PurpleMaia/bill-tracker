@@ -13,6 +13,8 @@ export type NewUsageEvent = {
   anonId: string | null;
   path: string | null;
   props: Record<string, unknown>;
+  /** Override the DB default timestamp (used to coarsen anonymous searches). */
+  createdAt?: Date;
 };
 
 /** Insert one event row. Throws on DB error. */
@@ -26,6 +28,7 @@ export async function insertUsageEvent(row: NewUsageEvent): Promise<void> {
       anon_id: row.anonId,
       path: row.path,
       props: JSON.stringify(row.props),
+      ...(row.createdAt ? { created_at: row.createdAt } : {}),
     })
     .execute();
 }
@@ -61,8 +64,11 @@ export async function logEvent(
 export async function recordClientEvent(userId: string | null, input: unknown): Promise<void> {
   const event = validateClientEvent(input);
   if (!event) return;
+  // Memberships only matter when a tenantId was claimed; skip the lookup otherwise.
   const memberTenantIds = userId
-    ? (await getUserMemberships(userId)).map((m) => m.tenantId)
+    ? event.tenantId
+      ? (await getUserMemberships(userId)).map((m) => m.tenantId)
+      : []
     : null;
   const row = toStoredEvent(event, { userId, memberTenantIds });
   if (!row) return;

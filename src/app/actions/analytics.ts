@@ -8,15 +8,18 @@ import { Errors } from '@/lib/core/errors';
 import type { AnalyticsRange, DashboardData, OrgFilter } from '@/types/analytics';
 import { recordClientEvent } from '@/db/queries/usage-events';
 import { limitFixedWindow } from '@/lib/core/ratelimit-memory';
-import type { TrackInput } from '@/lib/analytics/events';
+import { validateClientEvent, type TrackInput } from '@/lib/analytics/events';
 
 /** Server-action arm for data.analytics.track. Never throws: tracking must not break the UI. */
 export async function trackEventAction(input: TrackInput): Promise<void> {
   try {
+    // Validate first so an unvalidated anonId never becomes a limiter key.
+    const valid = validateClientEvent(input);
+    if (!valid) return;
     const { user } = await optionalSession.fromAction();
-    const key = `events:${user?.id ?? input?.anonId ?? 'unknown'}`;
+    const key = `events:${user?.id ?? valid.anonId ?? 'unknown'}`;
     if (!limitFixedWindow(key, 120, 60_000).ok) return;
-    await recordClientEvent(user?.id ?? null, input);
+    await recordClientEvent(user?.id ?? null, valid);
   } catch (error) {
     console.error('[analytics] trackEventAction failed', error);
   }

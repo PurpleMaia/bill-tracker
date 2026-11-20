@@ -1,7 +1,7 @@
 import { sql, type Expression, type ExpressionBuilder, type SqlBool } from 'kysely';
 import { db } from '@/db/kysely/client';
 import { CLIENT_EVENTS } from '@/lib/analytics/events';
-import { fillWeeks, previousRangeStart, rangeStart } from '@/lib/analytics/buckets';
+import { fillWeeks, previousRangeStart, rangeStart, seriesStart } from '@/lib/analytics/buckets';
 import { FEATURE_KEYS, featureKey, featureLabel } from '@/lib/analytics/features';
 import type {
   AnalyticsRange,
@@ -32,7 +32,12 @@ type Filter = (eb: AnyEB) => Expression<SqlBool>;
 
 // ---- SQL fragments ----
 
-/** Monday (Pacific/Honolulu) of the row's week, as 'YYYY-MM-DD'. `::timestamptz` makes naive columns (user/sessions/user_bills) safe. */
+/**
+ * Monday (Pacific/Honolulu) of the row's week, as 'YYYY-MM-DD'. Several columns are
+ * naive `timestamp`; `::timestamptz` interprets them in the DB session TZ. This assumes
+ * the Node process TZ equals the DB session TZ, since those columns are written both by
+ * `new Date()` (Node) and by DB defaults.
+ */
 function weekOf(col: string) {
   return sql<string>`to_char(date_trunc('week', ${sql.ref(col)}::timestamptz AT TIME ZONE 'Pacific/Honolulu'), 'YYYY-MM-DD')`;
 }
@@ -372,6 +377,7 @@ export async function getAnalyticsDashboard(params: {
   const { range, org } = params;
   const now = new Date();
   const from = rangeStart(range, now);
+  const sFrom = seriesStart(range, now); // week-aligned lower bound for weekly series
   const prevFrom = previousRangeStart(range, now);
 
   const [firstEvent, firstUser, orgs] = await Promise.all([
@@ -387,19 +393,19 @@ export async function getAnalyticsDashboard(params: {
   ]);
   const eventsSince = firstEvent?.at ? new Date(firstEvent.at) : null;
   // 'all' starts the charts at the first signup.
-  const seriesFrom = from ?? (firstUser?.at ? new Date(firstUser.at) : now);
+  const seriesFrom = sFrom ?? (firstUser?.at ? new Date(firstUser.at) : now);
 
   const [kpis, signups, logins, activeUsers, billsTracked, testimonies, contacts, tagsApplied, follows, features, topSearches] =
     await Promise.all([
       getKpis(org, from, now),
-      weeklySignups(org, from),
-      weeklyLogins(org, from, eventsSince),
-      weeklyActiveUsers(org, from),
-      weeklyBillsTracked(org, from),
-      weeklyTestimonies(org, from),
-      weeklyContacts(org, from),
-      weeklyTagsApplied(org, from),
-      weeklyFollows(org, from),
+      weeklySignups(org, sFrom),
+      weeklyLogins(org, sFrom, eventsSince),
+      weeklyActiveUsers(org, sFrom),
+      weeklyBillsTracked(org, sFrom),
+      weeklyTestimonies(org, sFrom),
+      weeklyContacts(org, sFrom),
+      weeklyTagsApplied(org, sFrom),
+      weeklyFollows(org, sFrom),
       getFeatures(org, from, prevFrom),
       getTopSearches(org, from),
     ]);

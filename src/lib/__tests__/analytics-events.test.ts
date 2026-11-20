@@ -45,4 +45,33 @@ describe('toStoredEvent', () => {
     );
     expect(row).toMatchObject({ userId: null, tenantId: null, anonId: null, props: { query: 'poi' } });
   });
+  it('whitelists bill_search props and nulls path', () => {
+    const row = toStoredEvent(
+      { event: 'bill_search', path: '/find-bills', props: { query: 'poi', resultCount: 3, extra: 'x', userEmail: 'a@b.c' } },
+      { userId: 'u1', memberTenantIds: ['t1'] },
+    );
+    expect(row?.props).toEqual({ query: 'poi', resultCount: 3 });
+    expect(row?.path).toBeNull();
+  });
+  it('drops wrongly-typed bill_search props', () => {
+    const row = toStoredEvent(
+      { event: 'bill_search', props: { query: 5, resultCount: 'many' } },
+      { userId: null, memberTenantIds: null },
+    );
+    expect(row?.props).toEqual({});
+  });
+  it('truncates bill_search createdAt to the UTC hour', () => {
+    const row = toStoredEvent(
+      { event: 'bill_search', props: { query: 'poi' } },
+      { userId: null, memberTenantIds: null, now: new Date('2026-11-20T13:47:21.123Z') },
+    );
+    expect(row?.createdAt?.toISOString()).toBe('2026-11-20T13:00:00.000Z');
+  });
+  it('normalizes path for non-search events', () => {
+    const row = toStoredEvent(
+      { event: 'page_view', anonId: 'a1', path: '/bills/abc123?x=1' },
+      { userId: null, memberTenantIds: null },
+    );
+    expect(row?.path).toBe('/bills/[id]');
+  });
 });

@@ -35,17 +35,23 @@ export async function updateBillStatus(billId: string, newStatus: string, tenant
     }
 
     try {
-        // Prior status, for the usage event. null when no row exists yet.
-        const prior = tenantId
-            ? (await db.selectFrom('org_bills')
-                .select('bill_status')
-                .where('tenant_id', '=', tenantId)
-                .where('bill_id', '=', billId)
-                .executeTakeFirst())?.bill_status
-            : (await db.selectFrom('bills')
-                .select('bill_status')
-                .where('id', '=', billId)
-                .executeTakeFirst())?.bill_status;
+        // Prior status, for the usage event. null when no row exists yet or the
+        // read fails: analytics must never fail the status change.
+        let prior: string | null = null;
+        try {
+            prior = tenantId
+                ? (await db.selectFrom('org_bills')
+                    .select('bill_status')
+                    .where('tenant_id', '=', tenantId)
+                    .where('bill_id', '=', billId)
+                    .executeTakeFirst())?.bill_status ?? null
+                : (await db.selectFrom('bills')
+                    .select('bill_status')
+                    .where('id', '=', billId)
+                    .executeTakeFirst())?.bill_status ?? null;
+        } catch (error) {
+            console.error('[usage-events] prior status read failed', error);
+        }
 
         if (tenantId) {
             // Write to org_bills for org-scoped status
