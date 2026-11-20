@@ -16,7 +16,7 @@ import { TagFilterList } from '../tags/tag-filter-list';
 import { TagsDialog } from '../tags/tags-dialog';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
-import { Globe, Search, Tags } from 'lucide-react';
+import { Globe, Search, Tags, UserPlus } from 'lucide-react';
 import { getTagsAction } from '@/app/actions/tags';
 import type { Tag } from '@/types/legislation';
 
@@ -218,11 +218,20 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
   return (
     <div className="border-b bg-white shadow-md">
       {/* Mobile: one Trello-style toolbar row — phase jump pills, then
-          Filters pinned right (search lives inside its panel). Tracking moved
-          to each column's footer and Export to the avatar menu. */}
+          Filters pinned right (search lives inside its panel). Tracking lives
+          in each column's footer; spreadsheet and calendar have no columns
+          (and no pills), so Track Bill takes that slot there. Export is in
+          the avatar menu. */}
       <div className="md:hidden flex items-center gap-2 px-3 py-2">
         <div className="min-w-0 flex-1">
           {phaseScrollAvailable && <KanbanPillStrip onScrollTo={scrollToPhase} />}
+          {showHeaderTrack && (
+            <TrackBillDialog>
+              <Button size="sm" className="h-8 px-2.5">
+                <UserPlus /> Track Bill
+              </Button>
+            </TrackBillDialog>
+          )}
         </div>
         {renderFilterControls(true)}
       </div>
