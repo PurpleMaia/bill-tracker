@@ -30,7 +30,10 @@ export function OrganizationDialog({ tab, onTabChange }: OrganizationDialogProps
 
   return (
     <Dialog open={tab !== null} onOpenChange={(open) => !open && close()}>
-      <DialogContent className="sm:max-w-md">
+      {/* minmax(0,1fr): the dialog is a grid, and without it the long public
+          URL in Settings widens the column past a phone's screen instead of
+          truncating. The height cap scrolls it on short screens. */}
+      <DialogContent className="max-h-[90dvh] grid-cols-[minmax(0,1fr)] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Organization</DialogTitle>
           <DialogDescription>Manage {activeTenant?.name}.</DialogDescription>

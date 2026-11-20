@@ -1,5 +1,5 @@
 import type { Bill } from '@/types/legislation';
-import type { PublicOrg, MyOrg } from '@/types/tenant';
+import type { PublicOrg, MyOrg, PublicBoard, MyOrgBoard } from '@/types/tenant';
 import { defineClient } from './define-client';
 import type {
   GetBoardParams,
@@ -9,6 +9,8 @@ import type {
   SetOrgDescriptionParams,
   OrgSettingsParams,
   MyOrgStatsParams,
+  PublicBoardParams,
+  MyOrgBoardParams,
 } from './boards.params';
 import {
   listPublicOrgsAction,
@@ -17,6 +19,8 @@ import {
   followOrgAction,
   unfollowOrgAction,
   getBoardAction,
+  getPublicBoardAction,
+  getMyOrgBoardAction,
   getMyTrackedBillIdsAction,
   getOrgTestimonyStatusAction,
   getOrgSettingsAction,
@@ -70,6 +74,19 @@ async function getBoardFetch(params: GetBoardParams): Promise<Bill[]> {
   return ((await res.json()).bills ?? []) as Bill[];
 }
 
+async function getPublicBoardFetch(params: PublicBoardParams): Promise<PublicBoard> {
+  const res = await fetch(`/api/boards/public/${encodeURIComponent(params.slug)}`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to load board');
+  return (await res.json()) as PublicBoard;
+}
+
+async function getMyOrgBoardFetch(params: MyOrgBoardParams): Promise<MyOrgBoard> {
+  const qs = new URLSearchParams({ tenantId: params.tenantId });
+  const res = await fetch(`/api/boards/mine?${qs.toString()}`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to load your board');
+  return (await res.json()) as MyOrgBoard;
+}
+
 async function getMyTrackedBillIdsFetch(): Promise<string[]> {
   const res = await fetch('/api/boards/tracked-ids');
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to load tracked bills');
@@ -119,6 +136,8 @@ export const boardsClient = defineClient('boards', {
   follow: { action: followOrgAction, fetch: followOrgFetch },
   unfollow: { action: unfollowOrgAction, fetch: unfollowOrgFetch },
   getBoard: { action: getBoardAction, fetch: getBoardFetch },
+  getPublicBoard: { action: getPublicBoardAction, fetch: getPublicBoardFetch },
+  getMyOrgBoard: { action: getMyOrgBoardAction, fetch: getMyOrgBoardFetch },
   getMyTrackedBillIds: { action: getMyTrackedBillIdsAction, fetch: getMyTrackedBillIdsFetch },
   getOrgTestimonyStatus: { action: getOrgTestimonyStatusAction, fetch: getOrgTestimonyStatusFetch },
   getOrgSettings: { action: getOrgSettingsAction, fetch: getOrgSettingsFetch },

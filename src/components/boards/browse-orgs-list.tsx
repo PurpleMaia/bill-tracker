@@ -12,11 +12,14 @@ import { ToastAction } from '@/components/ui/toast';
 import { toast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowRight, Building2, Check, Eye, FileText, Globe, Lock, LogIn, Plus, Search, Star, Users } from 'lucide-react';
+import { ArrowRight, Building2, Check, ExternalLink, Eye, FileText, Globe, Lock, LogIn, Plus, Search, Settings, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { RISE_IN, riseDelay } from '@/lib/core/motion';
 import { LoginLink } from '@/components/auth/login-link';
 import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
+import { publicBoardPath, publicBoardUrl } from '@/lib/boards/board-routes';
+import { CopyLinkButton } from './copy-link-button';
+import { OrganizationDialog, type OrganizationTab } from '@/components/admin/organization-dialog';
 
 // Skeleton mirroring one OrgCard's shape while the list loads.
 function OrgCardSkeleton() {
@@ -92,14 +95,14 @@ function BrowseSkeleton() {
 function BrowseIntro({ orgCount }: { orgCount: number }) {
   const steps = [
     { icon: Star, title: 'Follow an org', text: 'Its board shows up under the Following tab.' },
-    { icon: Eye, title: 'See what they track', text: 'Open their board to view the bills they’re following. You can’t edit it.' },
+    { icon: Eye, title: 'Open any board', text: 'Public boards open for anyone — no account needed. They’re read-only.' },
     { icon: Plus, title: 'Track this bill', text: 'Track any of their bills onto your own board with one click.' },
   ];
   return (
     <div className={cn('mb-6 bg-gradient-to-br from-muted/60 to-background p-6', RISE_IN)}>
       <div className="flex items-center gap-2 text-primary">
-        <Building2 className="h-5 w-5" />
-        <h2 className="text-lg font-semibold text-foreground">Active Boards</h2>
+        <Users className="h-5 w-5" />
+        <h2 className="text-lg font-semibold text-foreground">Community</h2>
       </div>
       <p className="mt-1 w-full text-sm text-muted-foreground">
         See which bills other organizations are following, and pull the ones you
@@ -138,6 +141,10 @@ function MyOrgCard() {
   const { activeTenant } = useAuth();
   const [org, setOrg] = useState<MyOrg | null>(null);
   const [loaded, setLoaded] = useState(false);
+  // Admins open Organization Settings right from the card; closing it reloads
+  // the card so a new description or visibility shows at once.
+  const [orgTab, setOrgTab] = useState<OrganizationTab | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const tenantId = activeTenant?.tenantId;
   const isAdmin = activeTenant?.orgRole === 'admin';
@@ -145,7 +152,8 @@ function MyOrgCard() {
   useEffect(() => {
     if (!tenantId) return;
     let cancelled = false;
-    setLoaded(false);
+    // Only the first load shows placeholders; a reload swaps data in place.
+    if (reloadKey === 0) setLoaded(false);
     data.boards
       .getMyOrgStats({ tenantId })
       .then((res) => {
@@ -161,7 +169,23 @@ function MyOrgCard() {
     return () => {
       cancelled = true;
     };
-  }, [tenantId]);
+  }, [tenantId, reloadKey]);
+
+  const handleOrgTabChange = (tab: OrganizationTab | null) => {
+    setOrgTab(tab);
+    if (tab === null) setReloadKey((k) => k + 1);
+  };
+
+  const settingsLink = (
+    <button
+      type="button"
+      onClick={() => setOrgTab('settings')}
+      className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+    >
+      <Settings className="h-3 w-3" />
+      Organization Settings
+    </button>
+  );
 
   // Not a member of any org (public/logged-out) — nothing to show.
   if (!activeTenant) return null;
@@ -214,10 +238,14 @@ function MyOrgCard() {
           </div>
 
           <p className="mt-3 text-xs text-muted-foreground">
-            {isAdmin
-              ? 'Edit what’s displayed here in Organization Settings.'
-              : 'Ask your organization admin to update these details.'}
+            {!isAdmin ? (
+              'Ask your organization admin to update these details.'
+            ) : (
+              <>Edit how your organization is viewed in {settingsLink}.</>
+            )}
           </p>
+
+          {org && <PublicLinkRow publicBoard={org.publicBoard} slug={org.slug} isAdmin={isAdmin} />}
         </div>
 
         {/* Bills-they-track preview — 2/3 width */}
@@ -246,12 +274,50 @@ function MyOrgCard() {
           )}
         </div>
       </div>
+
+      {isAdmin && <OrganizationDialog tab={orgTab} onTabChange={handleOrgTabChange} />}
+    </div>
+  );
+}
+
+/**
+ * Your org's shareable board link — what an org pastes on its website, in a
+ * newsletter or in an email. Private boards have no link yet; admins are told
+ * how to get one in the card's hint line, members here.
+ */
+function PublicLinkRow({ publicBoard, slug, isAdmin }: { publicBoard: boolean; slug: string; isAdmin: boolean }) {
+  if (!publicBoard) {
+    if (isAdmin) return null;
+    return (
+      <p className="mt-3 text-xs text-muted-foreground">
+        Your board is private. Ask your admin to make it public to get a shareable link.
+      </p>
+    );
+  }
+  const url = publicBoardUrl(slug);
+  return (
+    <div className="mt-3">
+      <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        Public link · anyone can view
+      </p>
+      <div className="flex items-center gap-2">
+        <code className="min-w-0 flex-1 truncate rounded-md border border-olive/20 bg-background/70 px-2 py-1.5 text-xs">
+          {url}
+        </code>
+        <CopyLinkButton url={url} />
+        <Button asChild size="sm" variant="outline" className="shrink-0">
+          <Link href={publicBoardPath(slug)} aria-label="Open your public board">
+            <ExternalLink className="h-4 w-4 sm:mr-1.5" />
+            <span className="sr-only sm:not-sr-only">Open</span>
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 }
 
 function boardHref(tenantId: string) {
-  return `/boards?org=${encodeURIComponent(tenantId)}`;
+  return `/community/following?org=${encodeURIComponent(tenantId)}`;
 }
 
 function OrgCard({
@@ -271,7 +337,10 @@ function OrgCard({
   return (
     <li
       className={cn(
-        'flex flex-col rounded-lg border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:items-start sm:gap-5',
+        // relative: anchors the name link's stretched hit area (below), which
+        // makes the whole card open the board.
+        'group relative flex cursor-pointer flex-col rounded-lg border bg-card p-5 shadow-sm transition-shadow hover:border-primary/40 hover:shadow-md sm:flex-row sm:items-start sm:gap-5',
+        'has-[a[data-card-link]:focus-visible]:ring-2 has-[a[data-card-link]:focus-visible]:ring-ring has-[a[data-card-link]:focus-visible]:ring-offset-2',
         RISE_IN,
       )}
       // After the intro and Your organization card (slots 0–1). Searching only
@@ -281,7 +350,17 @@ function OrgCard({
       {/* Identity + counts + description */}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 sm:line-clamp-1 font-semibold leading-tight">{org.name}</p>
+          {/* The card's one link. Its ::after covers the whole card, so a click
+              anywhere opens the board, while screen readers hear a single link
+              named after the org. The follow button sits above it (z-10). */}
+          <Link
+            href={publicBoardPath(org.slug)}
+            data-card-link
+            aria-label={`View ${org.name}’s board`}
+            className="line-clamp-2 font-semibold sm:line-clamp-1 leading-tight outline-none after:absolute after:inset-0 after:rounded-lg group-hover:text-primary"
+          >
+            {org.name}
+          </Link>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <FileText className="h-3 w-3" />
@@ -302,6 +381,16 @@ function OrgCard({
         >
           {org.description || 'No description yet.'}
         </p>
+
+        {/* Says the card opens a board. Always visible: phones have no hover.
+            Decorative — the card link above already carries this name. */}
+        <span
+          aria-hidden
+          className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary"
+        >
+          View board
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        </span>
       </div>
 
       {/* Recent-bills preview */}
@@ -328,17 +417,18 @@ function OrgCard({
           <p className="text-xs italic text-muted-foreground">No bills tracked yet.</p>
         )}
 
-        {/* Following is per-user state, so logged-out visitors get a prompt to
-            sign in rather than a button whose request the API would reject. */}
-        {isLoggedOut ? (
-          <Button asChild variant="outline" size="sm" className="mt-4 w-full">
-            <LoginLink>
-              <LogIn className="mr-1.5 h-4 w-4" />
-              Login to follow
-            </LoginLink>
-          </Button>
-        ) : (
-          <div className="mt-4 flex gap-2">
+        {/* Following is per-user state, so logged-out visitors get a sign-in
+            prompt rather than a button whose request the API would reject.
+            relative z-10 lifts it above the card-wide link so it stays clickable. */}
+        <div className="relative z-10 mt-4 flex gap-2">
+          {isLoggedOut ? (
+            <Button asChild size="sm" className="flex-1">
+              <LoginLink>
+                <LogIn className="mr-1 h-4 w-4" />
+                Login to follow
+              </LoginLink>
+            </Button>
+          ) : (
             <Button
               variant={org.isFollowing ? 'outline' : 'default'}
               size="sm"
@@ -357,18 +447,8 @@ function OrgCard({
                 </>
               )}
             </Button>
-            {/* The Following tab only lists orgs you follow, so the link
-                appears once you do. */}
-            {org.isFollowing && (
-              <Button asChild size="sm" className="flex-1">
-                <Link href={boardHref(org.tenantId)}>
-                  View board
-                  <ArrowRight className="ml-1.5 h-4 w-4" />
-                </Link>
-              </Button>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </li>
   );
@@ -517,7 +597,7 @@ export function BrowseOrgsList() {
     <div className="mx-auto w-full max-w-6xl">
       <BrowseIntro orgCount={orgs.length} />
 
-      {/* Your org: full-width under the Active Boards section, above the columns */}
+      {/* Your org: full-width under the Community intro, above the columns */}
       <MyOrgCard />
 
       <div className="flex flex-col gap-6 lg:flex-row">

@@ -200,7 +200,8 @@ export function UserMenu() {
               <DropdownMenuSubContent className="w-48">
                 <DropdownMenuItem onSelect={() => openOrganization('settings')} className='cursor-pointer'>
                   <Shield className="mr-2 h-4 w-4" />
-                  <span>Org Settings</span>
+                  {/* Sits under the Organization submenu, so the parent supplies the noun. */}
+                  <span>Settings</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => openOrganization('invite')} className='cursor-pointer'>
                   <UserPlus className="mr-2 h-4 w-4" />
@@ -243,7 +244,7 @@ export function UserMenu() {
       <ExportCsvDialog
         open={exportOpen}
         onOpenChange={setExportOpen}
-        applyFiltersByDefault={pathname === '/your-bills'}
+        applyFiltersByDefault={pathname === '/tracker'}
       />
       <SettingsDialog tab={settingsTab} onTabChange={setSettingsTab} />
       <OrganizationDialog tab={orgTab} onTabChange={setOrgTab} />

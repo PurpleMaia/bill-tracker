@@ -2,25 +2,27 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { KanbanSquareIcon, LayoutGrid, Megaphone, Search } from 'lucide-react';
+import { KanbanSquareIcon, Megaphone, Search, Users } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { TAKE_ACTION_ROOT, isTakeActionPath } from '@/lib/take-action/routes';
+import { isActiveBoardsPath } from '@/lib/boards/board-routes';
 
 export const NAV_ITEMS = [
-  { href: '/discover', label: 'Discover', icon: Search },
-  { href: '/your-bills', label: 'Your Bills', icon: KanbanSquareIcon },
+  { href: '/find-bills', label: 'Find Bills', icon: Search },
+  { href: '/tracker', label: 'Your Tracker', icon: KanbanSquareIcon },
   // Testimony + Contact Legislators; /take-action lands on the Testimony tab.
   { href: TAKE_ACTION_ROOT, label: 'Take Action', icon: Megaphone },
-  // Lands on Following; its empty state and login wall both point to Browse.
-  { href: '/boards', label: 'Active Boards', mobileLabel: 'Boards', icon: LayoutGrid },
+  // Lands on Browse, the first tab: every public board opens from there, even
+  // signed out. Following is one tab over.
+  { href: '/community', label: 'Community', icon: Users },
 ] as const;
 
 export function isNavItemActive(href: string, pathname: string) {
-  // '/' is Discover (the landing page), so the bare root highlights that tab.
-  if (href === '/discover') return pathname === '/' || pathname.startsWith('/discover');
-  // Active Boards owns the whole /boards tree, so the tab stays highlighted on
-  // /boards/browse too.
-  if (href === '/boards') return pathname.startsWith('/boards');
+  // '/' is Find Bills (the landing page), so the bare root highlights that tab.
+  if (href === '/find-bills') return pathname === '/' || pathname.startsWith('/find-bills');
+  // Community owns the whole /community tree, org boards included, so the tab
+  // stays highlighted on Following and shared board links too.
+  if (href === '/community') return isActiveBoardsPath(pathname);
   if (href === TAKE_ACTION_ROOT) return isTakeActionPath(pathname);
   return pathname.startsWith(href);
 }

@@ -104,11 +104,11 @@ export function TrackBillDialog({ children }: TrackBillDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        {/* Primary path: the Discover page. */}
+        {/* Primary path: the Find Bills page. */}
         <Button asChild className="w-full" onClick={() => setIsOpen(false)}>
-          <Link href="/discover">
+          <Link href="/find-bills">
             <Search className="h-4 w-4" />
-            Go to Discover
+            Go to Find Bills
             <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>

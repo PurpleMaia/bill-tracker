@@ -20,7 +20,7 @@ interface LoginWallProps {
 export function LoginWall({
   title = 'Start tracking a bill',
   description = 'You’re not tracking any bills yet. Search the Hawaii legislature and track bills to build your board.',
-  ctaHref = '/discover',
+  ctaHref = '/find-bills',
   ctaLabel = 'Start tracking a bill',
 }: LoginWallProps = {}) {
   return (

@@ -18,12 +18,43 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Only /embed/* may be framed by other websites (orgs put their public board
+  // on their own site). Everything else refuses cross-site framing, so no one
+  // can wrap the real app — login, settings — in a frame (clickjacking).
+  async headers() {
+    return [
+      {
+        source: '/embed/:path*',
+        headers: [{ key: 'Content-Security-Policy', value: 'frame-ancestors *' }],
+      },
+      {
+        source: '/((?!embed/).*)',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'self'" },
+        ],
+      },
+    ];
+  },
   // Testimonies became the Testimony tab of Take Action; old links and
   // bookmarks keep working.
   async redirects() {
     return [
       { source: '/testimonies', destination: '/take-action/testimony', permanent: true },
       { source: '/testimonies/:path*', destination: '/take-action/testimony/:path*', permanent: true },
+      // Nav renamed to Find Bills | Your Tracker | Take Action | Community, and
+      // the URLs followed. Query strings (?bill=, ?org=, ?focus=) carry over.
+      // Temporary (307), not permanent: a 308 is cached by browsers for good,
+      // and these names are still settling.
+      { source: '/discover', destination: '/find-bills', permanent: false },
+      { source: '/your-bills', destination: '/tracker', permanent: false },
+      { source: '/boards', destination: '/community/following', permanent: false },
+      { source: '/boards/browse', destination: '/community', permanent: false },
+      // /community/your-organization forwards to the admin's own /community/<slug>.
+      { source: '/boards/mine', destination: '/community/your-organization', permanent: false },
+      { source: '/community/public-view', destination: '/community/your-organization', permanent: false },
+      // Org boards moved from /org/<slug>; links already shared keep working.
+      { source: '/org/:slug', destination: '/community/:slug', permanent: false },
     ];
   },
   webpack: (config, { isServer }) => {

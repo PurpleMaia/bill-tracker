@@ -4,7 +4,7 @@ import { KANBAN_COLUMNS, SIMPLIFIED_COLUMNS, STATUS_TO_SIMPLIFIED } from '../bil
 
 describe('SEARCH_TRACK_HREF', () => {
   it('points at the Discover page', () => {
-    expect(SEARCH_TRACK_HREF).toBe('/discover');
+    expect(SEARCH_TRACK_HREF).toBe('/find-bills');
   });
 });
 
@@ -12,26 +12,26 @@ describe('columnTrackSearchHref', () => {
   it('maps a detailed column to its simplified stage and scopes to untracked', () => {
     // scheduled1 -> simpleScheduled
     expect(columnTrackSearchHref('scheduled1')).toBe(
-      '/discover?stages=simpleScheduled&tracked=untracked',
+      '/find-bills?stages=simpleScheduled&tracked=untracked',
     );
   });
 
   it('maps a crossover column to its simplified stage', () => {
     // crossoverWaiting2 -> simpleCrossoverWaiting
     expect(columnTrackSearchHref('crossoverWaiting2')).toBe(
-      '/discover?stages=simpleCrossoverWaiting&tracked=untracked',
+      '/find-bills?stages=simpleCrossoverWaiting&tracked=untracked',
     );
   });
 
   it('passes a simplified column id through unchanged', () => {
     expect(columnTrackSearchHref('simpleWaiting')).toBe(
-      '/discover?stages=simpleWaiting&tracked=untracked',
+      '/find-bills?stages=simpleWaiting&tracked=untracked',
     );
   });
 
   it('passes a conference/governor column (1:1 mapping) through', () => {
     expect(columnTrackSearchHref('transmittedGovernor')).toBe(
-      '/discover?stages=transmittedGovernor&tracked=untracked',
+      '/find-bills?stages=transmittedGovernor&tracked=untracked',
     );
   });
 
@@ -48,14 +48,14 @@ describe('columnTrackSearchHref', () => {
   });
 
   it('falls back to the bare Discover page for an unknown column id', () => {
-    expect(columnTrackSearchHref('nonsense')).toBe('/discover?tracked=untracked');
+    expect(columnTrackSearchHref('nonsense')).toBe('/find-bills?tracked=untracked');
   });
 
   it('never emits a stage absent from STATUS_TO_SIMPLIFIED for a known status', () => {
     // Guards the option-a contract: a detailed status maps through the same
     // table the board and DB query use.
     expect(columnTrackSearchHref('waiting2')).toBe(
-      `/discover?stages=${STATUS_TO_SIMPLIFIED['waiting2']}&tracked=untracked`,
+      `/find-bills?stages=${STATUS_TO_SIMPLIFIED['waiting2']}&tracked=untracked`,
     );
   });
 });

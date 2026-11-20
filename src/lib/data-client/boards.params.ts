@@ -29,3 +29,11 @@ export interface OrgSettingsParams {
 export interface MyOrgStatsParams {
   tenantId: string;
 }
+
+export interface MyOrgBoardParams {
+  tenantId: string;
+}
+
+export interface PublicBoardParams {
+  slug: string;
+}
