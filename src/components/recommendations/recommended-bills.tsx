@@ -65,8 +65,8 @@ function ForYouChip() {
 
 /**
  * Narrow card for the desktop side panel, sized to its content so there are no
- * empty bands: a reference row (number, status, Track), the headline, a
- * short description, and why it was recommended.
+ * empty bands: a reference row (number, Track), the headline, a short
+ * description, and a footer with why it was recommended and the status.
  */
 function CompactRecommendation({
   bill,
@@ -95,23 +95,6 @@ function CompactRecommendation({
         <span className="shrink-0 text-xs font-medium tracking-wide text-muted-foreground">
           {bill.bill_number}
         </span>
-        {bill.dead ? (
-          <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-2 text-xs font-medium text-destructive">
-            Failed
-          </span>
-        ) : (
-          bill.bill_status && (
-            <span
-              title={formatBillStatusName(bill.bill_status)}
-              className={cn(
-                'inline-flex h-5 min-w-0 items-center rounded-full border px-2 text-xs font-medium',
-                getStatusChipClasses(bill.bill_status),
-              )}
-            >
-              <span className="truncate">{formatBillStatusName(bill.bill_status)}</span>
-            </span>
-          )
-        )}
         {/* Negative margin lets the 32px button sit in the 20px pill row
             without making the row (and the card) taller. */}
         <div
@@ -138,10 +121,34 @@ function CompactRecommendation({
         )}
       </div>
 
-      <p className="mt-2 flex min-w-0 items-center gap-1 text-xs text-primary" title={`Recommended because it matched: ${summary}`}>
-        <Sparkles className="h-3 w-3 shrink-0" aria-hidden="true" />
-        <span className="truncate">{summary}</span>
-      </p>
+      {/* Footer: why it was recommended on the left, status on the right. The
+          status is capped at 60% of the row; the reason truncates first. */}
+      <div className="mt-2 flex min-w-0 items-center gap-2">
+        <p
+          className="flex min-w-0 flex-1 items-center gap-1 text-xs text-primary"
+          title={`Recommended because it matched: ${summary}`}
+        >
+          <Sparkles className="h-3 w-3 shrink-0" aria-hidden="true" />
+          <span className="truncate">{summary}</span>
+        </p>
+        {bill.dead ? (
+          <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-2 text-xs font-medium text-destructive">
+            Failed
+          </span>
+        ) : (
+          bill.bill_status && (
+            <span
+              title={formatBillStatusName(bill.bill_status)}
+              className={cn(
+                'inline-flex h-5 max-w-[60%] shrink-0 items-center rounded-full border px-2 text-xs font-medium',
+                getStatusChipClasses(bill.bill_status),
+              )}
+            >
+              <span className="truncate">{formatBillStatusName(bill.bill_status)}</span>
+            </span>
+          )
+        )}
+      </div>
     </div>
   );
 }
