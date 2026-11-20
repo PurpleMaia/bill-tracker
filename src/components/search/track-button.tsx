@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { BookmarkPlus, Check, Loader2, UserPlus } from 'lucide-react';
+import { Check, ListPlus, Loader2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LoginLink } from '@/components/auth/login-link';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -33,7 +33,7 @@ interface TrackButtonProps {
    */
   initialTracked?: boolean;
   /**
-   * Shorter form used on Find Bills (results and recommendations): a bookmark
+   * Shorter form used on Find Bills (results and recommendations): a list-plus
    * icon with "Track" instead of the board's "Track Bill" wording.
    */
   compact?: boolean;
@@ -44,7 +44,7 @@ interface TrackButtonProps {
  * same button links to /login, which returns them to these search results.
  */
 export function TrackButton({ billId, billNumber, initialTracked = false, compact = false }: TrackButtonProps) {
-  const TrackIcon = compact ? BookmarkPlus : UserPlus;
+  const TrackIcon = compact ? ListPlus : UserPlus;
   const trackLabel = compact ? 'Track' : 'Track Bill';
   // Button already spaces icon and label (gap-2); the compact form adds no margin.
   const iconGap = compact ? '' : 'sm:mr-1.5';
