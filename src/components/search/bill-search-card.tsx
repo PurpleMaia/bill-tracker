@@ -47,8 +47,6 @@ interface BillSearchCardProps {
   footer?: React.ReactNode;
   /** Optional chip after the status chip (e.g. marking a recommended bill). */
   badge?: React.ReactNode;
-  /** Use the short "Track" button (recommended bills). */
-  compactTrack?: boolean;
 }
 
 /**
@@ -71,7 +69,6 @@ function BillSearchCardComponent({
   onCardClick,
   footer,
   badge,
-  compactTrack = false,
 }: BillSearchCardProps) {
   const headline = formatBillHeadline(bill);
   const committeeReferrals = bill.committee_assignment
@@ -149,7 +146,7 @@ function BillSearchCardComponent({
                 billId={bill.id}
                 billNumber={bill.bill_number}
                 initialTracked={bill.is_tracked}
-                compact={compactTrack}
+                compact
               />
             </div>
           </div>

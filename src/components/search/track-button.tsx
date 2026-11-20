@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewOnBoard } from '@/hooks/use-view-on-board';
 import { ToastAction } from '@/components/ui/toast';
 import { data } from '@/lib/data-client';
+import { cn } from '@/lib/core/utils';
 
 /**
  * Icon-only below `sm`, full "Track Bill" label above it.
@@ -32,8 +33,8 @@ interface TrackButtonProps {
    */
   initialTracked?: boolean;
   /**
-   * Shorter form for tight spaces (the recommendations panel): a bookmark icon
-   * with "Track" instead of the board's "Track Bill" wording.
+   * Shorter form used on Find Bills (results and recommendations): a bookmark
+   * icon with "Track" instead of the board's "Track Bill" wording.
    */
   compact?: boolean;
 }
@@ -45,7 +46,8 @@ interface TrackButtonProps {
 export function TrackButton({ billId, billNumber, initialTracked = false, compact = false }: TrackButtonProps) {
   const TrackIcon = compact ? BookmarkPlus : UserPlus;
   const trackLabel = compact ? 'Track' : 'Track Bill';
-  const iconGap = compact ? 'sm:mr-1' : 'sm:mr-1.5';
+  // Button already spaces icon and label (gap-2); the compact form adds no margin.
+  const iconGap = compact ? '' : 'sm:mr-1.5';
 
   const { user, activeTenant } = useAuth();
   const { toast } = useToast();
@@ -67,7 +69,7 @@ export function TrackButton({ billId, billNumber, initialTracked = false, compac
     return (
       <Button asChild size="sm" className={COMPACT_ON_MOBILE}>
         <LoginLink aria-label={`Track ${billNumber}`}>
-          <TrackIcon className={`h-4 w-4 ${iconGap}`} aria-hidden="true" />
+          <TrackIcon className={cn('h-4 w-4', iconGap)} aria-hidden="true" />
           <span className="hidden sm:inline">{trackLabel}</span>
         </LoginLink>
       </Button>
@@ -135,11 +137,11 @@ export function TrackButton({ billId, billNumber, initialTracked = false, compac
       className={COMPACT_ON_MOBILE}
     >
       {isTracking ? (
-        <Loader2 className={`h-4 w-4 animate-spin ${iconGap}`} aria-hidden="true" />
+        <Loader2 className={cn('h-4 w-4 animate-spin', iconGap)} aria-hidden="true" />
       ) : isTracked ? (
-        <Check className={`h-4 w-4 ${iconGap}`} aria-hidden="true" />
+        <Check className={cn('h-4 w-4', iconGap)} aria-hidden="true" />
       ) : (
-        <TrackIcon className={`h-4 w-4 ${iconGap}`} aria-hidden="true" />
+        <TrackIcon className={cn('h-4 w-4', iconGap)} aria-hidden="true" />
       )}
       <span className="hidden sm:inline">{isTracked ? 'Tracked' : trackLabel}</span>
     </Button>

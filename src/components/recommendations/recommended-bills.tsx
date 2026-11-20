@@ -233,7 +233,6 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
                 query=""
                 onCardClick={onCardClick}
                 badge={<ForYouChip />}
-                compactTrack
                 footer={<p className="mt-2 text-xs text-muted-foreground">{reasonLine(bill)}</p>}
               />
             </li>
