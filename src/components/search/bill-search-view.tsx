@@ -102,6 +102,11 @@ export function BillSearchView() {
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
+  // The page itself scrolls (the layout's <main>), not an inner pane, so the
+  // wheel/trackpad works anywhere on the page. The side columns are sticky and
+  // sized to the visible part of <main>.
+  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
 
   const handleClear = useCallback(() => setFilters(DEFAULT_FILTERS), []);
   const handleCardClick = useCallback((billId: string) => openBillDialog(billId), [openBillDialog]);
@@ -110,8 +115,18 @@ export function BillSearchView() {
   // "Load more" button below stays the keyboard-accessible path — scroll-driven
   // loading alone is a screen-reader trap.
   //
-  // `root` is the results pane, not the viewport: the pane is its own scroll
-  // container, so a viewport-rooted observer would never fire.
+  // `root` is the page's scroll container (<main>), which clips the viewport.
+  useEffect(() => {
+    const main = resultsRef.current?.closest('main') ?? null;
+    setScrollEl(main);
+    if (!main) return;
+    const measure = () => setViewportHeight(main.clientHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(main);
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node || !hasNextPage || isFetchingNextPage) return;
@@ -120,16 +135,16 @@ export function BillSearchView() {
       (entries) => {
         if (entries[0]?.isIntersecting) fetchNextPage();
       },
-      { root: resultsRef.current, rootMargin: '400px' },
+      { root: scrollEl, rootMargin: '400px' },
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, scrollEl]);
 
   // A new filter set is a new result list — jump back to the top so the user
   // isn't left mid-way down a list they didn't scroll.
   useEffect(() => {
-    resultsRef.current?.scrollTo({ top: 0 });
+    scrollEl?.scrollTo({ top: 0 });
   }, [
     debouncedQuery,
     filters.years,
@@ -185,11 +200,16 @@ export function BillSearchView() {
     </>
   );
 
+  // Side columns show only at lg+, where the page padding is md:py-6 (24px top
+  // and bottom); they fill exactly the visible height of <main>.
+  const sideColumnStyle = viewportHeight ? { height: viewportHeight - 48 } : undefined;
+
   return (
-    <div className="mx-auto flex h-full w-full min-h-0 max-w-7xl gap-4 px-2 py-4 md:px-4 md:py-6">
+    <div className="mx-auto flex w-full max-w-7xl items-start gap-4 px-2 py-4 md:px-4 md:py-6">
       {/* Filter rail only at xl: between lg and xl the recommendations panel takes
-          the side column and filters stay in the Filters sheet. */}
-      <aside className="hidden w-60 shrink-0 xl:block">
+          the side column and filters stay in the Filters sheet. Sticky, so it
+          stays put while the page scrolls; only it scrolls if taller than the screen. */}
+      <aside className="sticky top-6 hidden w-60 shrink-0 xl:block" style={sideColumnStyle}>
         <div className="h-full min-h-0 overflow-y-auto pr-2">
           <SearchFilterRail
             filters={filters}
@@ -200,11 +220,10 @@ export function BillSearchView() {
         </div>
       </aside>
 
-      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-        {/* One scroll container holding the hero, the meta row, and the results,
-            so the CTA scrolls away with everything else rather than staying
-            pinned. The scroll-to-top button below brings it back. */}
-        <div ref={resultsRef} className="min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className="relative min-w-0 flex-1">
+        {/* The hero, meta row, and results flow with the page scroll, so the CTA
+            scrolls away with everything else. The scroll-to-top button brings it back. */}
+        <div ref={resultsRef}>
           <div className={cn('mb-4', RISE_IN)}>
             <SearchIntro
               onSuggestionClick={(term) => setFilters({ ...filters, q: term })}
@@ -354,14 +373,14 @@ export function BillSearchView() {
           stays purely search results. Stays visible while searching, since it
           no longer pushes results down. Not scrollable: it shows what fits the
           screen height and Refresh moves to the next set. */}
-      <aside className="hidden w-80 shrink-0 lg:block">
+      <aside className="sticky top-6 hidden w-80 shrink-0 lg:block" style={sideColumnStyle}>
         <div className="h-full min-h-0">
           <RecommendedBills variant="panel" onCardClick={handleCardClick} />
         </div>
       </aside>
 
       {/* Back to the search bar once the hero has scrolled out of reach. */}
-      <ScrollToTopButton scrollRef={resultsRef} label="Scroll back to search" />
+      <ScrollToTopButton label="Scroll back to search" />
 
       {/* The board's own dialog, reused rather than reimplemented — BillsProvider
           wraps the whole app, so it works here. It degrades for logged-out
