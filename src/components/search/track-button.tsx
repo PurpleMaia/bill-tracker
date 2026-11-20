@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, Loader2, UserPlus } from 'lucide-react';
+import { BookmarkPlus, Check, Loader2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LoginLink } from '@/components/auth/login-link';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -31,13 +31,22 @@ interface TrackButtonProps {
    * is_tracked (resolved server-side); defaults to false for logged-out search.
    */
   initialTracked?: boolean;
+  /**
+   * Shorter form for tight spaces (the recommendations panel): a bookmark icon
+   * with "Track" instead of the board's "Track Bill" wording.
+   */
+  compact?: boolean;
 }
 
 /**
  * Tracks a bill to the user's active org board. For logged-out visitors the
  * same button links to /login, which returns them to these search results.
  */
-export function TrackButton({ billId, billNumber, initialTracked = false }: TrackButtonProps) {
+export function TrackButton({ billId, billNumber, initialTracked = false, compact = false }: TrackButtonProps) {
+  const TrackIcon = compact ? BookmarkPlus : UserPlus;
+  const trackLabel = compact ? 'Track' : 'Track Bill';
+  const iconGap = compact ? 'sm:mr-1' : 'sm:mr-1.5';
+
   const { user, activeTenant } = useAuth();
   const { toast } = useToast();
   const { refreshBills } = useBills();
@@ -58,8 +67,8 @@ export function TrackButton({ billId, billNumber, initialTracked = false }: Trac
     return (
       <Button asChild size="sm" className={COMPACT_ON_MOBILE}>
         <LoginLink aria-label={`Track ${billNumber}`}>
-          <UserPlus className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
-          <span className="hidden sm:inline">Track Bill</span>
+          <TrackIcon className={`h-4 w-4 ${iconGap}`} aria-hidden="true" />
+          <span className="hidden sm:inline">{trackLabel}</span>
         </LoginLink>
       </Button>
     );
@@ -126,13 +135,13 @@ export function TrackButton({ billId, billNumber, initialTracked = false }: Trac
       className={COMPACT_ON_MOBILE}
     >
       {isTracking ? (
-        <Loader2 className="h-4 w-4 animate-spin sm:mr-1.5" aria-hidden="true" />
+        <Loader2 className={`h-4 w-4 animate-spin ${iconGap}`} aria-hidden="true" />
       ) : isTracked ? (
-        <Check className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
+        <Check className={`h-4 w-4 ${iconGap}`} aria-hidden="true" />
       ) : (
-        <UserPlus className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
+        <TrackIcon className={`h-4 w-4 ${iconGap}`} aria-hidden="true" />
       )}
-      <span className="hidden sm:inline">{isTracked ? 'Tracked' : 'Track Bill'}</span>
+      <span className="hidden sm:inline">{isTracked ? 'Tracked' : trackLabel}</span>
     </Button>
   );
 }

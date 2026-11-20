@@ -94,7 +94,7 @@ function CompactRecommendation({
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
-          <TrackButton billId={bill.id} billNumber={bill.bill_number} initialTracked={bill.is_tracked} />
+          <TrackButton billId={bill.id} billNumber={bill.bill_number} initialTracked={bill.is_tracked} compact />
         </div>
       </div>
       <p className={cn('mt-1 line-clamp-2 text-sm font-semibold leading-snug', bill.dead && 'opacity-60')}>
@@ -233,6 +233,7 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
                 query=""
                 onCardClick={onCardClick}
                 badge={<ForYouChip />}
+                compactTrack
                 footer={<p className="mt-2 text-xs text-muted-foreground">{reasonLine(bill)}</p>}
               />
             </li>

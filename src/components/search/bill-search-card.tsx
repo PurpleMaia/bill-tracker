@@ -47,6 +47,8 @@ interface BillSearchCardProps {
   footer?: React.ReactNode;
   /** Optional chip after the status chip (e.g. marking a recommended bill). */
   badge?: React.ReactNode;
+  /** Use the short "Track" button (recommended bills). */
+  compactTrack?: boolean;
 }
 
 /**
@@ -63,7 +65,14 @@ interface BillSearchCardProps {
  * across sessions (SB1251 exists in both 2025 and 2026 as different measures),
  * so without the year two results are indistinguishable.
  */
-function BillSearchCardComponent({ bill, query, onCardClick, footer, badge }: BillSearchCardProps) {
+function BillSearchCardComponent({
+  bill,
+  query,
+  onCardClick,
+  footer,
+  badge,
+  compactTrack = false,
+}: BillSearchCardProps) {
   const headline = formatBillHeadline(bill);
   const committeeReferrals = bill.committee_assignment
     ? parseCommittees(bill.committee_assignment)
@@ -140,6 +149,7 @@ function BillSearchCardComponent({ bill, query, onCardClick, footer, badge }: Bi
                 billId={bill.id}
                 billNumber={bill.bill_number}
                 initialTracked={bill.is_tracked}
+                compact={compactTrack}
               />
             </div>
           </div>
