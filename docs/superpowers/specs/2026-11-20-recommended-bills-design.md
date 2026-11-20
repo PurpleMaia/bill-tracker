@@ -35,7 +35,7 @@ driven by the user's own interests — not by org mission statements (possible l
 
 - **Ranking by keyword frequency.** A bill repeating "agriculture" ten times is not
   more relevant. Matching is yes/no per topic; repetition never adds score.
-- A per-user "relevant" flag table (`user_bill_matches` or similar) — redundant with
+- A new interests table, or a per-user "relevant" flag table (`user_bill_matches` or similar) — redundant with
   a query-time match and a sync burden.
 - An empty list off-season because dead bills were filtered out.
 
@@ -58,7 +58,7 @@ Jaden picked A.
 
 ```ts
 export interface RecommendationTopic {
-  id: string;          // stable slug stored in user_interests.topics
+  id: string;          // stable slug stored in user_preferences.interest_topics
   label: string;       // chip text
   terms: string[];     // keywords/phrases; multi-word = phrase
 }
@@ -79,7 +79,7 @@ custom keywords).
 ### 2. Storage — extend `user_preferences` (no new table)
 
 Jaden's decision: store interests on the existing per-user `user_preferences` table
-rather than a new table. Migration `000038_user_interests`:
+rather than a new table. Migration `000038_user_preferences_interests`:
 
 ```sql
 ALTER TABLE user_preferences
