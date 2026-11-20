@@ -98,7 +98,16 @@ export function buildInterestTerms(topics: string[], keywords: string[]): Intere
   return result;
 }
 
-/** `%term%` for ILIKE with `\`, `%`, `_` escaped so they match literally. */
-export function likeContainsPattern(term: string): string {
-  return `%${term.replace(/[\\%_]/g, '\\$&')}%`;
+/** Terms shorter than this must match a whole word ("ai" must not hit "maintain"). */
+export const SHORT_TERM_LENGTH = 4;
+
+/**
+ * Postgres case-insensitive regex (`~*`) for a term: anchored to the start of a
+ * word (`\m`) so "farm" still catches "farmer"/"farmland" where the stemmer
+ * disagrees, and closed at the end of a word (`\M`) for short terms, which would
+ * otherwise match inside unrelated words. Regex metacharacters are escaped.
+ */
+export function wordMatchPattern(term: string): string {
+  const escaped = term.replace(/[\\.^$*+?()[\]{}|]/g, '\\$&');
+  return `\\m${escaped}${term.length < SHORT_TERM_LENGTH ? '\\M' : ''}`;
 }

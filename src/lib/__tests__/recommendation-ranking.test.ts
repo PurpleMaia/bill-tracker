@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { rankRecommendations } from '@/lib/bills/recommendation-ranking';
+import { RECOMMENDATION_LIMIT, rankRecommendations } from '@/lib/bills/recommendation-ranking';
 import type { BillSearchResult } from '@/types/legislation';
 
 const NOW = new Date('2026-03-01T00:00:00Z');
@@ -89,9 +89,9 @@ describe('rankRecommendations', () => {
   });
 
   it('caps output at limit and does not mutate input', () => {
-    const input = Array.from({ length: 15 }, (_, i) => bill(`HB${String(i).padStart(2, '0')}`));
+    const input = Array.from({ length: RECOMMENDATION_LIMIT + 5 }, (_, i) => bill(`HB${String(i).padStart(2, '0')}`));
     const copy = [...input];
-    expect(rankRecommendations(input, NOW)).toHaveLength(10);
+    expect(rankRecommendations(input, NOW)).toHaveLength(RECOMMENDATION_LIMIT);
     expect(rankRecommendations(input, NOW, 3)).toHaveLength(3);
     expect(input).toEqual(copy);
   });

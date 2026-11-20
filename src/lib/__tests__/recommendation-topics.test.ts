@@ -4,7 +4,8 @@ import {
   MAX_KEYWORDS,
   normalizeInterests,
   buildInterestTerms,
-  likeContainsPattern,
+  SHORT_TERM_LENGTH,
+  wordMatchPattern,
 } from '@/lib/bills/recommendation-topics';
 
 describe('RECOMMENDATION_TOPICS', () => {
@@ -62,8 +63,22 @@ describe('buildInterestTerms', () => {
   });
 });
 
-describe('likeContainsPattern', () => {
-  it('escapes LIKE metacharacters', () => {
-    expect(likeContainsPattern('100%_a\\b')).toBe('%100\\%\\_a\\\\b%');
+describe('wordMatchPattern', () => {
+  it('anchors a long term to the start of a word so stems still match', () => {
+    expect(wordMatchPattern('farm')).toBe('\\mfarm');
+  });
+
+  it('requires a whole word for short terms like "ai"', () => {
+    expect(SHORT_TERM_LENGTH).toBe(4);
+    expect(wordMatchPattern('ai')).toBe('\\mai\\M');
+  });
+
+  it('escapes regex metacharacters so they match literally', () => {
+    expect(wordMatchPattern('100%(a)+b')).toBe('\\m100%\\(a\\)\\+b');
+    expect(wordMatchPattern('a.b')).toBe('\\ma\\.b\\M');
+  });
+
+  it('keeps multi-word terms whole', () => {
+    expect(wordMatchPattern('school meal')).toBe('\\mschool meal');
   });
 });

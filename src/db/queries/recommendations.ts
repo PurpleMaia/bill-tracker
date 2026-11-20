@@ -3,7 +3,7 @@ import { db } from '@/db/kysely/client';
 import { getUserPreferences } from '@/db/queries/user-preferences';
 import { getLatestStatusUpdates } from '@/db/queries/bills-read';
 import { toBillSearchResult } from '@/db/queries/bill-mappers';
-import { buildInterestTerms, likeContainsPattern } from '@/lib/bills/recommendation-topics';
+import { buildInterestTerms, wordMatchPattern } from '@/lib/bills/recommendation-topics';
 import { SESSION_YEARS } from '@/lib/bills/session-years';
 import { rankRecommendations } from '@/lib/bills/recommendation-ranking';
 import type { RecommendedBill } from '@/types/legislation';
@@ -19,7 +19,7 @@ const CANDIDATE_CAP = 500;
 /**
  * Bills in the current session matching the user's interests, excluding any
  * bill the user tracks in ANY tenant. A term matches by phrase FTS or by the
- * whole term as an ILIKE substring of title/description (never per-token).
+ * whole term as a word-anchored regex on title/description (never per-token).
  */
 export async function getRecommendedBills(
   userId: string,
@@ -31,7 +31,7 @@ export async function getRecommendedBills(
 
   const matchExprs = terms.map(
     (t) =>
-      sql<boolean>`(search_vector @@ phraseto_tsquery('english', ${t.term}) OR bill_title ILIKE ${likeContainsPattern(t.term)} OR description ILIKE ${likeContainsPattern(t.term)})`,
+      sql<boolean>`(search_vector @@ phraseto_tsquery('english', ${t.term}) OR bill_title ~* ${wordMatchPattern(t.term)} OR description ~* ${wordMatchPattern(t.term)})`,
   );
 
   let query = db

@@ -186,7 +186,7 @@ export function BillSearchView() {
   );
 
   return (
-    <div className="mx-auto flex h-full w-full min-h-0 max-w-7xl gap-6 p-4 md:p-6">
+    <div className="mx-auto flex h-full w-full min-h-0 max-w-7xl gap-4 px-2 py-4 md:px-4 md:py-6">
       {/* Filter rail only at xl: between lg and xl the recommendations panel takes
           the side column and filters stay in the Filters sheet. */}
       <aside className="hidden w-60 shrink-0 xl:block">
@@ -352,9 +352,10 @@ export function BillSearchView() {
 
       {/* Laptops and up: recommendations get their own column so the main list
           stays purely search results. Stays visible while searching, since it
-          no longer pushes results down. */}
-      <aside className="hidden w-72 shrink-0 lg:block">
-        <div className="h-full min-h-0 overflow-y-auto">
+          no longer pushes results down. Not scrollable: it shows what fits the
+          screen height and Refresh moves to the next set. */}
+      <aside className="hidden w-80 shrink-0 lg:block">
+        <div className="h-full min-h-0">
           <RecommendedBills variant="panel" onCardClick={handleCardClick} />
         </div>
       </aside>

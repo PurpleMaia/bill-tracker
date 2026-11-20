@@ -1,7 +1,8 @@
 import type { BillSearchResult, RecommendedBill } from '@/types/legislation';
 import { parseHearingDatetime } from '@/lib/testimony/hearing-schedule';
 
-export const RECOMMENDATION_LIMIT = 10;
+/** Ranked pool sent to the client; the panel pages through it on Refresh. */
+export const RECOMMENDATION_LIMIT = 30;
 
 function activityTime(b: BillSearchResult): number {
   for (const raw of [b.latest_update?.date, b.updated_at]) {

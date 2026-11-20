@@ -12,8 +12,9 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 import { data } from '@/lib/data-client';
 import { cn, formatBillHeadline } from '@/lib/core/utils';
 import { HAWAII_TIME_ZONE } from '@/lib/testimony/hearing-schedule';
+import { cardsThatFit, nextOffset, pageWindow } from '@/lib/bills/recommendation-paging';
 import type { RecommendedBill } from '@/types/legislation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const WEEKDAY_FORMAT = new Intl.DateTimeFormat('en-US', {
   weekday: 'short',
@@ -28,8 +29,14 @@ function hearingWeekday(iso: string): string | null {
   return Number.isNaN(d.getTime()) ? null : WEEKDAY_FORMAT.format(d);
 }
 
-/** Inline (phone) cards shown before "Show N more", so the full results stay near the top. */
+/** Inline (phone) cards shown before "Show more", so the full results stay near the top. */
 const INITIAL_VISIBLE = 3;
+/** Inline cards once expanded; Refresh moves on to the next set. */
+const EXPANDED_VISIBLE = 10;
+
+/** Fixed compact-card height (px) and list gap, so the panel can count how many fit. */
+const COMPACT_CARD_HEIGHT = 120;
+const PANEL_GAP = 8;
 
 function reasonLine(bill: RecommendedBill): string {
   const weekday = bill.next_hearing_at ? hearingWeekday(bill.next_hearing_at) : null;
@@ -72,7 +79,8 @@ function CompactRecommendation({
         }
       }}
       aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
-      className="cursor-pointer rounded-md border bg-card p-2.5 shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      style={{ height: COMPACT_CARD_HEIGHT }}
+      className="cursor-pointer overflow-hidden rounded-md border bg-card p-2.5 shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="flex items-center gap-1.5">
         <span className="text-xs font-medium tracking-wide text-muted-foreground">{bill.bill_number}</span>
@@ -92,7 +100,7 @@ function CompactRecommendation({
       <p className={cn('mt-1 line-clamp-2 text-sm font-semibold leading-snug', bill.dead && 'opacity-60')}>
         {formatBillHeadline(bill) || bill.bill_title}
       </p>
-      <p className="mt-1 text-xs text-muted-foreground">{reasonLine(bill)}</p>
+      <p className="mt-1 truncate text-xs text-muted-foreground">{reasonLine(bill)}</p>
     </div>
   );
 }
@@ -107,6 +115,11 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
   const { user } = useAuth();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  // Start of the visible set within the ranked pool; Refresh advances it.
+  const [offset, setOffset] = useState(0);
+  // Panel only: how many compact cards fit in the space the screen gives it.
+  const [fitCount, setFitCount] = useState(1);
+  const fitRef = useRef<HTMLDivElement>(null);
   const isPanel = variant === 'panel';
 
   const { data: recs, isLoading, isError, isFetching, refetch } = useQuery({
@@ -115,9 +128,30 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
     enabled: !!user,
   });
 
+  useEffect(() => {
+    const el = fitRef.current;
+    if (!isPanel || !el) return;
+    const measure = () => setFitCount(cardsThatFit(el.clientHeight, COMPACT_CARD_HEIGHT, PANEL_GAP));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isPanel]);
+
+  const total = recs?.items.length ?? 0;
+  const visibleCount = isPanel ? fitCount : expanded ? EXPANDED_VISIBLE : INITIAL_VISIBLE;
+  const visible = recs ? pageWindow(recs.items, offset, visibleCount) : [];
+
+  // No scrolling: Refresh is how a user sees more. It moves to the next set and
+  // refetches, so newly tracked bills drop out and new matches come in.
+  const handleRefresh = () => {
+    setOffset((o) => nextOffset(o, visibleCount, total));
+    void refetch();
+  };
+
   const header = (
     <div className="mb-2 flex items-center gap-1">
-      <h2 className="flex min-w-0 flex-1 items-center gap-1.5 text-sm font-semibold">
+      <h2 className="flex min-w-0 flex-1 items-center gap-1.5 whitespace-nowrap text-sm font-semibold">
         <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
         Recommended for you
       </h2>
@@ -130,7 +164,7 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
             aria-label="Refresh recommendations"
             title="Refresh recommendations"
             disabled={isFetching}
-            onClick={() => void refetch()}
+            onClick={handleRefresh}
           >
             <RefreshCw className={cn('h-4 w-4', isFetching && 'animate-spin')} aria-hidden="true" />
           </Button>
@@ -180,7 +214,7 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
   } else if (isPanel) {
     body = (
       <ul className="space-y-2">
-        {recs.items.map((bill) => (
+        {visible.map((bill) => (
           <li key={bill.id}>
             <CompactRecommendation bill={bill} onCardClick={onCardClick} />
           </li>
@@ -188,11 +222,11 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
       </ul>
     );
   } else {
-    const hiddenCount = recs.items.length - INITIAL_VISIBLE;
+    const hiddenCount = Math.min(EXPANDED_VISIBLE, total) - INITIAL_VISIBLE;
     body = (
       <>
         <ul id="recommended-bills-list" className="space-y-3">
-          {(expanded ? recs.items : recs.items.slice(0, INITIAL_VISIBLE)).map((bill) => (
+          {visible.map((bill) => (
             <li key={bill.id}>
               <BillSearchCard
                 bill={bill}
@@ -221,9 +255,19 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
   }
 
   return (
-    <section aria-label="Recommended for you" className={cn(SURFACE, 'p-3')}>
+    <section
+      aria-label="Recommended for you"
+      className={cn(SURFACE, 'p-3', isPanel && 'flex h-full flex-col')}
+    >
       {header}
-      {body}
+      {isPanel ? (
+        // Fills the panel's remaining height; cards that don't fit wait for Refresh.
+        <div ref={fitRef} className="min-h-0 flex-1 overflow-hidden">
+          {body}
+        </div>
+      ) : (
+        body
+      )}
       {user && <InterestPickerDialog open={pickerOpen} onOpenChange={setPickerOpen} />}
     </section>
   );
