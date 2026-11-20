@@ -155,7 +155,8 @@ interface RecommendedBillsProps {
 }
 
 export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps) {
-  const { user } = useAuth();
+  const { user, activeTenant } = useAuth();
+  const tenantId = activeTenant?.tenantId ?? null;
   const [pickerOpen, setPickerOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   // Start of the visible set within the ranked pool; Refresh advances it.
@@ -167,8 +168,10 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
   const isPanel = variant === 'panel';
 
   const { data: recs, isLoading, isError, isFetching, refetch } = useQuery({
-    queryKey: ['recommendations'],
-    queryFn: () => data.recommendations.get(),
+    // Keyed by org: which tracked bills are left out depends on the active org.
+    // Invalidating ['recommendations'] still refreshes every org's entry.
+    queryKey: ['recommendations', tenantId],
+    queryFn: () => data.recommendations.get({ tenantId }),
     enabled: !!user,
   });
 

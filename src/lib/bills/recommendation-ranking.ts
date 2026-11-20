@@ -19,17 +19,20 @@ function activityTime(b: BillSearchResult): number {
  * number of matched interests, then bill number for determinism.
  */
 export function rankRecommendations(
-  candidates: Array<BillSearchResult & { matched: string[] }>,
+  candidates: Array<BillSearchResult & { matched: string[]; hearing_notice?: string | null }>,
   now: Date,
   limit: number = RECOMMENDATION_LIMIT,
 ): RecommendedBill[] {
   const nowMs = now.getTime();
   const keyed = candidates.map((c) => {
-    const hearing = c.latest_update ? parseHearingDatetime(c.latest_update.statustext) : null;
+    // The bill's latest hearing notice, when the caller found one; otherwise
+    // the latest update, which may itself be the notice.
+    const noticeText = c.hearing_notice ?? c.latest_update?.statustext ?? null;
+    const hearing = noticeText ? parseHearingDatetime(noticeText) : null;
     const hearingMs = hearing && hearing.getTime() > nowMs ? hearing.getTime() : null;
+    const { hearing_notice: _notice, ...rest } = c;
     const bill: RecommendedBill = {
-      ...c,
-      matched: c.matched,
+      ...rest,
       next_hearing_at: hearingMs === null ? null : new Date(hearingMs).toISOString(),
     };
     return { bill, hearingMs, activity: activityTime(c) };

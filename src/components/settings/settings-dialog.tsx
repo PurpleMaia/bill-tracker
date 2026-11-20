@@ -62,6 +62,13 @@ export function PreferencesPanel() {
     interests.keywords.join('\n') !== saved.keywords.join('\n');
 
   const saveInterests = async () => {
+    // Save stays clickable even when nothing looks changed: a keyword typed but
+    // not yet added only lands in `interests` when the input blurs on mousedown,
+    // so a disabled button would swallow that click.
+    if (!interestsDirty) {
+      toast({ title: 'No changes to save', duration: 3000 });
+      return;
+    }
     setSavingInterests(true);
     try {
       await updatePreferences({
@@ -170,7 +177,7 @@ export function PreferencesPanel() {
         <Button
           size="sm"
           className="self-start"
-          disabled={loading || savingInterests || !interestsDirty}
+          disabled={loading || savingInterests}
           onClick={saveInterests}
         >
           {savingInterests ? 'Saving...' : 'Save interests'}

@@ -48,8 +48,10 @@ export async function updateUserPreferences(
   if (typeof patch.kanban_detailed_view === 'boolean') {
     writable.kanban_detailed_view = patch.kanban_detailed_view;
   }
-  const hasTopics = patch.interest_topics !== undefined;
-  const hasKeywords = patch.interest_keywords !== undefined;
+  // Only a real array counts: a null/other value in a raw PATCH body must not
+  // be normalized to [] and wipe the stored interests.
+  const hasTopics = Array.isArray(patch.interest_topics);
+  const hasKeywords = Array.isArray(patch.interest_keywords);
   if (hasTopics || hasKeywords) {
     const normalized = normalizeInterests({
       topics: patch.interest_topics,

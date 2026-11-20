@@ -26,6 +26,7 @@ import { useBillSearch } from '@/hooks/use-bill-search';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { hasNonBillParams } from '@/lib/bills/bill-dialog-url';
 import {
   DEFAULT_FILTERS,
@@ -163,6 +164,9 @@ export function BillSearchView() {
   const showRecommendations = !hasQuery && activeFilterCount(filters) === 0;
   // The full placeholder runs past a phone-width input; phones get the short one.
   const isMobile = useIsMobile();
+  // Exactly one recommendations variant is mounted: the side panel at lg+ (1024px),
+  // the inline section below. Undefined until mounted, so neither renders first.
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
   // The dialog takes only a bill id; the Track control needs the bill number for
   // its label and toasts, so resolve the open row from the loaded results.
   const openBill = openBillId ? bills.find((b) => b.id === openBillId) : undefined;
@@ -236,8 +240,8 @@ export function BillSearchView() {
             {/* Phones/tablets: recommendations sit above the count/sort bar, which
                 governs only the full results below. Laptops and up get the side
                 panel instead (see the right-hand aside). */}
-            {showRecommendations && (
-              <div className="lg:hidden">
+            {showRecommendations && isDesktop === false && (
+              <div>
                 <div className="mt-4">
                   <RecommendedBills variant="inline" onCardClick={handleCardClick} />
                 </div>
@@ -375,7 +379,7 @@ export function BillSearchView() {
           screen height and Refresh moves to the next set. */}
       <aside className="sticky top-6 hidden w-80 shrink-0 lg:block" style={sideColumnStyle}>
         <div className="h-full min-h-0">
-          <RecommendedBills variant="panel" onCardClick={handleCardClick} />
+          {isDesktop && <RecommendedBills variant="panel" onCardClick={handleCardClick} />}
         </div>
       </aside>
 

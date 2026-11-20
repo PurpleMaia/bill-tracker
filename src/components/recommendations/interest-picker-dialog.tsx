@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { toast } from '@/hooks/use-toast';
@@ -17,12 +16,7 @@ import { Button } from '@/components/ui/button';
 import { InterestsEditor, type InterestsValue } from '@/components/recommendations/interests-editor';
 import { normalizeInterests } from '@/lib/bills/recommendation-topics';
 import { shouldOpenInterestPicker } from '@/lib/recommendations/interest-picker';
-import {
-  TOUR_END_EVENT,
-  TOUR_START_EVENT,
-  hasSeenTour,
-  shouldAutoStartTour,
-} from '@/lib/tour/welcome-tour';
+import { TOUR_END_EVENT, TOUR_START_EVENT, hasSeenTour } from '@/lib/tour/welcome-tour';
 
 interface InterestPickerDialogProps {
   open?: boolean;
@@ -36,14 +30,15 @@ interface InterestPickerDialogProps {
  */
 export function InterestPickerDialog({ open, onOpenChange }: InterestPickerDialogProps = {}) {
   const editMode = open !== undefined;
-  const pathname = usePathname();
   const queryClient = useQueryClient();
   const { user, preferences, updatePreferences } = useAuth();
 
-  // Same rule the tour uses to auto-start; lazy init so SSR never touches storage.
-  const [tourRunning, setTourRunning] = useState(() =>
-    typeof window !== 'undefined' && shouldAutoStartTour(pathname, hasSeenTour()),
-  );
+  // The picker always comes after the welcome tour: it waits until the tour has
+  // been seen (finished or skipped), and while a replayed tour is running.
+  // tourSeen starts false and is read from storage after mount, so the server
+  // and client render the same closed dialog and nothing flashes.
+  const [tourSeen, setTourSeen] = useState(false);
+  const [tourRunning, setTourRunning] = useState(false);
   // Set as soon as Save/Skip fires so the dialog can't re-open while the
   // request is in flight, or after a failure, for this page view.
   const [dismissed, setDismissed] = useState(false);
@@ -51,8 +46,12 @@ export function InterestPickerDialog({ open, onOpenChange }: InterestPickerDialo
   const [draft, setDraft] = useState<InterestsValue>({ topics: [], keywords: [] });
 
   useEffect(() => {
+    setTourSeen(hasSeenTour());
     const start = () => setTourRunning(true);
-    const end = () => setTourRunning(false);
+    const end = () => {
+      setTourRunning(false);
+      setTourSeen(true);
+    };
     window.addEventListener(TOUR_START_EVENT, start);
     window.addEventListener(TOUR_END_EVENT, end);
     return () => {
@@ -63,7 +62,7 @@ export function InterestPickerDialog({ open, onOpenChange }: InterestPickerDialo
 
   const autoOpen =
     !dismissed &&
-    shouldOpenInterestPicker({ signedIn: !!user, preferences, tourRunning });
+    shouldOpenInterestPicker({ signedIn: !!user, preferences, tourRunning: tourRunning || !tourSeen });
   const isOpen = editMode ? open : autoOpen;
 
   // Seed the draft each time the dialog opens.

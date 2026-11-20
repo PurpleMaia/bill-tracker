@@ -111,3 +111,17 @@ export function wordMatchPattern(term: string): string {
   const escaped = term.replace(/[\\.^$*+?()[\]{}|]/g, '\\$&');
   return `\\m${escaped}${term.length < SHORT_TERM_LENGTH ? '\\M' : ''}`;
 }
+
+/**
+ * One entry per distinct term, carrying every label that asked for it, so a term
+ * shared by two topics (e.g. "school meal") is matched once in SQL.
+ */
+export function groupInterestTerms(terms: InterestTerm[]): Array<{ term: string; labels: string[] }> {
+  const byTerm = new Map<string, string[]>();
+  for (const { term, label } of terms) {
+    const labels = byTerm.get(term);
+    if (!labels) byTerm.set(term, [label]);
+    else if (!labels.includes(label)) labels.push(label);
+  }
+  return Array.from(byTerm, ([term, labels]) => ({ term, labels }));
+}

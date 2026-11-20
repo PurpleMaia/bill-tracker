@@ -6,6 +6,7 @@ import {
   buildInterestTerms,
   SHORT_TERM_LENGTH,
   wordMatchPattern,
+  groupInterestTerms,
 } from '@/lib/bills/recommendation-topics';
 
 describe('RECOMMENDATION_TOPICS', () => {
@@ -80,5 +81,29 @@ describe('wordMatchPattern', () => {
 
   it('keeps multi-word terms whole', () => {
     expect(wordMatchPattern('school meal')).toBe('\\mschool meal');
+  });
+});
+
+describe('groupInterestTerms', () => {
+  it('collapses a term shared by several topics into one entry with every label', () => {
+    expect(
+      groupInterestTerms([
+        { label: 'Food Access', term: 'school meal' },
+        { label: 'Farm to School', term: 'school meal' },
+        { label: 'Farm to School', term: 'school garden' },
+      ]),
+    ).toEqual([
+      { term: 'school meal', labels: ['Food Access', 'Farm to School'] },
+      { term: 'school garden', labels: ['Farm to School'] },
+    ]);
+  });
+
+  it('does not repeat a label for the same term', () => {
+    expect(
+      groupInterestTerms([
+        { label: 'kalo', term: 'kalo' },
+        { label: 'kalo', term: 'kalo' },
+      ]),
+    ).toEqual([{ term: 'kalo', labels: ['kalo'] }]);
   });
 });

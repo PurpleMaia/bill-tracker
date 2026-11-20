@@ -59,6 +59,16 @@ describe('rankRecommendations', () => {
     expect(r.find((b) => b.bill_number === 'HB1')!.next_hearing_at).toBeNull();
   });
 
+  it('uses the latest hearing notice even when a newer non-hearing update exists', () => {
+    const withNotice = {
+      ...bill('HB1', { text: 'Referred to WAM.', date: '2026-02-20' }),
+      hearing_notice: FUTURE('03-10-2026'),
+    };
+    const r = rankRecommendations([bill('HB2', { date: '2026-02-25' }), withNotice], NOW);
+    expect(order(r)).toEqual(['HB1', 'HB2']);
+    expect(r[0].next_hearing_at).not.toBeNull();
+  });
+
   it('orders by recent activity, falling back to updated_at, missing last', () => {
     const r = rankRecommendations(
       [
