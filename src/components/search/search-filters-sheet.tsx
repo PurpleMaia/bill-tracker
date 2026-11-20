@@ -21,7 +21,7 @@ export function SearchFiltersSheet({ filters, onChange, onClear, loggedIn }: Sea
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="min-h-[44px] lg:hidden">
+        <Button variant="outline" size="sm" className="min-h-[44px] xl:hidden">
           <SlidersHorizontal className="mr-2 h-4 w-4" aria-hidden="true" />
           Filters
           {count > 0 && (

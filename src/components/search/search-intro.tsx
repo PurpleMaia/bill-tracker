@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { NewTabHint } from '@/components/ui/new-tab-hint';
+import { cn } from '@/lib/core/utils';
 
 /**
  * Front-door hero for the search page.
@@ -21,6 +22,9 @@ const SUGGESTIONS = [
   'farm to school',
   'water rights',
 ];
+
+/** The only suggestions shown on phones, where six chips crowd the hero. */
+const PHONE_SUGGESTIONS = new Set(['agriculture', 'water rights']);
 
 interface SearchIntroProps {
   onSuggestionClick: (term: string) => void;
@@ -82,7 +86,10 @@ export function SearchIntro({
                 key={term}
                 type="button"
                 onClick={() => onSuggestionClick(term)}
-                className="rounded-full border border-primary-foreground/25 bg-primary-foreground/10 px-3 py-1.5 text-sm text-primary-foreground transition-colors hover:bg-primary-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/60"
+                className={cn(
+                  !PHONE_SUGGESTIONS.has(term) && 'hidden sm:inline-block',
+                  'rounded-full border border-primary-foreground/25 bg-primary-foreground/10 px-3 py-1.5 text-sm text-primary-foreground transition-colors hover:bg-primary-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/60',
+                )}
               >
                 {term}
               </button>

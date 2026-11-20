@@ -19,7 +19,7 @@ import { BillSearchCard } from './bill-search-card';
 import { SearchFilterRail } from './search-filter-rail';
 import { SearchFiltersSheet } from './search-filters-sheet';
 import { SearchIntro } from './search-intro';
-import { RecommendedBillsRow } from '@/components/recommendations/recommended-bills-row';
+import { RecommendedBills } from '@/components/recommendations/recommended-bills';
 import { TrackButton } from './track-button';
 import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
 import { useBillSearch } from '@/hooks/use-bill-search';
@@ -186,8 +186,10 @@ export function BillSearchView() {
   );
 
   return (
-    <div className="mx-auto flex h-full w-full min-h-0 max-w-6xl gap-6 p-4 md:p-6">
-      <aside className="hidden w-60 shrink-0 lg:block">
+    <div className="mx-auto flex h-full w-full min-h-0 max-w-7xl gap-6 p-4 md:p-6">
+      {/* Filter rail only at xl: between lg and xl the recommendations panel takes
+          the side column and filters stay in the Filters sheet. */}
+      <aside className="hidden w-60 shrink-0 xl:block">
         <div className="h-full min-h-0 overflow-y-auto pr-2">
           <SearchFilterRail
             filters={filters}
@@ -212,15 +214,16 @@ export function BillSearchView() {
               {searchInput}
             </SearchIntro>
 
-            {/* Recommendations sit above the count/sort bar: that bar governs only
-                the full results below, never the recommendations' own ordering. */}
+            {/* Phones/tablets: recommendations sit above the count/sort bar, which
+                governs only the full results below. Laptops and up get the side
+                panel instead (see the right-hand aside). */}
             {showRecommendations && (
-              <>
+              <div className="lg:hidden">
                 <div className="mt-4">
-                  <RecommendedBillsRow onCardClick={handleCardClick} />
+                  <RecommendedBills variant="inline" onCardClick={handleCardClick} />
                 </div>
-                <h2 className="text-sm font-semibold">All bills</h2>
-              </>
+                <h2 className="mt-4 text-sm font-semibold">All bills</h2>
+              </div>
             )}
 
             <div className="mt-3 flex items-center justify-between gap-3">
@@ -346,6 +349,15 @@ export function BillSearchView() {
         </div>
 
       </div>
+
+      {/* Laptops and up: recommendations get their own column so the main list
+          stays purely search results. Stays visible while searching, since it
+          no longer pushes results down. */}
+      <aside className="hidden w-72 shrink-0 lg:block">
+        <div className="h-full min-h-0 overflow-y-auto">
+          <RecommendedBills variant="panel" onCardClick={handleCardClick} />
+        </div>
+      </aside>
 
       {/* Back to the search bar once the hero has scrolled out of reach. */}
       <ScrollToTopButton scrollRef={resultsRef} label="Scroll back to search" />

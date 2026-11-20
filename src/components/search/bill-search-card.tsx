@@ -45,6 +45,8 @@ interface BillSearchCardProps {
   onCardClick: (billId: string) => void;
   /** Optional content rendered under the activity line (e.g. why it was recommended). */
   footer?: React.ReactNode;
+  /** Optional chip after the status chip (e.g. marking a recommended bill). */
+  badge?: React.ReactNode;
 }
 
 /**
@@ -61,7 +63,7 @@ interface BillSearchCardProps {
  * across sessions (SB1251 exists in both 2025 and 2026 as different measures),
  * so without the year two results are indistinguishable.
  */
-function BillSearchCardComponent({ bill, query, onCardClick, footer }: BillSearchCardProps) {
+function BillSearchCardComponent({ bill, query, onCardClick, footer, badge }: BillSearchCardProps) {
   const headline = formatBillHeadline(bill);
   const committeeReferrals = bill.committee_assignment
     ? parseCommittees(bill.committee_assignment)
@@ -124,6 +126,7 @@ function BillSearchCardComponent({ bill, query, onCardClick, footer }: BillSearc
                 </span>
               )
             )}
+            {badge}
             {/* Right-hand action column. stopPropagation so neither control
                 opens the card dialog. Kept OUTSIDE the dimming wrapper below —
                 opacity/filter on a parent makes a composited group a child
