@@ -143,6 +143,9 @@ export function BillSearchView() {
   ]);
 
   const hasQuery = filters.q.trim().length > 0;
+  // Recommendations only on the untouched page; a search or filter means the
+  // user is looking for something specific.
+  const showRecommendations = !hasQuery && activeFilterCount(filters) === 0;
   // The full placeholder runs past a phone-width input; phones get the short one.
   const isMobile = useIsMobile();
   // The dialog takes only a bill id; the Track control needs the bill number for
@@ -209,6 +212,17 @@ export function BillSearchView() {
               {searchInput}
             </SearchIntro>
 
+            {/* Recommendations sit above the count/sort bar: that bar governs only
+                the full results below, never the recommendations' own ordering. */}
+            {showRecommendations && (
+              <>
+                <div className="mt-4">
+                  <RecommendedBillsRow onCardClick={handleCardClick} />
+                </div>
+                <h2 className="text-sm font-semibold">All bills</h2>
+              </>
+            )}
+
             <div className="mt-3 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
                 <p className="text-sm text-muted-foreground" aria-live="polite">
@@ -258,10 +272,6 @@ export function BillSearchView() {
               <ActiveFilterChips filters={filters} onChange={setFilters} onClear={handleClear} />
             </div>
           </div>
-
-          {!hasQuery && activeFilterCount(filters) === 0 && (
-            <RecommendedBillsRow onCardClick={handleCardClick} />
-          )}
 
           {error && (
             <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">

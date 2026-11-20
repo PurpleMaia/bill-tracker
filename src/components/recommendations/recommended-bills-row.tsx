@@ -26,6 +26,9 @@ function hearingWeekday(iso: string): string | null {
   return Number.isNaN(d.getTime()) ? null : WEEKDAY_FORMAT.format(d);
 }
 
+/** Cards shown before "Show N more", so the full results stay near the top of the page. */
+const INITIAL_VISIBLE = 3;
+
 function reasonLine(bill: RecommendedBill): string {
   const weekday = bill.next_hearing_at ? hearingWeekday(bill.next_hearing_at) : null;
   return `matched: ${bill.matched.join(' · ')}${weekday ? ` · hearing ${weekday}` : ''}`;
@@ -34,6 +37,7 @@ function reasonLine(bill: RecommendedBill): string {
 export function RecommendedBillsRow({ onCardClick }: { onCardClick: (billId: string) => void }) {
   const { user } = useAuth();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const { data: recs, isLoading, isError } = useQuery({
     queryKey: ['recommendations'],
@@ -88,6 +92,8 @@ export function RecommendedBillsRow({ onCardClick }: { onCardClick: (billId: str
     );
   }
 
+  const hiddenCount = recs.items.length - INITIAL_VISIBLE;
+
   return (
     <section aria-label="Recommended for you" className="mb-4">
       <div className="mb-2 flex items-center justify-between gap-3">
@@ -99,8 +105,8 @@ export function RecommendedBillsRow({ onCardClick }: { onCardClick: (billId: str
           Edit interests
         </Button>
       </div>
-      <ul className="space-y-3">
-        {recs.items.map((bill) => (
+      <ul id="recommended-bills-list" className="space-y-3">
+        {(expanded ? recs.items : recs.items.slice(0, INITIAL_VISIBLE)).map((bill) => (
           <li key={bill.id}>
             <BillSearchCard
               bill={bill}
@@ -111,6 +117,18 @@ export function RecommendedBillsRow({ onCardClick }: { onCardClick: (billId: str
           </li>
         ))}
       </ul>
+      {hiddenCount > 0 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-2 text-muted-foreground"
+          aria-expanded={expanded}
+          aria-controls="recommended-bills-list"
+          onClick={() => setExpanded((e) => !e)}
+        >
+          {expanded ? 'Show fewer' : `Show ${hiddenCount} more`}
+        </Button>
+      )}
       {picker}
     </section>
   );
