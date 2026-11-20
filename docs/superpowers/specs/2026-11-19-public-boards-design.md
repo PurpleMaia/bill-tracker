@@ -30,7 +30,7 @@ anyone, no account needed". There is no separate setting.
   `https://<app>/community/<slug>`. *(Revised 2026-11-19: started at
   `/community/<slug>`, which now redirects.)* The same URL is an admin's "Your
   Organization" tab, which shows their own board even while private. Slugs that
-  would collide with fixed Community pages (`following`, `your-organization`)
+  would collide with fixed Community pages or old redirected paths (`following`, `your-organization`, `public-view`)
   are reserved at org creation.
 - 404-style "This board isn't public" state when the slug is unknown **or** the
   org's board is private — the two are indistinguishable to the visitor.

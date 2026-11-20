@@ -8,9 +8,10 @@
 
 /**
  * Slugs an org can't take: org boards live at /community/<slug>, beside these
- * fixed Community pages, which would otherwise hide that org's board.
+ * fixed Community pages — and `public-view`, an old path next.config redirects
+ * — which would otherwise hide that org's board.
  */
-const RESERVED_SLUGS: ReadonlySet<string> = new Set(['following', 'your-organization']);
+const RESERVED_SLUGS: ReadonlySet<string> = new Set(['following', 'your-organization', 'public-view']);
 
 /** True if a slug collides with a fixed /community/* page. */
 export function isReservedSlug(slug: string): boolean {

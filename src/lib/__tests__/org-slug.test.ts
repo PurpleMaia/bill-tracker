@@ -68,6 +68,8 @@ describe('isReservedSlug', () => {
   it('reserves the Community tab paths an org board would otherwise shadow', () => {
     expect(isReservedSlug('following')).toBe(true);
     expect(isReservedSlug('your-organization')).toBe(true);
+    // Redirected by next.config, so a board there would be unreachable.
+    expect(isReservedSlug('public-view')).toBe(true);
   });
 
   it('allows ordinary slugs, including suffixed reserved words', () => {
