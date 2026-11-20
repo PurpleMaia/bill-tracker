@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { NewUsageEvent } from '@/db/queries/usage-events';
-import { normalizePath } from '@/lib/analytics/paths';
+import { normalizePath, SECTIONS } from '@/lib/analytics/paths';
 
 export const CLIENT_EVENTS = [
   'page_view',
@@ -79,7 +79,14 @@ export function toStoredEvent(
     return { event: input.event, userId: null, tenantId: null, anonId: null, path: null, props, createdAt };
   }
 
-  const props = input.props ?? {};
+  // page_view keeps only a known section, so a forged payload can't invent
+  // dashboard rows (its section becomes the feature key).
+  const props =
+    input.event === 'page_view'
+      ? (SECTIONS as readonly unknown[]).includes(input.props?.section)
+        ? { section: input.props!.section }
+        : {}
+      : (input.props ?? {});
   const path = input.path ? normalizePath(input.path) : null;
 
   if (ctx.userId) {

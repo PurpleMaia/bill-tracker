@@ -328,6 +328,7 @@ async function getFeatures(org: OrgFilter, from: Date | null, prevFrom: Date | n
   }
   for (const r of rows) {
     const key = featureKey(r.event, r.section);
+    if (!byKey.has(key)) continue; // unknown section/event: never surface as a row
     byKey.set(key, {
       key,
       label: featureLabel(key),

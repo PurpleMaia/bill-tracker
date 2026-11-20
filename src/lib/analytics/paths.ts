@@ -1,4 +1,5 @@
-export type Section = 'tracker' | 'find-bills' | 'take-action' | 'community' | 'guide' | 'learn' | 'bill';
+export const SECTIONS = ['tracker', 'find-bills', 'take-action', 'community', 'guide', 'learn', 'bill'] as const;
+export type Section = (typeof SECTIONS)[number];
 
 const COMMUNITY_FIXED = new Set(['following', 'your-organization']);
 const FIRST_SEGMENT_SECTIONS = new Set<string>(['find-bills', 'take-action', 'community', 'guide', 'learn']);

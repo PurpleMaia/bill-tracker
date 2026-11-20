@@ -38,6 +38,11 @@ describe('toStoredEvent', () => {
   it('requires anonId when signed out', () => {
     expect(toStoredEvent({ event: 'page_view' }, { userId: null, memberTenantIds: null })).toBeNull();
   });
+  it('keeps only a known section on page_view props', () => {
+    const ctx = { userId: 'u1', memberTenantIds: [] };
+    expect(toStoredEvent({ event: 'page_view', props: { section: 'tracker', x: 1 } }, ctx)?.props).toEqual({ section: 'tracker' });
+    expect(toStoredEvent({ event: 'page_view', props: { section: 'invented' } }, ctx)?.props).toEqual({});
+  });
   it('drops anonId when signed in', () => {
     const row = toStoredEvent({ event: 'page_view', anonId: 'a1' }, { userId: 'u1', memberTenantIds: [] });
     expect(row).toMatchObject({ userId: 'u1', anonId: null });
