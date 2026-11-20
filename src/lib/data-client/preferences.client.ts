@@ -3,7 +3,7 @@ import {
   getPreferencesAction,
   updatePreferencesAction,
 } from '@/app/actions/preferences';
-import type { UserPreferences } from '@/types/preferences';
+import type { PreferencesPatch, UserPreferences } from '@/types/preferences';
 
 // ---- fetch arm (hits /api/preferences) ----
 
@@ -17,7 +17,7 @@ async function getPreferencesFetch(): Promise<UserPreferences> {
 }
 
 async function updatePreferencesFetch(
-  patch: Partial<UserPreferences>,
+  patch: PreferencesPatch,
 ): Promise<UserPreferences> {
   const res = await fetch('/api/preferences', {
     method: 'PATCH',

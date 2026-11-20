@@ -5,7 +5,7 @@ import {
   getUserPreferences,
   updateUserPreferences,
 } from '@/db/queries/user-preferences';
-import type { UserPreferences } from '@/types/preferences';
+import type { PreferencesPatch, UserPreferences } from '@/types/preferences';
 
 /** Server-action arm for data.preferences.get. Returns the caller's own prefs. */
 export async function getPreferencesAction(): Promise<UserPreferences> {
@@ -15,7 +15,7 @@ export async function getPreferencesAction(): Promise<UserPreferences> {
 
 /** Server-action arm for data.preferences.update. Patches the caller's own prefs. */
 export async function updatePreferencesAction(
-  patch: Partial<UserPreferences>,
+  patch: PreferencesPatch,
 ): Promise<UserPreferences> {
   const { user } = await requireSession.fromAction();
   return updateUserPreferences(user.id, patch);
