@@ -52,7 +52,7 @@ function MyOrgBoardBanner({ board, onOpenSettings }: { board: MyOrgBoard; onOpen
       </div>
       <div className="min-w-0 flex-1 leading-tight">
         <div className="flex items-center gap-2">
-          <h1 className="truncate text-base font-semibold">{org.name}&rsquo;s board</h1>
+          <h1 className="truncate text-base font-semibold">{org.name}&rsquo;s Tracker</h1>
           <span
             className={cn(
               'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',

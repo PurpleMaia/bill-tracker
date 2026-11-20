@@ -103,7 +103,7 @@ export function PublicBoardBanner({ org }: { org: PublicBoardOrg }) {
         {initials(org.name)}
       </div>
       <div className="min-w-0 flex-1 leading-tight">
-        <h1 className="truncate text-base font-semibold">{org.name}&rsquo;s board</h1>
+        <h1 className="truncate text-base font-semibold">{org.name}&rsquo;s Tracker</h1>
         <p className="truncate text-xs text-olive-dark">
           {org.description || 'Public board · read-only'}
         </p>

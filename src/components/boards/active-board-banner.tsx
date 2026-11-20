@@ -34,7 +34,7 @@ export function ActiveBoardBanner() {
         {initials(current.name)}
       </div>
       <div className="min-w-0 flex-1 leading-tight">
-        <h2 className="truncate text-base font-semibold">{current.name}&rsquo;s board</h2>
+        <h2 className="truncate text-base font-semibold">{current.name}&rsquo;s Tracker</h2>
         <p className="truncate text-xs text-olive-dark">
           You&rsquo;re viewing another org&rsquo;s bills · read-only · track any bill onto your own board
         </p>

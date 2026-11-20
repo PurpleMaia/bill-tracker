@@ -14,9 +14,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description =
     org.description || `Bills ${org.name} is tracking in the Hawaiʻi legislature.`;
   return {
-    title: `${org.name} · Food+ board`,
+    title: `${org.name}’s Tracker · Food+`,
     description,
-    openGraph: { title: `${org.name} · Food+ board`, description },
+    openGraph: { title: `${org.name}’s Tracker · Food+`, description },
   };
 }
 
