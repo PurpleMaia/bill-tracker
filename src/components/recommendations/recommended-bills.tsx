@@ -3,7 +3,6 @@
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { RefreshCw, Sparkles } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BillSearchCard } from '@/components/search/bill-search-card';
@@ -66,7 +65,7 @@ function ForYouChip() {
 
 /**
  * Narrow card for the desktop side panel, sized to its content so there are no
- * empty bands: a reference row (number, year, status, Track), the headline, a
+ * empty bands: a reference row (number, status, Track), the headline, a
  * short description, and why it was recommended.
  */
 function CompactRecommendation({
@@ -96,11 +95,6 @@ function CompactRecommendation({
         <span className="shrink-0 text-xs font-medium tracking-wide text-muted-foreground">
           {bill.bill_number}
         </span>
-        {bill.year !== null && (
-          <Badge variant="secondary" className="h-4 shrink-0 rounded-md px-1 text-xs text-muted-foreground">
-            {bill.year}
-          </Badge>
-        )}
         {bill.dead ? (
           <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-2 text-xs font-medium text-destructive">
             Failed
