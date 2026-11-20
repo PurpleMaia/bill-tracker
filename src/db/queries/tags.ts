@@ -329,9 +329,10 @@ const BULK_TAG_INSERT_CHUNK = 5000;
 /**
  * Adds or removes the given tags on many bills at once. Unlike updateBillTags
  * this never touches tags outside `tagIds`, so each bill keeps its other tags.
- * @param billIds - Bills to change; ids with no matching bill are skipped
+ * @param billIds - Bills to change; ids not on the caller's board are skipped
  * @param tagIds - Tags to add or remove; all must belong to the tenant
  * @param mode - 'add' (already-tagged bills are left alone) or 'remove'
+ * @param userId - The caller, for the My Bills half of the board check
  * @returns Each changed bill's full tag list for this tenant
  * @throws Error if any tag ID is invalid for the tenant
  */
@@ -339,7 +340,8 @@ export async function bulkUpdateBillTags(
   billIds: string[],
   tagIds: string[],
   mode: 'add' | 'remove',
-  tenantId: string
+  tenantId: string,
+  userId: string
 ): Promise<Record<string, Tag[]>> {
   if (billIds.length === 0 || tagIds.length === 0) return {};
 
@@ -354,12 +356,18 @@ export async function bulkUpdateBillTags(
     throw new Error('One or more tag IDs are invalid');
   }
 
-  const existingBills = await db
-    .selectFrom('bills')
-    .select('id')
-    .where('id', 'in', billIds)
+  // Only bills the bulk dialog could have listed: tracked by someone in this
+  // org (the org board) or by the caller in any tenant (My Bills, which also
+  // covers user_bills rows left with tenant_id = NULL). Stops a crafted call
+  // from attaching the org's tags to bills outside its board.
+  const boardBills = await db
+    .selectFrom('user_bills')
+    .select('bill_id')
+    .distinct()
+    .where('bill_id', 'in', billIds)
+    .where((eb) => eb.or([eb('tenant_id', '=', tenantId), eb('user_id', '=', userId)]))
     .execute();
-  const existingIds = existingBills.map((b) => b.id);
+  const existingIds = boardBills.map((b) => b.bill_id).filter((id): id is string => id !== null);
   if (existingIds.length === 0) return {};
 
   if (mode === 'add') {

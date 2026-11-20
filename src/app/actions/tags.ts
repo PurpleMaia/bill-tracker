@@ -46,9 +46,9 @@ export async function bulkUpdateBillTagsAction(params: {
   mode: 'add' | 'remove';
   tenantId: string;
 }): Promise<Record<string, Tag[]>> {
-  await requireAdmin.fromAction(params.tenantId);
+  const { user } = await requireAdmin.fromAction(params.tenantId);
   const { billIds, tagIds, mode } = bulkTagsSchema.parse(params);
-  return bulkUpdateBillTags(billIds, tagIds, mode, params.tenantId);
+  return bulkUpdateBillTags(billIds, tagIds, mode, params.tenantId, user.id);
 }
 
 export async function createTagAction(params: {
