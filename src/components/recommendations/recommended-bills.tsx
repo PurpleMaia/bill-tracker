@@ -252,17 +252,16 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
         )}
       >
         <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <LogIn className="h-5 w-5" aria-hidden="true" />
+          <Sparkles className="h-5 w-5" aria-hidden="true" />
         </span>
         <p className="mt-3 text-sm font-semibold">Get bills picked for you</p>
         <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-          Sign in and choose a few topics you care about. We&apos;ll surface matching bills,
-          with upcoming hearings first.
+          Login, choose a few topics you care about, and we&apos;ll surface matching bills.
         </p>
         <Button asChild size="sm" className="mt-4">
           <LoginLink>
             <LogIn className="h-4 w-4" aria-hidden="true" />
-            Sign in
+            Login
           </LoginLink>
         </Button>
         <p className="mt-3 text-xs text-muted-foreground">
