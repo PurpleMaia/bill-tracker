@@ -70,7 +70,7 @@ function MyOrgBoardBanner({ board, onOpenSettings }: { board: MyOrgBoard; onOpen
         </p>
       </div>
       {/* A private board has no link to share yet. */}
-      {publicBoard && <CopyLinkButton url={publicBoardUrl(org.slug)} label="Copy link to your board" />}
+      {publicBoard && <CopyLinkButton url={publicBoardUrl(org.slug)} label="Copy link to your board" text="Copy Link" />}
       <Button size="sm" className="shrink-0" onClick={onOpenSettings} aria-label="Organization Settings">
         <Settings className="h-4 w-4 sm:mr-1.5" />
         <span className="sr-only sm:not-sr-only">Settings</span>

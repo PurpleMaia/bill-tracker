@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/core/utils';
@@ -9,19 +9,23 @@ import { cn } from '@/lib/core/utils';
 const RESET_MS = 2000;
 
 /**
- * Icon-only copy button for a shareable link (e.g. an org's public board): the
- * copy icon swaps to a check for a moment on success, then back. If the
- * clipboard is blocked, a toast carries the URL so it can be copied by hand.
+ * Copy button for a shareable link (e.g. an org's public board): the icon swaps
+ * to a check for a moment on success, then back. Icon-only by default; with
+ * `text` it's a labeled button with a link icon. If the clipboard is blocked, a
+ * toast carries the URL so it can be copied by hand.
  */
 export function CopyLinkButton({
   url,
   label = 'Copy link',
+  text,
   variant = 'outline',
   className,
 }: {
   url: string;
   /** Accessible name and hover tooltip. */
   label?: string;
+  /** Visible label; when set, the button shows it beside a link icon. */
+  text?: string;
   variant?: 'outline' | 'default' | 'ghost';
   className?: string;
 }) {
@@ -41,6 +45,27 @@ export function CopyLinkButton({
       toast({ title: 'Couldn’t copy the link', description: url, duration: 8000 });
     }
   };
+
+  if (text) {
+    return (
+      <Button
+        type="button"
+        size="sm"
+        variant={variant}
+        onClick={copy}
+        title={label}
+        className={cn(
+          'shrink-0',
+          variant !== 'default' && 'hover:bg-neutral-100 hover:text-foreground',
+          className,
+        )}
+      >
+        {copied ? <Check className="mr-1.5 h-4 w-4 text-olive-dark" /> : <LinkIcon className="mr-1.5 h-4 w-4" />}
+        {/* aria-live so screen readers hear the swap to "Copied". */}
+        <span aria-live="polite">{copied ? 'Copied' : text}</span>
+      </Button>
+    );
+  }
 
   return (
     <Button
