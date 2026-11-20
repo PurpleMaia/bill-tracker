@@ -43,6 +43,8 @@ interface BillSearchCardProps {
   bill: BillSearchResult;
   query: string;
   onCardClick: (billId: string) => void;
+  /** Optional content rendered under the activity line (e.g. why it was recommended). */
+  footer?: React.ReactNode;
 }
 
 /**
@@ -59,7 +61,7 @@ interface BillSearchCardProps {
  * across sessions (SB1251 exists in both 2025 and 2026 as different measures),
  * so without the year two results are indistinguishable.
  */
-function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardProps) {
+function BillSearchCardComponent({ bill, query, onCardClick, footer }: BillSearchCardProps) {
   const headline = formatBillHeadline(bill);
   const committeeReferrals = bill.committee_assignment
     ? parseCommittees(bill.committee_assignment)
@@ -173,6 +175,7 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
             </div>
           )}
 
+          {footer}
           </div>
 
           {/* Footer row: committee chips on the left, the failure-reason button

@@ -78,6 +78,8 @@ export function TrackButton({ billId, billNumber, initialTracked = false }: Trac
       // dialog's) would still read Track. Invalidate the search cache so every
       // instance re-derives from a fresh is_tracked.
       queryClient.invalidateQueries({ queryKey: ['bills', 'search'] });
+      // A tracked bill is excluded from recommendations, so drop it from that row.
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       // The board ("Your Bills") reads from BillsProvider, a separate app-level
       // context that this React Query key does not touch — so without this the
       // board stays stale until a full reload. BillsProvider is mounted once at

@@ -19,6 +19,7 @@ import { BillSearchCard } from './bill-search-card';
 import { SearchFilterRail } from './search-filter-rail';
 import { SearchFiltersSheet } from './search-filters-sheet';
 import { SearchIntro } from './search-intro';
+import { RecommendedBillsRow } from '@/components/recommendations/recommended-bills-row';
 import { TrackButton } from './track-button';
 import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
 import { useBillSearch } from '@/hooks/use-bill-search';
@@ -256,6 +257,8 @@ export function BillSearchView() {
               <ActiveFilterChips filters={filters} onChange={setFilters} onClear={handleClear} />
             </div>
           </div>
+
+          <RecommendedBillsRow onCardClick={handleCardClick} />
 
           {error && (
             <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
