@@ -18,7 +18,6 @@ const SUGGESTIONS = [
   'agriculture',
   'food security',
   'school meals',
-  'aquaculture',
   'farm to school',
   'water rights',
 ];
