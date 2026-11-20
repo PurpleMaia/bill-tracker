@@ -286,6 +286,17 @@ export interface Testimonies {
   user_id: string;
 }
 
+export interface UsageEvents {
+  anon_id: string | null;
+  created_at: Generated<Timestamp>;
+  event: string;
+  id: Generated<string>;
+  path: string | null;
+  props: Generated<Json>;
+  tenant_id: string | null;
+  user_id: string | null;
+}
+
 export interface User {
   account_status: string;
   auth_provider: Generated<string | null>;
@@ -355,6 +366,7 @@ export interface DB {
   tags: Tags;
   tenants: Tenants;
   testimonies: Testimonies;
+  usage_events: UsageEvents;
   user: User;
   user_bill_preferences: UserBillPreferences;
   user_bills: UserBills;
