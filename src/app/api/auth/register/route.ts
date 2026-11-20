@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { registerUser, createSession } from '@/lib/auth/session';
+import { logEvent } from '@/db/queries/usage-events';
 import { registerSchema } from '@/lib/auth/validators';
 import { setSessionCookie } from '@/lib/auth/cookies';
 import {
@@ -107,6 +108,7 @@ export async function POST(req: NextRequest) {
 
     // Auto-login: create session and return cookie + memberships
     const token = await createSession(user.id);
+    await logEvent('signup', user.id);
     const memberships = await getUserMemberships(user.id);
 
     return NextResponse.json(

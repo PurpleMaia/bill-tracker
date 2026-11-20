@@ -98,7 +98,7 @@ export async function decideProposalAction(params: DecideProposalParams): Promis
   }
 
   if (action === 'approve') {
-    await updateBillStatus(proposal.bill_id, proposal.proposed_status, tenantId);
+    await updateBillStatus(proposal.bill_id, proposal.proposed_status, tenantId, user.id);
     await markProposalApproved(proposalId, user.id);
   } else {
     await markProposalRejected(proposalId);
