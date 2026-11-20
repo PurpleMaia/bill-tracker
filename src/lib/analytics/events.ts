@@ -28,9 +28,12 @@ export type TrackInput = {
   path?: string | null;
 };
 
+// Measured in UTF-8 bytes, not string length: multi-byte characters (emoji)
+// would otherwise slip several times the cap past it.
+const utf8 = new TextEncoder();
 const propsSchema = z
   .record(z.unknown())
-  .refine((p) => JSON.stringify(p).length <= MAX_PROPS_BYTES, 'props too large');
+  .refine((p) => utf8.encode(JSON.stringify(p)).length <= MAX_PROPS_BYTES, 'props too large');
 
 const clientEventSchema = z.object({
   event: z.enum(CLIENT_EVENTS),

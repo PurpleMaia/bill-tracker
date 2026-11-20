@@ -17,6 +17,10 @@ describe('validateClientEvent', () => {
   it('rejects props over 2048 bytes', () => {
     expect(validateClientEvent({ event: 'csv_exported', props: { x: 'a'.repeat(2100) } })).toBeNull();
   });
+  it('measures the props cap in UTF-8 bytes, not string length', () => {
+    // 600 emoji = 1200 UTF-16 code units but 2400 UTF-8 bytes.
+    expect(validateClientEvent({ event: 'csv_exported', props: { x: '😀'.repeat(600) } })).toBeNull();
+  });
   it('trims and caps bill_search query at 100 chars', () => {
     const v = validateClientEvent({ event: 'bill_search', props: { query: '  ' + 'b'.repeat(150), resultCount: 3 } });
     expect(v?.props?.query).toBe('b'.repeat(100));
