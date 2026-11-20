@@ -2,9 +2,10 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { LogIn, RefreshCw, Sparkles } from 'lucide-react';
+import { Info, LogIn, RefreshCw, Settings, Sparkles } from 'lucide-react';
 import { LoginLink } from '@/components/auth/login-link';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BillSearchCard } from '@/components/search/bill-search-card';
 import { TrackButton } from '@/components/search/track-button';
@@ -148,6 +149,46 @@ function CompactRecommendation({
   );
 }
 
+/**
+ * The one place that explains how recommendations are made, so users know it is
+ * plain keyword matching (no AI) and where the AI option lives.
+ */
+function HowRecommendationsWork() {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground"
+          aria-label="How recommendations work"
+          title="How recommendations work"
+        >
+          <Info className="h-4 w-4" aria-hidden="true" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-72 text-sm">
+        <p className="font-semibold">How recommendations work</p>
+        <p className="mt-2 text-muted-foreground">
+          We match the topics and keywords you picked against each bill&apos;s title and
+          description. No AI is used: it&apos;s straight keyword matching.
+        </p>
+        <p className="mt-2 text-muted-foreground">
+          Bills with upcoming hearings come first, and bills you already track are left out.
+        </p>
+        <p className="mt-2 text-muted-foreground">
+          We can use an AI model for recommendations if you allow AI features in{' '}
+          <span className="inline-flex items-center gap-1 font-medium text-foreground">
+            <Settings className="h-3.5 w-3.5" aria-hidden="true" />
+            Settings
+          </span>
+          .
+        </p>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 interface RecommendedBillsProps {
   /** 'panel' = desktop side column (compact, all items); 'inline' = phone section above results. */
   variant: 'panel' | 'inline';
@@ -222,6 +263,7 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
         <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
         Recommended for you
       </h2>
+      <HowRecommendationsWork />
       {user && (
         <>
           <Button
