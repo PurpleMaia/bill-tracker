@@ -10,7 +10,8 @@ import { TrackButton } from '@/components/search/track-button';
 import { InterestPickerDialog } from './interest-picker-dialog';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { data } from '@/lib/data-client';
-import { cn, formatBillHeadline } from '@/lib/core/utils';
+import { cn, formatBillHeadline, formatBillStatusName } from '@/lib/core/utils';
+import { getStatusChipClasses } from '@/components/search/status-chip-classes';
 import { HAWAII_TIME_ZONE } from '@/lib/testimony/hearing-schedule';
 import { cardsThatFit, nextOffset, pageWindow } from '@/lib/bills/recommendation-paging';
 import type { RecommendedBill } from '@/types/legislation';
@@ -35,7 +36,7 @@ const INITIAL_VISIBLE = 3;
 const EXPANDED_VISIBLE = 10;
 
 /** Fixed compact-card height (px) and list gap, so the panel can count how many fit. */
-const COMPACT_CARD_HEIGHT = 120;
+const COMPACT_CARD_HEIGHT = 136;
 const PANEL_GAP = 8;
 
 function reasonLine(bill: RecommendedBill): string {
@@ -58,7 +59,12 @@ function ForYouChip() {
   );
 }
 
-/** Narrow card for the desktop side panel: number, headline, why it matched, Track. */
+/**
+ * Narrow card for the desktop side panel. Three fixed bands so every card lines
+ * up the same however long its title is: reference row (number, year, status),
+ * a two-line headline, and a footer pinned to the bottom with why it matched on
+ * the left and Track on the right.
+ */
 function CompactRecommendation({
   bill,
   onCardClick,
@@ -67,6 +73,7 @@ function CompactRecommendation({
   onCardClick: (billId: string) => void;
 }) {
   const open = () => onCardClick(bill.id);
+  const reason = reasonLine(bill);
   return (
     <div
       role="button"
@@ -80,27 +87,50 @@ function CompactRecommendation({
       }}
       aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
       style={{ height: COMPACT_CARD_HEIGHT }}
-      className="cursor-pointer overflow-hidden rounded-md border bg-card p-2.5 shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex cursor-pointer flex-col overflow-hidden rounded-md border bg-card p-3 shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <div className="flex items-center gap-1.5">
-        <span className="text-xs font-medium tracking-wide text-muted-foreground">{bill.bill_number}</span>
-        {bill.dead && (
-          <span className="inline-flex h-5 items-center rounded-full border border-destructive/30 bg-destructive/10 px-2 text-xs font-medium text-destructive">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="shrink-0 text-xs font-medium tracking-wide text-muted-foreground">
+          {bill.bill_number}
+        </span>
+        {bill.year !== null && (
+          <span className="shrink-0 text-xs text-muted-foreground">· {bill.year}</span>
+        )}
+        {bill.dead ? (
+          <span className="ml-auto inline-flex h-5 shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-2 text-xs font-medium text-destructive">
             Failed
           </span>
+        ) : (
+          bill.bill_status && (
+            <span
+              title={formatBillStatusName(bill.bill_status)}
+              className={cn(
+                'ml-auto inline-flex h-5 min-w-0 items-center truncate rounded-full border px-2 text-xs font-medium',
+                getStatusChipClasses(bill.bill_status),
+              )}
+            >
+              <span className="truncate">{formatBillStatusName(bill.bill_status)}</span>
+            </span>
+          )
         )}
+      </div>
+
+      <p className={cn('mt-1.5 line-clamp-2 text-sm font-semibold leading-snug', bill.dead && 'opacity-60')}>
+        {formatBillHeadline(bill) || bill.bill_title}
+      </p>
+
+      <div className="mt-auto flex items-center gap-2 pt-2">
+        <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground" title={reason}>
+          {reason}
+        </p>
         <div
-          className="ml-auto shrink-0"
+          className="shrink-0"
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
           <TrackButton billId={bill.id} billNumber={bill.bill_number} initialTracked={bill.is_tracked} compact />
         </div>
       </div>
-      <p className={cn('mt-1 line-clamp-2 text-sm font-semibold leading-snug', bill.dead && 'opacity-60')}>
-        {formatBillHeadline(bill) || bill.bill_title}
-      </p>
-      <p className="mt-1 truncate text-xs text-muted-foreground">{reasonLine(bill)}</p>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, ListPlus, Loader2, UserPlus } from 'lucide-react';
+import { Check, Loader2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LoginLink } from '@/components/auth/login-link';
 import { useAuth } from '@/hooks/contexts/auth-context';
@@ -33,8 +33,8 @@ interface TrackButtonProps {
    */
   initialTracked?: boolean;
   /**
-   * Shorter form used on Find Bills (results and recommendations): a list-plus
-   * icon with "Track" instead of the board's "Track Bill" wording.
+   * Shorter form used on Find Bills (results and recommendations): "Track"
+   * instead of the board's "Track Bill" wording, with no extra icon margin.
    */
   compact?: boolean;
 }
@@ -44,7 +44,6 @@ interface TrackButtonProps {
  * same button links to /login, which returns them to these search results.
  */
 export function TrackButton({ billId, billNumber, initialTracked = false, compact = false }: TrackButtonProps) {
-  const TrackIcon = compact ? ListPlus : UserPlus;
   const trackLabel = compact ? 'Track' : 'Track Bill';
   // Button already spaces icon and label (gap-2); the compact form adds no margin.
   const iconGap = compact ? '' : 'sm:mr-1.5';
@@ -69,7 +68,7 @@ export function TrackButton({ billId, billNumber, initialTracked = false, compac
     return (
       <Button asChild size="sm" className={COMPACT_ON_MOBILE}>
         <LoginLink aria-label={`Track ${billNumber}`}>
-          <TrackIcon className={cn('h-4 w-4', iconGap)} aria-hidden="true" />
+          <UserPlus className={cn('h-4 w-4', iconGap)} aria-hidden="true" />
           <span className="hidden sm:inline">{trackLabel}</span>
         </LoginLink>
       </Button>
@@ -141,7 +140,7 @@ export function TrackButton({ billId, billNumber, initialTracked = false, compac
       ) : isTracked ? (
         <Check className={cn('h-4 w-4', iconGap)} aria-hidden="true" />
       ) : (
-        <TrackIcon className={cn('h-4 w-4', iconGap)} aria-hidden="true" />
+        <UserPlus className={cn('h-4 w-4', iconGap)} aria-hidden="true" />
       )}
       <span className="hidden sm:inline">{isTracked ? 'Tracked' : trackLabel}</span>
     </Button>
