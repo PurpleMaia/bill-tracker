@@ -65,8 +65,8 @@ function ForYouChip() {
 
 /**
  * Narrow card for the desktop side panel, sized to its content. Two columns: the
- * bill info (number, headline, short description, why it was recommended and the
- * status) takes 5/6, and a full-height Track button takes the last 1/6.
+ * bill info (number and status, headline, short description, why it was
+ * recommended) takes 5/6, and a full-height Track button takes the last 1/6.
  */
 function CompactRecommendation({
   bill,
@@ -92,27 +92,10 @@ function CompactRecommendation({
         aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
         className="w-5/6 min-w-0 cursor-pointer p-3 focus-visible:outline-none"
       >
-        <span className="text-xs font-medium tracking-wide text-muted-foreground">{bill.bill_number}</span>
-
-        <div className={cn(bill.dead && 'opacity-60')}>
-          <p className="mt-1 line-clamp-2 text-sm font-semibold leading-snug">
-            {formatBillHeadline(bill) || bill.bill_title}
-          </p>
-          {bill.description && (
-            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{bill.description}</p>
-          )}
-        </div>
-
-        {/* Footer: why it was recommended on the left, status on the right. The
-            status is capped at 60% of the row; the reason truncates first. */}
-        <div className="mt-2 flex min-w-0 items-center gap-2">
-          <p
-            className="flex min-w-0 flex-1 items-center gap-1 text-xs text-primary"
-            title={`Recommended because it matched: ${summary}`}
-          >
-            <Sparkles className="h-3 w-3 shrink-0" aria-hidden="true" />
-            <span className="truncate">{summary}</span>
-          </p>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="shrink-0 text-xs font-medium tracking-wide text-muted-foreground">
+            {bill.bill_number}
+          </span>
           {bill.dead ? (
             <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-2 text-xs font-medium text-destructive">
               Failed
@@ -122,7 +105,7 @@ function CompactRecommendation({
               <span
                 title={formatBillStatusName(bill.bill_status)}
                 className={cn(
-                  'inline-flex h-5 max-w-[60%] shrink-0 items-center rounded-full border px-2 text-xs font-medium',
+                  'inline-flex h-5 min-w-0 items-center rounded-full border px-2 text-xs font-medium',
                   getStatusChipClasses(bill.bill_status),
                 )}
               >
@@ -131,6 +114,23 @@ function CompactRecommendation({
             )
           )}
         </div>
+
+        <div className={cn(bill.dead && 'opacity-60')}>
+          <p className="mt-1.5 line-clamp-2 text-sm font-semibold leading-snug">
+            {formatBillHeadline(bill) || bill.bill_title}
+          </p>
+          {bill.description && (
+            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{bill.description}</p>
+          )}
+        </div>
+
+        <p
+          className="mt-2 flex min-w-0 items-center gap-1 text-xs text-primary"
+          title={`Recommended because it matched: ${summary}`}
+        >
+          <Sparkles className="h-3 w-3 shrink-0" aria-hidden="true" />
+          <span className="truncate">{summary}</span>
+        </p>
       </div>
 
       {/* Track fills the remaining 1/6 at full card height, icon over label. */}
