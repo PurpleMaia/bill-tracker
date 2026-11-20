@@ -9,7 +9,7 @@ import { searchBillsLocal } from '@/lib/bills/bill-search';
 import { cn } from '@/lib/core/utils';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { RISE_IN, riseDelay } from '@/lib/core/motion';
-import { filterBills } from '@/lib/bills/bill-filters';
+import { filterBills, tagIdsOnBoard } from '@/lib/bills/bill-filters';
 import { data as dataClient } from '@/lib/data-client';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
@@ -320,7 +320,9 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
     // Search already ran in the filteredBills memo; apply the remaining
     // narrowing through the shared predicate (src/lib/bill-filters.ts).
     const base = (searchQuery.trim() && filteredBills) ? filteredBills : bills;
-    const items = filterBills(base, { searchQuery: '', selectedTagIds, selectedYears, deadFilter: 'all' });
+    // Another org's board: ignore selected tags from your own org (see tagIdsOnBoard).
+    const tagIds = boardMode === 'active-boards' ? tagIdsOnBoard(selectedTagIds, bills) : selectedTagIds;
+    const items = filterBills(base, { searchQuery: '', selectedTagIds: tagIds, selectedYears, deadFilter: 'all' });
 
     const fallbackId = activeColumns.find(c => c.id === 'unassigned')?.id
                      ?? activeColumns[0].id;
@@ -363,7 +365,7 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
     });
 
     return grouped;
-  }, [bills, filteredBills, searchQuery, selectedTagIds, selectedYears, activeColumns, isSimplified]);
+  }, [bills, filteredBills, searchQuery, selectedTagIds, selectedYears, activeColumns, isSimplified, boardMode]);
 
   const billsToGroup: Bill[] = searchQuery.trim() && filteredBills ? filteredBills : bills;
 

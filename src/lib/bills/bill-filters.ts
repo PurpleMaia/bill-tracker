@@ -61,3 +61,16 @@ export function filterBills(bills: Bill[], filters: BillFilters): Bill[] {
 
   return items;
 }
+
+/**
+ * The selected tag ids that any of `bills` carries. Tags are org-scoped and
+ * the tag filter is one app-wide setting, so on another org's board an id
+ * picked on your own board matches nothing — and has no chip to clear it,
+ * since that board only lists its own bills' tags. Viewed boards filter by
+ * this instead, leaving the saved selection intact for your own board.
+ */
+export function tagIdsOnBoard(selectedTagIds: string[], bills: Bill[]): string[] {
+  if (selectedTagIds.length === 0) return selectedTagIds;
+  const present = new Set(bills.flatMap((b) => (b.tags ?? []).map((t) => t.id)));
+  return selectedTagIds.filter((id) => present.has(id));
+}

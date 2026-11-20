@@ -139,8 +139,11 @@ function BrowseIntro({ orgCount }: { orgCount: number }) {
 // only points admins to Org Settings and tells members to ask their admin.
 function MyOrgCard() {
   const { activeTenant } = useAuth();
-  const [org, setOrg] = useState<MyOrg | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [fetchedOrg, setOrg] = useState<MyOrg | null>(null);
+  // Which org `fetchedOrg` was loaded for. Switching orgs shows placeholders until the
+  // new org's card arrives, so its link can't be copied or opened by mistake;
+  // a reload of the same org (after Settings closes) swaps data in place.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
   // Admins open Organization Settings right from the card; closing it reloads
   // the card so a new description or visibility shows at once.
   const [orgTab, setOrgTab] = useState<OrganizationTab | null>(null);
@@ -148,12 +151,12 @@ function MyOrgCard() {
 
   const tenantId = activeTenant?.tenantId;
   const isAdmin = activeTenant?.orgRole === 'admin';
+  const loaded = !!tenantId && loadedFor === tenantId;
+  const org = loaded ? fetchedOrg : null;
 
   useEffect(() => {
     if (!tenantId) return;
     let cancelled = false;
-    // Only the first load shows placeholders; a reload swaps data in place.
-    if (reloadKey === 0) setLoaded(false);
     data.boards
       .getMyOrgStats({ tenantId })
       .then((res) => {
@@ -164,7 +167,7 @@ function MyOrgCard() {
         if (!cancelled) setOrg(null);
       })
       .finally(() => {
-        if (!cancelled) setLoaded(true);
+        if (!cancelled) setLoadedFor(tenantId);
       });
     return () => {
       cancelled = true;

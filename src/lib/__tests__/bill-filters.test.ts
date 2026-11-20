@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterBills, hasActiveFilters, type BillFilters } from '@/lib/bills/bill-filters';
+import { filterBills, hasActiveFilters, tagIdsOnBoard, type BillFilters } from '@/lib/bills/bill-filters';
 import type { Bill, Tag } from '@/types/legislation';
 
 const tag = (id: string, name: string): Tag =>
@@ -88,5 +88,22 @@ describe('filterBills', () => {
       deadFilter: 'alive',
     });
     expect(result.map((b) => b.id)).toEqual(['a']);
+  });
+});
+
+describe('tagIdsOnBoard', () => {
+  const bills = [bill({ id: 'a', tags: [tag('t1', 'Food')] }), bill({ id: 'b', tags: [] })];
+
+  it('drops selected tags no bill on this board carries', () => {
+    expect(tagIdsOnBoard(['t1', 'other-org-tag'], bills)).toEqual(['t1']);
+  });
+
+  it('is empty when none of the selection is on this board', () => {
+    expect(tagIdsOnBoard(['other-org-tag'], bills)).toEqual([]);
+  });
+
+  it('keeps an empty selection as-is', () => {
+    const none: string[] = [];
+    expect(tagIdsOnBoard(none, bills)).toBe(none);
   });
 });
