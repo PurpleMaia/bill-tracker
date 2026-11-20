@@ -18,6 +18,7 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 import { useBills } from '@/hooks/contexts/bills-context';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useToast } from '@/hooks/use-toast';
+import { useTrack } from '@/hooks/use-track';
 import { filterBills, hasActiveFilters } from '@/lib/bills/bill-filters';
 import { billsToCsv, billsToRows, type ExportFormat } from '@/lib/bills/bills-csv';
 import type { Bill } from '@/types/legislation';
@@ -53,6 +54,7 @@ function downloadBlob(blob: Blob, filename: string) {
 
 export function ExportCsvDialog({ children, open, onOpenChange, applyFiltersByDefault = true }: ExportCsvDialogProps) {
   const { activeTenant, memberships } = useAuth();
+  const track = useTrack();
   const { viewMode, showArchived } = useBills();
   const { searchQuery, selectedTagIds, selectedYears, deadFilter, view } = useKanbanBoard();
   const { toast } = useToast();
@@ -142,6 +144,7 @@ export function ExportCsvDialog({ children, open, onOpenChange, applyFiltersByDe
         title: 'Export ready',
         description: `Downloaded ${safeBills.length} bill${safeBills.length === 1 ? '' : 's'}.`,
       });
+      track('csv_exported', { rowCount: safeBills.length });
       handleOpenChange(false);
     } catch (error) {
       console.error('Error exporting bills:', error);

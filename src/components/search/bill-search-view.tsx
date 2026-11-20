@@ -23,6 +23,7 @@ import { TrackButton } from './track-button';
 import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
 import { useBillSearch } from '@/hooks/use-bill-search';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { useTrack } from '@/hooks/use-track';
 import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { hasNonBillParams } from '@/lib/bills/bill-dialog-url';
@@ -94,11 +95,24 @@ export function BillSearchView() {
     debouncedQuery,
     resultSetKey,
     isLoading,
+    isFetching,
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
     error,
   } = useBillSearch(filters, activeTenant?.tenantId);
+
+  // One bill_search event per distinct non-empty query, once its results have
+  // landed (isFetching also covers the placeholder-data window, where
+  // totalCount is still the previous query's).
+  const track = useTrack();
+  const lastTrackedQuery = useRef<string | null>(null);
+  useEffect(() => {
+    const q = debouncedQuery.trim();
+    if (!q || isLoading || isFetching || error || lastTrackedQuery.current === q) return;
+    lastTrackedQuery.current = q;
+    track('bill_search', { query: q, resultCount: totalCount });
+  }, [debouncedQuery, isLoading, isFetching, error, totalCount, track]);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
