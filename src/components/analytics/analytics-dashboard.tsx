@@ -36,6 +36,8 @@ const WORK_SERIES = [
   { key: 'follows', label: 'Follows', theme: { light: '#eda100', dark: '#c98500' } },
 ] as const;
 
+/** Week keys are 'YYYY-MM-DD' calendar dates; format them in UTC so they don't shift a day. */
+const weekFormat = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 const dateFormat = new Intl.DateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
@@ -122,6 +124,9 @@ function DashboardBody({ dashboard, orgScoped }: { dashboard: DashboardData; org
   const { kpis, series, eventsSince } = dashboard;
   const since = eventsSince ? dateFormat.format(new Date(eventsSince)) : null;
   const collectingNote = since ? `Collecting since ${since}` : 'Not collecting yet';
+  // Weekly charts count whole weeks, so the first bar can start up to six days
+  // before the selected range (a clipped first week would read as a false dip).
+  const firstWeek = series.signups[0]?.week;
 
   const single = (key: keyof DashboardData['series'], label: string): WeeklySeries[] => [
     { key, label, points: series[key], theme: PRIMARY },
@@ -141,6 +146,12 @@ function DashboardBody({ dashboard, orgScoped }: { dashboard: DashboardData; org
         <Kpi icon={FileText} label="Testimonies in range" value={kpis.testimonies} />
       </section>
 
+      {firstWeek && (
+        <p className="text-xs text-muted-foreground">
+          Weekly charts count whole weeks (Monday to Sunday, Hawaii time), starting the week of{' '}
+          {weekFormat.format(new Date(firstWeek))}, so their totals can include a few days before the selected range.
+        </p>
+      )}
       <section aria-label="Weekly trends" className="grid gap-4 lg:grid-cols-2">
         <WeeklyChart title="Signups" description="New accounts per week" kind="bar" series={single('signups', 'Signups')} />
         <WeeklyChart
