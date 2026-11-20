@@ -2,7 +2,8 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { RefreshCw, Sparkles } from 'lucide-react';
+import { LogIn, RefreshCw, Sparkles } from 'lucide-react';
+import { LoginLink } from '@/components/auth/login-link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BillSearchCard } from '@/components/search/bill-search-card';
@@ -241,10 +242,36 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
 
   let body: React.ReactNode;
   if (!user) {
+    // Signed-out invitation: medallion, what you get, one clear action. In the
+    // panel it centers in the full column; inline it sits compactly.
     body = (
-      <Link href="/login" className="text-sm font-medium underline-offset-4 hover:underline">
-        Sign in to get recommendations
-      </Link>
+      <div
+        className={cn(
+          'flex flex-col items-center text-center',
+          isPanel ? 'h-full justify-center px-2' : 'py-3',
+        )}
+      >
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <LogIn className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <p className="mt-3 text-sm font-semibold">Get bills picked for you</p>
+        <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+          Sign in and choose a few topics you care about. We&apos;ll surface matching bills,
+          with upcoming hearings first.
+        </p>
+        <Button asChild size="sm" className="mt-4">
+          <LoginLink>
+            <LogIn className="h-4 w-4" aria-hidden="true" />
+            Sign in
+          </LoginLink>
+        </Button>
+        <p className="mt-3 text-xs text-muted-foreground">
+          New here?{' '}
+          <Link href="/register" className="font-medium text-foreground underline-offset-4 hover:underline">
+            Create an account
+          </Link>
+        </p>
+      </div>
     );
   } else if (isError) {
     body = (
