@@ -322,3 +322,56 @@ export async function updateBillTags(billId: string, tagIds: string[], tenantId:
     throw error instanceof Error ? error : new Error('Failed to update bill tags');
   }
 }
+
+/**
+ * Adds or removes the given tags on many bills at once. Unlike updateBillTags
+ * this never touches tags outside `tagIds`, so each bill keeps its other tags.
+ * @param billIds - Bills to change; ids with no matching bill are skipped
+ * @param tagIds - Tags to add or remove; all must belong to the tenant
+ * @param mode - 'add' (already-tagged bills are left alone) or 'remove'
+ * @returns Each changed bill's full tag list for this tenant
+ * @throws Error if any tag ID is invalid for the tenant
+ */
+export async function bulkUpdateBillTags(
+  billIds: string[],
+  tagIds: string[],
+  mode: 'add' | 'remove',
+  tenantId: string
+): Promise<Record<string, Tag[]>> {
+  if (billIds.length === 0 || tagIds.length === 0) return {};
+
+  const validTags = await db
+    .selectFrom('tags')
+    .select('id')
+    .where('id', 'in', tagIds)
+    .where('tenant_id', '=', tenantId)
+    .execute();
+
+  if (validTags.length !== new Set(tagIds).size) {
+    throw new Error('One or more tag IDs are invalid');
+  }
+
+  const existingBills = await db
+    .selectFrom('bills')
+    .select('id')
+    .where('id', 'in', billIds)
+    .execute();
+  const existingIds = existingBills.map((b) => b.id);
+  if (existingIds.length === 0) return {};
+
+  if (mode === 'add') {
+    await db
+      .insertInto('bill_tags')
+      .values(existingIds.flatMap((billId) => validTags.map((t) => ({ bill_id: billId, tag_id: t.id }))))
+      .onConflict((oc) => oc.columns(['bill_id', 'tag_id']).doNothing())
+      .execute();
+  } else {
+    await db
+      .deleteFrom('bill_tags')
+      .where('bill_id', 'in', existingIds)
+      .where('tag_id', 'in', validTags.map((t) => t.id))
+      .execute();
+  }
+
+  return getBatchBillTags(existingIds, tenantId);
+}

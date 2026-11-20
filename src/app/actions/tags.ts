@@ -2,11 +2,12 @@
 
 import type { Tag } from '@/types/legislation';
 import { requireAdmin, requireMembership } from '@/lib/auth/auth-guards';
-import { tagsSchema } from '@/lib/auth/validators';
+import { tagsSchema, bulkTagsSchema } from '@/lib/auth/validators';
 import {
   getAllTags,
   getBillTags,
   updateBillTags,
+  bulkUpdateBillTags,
   createTag,
   updateTag,
   deleteTag,
@@ -37,6 +38,17 @@ export async function updateBillTagsAction(params: {
   await requireAdmin.fromAction(params.tenantId);
   const { tagIds } = tagsSchema.parse({ tagIds: params.tagIds });
   return updateBillTags(params.billId, tagIds, params.tenantId);
+}
+
+export async function bulkUpdateBillTagsAction(params: {
+  billIds: string[];
+  tagIds: string[];
+  mode: 'add' | 'remove';
+  tenantId: string;
+}): Promise<Record<string, Tag[]>> {
+  await requireAdmin.fromAction(params.tenantId);
+  const { billIds, tagIds, mode } = bulkTagsSchema.parse(params);
+  return bulkUpdateBillTags(billIds, tagIds, mode, params.tenantId);
 }
 
 export async function createTagAction(params: {

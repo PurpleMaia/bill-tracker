@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Download, Menu, Settings } from 'lucide-react';
+import { FileSpreadsheet, Menu, Settings } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { isNavItemActive, NAV_ITEMS } from './header-nav';
 import { AuthHeader } from '@/components/auth/auth-header';
@@ -103,7 +103,7 @@ export function MobileHamburgerMenu() {
             <div className="border-t pt-3">
               <ExportCsvDialog>
                 <Button variant="outline" className="w-full justify-start">
-                  <Download className="h-4 w-4" /> Export CSV
+                  <FileSpreadsheet className="h-4 w-4" /> Export CSV
                 </Button>
               </ExportCsvDialog>
             </div>
