@@ -1,6 +1,6 @@
 import { db } from '@/db/kysely/client';
 import type { Membership, OrgRole } from '@/types/tenant';
-import { Errors } from '@/lib/core/errors';
+import { ApiError, Errors } from '@/lib/core/errors';
 import { auth } from '@/lib/auth/session';
 import { deriveOrgSlug, slugCandidate, isReservedSlug } from '@/lib/tenants/org-slug';
 
@@ -68,6 +68,11 @@ export async function createTenant(
   if (!options?.skipAuth) {
     const session = await auth();
     if (!session) throw Errors.NO_SESSION_COOKIE;
+  }
+  // A caller-chosen slug (the sysadmin route) must not land on a fixed
+  // /community/* page, where the org's board would be unreachable.
+  if (isReservedSlug(slug)) {
+    throw new ApiError('RESERVED_SLUG', 400, `The slug "${slug}" is reserved. Choose another.`);
   }
 
   const result = await db
