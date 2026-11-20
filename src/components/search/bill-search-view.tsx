@@ -35,11 +35,9 @@ import {
   type SortMode,
 } from '@/lib/bills/search-params';
 import { loadSearchFilters, saveSearchFilters } from '@/lib/bills/search-filter-storage';
+import { SESSION_YEARS } from '@/lib/bills/session-years';
 import { cn } from '@/lib/core/utils';
 import { RISE_IN, riseDelay } from '@/lib/core/motion';
-
-/** Sessions the corpus covers, newest first. Mirrors the rail's YEARS list. */
-const SESSION_YEARS = [2026];
 
 const SORT_LABELS: Record<SortMode, string> = { relevance: 'Relevance', title: 'Title A–Z' };
 
