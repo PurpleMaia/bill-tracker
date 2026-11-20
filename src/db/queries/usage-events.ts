@@ -1,4 +1,6 @@
 import { db } from '@/db/kysely/client';
+import { getUserMemberships } from '@/db/queries/tenants';
+import { toStoredEvent, validateClientEvent } from '@/lib/analytics/events';
 
 // Product-usage events behind the analytics dashboard. Like every db/queries
 // module these functions do no auth: callers (guarded routes/actions) pass
@@ -49,4 +51,20 @@ export async function logEvent(
   } catch (error) {
     console.error('[usage-events] failed to log event', event, error);
   }
+}
+
+/**
+ * Records one client-reported event. Validates the payload, resolves the
+ * caller's org memberships (so a spoofed tenantId is dropped) and inserts.
+ * Silently returns on invalid input; throws only on DB error.
+ */
+export async function recordClientEvent(userId: string | null, input: unknown): Promise<void> {
+  const event = validateClientEvent(input);
+  if (!event) return;
+  const memberTenantIds = userId
+    ? (await getUserMemberships(userId)).map((m) => m.tenantId)
+    : null;
+  const row = toStoredEvent(event, { userId, memberTenantIds });
+  if (!row) return;
+  await insertUsageEvent(row);
 }
