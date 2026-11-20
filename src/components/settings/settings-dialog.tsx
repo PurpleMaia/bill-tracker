@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -20,7 +22,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EditProfilePanel } from '@/components/auth/edit-profile-dialog';
 import { isProfileIncomplete } from '@/lib/auth/profile';
-import type { UserPreferences } from '@/types/preferences';
+import { Button } from '@/components/ui/button';
+import { InterestsEditor, type InterestsValue } from '@/components/recommendations/interests-editor';
+import { normalizeInterests } from '@/lib/bills/recommendation-topics';
+import type { PreferencesPatch } from '@/types/preferences';
 
 export type SettingsTab = 'preferences' | 'profile';
 
@@ -35,8 +40,50 @@ interface SettingsDialogProps {
 export function PreferencesPanel() {
   const { preferences, updatePreferences } = useAuth();
   const loading = preferences === null;
+  const queryClient = useQueryClient();
 
-  const handleToggle = async (patch: Partial<UserPreferences>) => {
+  const saved: InterestsValue = normalizeInterests({
+    topics: preferences?.interest_topics,
+    keywords: preferences?.interest_keywords,
+  });
+  const [interests, setInterests] = useState<InterestsValue>(saved);
+  const [savingInterests, setSavingInterests] = useState(false);
+  // Seed the draft once preferences arrive (they may load after mount).
+  const [seeded, setSeeded] = useState(!loading);
+  useEffect(() => {
+    if (!seeded && preferences) {
+      setInterests(saved);
+      setSeeded(true);
+    }
+  }, [seeded, preferences]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const interestsDirty =
+    interests.topics.join('\n') !== saved.topics.join('\n') ||
+    interests.keywords.join('\n') !== saved.keywords.join('\n');
+
+  const saveInterests = async () => {
+    setSavingInterests(true);
+    try {
+      await updatePreferences({
+        interest_topics: interests.topics,
+        interest_keywords: interests.keywords,
+      });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
+      toast({ title: 'Interests saved', duration: 3000 });
+    } catch (e) {
+      console.error('Failed to save interests:', e);
+      toast({
+        title: 'Could not save interests',
+        description: 'Please try again.',
+        variant: 'destructive',
+        duration: 5000,
+      });
+    } finally {
+      setSavingInterests(false);
+    }
+  };
+
+  const handleToggle = async (patch: PreferencesPatch) => {
     try {
       await updatePreferences(patch);
     } catch (e) {
@@ -106,6 +153,27 @@ export function PreferencesPanel() {
             </AccordionContent>
           </AccordionItem>
         </Accordion>
+      </section>
+
+      {/* Interests */}
+      <section className="flex flex-col gap-3 border-t pt-4">
+        <Label className="text-sm font-medium">Interests</Label>
+        <p className="text-xs text-muted-foreground">
+          Pick topics and add your own keywords to get recommended bills.
+        </p>
+        <InterestsEditor
+          value={interests}
+          onChange={setInterests}
+          disabled={loading || savingInterests}
+        />
+        <Button
+          size="sm"
+          className="self-start"
+          disabled={loading || savingInterests || !interestsDirty}
+          onClick={saveInterests}
+        >
+          {savingInterests ? 'Saving...' : 'Save interests'}
+        </Button>
       </section>
 
       {/* Board Display */}
