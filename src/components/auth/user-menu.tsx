@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, CircleHelp, FileSpreadsheet, LogOut, MessageSquareText, Settings, Shield, ToggleRight, UserPen, UserPlus } from 'lucide-react';
+import { BarChart3, Building2, CircleHelp, FileSpreadsheet, LogOut, MessageSquareText, Settings, Shield, ToggleRight, UserPen, UserPlus } from 'lucide-react';
 import { FEEDBACK_FORM_URL } from '@/lib/core/feedback';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useState, useCallback } from 'react';
@@ -27,6 +27,7 @@ import { ExportCsvDialog } from '@/components/kanban/export-csv-dialog';
 import { SettingsDialog, type SettingsTab } from '@/components/settings/settings-dialog';
 import { OrganizationDialog, type OrganizationTab } from '@/components/admin/organization-dialog';
 import { isProfileIncomplete } from '@/lib/auth/profile';
+import { isSysadmin } from '@/lib/auth/permissions';
 import type { User } from '@/types/user';
 import { NewTabHint } from '@/components/ui/new-tab-hint';
 
@@ -218,6 +219,14 @@ export function UserMenu() {
             <FileSpreadsheet className="mr-2 h-4 w-4" />
             <span>Export bills</span>
           </DropdownMenuItem>
+          {isSysadmin(user) && (
+            <DropdownMenuItem asChild className='cursor-pointer'>
+              <Link href="/analytics">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                <span>Analytics</span>
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem asChild className='cursor-pointer'>
             <Link href="/guide">
               <CircleHelp className="mr-2 h-4 w-4" />
