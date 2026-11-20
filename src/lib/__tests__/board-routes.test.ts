@@ -4,6 +4,10 @@ import {
   publicBoardUrl,
   isActiveBoardsPath,
   communityTab,
+  embedBoardPath,
+  embedBoardUrl,
+  publicBillUrl,
+  embedSnippet,
 } from '@/lib/boards/board-routes';
 
 const original = process.env.NEXT_PUBLIC_APP_URL;
@@ -60,5 +64,37 @@ describe('communityTab', () => {
 
   it('is null outside Community', () => {
     expect(communityTab('/tracker', 'food-plus')).toBeNull();
+  });
+});
+
+describe('embed links', () => {
+  it('builds /embed/<slug>, encoded', () => {
+    expect(embedBoardPath('a b')).toBe('/embed/a%20b');
+  });
+
+  it('is absolute on the public origin', () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://x.org/';
+    expect(embedBoardUrl('food-plus')).toBe('https://x.org/embed/food-plus');
+  });
+
+  it('links a bill on the org’s public board', () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://x.org/';
+    expect(publicBillUrl('food-plus', 'b 1')).toBe('https://x.org/community/food-plus?bill=b%201');
+  });
+});
+
+describe('embedSnippet', () => {
+  it('is an iframe of the embed URL', () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://x.org/';
+    expect(embedSnippet('food-plus', 'Food+')).toBe(
+      '<iframe src="https://x.org/embed/food-plus" title="Food+’s Tracker" width="100%" height="600" style="border:0" loading="lazy"></iframe>',
+    );
+  });
+
+  it('escapes the org name inside the title attribute', () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://x.org/';
+    expect(embedSnippet('food-plus', 'A "B" <C> & D')).toContain(
+      'title="A &quot;B&quot; &lt;C&gt; &amp; D’s Tracker"',
+    );
   });
 });

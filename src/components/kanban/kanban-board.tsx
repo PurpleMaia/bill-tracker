@@ -31,9 +31,11 @@ interface KanbanBoardProps {
   orgTestimonyBillIds?: Set<string>;
   trackedBillIds?: Set<string>;
   onTrackForSelf?: (bill: Bill) => void;
+  /** Replaces opening the bill details dialog, e.g. the embed opens the bill in a new tab. */
+  onCardClick?: (bill: Bill) => void;
 }
 
-export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, boardMode = 'own', orgTestimonyBillIds, trackedBillIds, onTrackForSelf }: KanbanBoardProps) {
+export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, boardMode = 'own', orgTestimonyBillIds, trackedBillIds, onTrackForSelf, onCardClick }: KanbanBoardProps) {
   const { searchQuery, setSearchQuery, selectedTagIds, setSelectedTagIds, selectedYears, setSelectedYears, columnView, registerPhaseScroll } = useKanbanBoard();
   const { toast } = useToast();
   const { user, activeTenant } = useAuth();
@@ -481,8 +483,9 @@ export function KanbanBoard({ readOnly, onUnadopt, showUnadoptButton = false, bo
   // ===========================================================
 
   const handleCardClick = useCallback((bill: Bill) => {
-    openBill(bill.id);
-  }, [openBill]);
+    if (onCardClick) onCardClick(bill);
+    else openBill(bill.id);
+  }, [onCardClick, openBill]);
 
   // Center a card vertically in its column's own scroll area. Waits a beat so
   // the horizontal scroll to that column (smooth) has landed first.

@@ -38,3 +38,32 @@ export function communityTab(pathname: string, ownSlug: string | null): Communit
   if (ownSlug && pathname === publicBoardPath(ownSlug)) return 'your-organization';
   return 'browse';
 }
+
+/** App-relative link to an org's board for framing on other websites. */
+export function embedBoardPath(slug: string): string {
+  return `/embed/${encodeURIComponent(slug)}`;
+}
+
+/** Absolute embed link — the iframe `src` orgs paste into their site. */
+export function embedBoardUrl(slug: string): string {
+  return `${getAppUrl()}${embedBoardPath(slug)}`;
+}
+
+/** A bill opened on an org's public board (the board reopens `?bill=`). */
+export function publicBillUrl(slug: string, billId: string): string {
+  return `${publicBoardUrl(slug)}?bill=${encodeURIComponent(billId)}`;
+}
+
+function escapeAttr(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/** The iframe embed code shown in Org Settings. */
+export function embedSnippet(slug: string, orgName: string): string {
+  const title = escapeAttr(`${orgName}’s Tracker`);
+  return `<iframe src="${embedBoardUrl(slug)}" title="${title}" width="100%" height="600" style="border:0" loading="lazy"></iframe>`;
+}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { PublicBoard } from '@/types/tenant';
+import type { Bill } from '@/types/legislation';
 import { data } from '@/lib/data-client';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { useTrackForSelf } from '@/hooks/use-track-for-self';
@@ -20,10 +21,13 @@ export function ReadOnlyOrgBoard({
   board,
   banner,
   trackable,
+  onCardClick,
 }: {
   board: PublicBoard;
   banner: ReactNode;
   trackable: boolean;
+  /** Overrides opening the bill details dialog (the embed opens a new tab). */
+  onCardClick?: (bill: Bill) => void;
 }) {
   const { user } = useAuth();
   // Keyed on the id, not the object, so a session refresh doesn't refetch.
@@ -68,6 +72,7 @@ export function ReadOnlyOrgBoard({
           orgTestimonyBillIds={testimonyBillIds}
           trackedBillIds={trackedBillIds}
           onTrackForSelf={trackable ? handleTrackForSelf : undefined}
+          onCardClick={onCardClick}
         />
       </div>
     </BoardBillsBridge>

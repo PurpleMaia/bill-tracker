@@ -35,7 +35,7 @@ anyone, no account needed". There is no separate setting.
 - 404-style "This board isn't public" state when the slug is unknown **or** the
   org's board is private — the two are indistinguishable to the visitor.
 - Server-rendered `<title>`/description (`generateMetadata`) so a pasted link
-  previews as "<Org name>’s Tracker · Food+" in Slack, email, social.
+  previews as "<Org name>’s Tracker · Hawaiʻi Bill Tracker" in Slack, email, social.
 - Chrome: the existing olive org banner (name, "Public board · read-only") and a
   follow control (no Copy link here — sharing lives on Browse and Org Settings): **Follow / Following** when signed
   in, **Login to follow** (returns to this page) when signed out.

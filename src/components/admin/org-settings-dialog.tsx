@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Globe, Lock, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { CopyLinkButton } from '@/components/boards/copy-link-button';
-import { publicBoardUrl } from '@/lib/boards/board-routes';
+import { embedSnippet, publicBoardUrl } from '@/lib/boards/board-routes';
 
 const DESCRIPTION_MAX = 200;
 
@@ -159,6 +159,20 @@ export function OrgSettingsPanel() {
               {publicBoardUrl(activeTenant.slug)}
             </code>
             <CopyLinkButton url={publicBoardUrl(activeTenant.slug)} />
+          </div>
+        )}
+        {publicBoard && activeTenant && (
+          <div className="mt-2 flex flex-col gap-1.5">
+            <span className="text-xs font-medium">Embed on your website</span>
+            <div className="flex items-start gap-2">
+              <code className="min-w-0 flex-1 break-all rounded-md border bg-muted/50 px-2 py-1.5 text-[11px] leading-snug">
+                {embedSnippet(activeTenant.slug, activeTenant.name)}
+              </code>
+              <CopyLinkButton url={embedSnippet(activeTenant.slug, activeTenant.name)} label="Copy embed code" />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Paste this into your website&rsquo;s HTML to show your board there.
+            </p>
           </div>
         )}
       </section>

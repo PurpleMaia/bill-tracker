@@ -18,6 +18,24 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Only /embed/* may be framed by other websites (orgs put their public board
+  // on their own site). Everything else refuses cross-site framing, so no one
+  // can wrap the real app — login, settings — in a frame (clickjacking).
+  async headers() {
+    return [
+      {
+        source: '/embed/:path*',
+        headers: [{ key: 'Content-Security-Policy', value: 'frame-ancestors *' }],
+      },
+      {
+        source: '/((?!embed/).*)',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'self'" },
+        ],
+      },
+    ];
+  },
   // Testimonies became the Testimony tab of Take Action; old links and
   // bookmarks keep working.
   async redirects() {
