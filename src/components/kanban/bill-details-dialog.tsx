@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, parseLocalDate, todayHawaii } from '@/lib/core/utils';
 import { FADE_IN } from '@/lib/core/motion';
-import { FileText, Loader2, ExternalLink, Clock, PenLine, LayoutDashboard, Files, Users, X } from 'lucide-react';
+import { Clock, ExternalLink, FileText, Files, Landmark, LayoutDashboard, Loader2, PenLine, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
@@ -511,7 +511,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   {!contactDisabled && (
                     <Button asChild size="sm" variant="outline">
                       <LoginLink next={`/bills/${bill.id}/contact`}>
-                        <Users className="mr-1.5 h-3.5 w-3.5" />
+                        <Landmark className="mr-1.5 h-3.5 w-3.5" />
                         Login to contact a legislator
                       </LoginLink>
                     </Button>
@@ -575,7 +575,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                     <TooltipTrigger asChild>
                       <span className="inline-block shrink-0 cursor-not-allowed">
                         <Button size="sm" variant="outline" disabled className="pointer-events-none">
-                          <Users className="mr-1.5 h-3.5 w-3.5" />
+                          <Landmark className="mr-1.5 h-3.5 w-3.5" />
                           {contactLabel}
                         </Button>
                       </span>
@@ -592,7 +592,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                   disabled={navigatingTo !== null}
                   onClick={() => goTo('contact')}
                 >
-                  {navigatingTo === 'contact' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Users className="mr-1.5 h-3.5 w-3.5" />}
+                  {navigatingTo === 'contact' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Landmark className="mr-1.5 h-3.5 w-3.5" />}
                   {contactLabel}
                 </Button>
               ))}
@@ -814,7 +814,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                         {!contactDisabled && (
                           <Button asChild variant="outline" className="h-11 w-full px-2">
                             <LoginLink next={`/bills/${bill.id}/contact`}>
-                              <Users className="mr-1.5 h-4 w-4 shrink-0" />
+                              <Landmark className="mr-1.5 h-4 w-4 shrink-0" />
                               <span className="truncate">Login to contact</span>
                             </LoginLink>
                           </Button>
@@ -838,7 +838,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                             disabled={contactDisabled || navigatingTo !== null}
                             onClick={() => goTo('contact')}
                           >
-                            {navigatingTo === 'contact' ? <Loader2 className="mr-1.5 h-4 w-4 shrink-0 animate-spin" /> : <Users className="mr-1.5 h-4 w-4 shrink-0" />}
+                            {navigatingTo === 'contact' ? <Loader2 className="mr-1.5 h-4 w-4 shrink-0 animate-spin" /> : <Landmark className="mr-1.5 h-4 w-4 shrink-0" />}
                             <span className="truncate">Contact</span>
                           </Button>
                         </div>

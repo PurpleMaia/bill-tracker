@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FileText, Users } from 'lucide-react';
+import { FileText, Landmark } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { useTestimonies } from '@/hooks/use-testimonies';
 import { useContactOpportunities } from '@/hooks/use-contacts';
@@ -37,7 +37,7 @@ export function TakeActionSubNav({
     {
       href: CONTACT_HREF,
       label: 'Contact Legislators',
-      icon: Users,
+      icon: Landmark,
       count: ready ? toContact.length : null,
       countLabel: (n: number) => `${n} bill${n === 1 ? '' : 's'} to contact`,
     },
