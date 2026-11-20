@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/core/utils';
 import { StepVideo } from './step-video';
 import {
+  TOUR_END_EVENT,
   TOUR_START_EVENT,
   TOUR_STEPS,
   TOUR_STORAGE_KEY,
+  hasSeenTour,
   shouldAutoStartTour,
   tourStepPath,
 } from '@/lib/tour/welcome-tour';
@@ -30,15 +32,6 @@ interface Rect {
 function cardWidth(vw: number): number {
   const width = vw >= 1536 ? 720 : vw >= 1024 ? 560 : vw >= 640 ? 480 : vw;
   return Math.min(width, vw - GUTTER * 2);
-}
-
-function hasSeenTour(): boolean {
-  try {
-    return localStorage.getItem(TOUR_STORAGE_KEY) !== null;
-  } catch {
-    // Storage blocked: treat as seen so we never nag on every page load.
-    return true;
-  }
 }
 
 function markTourSeen() {
@@ -87,6 +80,7 @@ export function WelcomeTour() {
     navigatedRef.current = false;
     setStep(null);
     setTarget(null);
+    window.dispatchEvent(new Event(TOUR_END_EVENT));
   }, []);
 
   // Auto-start for first-time visitors on the landing pages. Delayed a beat so

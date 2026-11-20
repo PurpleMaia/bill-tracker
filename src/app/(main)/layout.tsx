@@ -1,6 +1,7 @@
 import { Header } from '@/components/main/header';
 import { BottomTabBar } from '@/components/main/bottom-tab-bar';
 import { WelcomeTour } from '@/components/tour/welcome-tour';
+import { InterestPickerDialog } from '@/components/recommendations/interest-picker-dialog';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -19,6 +20,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <main id="main-content" className="min-h-0 flex-1 overflow-auto pb-16 max-md:overflow-x-hidden md:pb-0">{children}</main>
       <BottomTabBar />
       <WelcomeTour />
+      <InterestPickerDialog />
     </div>
   );
 }
