@@ -11,6 +11,7 @@ import { KanbanPillStrip } from './kanban-pill-strip';
 import { ViewScopeToggle } from './view-scope-toggle';
 import { FilterChipsRow } from './filter-chips-row';
 import { useBills } from '@/hooks/contexts/bills-context';
+import { TrackBillDialog } from './track-bill-dialog';
 import { TagFilterList } from '../tags/tag-filter-list';
 import { TagsDialog } from '../tags/tags-dialog';
 import { Input } from '../ui/input';
@@ -48,6 +49,8 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
   // One Tags dialog (create/edit + bulk tag) for org admins on their own board.
   const canManageTags = !isActiveBoards && activeTenant?.orgRole === 'admin';
   const [tagsDialogOpen, setTagsDialogOpen] = useState(false);
+  // Spreadsheet and calendar have no column footers to track from.
+  const showHeaderTrack = !isActiveBoards && !isPublic && (view === 'spreadsheet' || view === 'calendar');
 
   const loadTags = useCallback(async () => {
     if (!activeTenant) {
@@ -245,21 +248,27 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
           {renderFilterControls(false)}
         </div>
 
-        {/* Manage group, pinned right: Tags changes the org's data rather than
-            narrowing the view, so it sits apart from search + filters. */}
-        {canManageTags && (
-          <Button
-            onClick={() => setTagsDialogOpen(true)}
-            className="ml-auto shrink-0 gap-1 [&_svg]:size-[18px] bg-olive-dark text-white hover:bg-olive-dark/90 hover:text-white"
-          >
-            <Tags className='mr-1 h-12 w-12' />
-            Tags
-          </Button>
+        {/* Action group, pinned right. Tags changes the org's data rather than
+            narrowing the view, so it sits apart from search + filters. Track
+            Bill only shows where there are no kanban columns (spreadsheet,
+            calendar): on the board, each column's footer is the track action. */}
+        {(canManageTags || showHeaderTrack) && (
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            {showHeaderTrack && <TrackBillDialog />}
+            {canManageTags && (
+              <Button
+                onClick={() => setTagsDialogOpen(true)}
+                className="shrink-0 gap-1 [&_svg]:size-[18px] bg-olive-dark text-white hover:bg-olive-dark/90 hover:text-white"
+              >
+                <Tags className='mr-1 h-12 w-12' />
+                Tags
+              </Button>
+            )}
+          </div>
         )}
 
-        {/* No header Track Bill or Export buttons: tracking lives in each
-            column's "Track bills at this stage" footer, and export in the avatar
-            menu — the same on desktop and phones. */}
+        {/* No header Export button: export lives in the avatar menu, the same
+            on desktop and phones. */}
         {/* LEGACY FEATURE — "Manage Bills" button. This dates from when AI
             was used to add certain types of bills to an org's liking. We are
             not implementing this feature further, so it's hidden for now. */}

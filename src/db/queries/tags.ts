@@ -323,6 +323,9 @@ export async function updateBillTags(billId: string, tagIds: string[], tenantId:
   }
 }
 
+/** Rows per bill_tags insert in bulkUpdateBillTags (2 params each). */
+const BULK_TAG_INSERT_CHUNK = 5000;
+
 /**
  * Adds or removes the given tags on many bills at once. Unlike updateBillTags
  * this never touches tags outside `tagIds`, so each bill keeps its other tags.
@@ -360,11 +363,18 @@ export async function bulkUpdateBillTags(
   if (existingIds.length === 0) return {};
 
   if (mode === 'add') {
-    await db
-      .insertInto('bill_tags')
-      .values(existingIds.flatMap((billId) => validTags.map((t) => ({ bill_id: billId, tag_id: t.id }))))
-      .onConflict((oc) => oc.columns(['bill_id', 'tag_id']).doNothing())
-      .execute();
+    const rows = existingIds.flatMap((billId) => validTags.map((t) => ({ bill_id: billId, tag_id: t.id })));
+    // Two bound params per row; chunk so a big selection stays under
+    // Postgres's 65,535-parameter limit. One transaction keeps it all-or-nothing.
+    await db.transaction().execute(async (trx) => {
+      for (let i = 0; i < rows.length; i += BULK_TAG_INSERT_CHUNK) {
+        await trx
+          .insertInto('bill_tags')
+          .values(rows.slice(i, i + BULK_TAG_INSERT_CHUNK))
+          .onConflict((oc) => oc.columns(['bill_id', 'tag_id']).doNothing())
+          .execute();
+      }
+    });
   } else {
     await db
       .deleteFrom('bill_tags')
