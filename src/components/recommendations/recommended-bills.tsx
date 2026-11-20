@@ -64,9 +64,9 @@ function ForYouChip() {
 }
 
 /**
- * Narrow card for the desktop side panel, sized to its content so there are no
- * empty bands: a reference row (number, Track), the headline, a short
- * description, and a footer with why it was recommended and the status.
+ * Narrow card for the desktop side panel, sized to its content. Two columns: the
+ * bill info (number, headline, short description, why it was recommended and the
+ * status) takes 5/6, and a full-height Track button takes the last 1/6.
  */
 function CompactRecommendation({
   bill,
@@ -78,76 +78,70 @@ function CompactRecommendation({
   const open = () => onCardClick(bill.id);
   const summary = matchSummary(bill);
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={open}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          open();
-        }
-      }}
-      aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
-      className="cursor-pointer rounded-md border bg-card p-3 shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <div className="flex min-w-0 items-center gap-1.5">
-        <span className="shrink-0 text-xs font-medium tracking-wide text-muted-foreground">
-          {bill.bill_number}
-        </span>
-        {/* Negative margin lets the 32px button sit in the 20px pill row
-            without making the row (and the card) taller. */}
-        <div
-          className="-my-1.5 ml-auto shrink-0"
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.stopPropagation()}
-        >
-          <TrackButton
-            billId={bill.id}
-            billNumber={bill.bill_number}
-            initialTracked={bill.is_tracked}
-            compact
-            className="h-8 px-2.5 text-xs sm:h-8 sm:px-2.5"
-          />
+    <div className="flex overflow-hidden rounded-md border bg-card shadow-sm transition-shadow hover:shadow-md has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={open}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            open();
+          }
+        }}
+        aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
+        className="w-5/6 min-w-0 cursor-pointer p-3 focus-visible:outline-none"
+      >
+        <span className="text-xs font-medium tracking-wide text-muted-foreground">{bill.bill_number}</span>
+
+        <div className={cn(bill.dead && 'opacity-60')}>
+          <p className="mt-1 line-clamp-2 text-sm font-semibold leading-snug">
+            {formatBillHeadline(bill) || bill.bill_title}
+          </p>
+          {bill.description && (
+            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{bill.description}</p>
+          )}
+        </div>
+
+        {/* Footer: why it was recommended on the left, status on the right. The
+            status is capped at 60% of the row; the reason truncates first. */}
+        <div className="mt-2 flex min-w-0 items-center gap-2">
+          <p
+            className="flex min-w-0 flex-1 items-center gap-1 text-xs text-primary"
+            title={`Recommended because it matched: ${summary}`}
+          >
+            <Sparkles className="h-3 w-3 shrink-0" aria-hidden="true" />
+            <span className="truncate">{summary}</span>
+          </p>
+          {bill.dead ? (
+            <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-2 text-xs font-medium text-destructive">
+              Failed
+            </span>
+          ) : (
+            bill.bill_status && (
+              <span
+                title={formatBillStatusName(bill.bill_status)}
+                className={cn(
+                  'inline-flex h-5 max-w-[60%] shrink-0 items-center rounded-full border px-2 text-xs font-medium',
+                  getStatusChipClasses(bill.bill_status),
+                )}
+              >
+                <span className="truncate">{formatBillStatusName(bill.bill_status)}</span>
+              </span>
+            )
+          )}
         </div>
       </div>
 
-      <div className={cn(bill.dead && 'opacity-60')}>
-        <p className="mt-2 line-clamp-2 text-sm font-semibold leading-snug">
-          {formatBillHeadline(bill) || bill.bill_title}
-        </p>
-        {bill.description && (
-          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{bill.description}</p>
-        )}
-      </div>
-
-      {/* Footer: why it was recommended on the left, status on the right. The
-          status is capped at 60% of the row; the reason truncates first. */}
-      <div className="mt-2 flex min-w-0 items-center gap-2">
-        <p
-          className="flex min-w-0 flex-1 items-center gap-1 text-xs text-primary"
-          title={`Recommended because it matched: ${summary}`}
-        >
-          <Sparkles className="h-3 w-3 shrink-0" aria-hidden="true" />
-          <span className="truncate">{summary}</span>
-        </p>
-        {bill.dead ? (
-          <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-2 text-xs font-medium text-destructive">
-            Failed
-          </span>
-        ) : (
-          bill.bill_status && (
-            <span
-              title={formatBillStatusName(bill.bill_status)}
-              className={cn(
-                'inline-flex h-5 max-w-[60%] shrink-0 items-center rounded-full border px-2 text-xs font-medium',
-                getStatusChipClasses(bill.bill_status),
-              )}
-            >
-              <span className="truncate">{formatBillStatusName(bill.bill_status)}</span>
-            </span>
-          )
-        )}
+      {/* Track fills the remaining 1/6 at full card height, icon over label. */}
+      <div className="w-1/6 shrink-0 border-l">
+        <TrackButton
+          billId={bill.id}
+          billNumber={bill.bill_number}
+          initialTracked={bill.is_tracked}
+          compact
+          className="h-full w-full flex-col gap-1 rounded-none px-0 text-xs sm:h-full sm:w-full sm:px-0"
+        />
       </div>
     </div>
   );
