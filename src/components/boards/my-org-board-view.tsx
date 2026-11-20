@@ -11,7 +11,9 @@ import { Button } from '@/components/ui/button';
 import { OrganizationDialog, type OrganizationTab } from '@/components/admin/organization-dialog';
 import { cn } from '@/lib/core/utils';
 import { RISE_IN } from '@/lib/core/motion';
+import { publicBoardUrl } from '@/lib/boards/board-routes';
 import { initials } from './active-board-banner';
+import { CopyLinkButton } from './copy-link-button';
 import { ReadOnlyOrgBoard } from './read-only-org-board';
 
 /** Centered message card for the states with no board to show. */
@@ -35,7 +37,8 @@ function MessageCard({ icon: Icon, title, body, children }: {
 
 /**
  * "Whose board is this?" banner for the admin preview: says it's how others
- * see your board, whether it's public, and where to change that.
+ * see your board, whether it's public, a copy button for its link when it is,
+ * and where to change that.
  */
 function MyOrgBoardBanner({ board, onOpenSettings }: { board: MyOrgBoard; onOpenSettings: () => void }) {
   const { org, publicBoard } = board;
@@ -66,6 +69,8 @@ function MyOrgBoardBanner({ board, onOpenSettings }: { board: MyOrgBoard; onOpen
             : 'Only you can see this until you make your board public'}
         </p>
       </div>
+      {/* A private board has no link to share yet. */}
+      {publicBoard && <CopyLinkButton url={publicBoardUrl(org.slug)} label="Copy link to your board" />}
       <Button size="sm" className="shrink-0" onClick={onOpenSettings} aria-label="Organization Settings">
         <Settings className="h-4 w-4 sm:mr-1.5" />
         <span className="sr-only sm:not-sr-only">Settings</span>
