@@ -12,11 +12,12 @@
 //   - fromAction(tenantId?)           — for server actions (uses auth())
 //
 // Guards throw an ApiError (from @/lib/errors) on failure; callers map that to
-// an HTTP status (routes) or an ActionResult (actions). The four modes:
+// an HTTP status (routes) or an ActionResult (actions). The five modes:
 //   requireSession    — must be logged in
 //   optionalSession   — resolves the user if present, else null (no throw)
 //   requireMembership — logged in AND a member of tenantId (returns orgRole)
 //   requireAdmin      — logged in AND org admin (tenant) or global admin (legacy)
+//   requireSysadmin   — logged in AND system_role 'sysadmin' (platform-wide, e.g. analytics)
 
 import type { NextRequest } from 'next/server';
 import type { User } from '@/types/user';
@@ -25,6 +26,7 @@ import { auth, validateSession } from '@/lib/auth/session';
 import { getSessionCookie } from '@/lib/auth/cookies';
 import { validateMembership } from '@/db/queries/tenants';
 import { Errors } from '@/lib/core/errors';
+import { isSysadmin } from '@/lib/auth/permissions';
 
 export interface AuthContext {
   user: User;
@@ -114,5 +116,23 @@ export const requireAdmin = {
   },
   async fromAction(tenantId?: string): Promise<AuthContext> {
     return assertAdmin(await userFromAction(), tenantId);
+  },
+};
+
+// ---- requireSysadmin ----
+// Platform-wide sysadmin (user.systemRole), independent of any org. Signed out
+// → 401 (from the session resolver); signed in but not sysadmin → 403.
+
+function assertSysadmin(user: User): AuthContext {
+  if (!isSysadmin(user)) throw Errors.FORBIDDEN;
+  return { user };
+}
+
+export const requireSysadmin = {
+  async fromRequest(request: NextRequest): Promise<AuthContext> {
+    return assertSysadmin(await userFromRequest(request));
+  },
+  async fromAction(): Promise<AuthContext> {
+    return assertSysadmin(await userFromAction());
   },
 };
