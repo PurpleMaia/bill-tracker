@@ -67,6 +67,7 @@ export function PreferencesPanel() {
       await updatePreferences({
         interest_topics: interests.topics,
         interest_keywords: interests.keywords,
+        mark_onboarded: true,
       });
       queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       toast({ title: 'Interests saved', duration: 3000 });

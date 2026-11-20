@@ -53,6 +53,7 @@ export function RemoveFromBoardDialog({
       // Search caches is_tracked per bill; drop it so Search stops showing
       // this bill as Tracked.
       queryClient.invalidateQueries({ queryKey: ['bills', 'search'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       toast({ title: 'Bill Removed', description: `${bill.bill_number} removed from the board.`, duration: 5000 });
       setOpen(false);
       removed = true;

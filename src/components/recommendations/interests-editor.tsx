@@ -103,6 +103,10 @@ export function InterestsEditor({ value, onChange, disabled }: InterestsEditorPr
             setDraft(e.target.value);
             if (error) setError(null);
           }}
+          // Commit a typed-but-uncommitted keyword so clicking Save keeps it.
+          onBlur={() => {
+            if (draft.trim()) addKeyword(draft);
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ',') {
               e.preventDefault();

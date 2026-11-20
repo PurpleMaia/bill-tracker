@@ -60,6 +60,7 @@ export async function getRecommendedBills(
   });
 
   const rows: any[] = await query
+    .orderBy('dead', 'asc')
     .orderBy(sql`updated_at desc nulls last`)
     .limit(CANDIDATE_CAP)
     .execute();

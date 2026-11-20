@@ -14,11 +14,13 @@ import type { RecommendedBill } from '@/types/legislation';
 import { useState } from 'react';
 
 const WEEKDAY_FORMAT = new Intl.DateTimeFormat('en-US', {
-  weekday: 'long',
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
   timeZone: HAWAII_TIME_ZONE,
 });
 
-/** Weekday of a hearing in Hawaii time, regardless of the viewer's zone. */
+/** Short date (e.g. "Tue, Mar 10") of a hearing in Hawaii time, regardless of the viewer's zone. */
 function hearingWeekday(iso: string): string | null {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? null : WEEKDAY_FORMAT.format(d);

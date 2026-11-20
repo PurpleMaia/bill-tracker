@@ -88,7 +88,7 @@ export function InterestPickerDialog({ open, onOpenChange }: InterestPickerDialo
         ...(withInterests
           ? { interest_topics: draft.topics, interest_keywords: draft.keywords }
           : {}),
-        ...(editMode ? {} : { mark_onboarded: true as const }),
+        mark_onboarded: true as const,
       });
       queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       if (editMode) {
