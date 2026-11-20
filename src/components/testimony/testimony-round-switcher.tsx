@@ -51,7 +51,7 @@ export function TestimonyRoundSwitcher({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-7 gap-1.5 px-2 text-xs" disabled={disabled}>
+        <Button variant="outline" size="xs" className="gap-1.5 px-2" disabled={disabled}>
           <StateDot submitted={active.submittedAt !== null} />
           <span className="max-w-[10rem] truncate">{active.label}</span>
           <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
@@ -68,8 +68,8 @@ export function TestimonyRoundSwitcher({
             className={cn('gap-2', t.id === activeId && 'bg-accent/60 font-medium')}
           >
             <StateDot submitted={t.submittedAt !== null} />
-            <span className="flex-1 truncate">{t.label}</span>
-            <span className="text-[11px] text-muted-foreground">{t.submittedAt ? 'Submitted' : 'Draft'}</span>
+            <span className="line-clamp-2 flex-1">{t.label}</span>
+            <span className="text-xs text-muted-foreground">{t.submittedAt ? 'Submitted' : 'Draft'}</span>
           </DropdownMenuItem>
         ))}
         {newRoundLabel && (

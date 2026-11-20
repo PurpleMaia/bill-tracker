@@ -99,13 +99,13 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
             {bill.year !== null && (
               <Badge
                 variant="secondary"
-                className="h-4 rounded-md px-1 text-[10px] text-muted-foreground"
+                className="h-4 rounded-md px-1 text-xs text-muted-foreground"
               >
                 {bill.year}
               </Badge>
             )}
             {bill.dead ? (
-              <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-2 text-[10px] font-medium text-destructive">
+              <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-2 text-xs font-medium text-destructive">
                 Failed
               </span>
             ) : (
@@ -114,7 +114,7 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
                    status reads the same color here as the column it would sit in. */
                 <span
                   className={cn(
-                    'inline-flex h-5 shrink-0 items-center rounded-full border px-2 text-[10px] font-medium',
+                    'inline-flex h-5 shrink-0 items-center rounded-full border px-2 text-xs font-medium',
                     getStatusChipClasses(bill.bill_status),
                   )}
                 >
@@ -153,7 +153,7 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
 
           {/* The full RELATING TO line, kept because it's a searchable field and
               users scanning results expect to see the term they matched on. */}
-          <p className="mt-0.5 text-[11px] uppercase tracking-wide text-muted-foreground/80">
+          <p className="mt-0.5 text-xs uppercase tracking-wide text-muted-foreground">
             {highlight(bill.bill_title, query)}
           </p>
 
@@ -167,7 +167,7 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
               <span className="shrink-0 text-xs font-medium text-foreground/70">
                 {formatRelativeDate(bill.latest_update.date)}
               </span>
-              <p className="min-w-0 truncate text-xs text-muted-foreground">
+              <p className="min-w-0 line-clamp-2 sm:line-clamp-1 text-xs text-muted-foreground">
                 &mdash; {bill.latest_update.statustext}
               </p>
             </div>
@@ -184,7 +184,7 @@ function BillSearchCardComponent({ bill, query, onCardClick }: BillSearchCardPro
               {committeeCodes && (
                 <span
                   className={cn(
-                    'inline-flex h-5 shrink-0 items-center rounded-full border border-border bg-secondary/60 px-2 text-[10px] font-medium text-secondary-foreground',
+                    'inline-flex h-5 shrink-0 items-center rounded-full border border-border bg-secondary/60 px-2 text-xs font-medium text-secondary-foreground',
                     bill.dead && 'opacity-60 grayscale-[35%]',
                   )}
                 >

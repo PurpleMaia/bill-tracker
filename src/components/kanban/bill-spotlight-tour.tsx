@@ -111,12 +111,12 @@ export function BillSpotlightTour({ open, onOpenChange, steps, onViewList }: Bil
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         {/* Transparent: it only blocks clicks. The dimming is the cut-out below. */}
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[70]" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-spotlight" />
 
         {box && (
           <div
             aria-hidden
-            className="pointer-events-none fixed z-[70] rounded-lg ring-2 ring-white transition-all duration-200 motion-reduce:transition-none"
+            className="pointer-events-none fixed z-spotlight rounded-lg ring-2 ring-white transition-all duration-200 motion-reduce:transition-none"
             style={{
               top: box.top - SPOT_PAD,
               left: box.left - SPOT_PAD,
@@ -139,7 +139,7 @@ export function BillSpotlightTour({ open, onOpenChange, steps, onViewList }: Bil
             else if (e.key === 'ArrowLeft') go(position - 1);
           }}
           className={cn(
-            'fixed z-[71] rounded-lg border bg-background p-4 text-foreground shadow-xl outline-none',
+            'fixed z-spotlight-card rounded-lg border bg-background p-4 text-foreground shadow-xl outline-none',
             !cardPos && 'invisible'
           )}
           style={{
@@ -186,13 +186,13 @@ export function BillSpotlightTour({ open, onOpenChange, steps, onViewList }: Bil
           </div>
 
           <div className="mt-2 flex items-center justify-between border-t pt-2">
-            <Button variant="ghost" size="sm" className="-ml-2 h-7 text-xs text-muted-foreground" onClick={close}>
+            <Button variant="ghost" size="xs" className="-ml-2 text-muted-foreground" onClick={close}>
               Skip
             </Button>
             <Button
               variant="ghost"
-              size="sm"
-              className="h-7 text-xs text-muted-foreground"
+              size="xs"
+              className="text-muted-foreground"
               onClick={() => {
                 close();
                 onViewList();

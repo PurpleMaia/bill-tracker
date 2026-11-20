@@ -39,7 +39,7 @@ export function TestimonyStepper({ step, onStepChange, maxStep = 3 }: TestimonyS
             >
               <span
                 className={cn(
-                  'flex h-4 w-4 items-center justify-center rounded-full border text-[10px]',
+                  'flex h-4 w-4 items-center justify-center rounded-full border text-xs',
                   state === 'current' && 'border-primary-foreground',
                   state === 'done' && 'border-primary bg-primary text-primary-foreground',
                   state === 'todo' && 'border-muted-foreground/40',

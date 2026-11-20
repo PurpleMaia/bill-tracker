@@ -145,7 +145,7 @@ export const KanbanColumn = React.forwardRef<HTMLDivElement, KanbanColumnProps>(
               </span>
               <span className="shrink-0 text-muted-foreground">({bills.length})</span>
               {pendingCount > 0 && (
-                <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full border">
+                <span className="shrink-0 text-xs px-2 py-0.5 rounded-full border">
                   Pending {pendingCount}
                 </span>
               )}

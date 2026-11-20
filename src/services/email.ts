@@ -52,7 +52,7 @@ const T = {
   background: '#FAF8F5', // --background, warm cream
   card: '#FFFFFF', // --card
   foreground: '#2D3436', // --foreground
-  muted: '#6C757D', // --muted-foreground
+  muted: '#5E666E', // --muted-foreground
   border: '#E5E0D8', // --border, warm
   olive: '#A8B660', // --olive, the header's accent rule
   radius: '8px', // --radius (0.5rem)

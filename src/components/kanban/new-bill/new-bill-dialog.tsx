@@ -18,6 +18,7 @@ import { toast } from "@/hooks/use-toast";
 import { setFoodStatusAction, findExistingBillByUrlAction } from "@/app/actions/bills";
 import { useBills } from "@/hooks/contexts/bills-context";
 import { useAuth } from "@/hooks/contexts/auth-context";
+import { NewTabHint } from "@/components/ui/new-tab-hint";
 
 interface NewBillDialogProps {
     isOpen: boolean;
@@ -176,9 +177,10 @@ export function NewBillDialog({ isOpen, onClose }: NewBillDialogProps) {
                                 href={url} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
+                                className="text-primary hover:text-primary/80 flex items-center gap-1 text-sm"
                             >
                                 View Original <ExternalLink className="h-3 w-3" />
+                              <NewTabHint />
                             </a>
                         </div>
                         

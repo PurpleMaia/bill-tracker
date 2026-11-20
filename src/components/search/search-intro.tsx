@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { NewTabHint } from '@/components/ui/new-tab-hint';
 
 /**
  * Front-door hero for the search page.
@@ -102,6 +103,7 @@ export function SearchIntro({
           className="underline decoration-primary-foreground/30 underline-offset-2 hover:decoration-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/60"
         >
           Hawai&#699;i Food+ Policy
+          <NewTabHint />
         </a>{' '}
         &amp;{' '}
         <a
@@ -111,6 +113,7 @@ export function SearchIntro({
           className="underline decoration-primary-foreground/30 underline-offset-2 hover:decoration-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/60"
         >
           Purple Mai&#699;a Foundation
+          <NewTabHint />
         </a>
       </p>
     </div>

@@ -43,7 +43,7 @@ function VerifyEmailContent() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Email Verification</CardTitle>
+          <CardTitle><h1>Email Verification</h1></CardTitle>
           <CardDescription>
             {status === 'loading' && 'Verifying your email address...'}
             {status === 'success' && 'Verification Complete'}
@@ -60,7 +60,7 @@ function VerifyEmailContent() {
 
           {status === 'success' && (
             <div className="space-y-4">
-              <div className="text-center text-green-600">
+              <div className="text-center text-green-700">
                 <svg
                   className="mx-auto h-12 w-12"
                   fill="none"

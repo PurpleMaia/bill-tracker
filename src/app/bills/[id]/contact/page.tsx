@@ -42,6 +42,7 @@ import { LogContactDialog } from '@/components/take-action/log-contact-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { ClampText } from '@/components/ui/clamp-text';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BillReferencePanel } from '@/components/bills/bill-reference-panel';
@@ -73,6 +74,7 @@ import {
   Phone,
   ShieldCheck,
 } from 'lucide-react';
+import { NewTabHint } from '@/components/ui/new-tab-hint';
 
 interface CommitteeGroup {
   code: string;
@@ -338,7 +340,7 @@ export default function ContactLegislatorPage() {
       {/* Top bar */}
       <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
-          <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => router.push(backHref)}>
+          <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => router.push(backHref)} aria-label="Back">
             <ArrowLeft className="h-4 w-4" />
             <span className="ml-1 hidden sm:inline">Back</span>
           </Button>
@@ -346,7 +348,7 @@ export default function ContactLegislatorPage() {
             <h1 className="truncate text-sm font-semibold">
               {pageTitle}{bill ? ` — ${bill.bill_number}` : ''}
             </h1>
-            {bill?.bill_title && <p className="truncate text-xs text-muted-foreground">{bill.bill_title}</p>}
+            {bill?.bill_title && <ClampText lines={1} className="text-xs text-muted-foreground">{bill.bill_title}</ClampText>}
           </div>
         </div>
         {/* Only where there's someone to contact: the empty states have no scripts or
@@ -386,8 +388,7 @@ export default function ContactLegislatorPage() {
             <aside className={cn('flex w-10 shrink-0 flex-col items-center border-r bg-muted/20 py-2', RISE_IN)} style={riseDelay(1)} data-flow-tour="reference">
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-8 w-8"
+                size="icon-sm"
                 onClick={() => setPanelCollapsed(false)}
                 aria-label="Show bill information"
                 title="Show bill information"
@@ -401,8 +402,7 @@ export default function ContactLegislatorPage() {
                 <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Bill info</span>
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
+                  size="icon-sm"
                   onClick={() => setPanelCollapsed(true)}
                   aria-label="Hide bill information"
                   title="Hide bill information"
@@ -655,7 +655,7 @@ function Compose({
         {isJointReferral && (
           <div className="mt-2 flex items-start gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               {JOINT_REFERRAL_NOTE} Contact the chair and vice-chair of both committees.
             </p>
           </div>
@@ -681,7 +681,7 @@ function Compose({
                   className={SCRIPT_BOX}
                   aria-label="Email message to legislators"
                 />
-                <p className="mt-2 text-[11px] text-muted-foreground">
+                <p className="mt-2 text-xs text-muted-foreground">
                   Tip: replace <span className="font-medium">&lt;your-name&gt;</span> and add a sentence about why this bill
                   matters to you.
                 </p>
@@ -694,7 +694,7 @@ function Compose({
         <div data-flow-tour="contacts" className={['space-y-4 lg:self-start', contactSpan].join(' ')}>
           <div className="space-y-4" data-flow-tour="committee">
             {isJoint && (
-              <p className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-primary">
                 <Gavel className="h-3.5 w-3.5" />
                 Joint hearing — contact both committees below.
               </p>
@@ -705,8 +705,8 @@ function Compose({
                   <span className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary">
                     {group.code}
                   </span>
-                  <h3 className="truncate text-sm font-semibold">{group.name}</h3>
-                  <span className="ml-auto inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                  <ClampText as="h3" className="text-sm font-semibold">{group.name}</ClampText>
+                  <span className="ml-auto inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                     Awaiting hearing
                   </span>
                 </div>
@@ -732,7 +732,7 @@ function Compose({
               </button>
               {showOthers && (
                 <div className="space-y-4 px-3 pb-3 opacity-80">
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     These committees are also on this bill&apos;s referral path but aren&apos;t the one currently
                     holding it. Contact them only if the bill has already moved on.
                   </p>
@@ -742,7 +742,7 @@ function Compose({
                         <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-xs font-bold text-muted-foreground">
                           {group.code}
                         </span>
-                        <h3 className="truncate text-sm font-semibold">{group.name}</h3>
+                        <ClampText as="h3" className="text-sm font-semibold">{group.name}</ClampText>
                       </div>
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         {group.chairs.map((chair) => (
@@ -805,12 +805,12 @@ function ChairCard({
           <RoleIcon className="h-3 w-3" />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-xs font-semibold">{chair.legislatorName}</p>
-          <p className="truncate text-[11px] text-muted-foreground">{roleLabel}</p>
+          <ClampText className="text-xs font-semibold">{chair.legislatorName}</ClampText>
+          <ClampText className="text-xs text-muted-foreground">{roleLabel}</ClampText>
         </div>
       </div>
 
-      <div className="mt-1.5 space-y-0.5 text-[11px]">
+      <div className="mt-1.5 space-y-0.5 text-xs">
         {chair.email && (
           <a
             href={`mailto:${chair.email}`}
@@ -831,23 +831,24 @@ function ChairCard({
 
       <div className="mt-auto flex items-center gap-1 pt-2">
         {mailto && (
-          <Button asChild size="sm" className="h-7 flex-1 px-2 text-[11px]">
+          <Button asChild size="xs" className="flex-1 px-2">
             <a href={mailto}>
               <Mail className="mr-1 h-3 w-3" /> Email
             </a>
           </Button>
         )}
         {gmail && (
-          <Button asChild size="sm" variant="outline" className="h-7 flex-1 px-2 text-[11px]">
+          <Button asChild size="xs" variant="outline" className="flex-1 px-2">
             <a href={gmail} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="mr-1 h-3 w-3" /> Gmail
+              <NewTabHint />
             </a>
           </Button>
         )}
         <Button
-          size="icon"
+          size="icon-sm"
           variant="ghost"
-          className="h-7 w-7 shrink-0"
+          className="shrink-0"
           onClick={copyScript}
           aria-label="Copy message"
           title="Copy message"
@@ -938,6 +939,7 @@ function ComposeConference({
               className="underline hover:text-foreground"
             >
               Capitol member directory
+              <NewTabHint />
             </a>
             .
           </p>
@@ -963,7 +965,7 @@ function ComposeConference({
                   className={SCRIPT_BOX}
                   aria-label={`Email message to ${copy.recipients}s`}
                 />
-                <p className="mt-2 text-[11px] text-muted-foreground">
+                <p className="mt-2 text-xs text-muted-foreground">
                   Tip: replace <span className="font-medium">&lt;your-name&gt;</span> and add a sentence about why this bill
                   matters to you.
                 </p>
@@ -978,7 +980,7 @@ function ComposeConference({
             <div key={group.chamber}>
               <div className="mb-2 flex items-center gap-2 border-b pb-1.5">
                 <h3 className="truncate text-sm font-semibold">{copy.groupLabel(group.chamber)}</h3>
-                <span className="ml-auto inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                <span className="ml-auto inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                   {group.members.length}
                 </span>
               </div>
@@ -997,7 +999,7 @@ function ComposeConference({
           ))}
 
           {conferees.length === 0 && (
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               No legislators on file for this bill. Look up members on the{' '}
               <a
                 href="https://www.capitol.hawaii.gov/members/legislators.aspx"
@@ -1006,13 +1008,14 @@ function ComposeConference({
                 className="underline hover:text-foreground"
               >
                 Capitol member directory
+                <NewTabHint />
               </a>
               .
             </p>
           )}
 
           {unresolved > 0 && (
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {unresolved} {copy.recipients}{unresolved !== 1 ? 's' : ''} couldn&apos;t be matched to a legislator record, so no
               email or phone is shown. Look them up on the{' '}
               <a
@@ -1022,6 +1025,7 @@ function ComposeConference({
                 className="underline hover:text-foreground"
               >
                 Capitol member directory
+                <NewTabHint />
               </a>
               .
             </p>
@@ -1074,14 +1078,14 @@ function ConfereeCard({
           <Gavel className="h-3 w-3" />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-xs font-semibold">{conferee.legislatorName}</p>
-          <p className="truncate text-[11px] text-muted-foreground">{roleLabel}</p>
+          <ClampText className="text-xs font-semibold">{conferee.legislatorName}</ClampText>
+          <ClampText className="text-xs text-muted-foreground">{roleLabel}</ClampText>
         </div>
       </div>
 
       {conferee.matched ? (
         <>
-          <div className="mt-1.5 space-y-0.5 text-[11px]">
+          <div className="mt-1.5 space-y-0.5 text-xs">
             {conferee.email && (
               <a
                 href={`mailto:${conferee.email}`}
@@ -1102,23 +1106,24 @@ function ConfereeCard({
 
           <div className="mt-auto flex items-center gap-1 pt-2">
             {mailto && (
-              <Button asChild size="sm" className="h-7 flex-1 px-2 text-[11px]">
+              <Button asChild size="xs" className="flex-1 px-2">
                 <a href={mailto}>
                   <Mail className="mr-1 h-3 w-3" /> Email
                 </a>
               </Button>
             )}
             {gmail && (
-              <Button asChild size="sm" variant="outline" className="h-7 flex-1 px-2 text-[11px]">
+              <Button asChild size="xs" variant="outline" className="flex-1 px-2">
                 <a href={gmail} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="mr-1 h-3 w-3" /> Gmail
+                  <NewTabHint />
                 </a>
               </Button>
             )}
             <Button
-              size="icon"
+              size="icon-sm"
               variant="ghost"
-              className="h-7 w-7 shrink-0"
+              className="shrink-0"
               onClick={copyScript}
               aria-label="Copy message"
               title="Copy message"
@@ -1128,7 +1133,7 @@ function ConfereeCard({
           </div>
         </>
       ) : (
-        <p className="mt-1.5 text-[11px] text-muted-foreground">
+        <p className="mt-1.5 text-xs text-muted-foreground">
           No contact record on file — look up this legislator in the Capitol directory.
         </p>
       )}
@@ -1227,9 +1232,9 @@ function ComposeGovernor({
                     <span className="font-medium">{subject}</span>
                   </span>
                   <Button
-                    size="icon"
+                    size="icon-sm"
                     variant="ghost"
-                    className="h-6 w-6 shrink-0"
+                    className="shrink-0"
                     onClick={() => subjectCopy.copy(subject, 'Paste the subject into the Governor’s form.')}
                     aria-label="Copy subject"
                     title="Copy subject"
@@ -1243,7 +1248,7 @@ function ComposeGovernor({
                   className={SCRIPT_BOX}
                   aria-label="Message to the Governor"
                 />
-                <p className="mt-2 text-[11px] text-muted-foreground">
+                <p className="mt-2 text-xs text-muted-foreground">
                   Tip: replace <span className="font-medium">&lt;your-name&gt;</span> and add a sentence about why this bill
                   matters to you.
                 </p>
@@ -1282,7 +1287,7 @@ function ComposeGovernor({
             </div>
             <a
               href={`tel:${GOVERNOR_PHONE.replace(/[^\d+]/g, '')}`}
-              className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+              className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
             >
               <Phone className="h-3 w-3 shrink-0" /> {GOVERNOR_PHONE}
             </a>
@@ -1291,7 +1296,7 @@ function ComposeGovernor({
           <Button
             size="sm"
             variant="outline"
-            className="h-8 w-full text-[11px]"
+            className="h-8 w-full text-xs"
             onClick={() => messageCopy.copy(body, 'Paste the message into the Governor’s form.')}
           >
             {messageCopy.copied ? <Check className="mr-1 h-3.5 w-3.5" /> : <Copy className="mr-1 h-3.5 w-3.5" />}
@@ -1324,11 +1329,12 @@ function GovernorOption({
         </span>
         <p className="text-xs font-semibold">{title}</p>
       </div>
-      <p className="mt-1.5 text-[11px] text-muted-foreground">{description}</p>
+      <p className="mt-1.5 text-xs text-muted-foreground">{description}</p>
       <div className="mt-auto pt-2">
-        <Button asChild size="sm" className="h-7 w-full px-2 text-[11px]">
+        <Button asChild size="xs" className="w-full px-2">
           <a href={href} target="_blank" rel="noopener noreferrer">
             <ExternalLink className="mr-1 h-3 w-3" /> {cta}
+            <NewTabHint />
           </a>
         </Button>
       </div>
@@ -1355,7 +1361,7 @@ function ContactSkeleton({ onBack }: { onBack: () => void }) {
   return (
     <div className="flex h-dvh flex-col">
       <header className="flex shrink-0 items-center gap-3 border-b px-4 py-3">
-        <Button variant="ghost" size="sm" className="h-8 px-2" onClick={onBack}>
+        <Button variant="ghost" size="sm" className="h-8 px-2" onClick={onBack} aria-label="Back">
           <ArrowLeft className="h-4 w-4" />
           <span className="ml-1 hidden sm:inline">Back</span>
         </Button>

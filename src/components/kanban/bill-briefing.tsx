@@ -15,6 +15,7 @@ import { isEnacted } from '@/lib/bills/dead-bill';
 import { REVIVAL_NOTE } from '@/lib/bills/dead-bill-explanation';
 import type { DeadBillExplanation } from '@/lib/bills/dead-bill-explanation';
 import { getColumnPhaseBg } from '@/lib/bills/kanban-columns';
+import { NewTabHint } from '@/components/ui/new-tab-hint';
 
 const STEP_ICON = { testimony: PenLine, diff: GitCompare, reports: ScrollText, contact: Phone } as const;
 
@@ -46,7 +47,7 @@ export function BillBriefing({
   return (
     <div className="rounded-lg border bg-card p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Bill briefing</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Bill briefing</h3>
       </div>
 
       {/* Progress through the legislative pipeline */}
@@ -59,10 +60,10 @@ export function BillBriefing({
             <TooltipContent><p>{currentStageName} ({Math.round(progressValue)}%)</p></TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <div className="hidden sm:flex justify-between text-[10px] text-muted-foreground mt-1">
+        <div className="hidden sm:flex justify-between text-xs text-muted-foreground mt-1">
           {progressStages.map((s) => <span key={s}>{s}</span>)}
         </div>
-        <div className="sm:hidden text-[10px] text-muted-foreground mt-1">{currentStageName}</div>
+        <div className="sm:hidden text-xs text-muted-foreground mt-1">{currentStageName}</div>
       </div>
 
       {/* Derived — always shown, no AI. A failed bill's standing tile below
@@ -94,7 +95,7 @@ export function BillBriefing({
         >
           <h4
             className={cn(
-              'mb-1 text-[10px] font-semibold uppercase tracking-wide',
+              'mb-1 text-xs font-semibold uppercase tracking-wide',
               dead ? 'text-red-700' : enacted ? 'text-green-800' : 'text-primary',
             )}
           >
@@ -102,38 +103,38 @@ export function BillBriefing({
           </h4>
           {dead ? (
             <div className="space-y-1.5">
-              <p className="text-[12px] text-red-600">
+              <p className="text-xs text-red-600">
                 {deadExplanation?.summary ?? 'This bill is no longer moving.'}
               </p>
               {deadExplanation?.missedDeadline && (
-                <p className="text-[12px] text-red-600">
+                <p className="text-xs text-red-600">
                   Missed deadline: <span className="font-semibold">{deadExplanation.missedDeadline.name}</span> · {deadExplanation.missedDeadline.date}
                 </p>
               )}
               {deadExplanation && (
                 <>
-                  <p className="text-[12px] text-foreground/80">{deadExplanation.committeeExplanation}</p>
+                  <p className="text-xs text-foreground/80">{deadExplanation.committeeExplanation}</p>
                   {deadExplanation.showRevivalNote && (
-                    <p className="text-[12px] text-foreground/80">{REVIVAL_NOTE}</p>
+                    <p className="text-xs text-foreground/80">{REVIVAL_NOTE}</p>
                   )}
                 </>
               )}
             </div>
           ) : (
-            <p className={cn('text-[12px]', enacted ? 'text-green-900' : 'text-foreground/80')}>
+            <p className={cn('text-xs', enacted ? 'text-green-900' : 'text-foreground/80')}>
               {facts.standing}
             </p>
           )}
         </div>
         <div data-bill-tour="version" className="rounded-md border p-2.5">
-          <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Latest version</h4>
-          <p className="inline-flex items-center gap-1 text-[12px] text-foreground/80">
+          <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-primary">Latest version</h4>
+          <p className="inline-flex items-center gap-1 text-xs text-foreground/80">
             {facts.latestVersionLabel ? (
               <>
                 {facts.latestVersionHtml ? (
                   /* The label is a link here, so the link keeps the tap and a
                      sibling ⓘ carries the definition — never a button in an <a>. */
-                  <a href={facts.latestVersionHtml} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{facts.latestVersionLabel}</a>
+                  <a href={facts.latestVersionHtml} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{facts.latestVersionLabel}<NewTabHint /></a>
                 ) : (
                   facts.latestVersionLabel
                 )}
@@ -149,8 +150,8 @@ export function BillBriefing({
         <div data-bill-tour="committees" className="rounded-md border p-2.5">
           {facts.atConference ? (
             <>
-              <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Conference committee</h4>
-              <p className="text-[12px] text-foreground/80">
+              <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-primary">Conference committee</h4>
+              <p className="text-xs text-foreground/80">
                 {/* At conference the negotiators are the conferees, not the committee
                     chairs — parsed from status updates. */}
                 {facts.conferees.length > 0
@@ -166,8 +167,8 @@ export function BillBriefing({
             </>
           ) : (
             <>
-              <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Committee activity</h4>
-              <p className="text-[12px] text-foreground/80">
+              <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-primary">Committee activity</h4>
+              <p className="text-xs text-foreground/80">
             {/* Referrals stay tappable — an acronym is opaque. A joint referral
                 (HHS/AEN) renders as ONE chip so it reads as a joint referral,
                 not two independent committees. The heading does not. */}
@@ -190,7 +191,7 @@ export function BillBriefing({
 
       {facts.nextSteps.length > 0 && (
         <div className="border-t border-dashed pt-3">
-          <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Suggested next steps</h4>
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Suggested next steps</h4>
           <div className="space-y-1.5">
             {facts.nextSteps.map((step, i) => {
               const Icon = STEP_ICON[step.action];
@@ -202,14 +203,15 @@ export function BillBriefing({
                     {step.links?.map((link, j) => (
                       <span key={link.href}>
                         {j > 0 ? ' or ' : ' '}
-                        <a href={link.href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <a href={link.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                           {link.label}
+                          <NewTabHint />
                         </a>
                       </span>
                     ))}
                     {step.links && step.links.length > 0 && '.'}
                   </span>
-                  <Button variant="ghost" size="sm" className="h-6 flex-none px-2 text-[11px] text-primary" onClick={() => onNextStep(step.action)}>
+                  <Button variant="ghost" size="xs" className="flex-none px-2 text-primary" onClick={() => onNextStep(step.action)}>
                     Go
                   </Button>
                 </div>

@@ -134,9 +134,9 @@ export function FilterChipsRow({
           {hasFilters && (
             <Button
               variant="ghost"
-              size="sm"
+              size="xs"
               onClick={onClearAll}
-              className="h-6 px-2 text-xs text-muted-foreground"
+              className="px-2 text-muted-foreground"
             >
               Clear all
             </Button>

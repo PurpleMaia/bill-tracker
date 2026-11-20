@@ -11,13 +11,15 @@ import { FileText, ExternalLink, ScrollText, GitCompare } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { Term } from '@/components/ui/term';
 import { resolveVersionTerm } from '@/lib/glossary/resolvers';
+import { NewTabHint } from '@/components/ui/new-tab-hint';
 
 function LinkButtons({ link, type }: { link: string | null; type: 'version' | 'report' }) {
   if (!link) return null;
   return (
-    <Button asChild variant="outline" size="sm" className="h-7 text-xs shrink-0">
+    <Button asChild variant="outline" size="xs" className="shrink-0">
       <a href={link} target="_blank" rel="noopener noreferrer">
         <ExternalLink className="h-3 w-3" /> View {type[0].toUpperCase() + type.slice(1)}
+        <NewTabHint />
       </a>
     </Button>
   );
@@ -101,7 +103,7 @@ export function BillVersionsPanel({
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-1.5">
                     <FileText className="h-3.5 w-3.5 text-primary" />
-                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Latest version</h4>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Latest version</h4>
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     {/* The label is a span, not a link (LinkButtons carries the
@@ -126,7 +128,7 @@ export function BillVersionsPanel({
                 <div className={latestVersion ? 'space-y-1.5 border-t pt-2.5' : 'space-y-1.5'}>
                   <div className="flex items-center gap-1.5">
                     <ScrollText className="h-3.5 w-3.5 text-primary" />
-                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Latest committee report</h4>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Latest committee report</h4>
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     {/* Report codes (HSCR65, CCR50-26) are shown raw everywhere. */}
@@ -150,7 +152,7 @@ export function BillVersionsPanel({
 
           {/* Zone B — Timeline */}
           <div>
-            <h4 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Timeline</h4>
+            <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Timeline</h4>
             <ol className="relative space-y-4 border-l border-border/70 pl-4">
               {groups.slice().reverse().map((group, revIdx) => {
                 // groups is oldest→newest (legislative order); render newest→oldest
@@ -176,8 +178,8 @@ export function BillVersionsPanel({
                         <Term variant="chip" billId={billId} term={resolveVersionTerm(group.version.label)}>
                           <span className="text-sm font-semibold">{group.version.label}</span>
                         </Term>
-                        {isBase && <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">introduced</Badge>}
-                        {isLatest && <Badge variant="default" className="h-4 px-1.5 text-[10px]">current</Badge>}
+                        {isBase && <Badge variant="secondary" className="h-4 px-1.5 text-xs">introduced</Badge>}
+                        {isLatest && <Badge variant="default" className="h-4 px-1.5 text-xs">current</Badge>}
                       </div>
                       <div className="flex items-center gap-1.5">
                         {/* The base version has no predecessor, so nothing to compare against. */}
@@ -216,7 +218,7 @@ export function BillVersionsPanel({
 
             {orphanReports.length > 0 && (
               <div className="mt-5">
-                <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Other reports</h4>
+                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Other reports</h4>
                 <div className="space-y-1.5">
                   {orphanReports.map((report) => (
                     <ReportRow key={report.id} billId={billId} report={report} />

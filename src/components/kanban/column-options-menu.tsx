@@ -27,7 +27,7 @@ export default function ColumnOptionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-7 w-7" title="Column options">
+        <Button variant="ghost" size="icon-sm" title="Column options">
           <MoreVertical className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>

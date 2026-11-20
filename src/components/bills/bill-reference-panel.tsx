@@ -9,6 +9,7 @@ import { Term } from '@/components/ui/term';
 import { resolveCommitteeTerm } from '@/lib/glossary/resolvers';
 import { parseCommitteeCodes } from '@/lib/testimony/committees';
 import { useCommitteeNames } from '@/hooks/contexts/committee-names-context';
+import { NewTabHint } from '@/components/ui/new-tab-hint';
 
 interface BillReferencePanelProps {
   bill: BillDetails;
@@ -62,17 +63,18 @@ export function BillReferencePanel({ bill }: BillReferencePanelProps) {
             href={bill.bill_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 hover:underline"
           >
             <ExternalLink className="h-3.5 w-3.5" />
             View on Hawaii State Legislature
+            <NewTabHint />
           </a>
         )}
 
         <div>
           <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Status Updates
-            {bill.updates && <span className="ml-1.5 text-muted-foreground/60">({bill.updates.length})</span>}
+            {bill.updates && <span className="ml-1.5 text-muted-foreground">({bill.updates.length})</span>}
           </h3>
           {bill.updates && bill.updates.length > 0 ? (
             <div className="space-y-2">
@@ -86,11 +88,11 @@ export function BillReferencePanel({ bill }: BillReferencePanelProps) {
                 >
                   <div className="mb-1 flex items-center justify-between">
                     <Term slug="chamber" variant="chip" billId={bill.id}>
-                      <Badge variant={index === 0 ? 'default' : 'outline'} className="h-4 px-1.5 text-[10px]">
+                      <Badge variant={index === 0 ? 'default' : 'outline'} className="h-4 px-1.5 text-xs">
                         {update.chamber}
                       </Badge>
                     </Term>
-                    <span className="text-[10px] tabular-nums text-muted-foreground">
+                    <span className="text-xs tabular-nums text-muted-foreground">
                       {new Date(update.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                   </div>

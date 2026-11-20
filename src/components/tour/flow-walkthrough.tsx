@@ -176,12 +176,12 @@ export function FlowWalkthrough({ walkthrough, storageKey, autoStart = true, onS
         <DialogPrimitive.Root open onOpenChange={(next) => !next && close()}>
           <DialogPrimitive.Portal>
             {/* Blocks the page without dismissing the tour; dims it when nothing is spotlighted. */}
-            <DialogPrimitive.Overlay className={cn('fixed inset-0 z-[70]', centered && 'bg-black/55')} />
+            <DialogPrimitive.Overlay className={cn('fixed inset-0 z-spotlight', centered && 'bg-black/55')} />
 
             {box && !centered && (
               <div
                 aria-hidden
-                className="pointer-events-none fixed z-[70] rounded-lg ring-2 ring-white transition-all duration-200 motion-reduce:transition-none"
+                className="pointer-events-none fixed z-spotlight rounded-lg ring-2 ring-white transition-all duration-200 motion-reduce:transition-none"
                 style={{
                   top: box.top - SPOT_PAD,
                   left: box.left - SPOT_PAD,
@@ -204,7 +204,7 @@ export function FlowWalkthrough({ walkthrough, storageKey, autoStart = true, onS
                 else if (e.key === 'ArrowLeft') go(index - 1);
               }}
               className={cn(
-                'fixed z-[71] max-h-[90dvh] overflow-y-auto rounded-lg border bg-background p-4 text-foreground shadow-xl outline-none',
+                'fixed z-spotlight-card max-h-[90dvh] overflow-y-auto rounded-lg border bg-background p-4 text-foreground shadow-xl outline-none',
                 !centered && !cardPos && 'invisible',
               )}
               style={

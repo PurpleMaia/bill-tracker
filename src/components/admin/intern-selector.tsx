@@ -102,6 +102,7 @@ export function InternSelector({
           <div className="px-2 pb-2">
             <Input
               placeholder="Search interns..."
+              aria-label="Search interns"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-8 text-sm"
