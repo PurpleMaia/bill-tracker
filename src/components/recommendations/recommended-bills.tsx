@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Info, LogIn, RefreshCw, Settings, Sparkles } from 'lucide-react';
+import { Info, LogIn, RefreshCw, Sparkles } from 'lucide-react';
 import { LoginLink } from '@/components/auth/login-link';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -151,7 +151,7 @@ function CompactRecommendation({
 
 /**
  * The one place that explains how recommendations are made, so users know it is
- * plain keyword matching (no AI) and where the AI option lives.
+ * plain keyword matching (no AI).
  */
 function HowRecommendationsWork() {
   return (
@@ -171,18 +171,10 @@ function HowRecommendationsWork() {
         <p className="font-semibold">How recommendations work</p>
         <p className="mt-2 text-muted-foreground">
           We match the topics and keywords you picked against each bill&apos;s title and
-          description. No AI is used: it&apos;s straight keyword matching.
+          description.
         </p>
         <p className="mt-2 text-muted-foreground">
           Bills with upcoming hearings come first, and bills you already track are left out.
-        </p>
-        <p className="mt-2 text-muted-foreground">
-          We can use an AI model for recommendations if you allow AI features in{' '}
-          <span className="inline-flex items-center gap-1 font-medium text-foreground">
-            <Settings className="h-3.5 w-3.5" aria-hidden="true" />
-            Settings
-          </span>
-          .
         </p>
       </PopoverContent>
     </Popover>
