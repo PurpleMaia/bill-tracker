@@ -15,7 +15,7 @@ import { cn } from '@/lib/core/utils';
  * nothing to act on.
  */
 // A spread of the subjects bills most often cover (2025–26 titles: housing,
-// education, health, budget, UH, AI…), led by the food-system ones this tracker
+// education, health, UH, AI…), led by the food-system ones this tracker
 // started from.
 const SUGGESTIONS = [
   'agriculture',
@@ -24,7 +24,6 @@ const SUGGESTIONS = [
   'housing',
   'health care',
   'education',
-  'budget',
   'university of hawaii',
   'artificial intelligence',
 ];
