@@ -37,13 +37,21 @@ interface TrackButtonProps {
    * instead of the board's "Track Bill" wording, with no extra icon margin.
    */
   compact?: boolean;
+  /** Extra classes, merged last (e.g. a smaller size inside the recommendations panel). */
+  className?: string;
 }
 
 /**
  * Tracks a bill to the user's active org board. For logged-out visitors the
  * same button links to /login, which returns them to these search results.
  */
-export function TrackButton({ billId, billNumber, initialTracked = false, compact = false }: TrackButtonProps) {
+export function TrackButton({
+  billId,
+  billNumber,
+  initialTracked = false,
+  compact = false,
+  className,
+}: TrackButtonProps) {
   const trackLabel = compact ? 'Track' : 'Track Bill';
   // Button already spaces icon and label (gap-2); the compact form adds no margin.
   const iconGap = compact ? '' : 'sm:mr-1.5';
@@ -66,7 +74,7 @@ export function TrackButton({ billId, billNumber, initialTracked = false, compac
 
   if (!user) {
     return (
-      <Button asChild size="sm" className={COMPACT_ON_MOBILE}>
+      <Button asChild size="sm" className={cn(COMPACT_ON_MOBILE, className)}>
         <LoginLink aria-label={`Track ${billNumber}`}>
           <UserPlus className={cn('h-4 w-4', iconGap)} aria-hidden="true" />
           <span className="hidden sm:inline">{trackLabel}</span>
@@ -133,7 +141,7 @@ export function TrackButton({ billId, billNumber, initialTracked = false, compac
       onClick={handleTrack}
       disabled={isTracking || isTracked}
       aria-label={isTracked ? `${billNumber} is tracked` : `Track ${billNumber}`}
-      className={COMPACT_ON_MOBILE}
+      className={cn(COMPACT_ON_MOBILE, className)}
     >
       {isTracking ? (
         <Loader2 className={cn('h-4 w-4 animate-spin', iconGap)} aria-hidden="true" />

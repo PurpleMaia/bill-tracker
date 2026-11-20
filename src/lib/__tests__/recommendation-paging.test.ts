@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pageWindow, nextOffset, cardsThatFit } from '@/lib/bills/recommendation-paging';
+import { pageWindow, nextOffset } from '@/lib/bills/recommendation-paging';
 
 const items = ['a', 'b', 'c', 'd', 'e'];
 
@@ -32,17 +32,5 @@ describe('nextOffset', () => {
     expect(nextOffset(0, 5, 5)).toBe(0);
     expect(nextOffset(0, 8, 5)).toBe(0);
     expect(nextOffset(0, 2, 0)).toBe(0);
-  });
-});
-
-describe('cardsThatFit', () => {
-  it('counts whole cards including the gaps between them', () => {
-    // 3 cards of 100 with 2 gaps of 8 = 316
-    expect(cardsThatFit(316, 100, 8)).toBe(3);
-    expect(cardsThatFit(315, 100, 8)).toBe(2);
-  });
-
-  it('always shows at least one card', () => {
-    expect(cardsThatFit(0, 100, 8)).toBe(1);
   });
 });

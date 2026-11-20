@@ -15,8 +15,3 @@ export function nextOffset(offset: number, size: number, total: number): number 
   if (total === 0 || size >= total) return 0;
   return (offset + size) % total;
 }
-
-/** Whole cards of `cardHeight` (separated by `gap`) that fit in `available` px; at least 1. */
-export function cardsThatFit(available: number, cardHeight: number, gap: number): number {
-  return Math.max(1, Math.floor((available + gap) / (cardHeight + gap)));
-}

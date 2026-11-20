@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { RefreshCw, Sparkles } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BillSearchCard } from '@/components/search/bill-search-card';
@@ -13,9 +14,9 @@ import { data } from '@/lib/data-client';
 import { cn, formatBillHeadline, formatBillStatusName } from '@/lib/core/utils';
 import { getStatusChipClasses } from '@/components/search/status-chip-classes';
 import { HAWAII_TIME_ZONE } from '@/lib/testimony/hearing-schedule';
-import { cardsThatFit, nextOffset, pageWindow } from '@/lib/bills/recommendation-paging';
+import { nextOffset, pageWindow } from '@/lib/bills/recommendation-paging';
 import type { RecommendedBill } from '@/types/legislation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const WEEKDAY_FORMAT = new Intl.DateTimeFormat('en-US', {
   weekday: 'short',
@@ -35,13 +36,17 @@ const INITIAL_VISIBLE = 3;
 /** Inline cards once expanded; Refresh moves on to the next set. */
 const EXPANDED_VISIBLE = 10;
 
-/** Fixed compact-card height (px) and list gap, so the panel can count how many fit. */
-const COMPACT_CARD_HEIGHT = 136;
-const PANEL_GAP = 8;
+/** Cards the panel lays out before measuring how many fully fit its height. */
+const PANEL_WINDOW = 12;
+
+/** What it matched, plus the hearing date when one is coming up. */
+function matchSummary(bill: RecommendedBill): string {
+  const weekday = bill.next_hearing_at ? hearingWeekday(bill.next_hearing_at) : null;
+  return `${bill.matched.join(' · ')}${weekday ? ` · hearing ${weekday}` : ''}`;
+}
 
 function reasonLine(bill: RecommendedBill): string {
-  const weekday = bill.next_hearing_at ? hearingWeekday(bill.next_hearing_at) : null;
-  return `matched: ${bill.matched.join(' · ')}${weekday ? ` · hearing ${weekday}` : ''}`;
+  return `matched: ${matchSummary(bill)}`;
 }
 
 /**
@@ -60,10 +65,9 @@ function ForYouChip() {
 }
 
 /**
- * Narrow card for the desktop side panel. Three fixed bands so every card lines
- * up the same however long its title is: reference row (number, year, status),
- * a two-line headline, and a footer pinned to the bottom with why it matched on
- * the left and Track on the right.
+ * Narrow card for the desktop side panel, sized to its content so there are no
+ * empty bands: a reference row (number, year, status, Track), the headline, a
+ * short description, and why it was recommended.
  */
 function CompactRecommendation({
   bill,
@@ -73,7 +77,7 @@ function CompactRecommendation({
   onCardClick: (billId: string) => void;
 }) {
   const open = () => onCardClick(bill.id);
-  const reason = reasonLine(bill);
+  const summary = matchSummary(bill);
   return (
     <div
       role="button"
@@ -86,18 +90,19 @@ function CompactRecommendation({
         }
       }}
       aria-label={`View details for ${bill.bill_number}: ${bill.bill_title}`}
-      style={{ height: COMPACT_CARD_HEIGHT }}
-      className="flex cursor-pointer flex-col overflow-hidden rounded-md border bg-card p-3 shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="cursor-pointer rounded-md border bg-card p-3 shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="flex min-w-0 items-center gap-1.5">
         <span className="shrink-0 text-xs font-medium tracking-wide text-muted-foreground">
           {bill.bill_number}
         </span>
         {bill.year !== null && (
-          <span className="shrink-0 text-xs text-muted-foreground">· {bill.year}</span>
+          <Badge variant="secondary" className="h-4 shrink-0 rounded-md px-1 text-xs text-muted-foreground">
+            {bill.year}
+          </Badge>
         )}
         {bill.dead ? (
-          <span className="ml-auto inline-flex h-5 shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-2 text-xs font-medium text-destructive">
+          <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-2 text-xs font-medium text-destructive">
             Failed
           </span>
         ) : (
@@ -105,7 +110,7 @@ function CompactRecommendation({
             <span
               title={formatBillStatusName(bill.bill_status)}
               className={cn(
-                'ml-auto inline-flex h-5 min-w-0 items-center truncate rounded-full border px-2 text-xs font-medium',
+                'inline-flex h-5 min-w-0 items-center rounded-full border px-2 text-xs font-medium',
                 getStatusChipClasses(bill.bill_status),
               )}
             >
@@ -113,24 +118,36 @@ function CompactRecommendation({
             </span>
           )
         )}
-      </div>
-
-      <p className={cn('mt-1.5 line-clamp-2 text-sm font-semibold leading-snug', bill.dead && 'opacity-60')}>
-        {formatBillHeadline(bill) || bill.bill_title}
-      </p>
-
-      <div className="mt-auto flex items-center gap-2 pt-2">
-        <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground" title={reason}>
-          {reason}
-        </p>
+        {/* Negative margin lets the 32px button sit in the 20px pill row
+            without making the row (and the card) taller. */}
         <div
-          className="shrink-0"
+          className="-my-1.5 ml-auto shrink-0"
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
-          <TrackButton billId={bill.id} billNumber={bill.bill_number} initialTracked={bill.is_tracked} compact />
+          <TrackButton
+            billId={bill.id}
+            billNumber={bill.bill_number}
+            initialTracked={bill.is_tracked}
+            compact
+            className="h-8 px-2.5 text-xs sm:h-8 sm:px-2.5"
+          />
         </div>
       </div>
+
+      <div className={cn(bill.dead && 'opacity-60')}>
+        <p className="mt-2 line-clamp-2 text-sm font-semibold leading-snug">
+          {formatBillHeadline(bill) || bill.bill_title}
+        </p>
+        {bill.description && (
+          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{bill.description}</p>
+        )}
+      </div>
+
+      <p className="mt-2 flex min-w-0 items-center gap-1 text-xs text-primary" title={`Recommended because it matched: ${summary}`}>
+        <Sparkles className="h-3 w-3 shrink-0" aria-hidden="true" />
+        <span className="truncate">{summary}</span>
+      </p>
     </div>
   );
 }
@@ -147,9 +164,10 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
   const [expanded, setExpanded] = useState(false);
   // Start of the visible set within the ranked pool; Refresh advances it.
   const [offset, setOffset] = useState(0);
-  // Panel only: how many compact cards fit in the space the screen gives it.
-  const [fitCount, setFitCount] = useState(1);
+  // Panel only: how many cards (of PANEL_WINDOW laid out) fully fit its height.
+  const [fitCount, setFitCount] = useState(PANEL_WINDOW);
   const fitRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const isPanel = variant === 'panel';
 
   const { data: recs, isLoading, isError, isFetching, refetch } = useQuery({
@@ -158,19 +176,39 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
     enabled: !!user,
   });
 
+  const total = recs?.items.length ?? 0;
+  // The panel lays out a full window and hides whatever doesn't fully fit, since
+  // cards vary in height; phones show a fixed count.
+  const windowSize = isPanel ? PANEL_WINDOW : expanded ? EXPANDED_VISIBLE : INITIAL_VISIBLE;
+  const visible = recs ? pageWindow(recs.items, offset, windowSize) : [];
+  const visibleCount = isPanel ? Math.min(fitCount, visible.length) : windowSize;
+  const visibleKey = visible.map((b) => b.id).join(',');
+
+  // Count cards whose bottom edge is inside the panel. Hiding the rest uses
+  // `invisible` (layout unchanged), so measuring never feeds back into itself.
+  const measureFit = useCallback(() => {
+    const container = fitRef.current;
+    const list = listRef.current;
+    if (!container || !list) return;
+    let count = 0;
+    for (const child of Array.from(list.children) as HTMLElement[]) {
+      if (child.offsetTop + child.offsetHeight > container.clientHeight) break;
+      count++;
+    }
+    setFitCount(Math.max(1, count));
+  }, []);
+
+  useLayoutEffect(() => {
+    if (isPanel) measureFit();
+  }, [isPanel, measureFit, visibleKey]);
+
   useEffect(() => {
     const el = fitRef.current;
     if (!isPanel || !el) return;
-    const measure = () => setFitCount(cardsThatFit(el.clientHeight, COMPACT_CARD_HEIGHT, PANEL_GAP));
-    measure();
-    const observer = new ResizeObserver(measure);
+    const observer = new ResizeObserver(measureFit);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [isPanel]);
-
-  const total = recs?.items.length ?? 0;
-  const visibleCount = isPanel ? fitCount : expanded ? EXPANDED_VISIBLE : INITIAL_VISIBLE;
-  const visible = recs ? pageWindow(recs.items, offset, visibleCount) : [];
+  }, [isPanel, measureFit]);
 
   // No scrolling: Refresh is how a user sees more. It moves to the next set and
   // refetches, so newly tracked bills drop out and new matches come in.
@@ -243,12 +281,15 @@ export function RecommendedBills({ variant, onCardClick }: RecommendedBillsProps
     );
   } else if (isPanel) {
     body = (
-      <ul className="space-y-2">
-        {visible.map((bill) => (
-          <li key={bill.id}>
-            <CompactRecommendation bill={bill} onCardClick={onCardClick} />
-          </li>
-        ))}
+      <ul ref={listRef} className="relative space-y-2">
+        {visible.map((bill, i) => {
+          const hidden = i >= visibleCount;
+          return (
+            <li key={bill.id} className={cn(hidden && 'invisible')} aria-hidden={hidden || undefined}>
+              <CompactRecommendation bill={bill} onCardClick={onCardClick} />
+            </li>
+          );
+        })}
       </ul>
     );
   } else {
