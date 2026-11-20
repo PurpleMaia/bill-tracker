@@ -69,8 +69,16 @@ function MyOrgBoardBanner({ board, onOpenSettings }: { board: MyOrgBoard; onOpen
             : 'Only you can see this until you make your board public'}
         </p>
       </div>
-      {/* A private board has no link to share yet. */}
-      {publicBoard && <CopyLinkButton url={publicBoardUrl(org.slug)} label="Copy link to your board" text="Copy Link" />}
+      {/* A private board has no link to share yet. Hidden on phones, where the
+          banner has no room for it; the link is still under Browse. */}
+      {publicBoard && (
+        <CopyLinkButton
+          url={publicBoardUrl(org.slug)}
+          label="Copy link to your board"
+          text="Copy Link"
+          className="hidden sm:inline-flex"
+        />
+      )}
       <Button size="sm" className="shrink-0" onClick={onOpenSettings} aria-label="Organization Settings">
         <Settings className="h-4 w-4 sm:mr-1.5" />
         <span className="sr-only sm:not-sr-only">Settings</span>
