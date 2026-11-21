@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { AuthHeader } from '../auth/auth-header';
 import { HeaderNav } from './header-nav';
 import { HeaderSubNav } from './header-subnav';
+import { MobileHamburgerMenu } from './mobile-hamburger-menu';
 
 export function Header() {
   return (
@@ -19,7 +20,11 @@ export function Header() {
           lives in the Discover hero (the landing page), not under the logo.
           A div, not an h1: the brand repeats on every page, so each page owns
           its own h1 (visible or sr-only) to name the page for screen readers. */}
-      <div className="min-w-0 justify-self-start font-semibold text-primary-foreground">
+      <div className="flex min-w-0 items-center gap-1 justify-self-start font-semibold text-primary-foreground">
+        {/* Page nav lives in this drawer on mobile (no bottom tab bar). */}
+        <div className="-ml-2 md:hidden">
+          <MobileHamburgerMenu />
+        </div>
         <Link
           href="/"
           className="flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
@@ -45,7 +50,7 @@ export function Header() {
       </div>
 
       {/* Nav links (desktop) + avatar/login (all sizes; page nav lives in the
-          bottom tab bar on mobile) */}
+          hamburger drawer on mobile) */}
       <div className="flex items-center gap-4 justify-self-end md:col-start-3 md:row-start-1">
         <div className="hidden md:flex items-center gap-4">
           <HeaderNav />

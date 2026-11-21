@@ -45,8 +45,8 @@ function markTourSeen() {
 }
 
 /**
- * The same nav destination renders twice (header on desktop, bottom bar on
- * mobile) and one copy is display:none, so pick whichever is actually visible.
+ * Nav links render in the desktop header; on mobile they sit in the closed
+ * hamburger drawer, so nothing is visible and the card centers instead.
  */
 function findVisibleTarget(href: string): Rect | null {
   const nodes = document.querySelectorAll<HTMLElement>(`[data-tour="nav-${href}"]`);
@@ -175,7 +175,7 @@ export function WelcomeTour() {
   const isLast = step === TOUR_STEPS.length - 1;
 
   // Card placement: next to the spotlight (below it for the header, above it
-  // for the mobile bottom bar), clamped to the viewport. No target = centered.
+  // for a target in the lower half), clamped to the viewport. No target = centered.
   // maxHeight is the space actually left on that side, so on short viewports
   // the card scrolls internally instead of running off-screen.
   let cardStyle: React.CSSProperties;

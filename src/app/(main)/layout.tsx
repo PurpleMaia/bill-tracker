@@ -1,5 +1,4 @@
 import { Header } from '@/components/main/header';
-import { BottomTabBar } from '@/components/main/bottom-tab-bar';
 import { WelcomeTour } from '@/components/tour/welcome-tour';
 import { InterestPickerDialog } from '@/components/recommendations/interest-picker-dialog';
 
@@ -13,12 +12,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         Skip to content
       </a>
       <Header />
-      {/* pb-16 reserves exactly the fixed bottom tab bar's h-16, so nothing at
-          the bottom of a page (e.g. the board's page dots) hides under it. On
-          phones the page itself never scrolls sideways — the board scrolls
-          horizontally inside its own viewport. */}
-      <main id="main-content" className="min-h-0 flex-1 overflow-auto pb-16 max-md:overflow-x-hidden md:pb-0">{children}</main>
-      <BottomTabBar />
+      {/* Mobile page nav is the header's hamburger drawer, so no bottom space
+          is reserved; the safe-area pad keeps content clear of the iOS home
+          indicator. On phones the page itself never scrolls sideways — the
+          board scrolls horizontally inside its own viewport. */}
+      <main id="main-content" className="min-h-0 flex-1 overflow-auto pb-[env(safe-area-inset-bottom)] max-md:overflow-x-hidden md:pb-0">{children}</main>
       <WelcomeTour />
       <InterestPickerDialog />
     </div>

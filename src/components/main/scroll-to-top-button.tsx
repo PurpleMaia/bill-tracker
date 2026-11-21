@@ -30,8 +30,8 @@ function findScrollParent(node: HTMLElement | null): HTMLElement | null {
 /**
  * Floating "back to top" button for long scrolling pages. Appears once the
  * page has scrolled past `threshold`. `fixed`, so it pins to the viewport's
- * bottom-right corner; on phones it lifts above the bottom tab bar (fixed at
- * bottom-0, z-chrome) and stays under it in stacking order (z-floating).
+ * bottom-right corner, clear of the iOS home indicator, under header chrome in
+ * stacking order (z-floating).
  */
 export function ScrollToTopButton({ scrollRef, label, threshold = 400 }: ScrollToTopButtonProps) {
   const anchorRef = useRef<HTMLSpanElement>(null);
@@ -61,7 +61,7 @@ export function ScrollToTopButton({ scrollRef, label, threshold = 400 }: ScrollT
           onClick={() => target?.scrollTo({ top: 0, behavior: 'smooth' })}
           aria-label={label}
           // Light teal to match the Bill info helper; see BillInfoFab.
-          className="fixed bottom-20 right-4 z-floating h-11 w-11 rounded-full border border-primary/20 shadow-lg hover:bg-secondary hover:brightness-95 md:bottom-6 md:right-6"
+          className="fixed bottom-[max(1.5rem,calc(env(safe-area-inset-bottom)+1rem))] right-4 z-floating h-11 w-11 rounded-full border border-primary/20 shadow-lg hover:bg-secondary hover:brightness-95 md:bottom-6 md:right-6"
         >
           <ArrowUp className="h-5 w-5" aria-hidden="true" />
         </Button>

@@ -1,135 +1,73 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FileSpreadsheet, Menu, Settings } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { isNavItemActive, NAV_ITEMS } from './header-nav';
-import { AuthHeader } from '@/components/auth/auth-header';
-import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
-import { useAuth } from '@/hooks/contexts/auth-context';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { ExportCsvDialog } from '@/components/kanban/export-csv-dialog';
-import { ViewScopeToggle } from '@/components/kanban/view-scope-toggle';
-import { SettingsDialog, type SettingsTab } from '@/components/settings/settings-dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 
+/**
+ * Mobile page navigation: the NAV_ITEMS destinations in a left-side drawer,
+ * opened from a hamburger in the header. Replaces the old fixed bottom tab bar,
+ * which permanently took 64px of vertical space on every page.
+ */
 export function MobileHamburgerMenu() {
-  const { activeTenant, memberships, setActiveTenant, user } = useAuth();
-  const { view, setView } = useKanbanBoard();
-  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
-  const isPublic = !user;
+  // Close on navigation (covers back/forward too, not just taps in the menu).
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   return (
-    <>
-    <Popover open={menuOpen} onOpenChange={setMenuOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/10">
-          <Menu className="h-5 w-5" />
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 shrink-0 text-primary-foreground hover:bg-white/10 hover:text-white"
+        >
+          <Menu className="h-6 w-6" />
           <span className="sr-only">Open menu</span>
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-72 p-3" align="end">
-        <div className="flex flex-col gap-4">
-          {/* Top-level navigation */}
-          <nav className="flex flex-col gap-1">
-            {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
+      </SheetTrigger>
+      <SheetContent side="left" className="w-72 p-4 pt-[max(1rem,env(safe-area-inset-top))]">
+        <SheetHeader className="mb-4 text-left">
+          <SheetTitle>Hawaiʻi Bill Tracker</SheetTitle>
+          <SheetDescription className="sr-only">Main navigation</SheetDescription>
+        </SheetHeader>
+        <nav aria-label="Primary" className="flex flex-col gap-1">
+          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+            const active = isNavItemActive(href, pathname);
+            return (
               <Link
                 key={href}
                 href={href}
-                onClick={() => setMenuOpen(false)}
-                aria-current={isNavItemActive(href, pathname) ? 'page' : undefined}
+                onClick={() => setOpen(false)}
+                aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-2 rounded-md px-2 py-2 text-sm',
-                  isNavItemActive(href, pathname)
-                    ? 'bg-primary text-primary-foreground font-medium'
-                    : 'hover:bg-muted'
+                  'flex h-12 items-center gap-3 rounded-md px-3 text-base transition-colors',
+                  active ? 'bg-primary font-semibold text-primary-foreground' : 'hover:bg-muted'
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-5 w-5" />
                 {label}
               </Link>
-            ))}
-          </nav>
-
-          {/* Tenant selector */}
-          {memberships.length > 1 && (
-            <select
-              value={activeTenant?.tenantId ?? ''}
-              onChange={(e) => setActiveTenant(e.target.value)}
-              aria-label="Switch organization"
-              className="text-sm border border-input bg-background rounded-md px-2 py-1.5 w-full"
-            >
-              {memberships.map((m) => (
-                <option key={m.tenantId} value={m.tenantId}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {/* View scope (org members only) */}
-          {activeTenant && (
-            <div className="flex flex-col gap-2 border-t pt-3">
-              <Label className="text-sm">Viewing</Label>
-              <ViewScopeToggle className="w-full justify-stretch [&>button]:flex-1 [&>button]:justify-center" />
-            </div>
-          )}
-
-          {/* Admin view toggle */}
-          {!isPublic && activeTenant?.orgRole === 'admin' && (
-            <div className="flex items-center justify-between border-t pt-3">
-              <Label htmlFor="mobile-admin-view" className="text-sm">Admin View</Label>
-              <Switch
-                id="mobile-admin-view"
-                checked={view === 'admin'}
-                onCheckedChange={(checked) => setView(checked ? 'admin' : 'kanban')}
-              />
-            </div>
-          )}
-
-          {/* Export CSV */}
-          {!isPublic && (
-            <div className="border-t pt-3">
-              <ExportCsvDialog>
-                <Button variant="outline" className="w-full justify-start">
-                  <FileSpreadsheet className="h-4 w-4" /> Export CSV
-                </Button>
-              </ExportCsvDialog>
-            </div>
-          )}
-
-          {/* Settings */}
-          {!isPublic && (
-            <div className="border-t pt-3">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => setSettingsTab('preferences')}
-              >
-                <Settings className="h-4 w-4" /> Settings
-              </Button>
-            </div>
-          )}
-
-          {/* Auth */}
-          <div className="flex justify-end border-t pt-3">
-            <AuthHeader />
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
-    <SettingsDialog tab={settingsTab} onTabChange={setSettingsTab} />
-    </>
+            );
+          })}
+        </nav>
+      </SheetContent>
+    </Sheet>
   );
 }
