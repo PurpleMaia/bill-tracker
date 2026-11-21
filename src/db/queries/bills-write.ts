@@ -9,6 +9,7 @@ import { KANBAN_COLUMNS } from '@/lib/bills/kanban-columns';
 import { db } from '@/db/kysely/client';
 import { BillStatus } from '@/db/types';
 import { convertDataToBillShape } from '@/db/queries/bill-mappers';
+import { logEvent } from '@/db/queries/usage-events';
 import { getAdditionalBillData, getStatusUpdatesForBill, findExistingBillByURL } from '@/db/queries/bills-read';
 
 // ==============================================
@@ -21,9 +22,10 @@ import { getAdditionalBillData, getStatusUpdatesForBill, findExistingBillByURL }
  *
  * @param billId The ID of the bill to update.
  * @param newStatus The new status (Kanban column ID) for the bill.
+ * @param actorUserId The user making the change, recorded in the usage event.
  * @returns The updated Bill object.
  */
-export async function updateBillStatus(billId: string, newStatus: string, tenantId?: string): Promise<Bill> {
+export async function updateBillStatus(billId: string, newStatus: string, tenantId?: string, actorUserId?: string): Promise<Bill> {
     console.log(`[UPDATE STATUS] Updating bill ${billId.slice(0, 6)} to new status: ${newStatus}, tenant: ${tenantId?.slice(0, 6) ?? 'public'}`);
 
     // Validate if newStatus is a valid column ID
@@ -33,6 +35,24 @@ export async function updateBillStatus(billId: string, newStatus: string, tenant
     }
 
     try {
+        // Prior status, for the usage event. null when no row exists yet or the
+        // read fails: analytics must never fail the status change.
+        let prior: string | null = null;
+        try {
+            prior = tenantId
+                ? (await db.selectFrom('org_bills')
+                    .select('bill_status')
+                    .where('tenant_id', '=', tenantId)
+                    .where('bill_id', '=', billId)
+                    .executeTakeFirst())?.bill_status ?? null
+                : (await db.selectFrom('bills')
+                    .select('bill_status')
+                    .where('id', '=', billId)
+                    .executeTakeFirst())?.bill_status ?? null;
+        } catch (error) {
+            console.error('[usage-events] prior status read failed', error);
+        }
+
         if (tenantId) {
             // Write to org_bills for org-scoped status
             await db
@@ -73,6 +93,11 @@ export async function updateBillStatus(billId: string, newStatus: string, tenant
         if (!updatedBill) {
             throw new Error('Bill not found');
         }
+
+        await logEvent('status_change', actorUserId ?? null, {
+            tenantId: tenantId ?? null,
+            props: { billId, from: prior ?? null, to: newStatus },
+        });
 
         return await convertDataToBillShape(updatedBill);
     } catch (error) {

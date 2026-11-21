@@ -100,7 +100,7 @@ export async function PATCH(
           return NextResponse.json({ error: 'tenantId is required for status updates' }, { status: 400 });
         }
         const { newStatus } = body;
-        const bill = await updateBillStatus(billId, newStatus, tenantId);
+        const bill = await updateBillStatus(billId, newStatus, tenantId, user.id);
         return NextResponse.json({ bill }, { status: 200 });
       }
       case 'updateTags': {

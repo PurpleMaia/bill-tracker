@@ -77,8 +77,8 @@ export async function updateBillStatusAction(params: UpdateBillStatusParams): Pr
   if (!tenantId) {
     throw new Error('tenantId is required to update a bill status');
   }
-  await requireMembership.fromAction(tenantId);
-  await updateBillStatus(billId, newStatus, tenantId);
+  const { user } = await requireMembership.fromAction(tenantId);
+  await updateBillStatus(billId, newStatus, tenantId, user.id);
 }
 
 /** Mirrors GET /api/bills/[id]. Public record, so no session required (as the route). */

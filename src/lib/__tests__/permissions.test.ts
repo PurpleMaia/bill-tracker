@@ -4,6 +4,7 @@ import {
   canTrackOwnBills,
   getAssignableRoles,
   canCommitStatus,
+  isSysadmin,
 } from '../auth/permissions';
 
 describe('canAssignBills', () => {
@@ -99,5 +100,13 @@ describe('canCommitStatus', () => {
 
   it('returns false for an unrelated role string', () => {
     expect(canCommitStatus('supervisor')).toBe(false);
+  });
+});
+
+describe('isSysadmin', () => {
+  it('is true only for sysadmin', () => {
+    expect(isSysadmin({ systemRole: 'sysadmin' })).toBe(true);
+    expect(isSysadmin({ systemRole: 'user' })).toBe(false);
+    expect(isSysadmin(null)).toBe(false);
   });
 });

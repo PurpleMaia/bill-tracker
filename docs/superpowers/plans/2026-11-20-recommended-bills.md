@@ -83,7 +83,7 @@
 ### Task 2: Interest columns on `user_preferences`
 
 **Files:**
-- Create: `src/db/migrations/000038_user_preferences_interests.up.sql`, `.down.sql`
+- Create: `src/db/migrations/000039_user_preferences_interests.up.sql`, `.down.sql`
 - Modify: `src/db/types.ts` (regenerate via `pnpm codegen`, or hand-add the 3 fields to `UserPreferences` if codegen needs a live DB)
 - Modify: `src/types/preferences.ts`, `src/lib/core/preferences.ts`, `src/db/queries/user-preferences.ts`, `src/app/actions/preferences.ts`, `src/app/api/preferences/route.ts`, `src/lib/data-client/preferences.client.ts`, `src/hooks/contexts/auth-context.tsx` (patch type only)
 - Test: `src/lib/__tests__/preferences.test.ts`

@@ -26,6 +26,8 @@ const GLOBAL_DEFAULT: Transport =
  */
 const OVERRIDES: Record<string, Transport> = {
   // 'bills.getBills': 'fetch',
+  // sendBeacon survives page unload, which a server action can't.
+  'analytics.track': 'fetch',
 };
 
 /** Resolves the transport for an operation key like 'bills.getBills'. */

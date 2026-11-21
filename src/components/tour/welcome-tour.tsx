@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { useTrack } from '@/hooks/use-track';
 import { cn } from '@/lib/core/utils';
 import { StepVideo } from './step-video';
 import {
@@ -72,6 +73,7 @@ export function WelcomeTour() {
   // Whether this run of the tour has navigated yet (see the navigation effect).
   const navigatedRef = useRef(false);
   const nextRef = useRef<HTMLButtonElement>(null);
+  const track = useTrack();
 
   const open = step !== null;
 
@@ -82,13 +84,14 @@ export function WelcomeTour() {
   }, [open]);
   const current = step !== null ? TOUR_STEPS[step] : null;
 
-  const close = useCallback(() => {
+  const close = useCallback((completed: boolean) => {
+    track('tour_finished', { completed });
     markTourSeen();
     navigatedRef.current = false;
     setStep(null);
     setTarget(null);
     window.dispatchEvent(new Event(TOUR_END_EVENT));
-  }, []);
+  }, [track]);
 
   // Auto-start for first-time visitors on the landing pages. Delayed a beat so
   // the header has laid out before we measure it.
@@ -146,7 +149,7 @@ export function WelcomeTour() {
     nextRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        close();
+        close(false);
         return;
       }
       if (e.key !== 'Tab' || !cardRef.current) return;
@@ -249,7 +252,7 @@ export function WelcomeTour() {
         </p>
 
         <div className="mt-4 flex items-center justify-between gap-2">
-          <Button variant="ghost" size="sm" onClick={close} className="text-muted-foreground">
+          <Button variant="ghost" size="sm" onClick={() => close(isLast)} className="text-muted-foreground">
             {isLast ? 'Close' : 'Skip tour'}
           </Button>
           <div className="flex gap-2">
@@ -261,7 +264,7 @@ export function WelcomeTour() {
             <Button
               ref={nextRef}
               size="sm"
-              onClick={() => (isLast ? close() : setStep(step + 1))}
+              onClick={() => (isLast ? close(true) : setStep(step + 1))}
             >
               {isFirst ? 'Start tour' : isLast ? 'Done' : 'Next'}
             </Button>

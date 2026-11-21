@@ -20,6 +20,7 @@ import { committeesClient } from './committees.client';
 import { calendarClient } from './calendar.client';
 import { contactsClient } from './contacts.client';
 import { recommendationsClient } from './recommendations.client';
+import { analyticsClient } from './analytics.client';
 
 export const data = {
   auth: authClient,
@@ -36,6 +37,7 @@ export const data = {
   calendar: calendarClient,
   contacts: contactsClient,
   recommendations: recommendationsClient,
+  analytics: analyticsClient,
 };
 
 export type { Transport } from './transport';

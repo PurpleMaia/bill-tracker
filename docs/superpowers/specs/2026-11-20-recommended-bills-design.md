@@ -79,7 +79,7 @@ custom keywords).
 ### 2. Storage — extend `user_preferences` (no new table)
 
 Jaden's decision: store interests on the existing per-user `user_preferences` table
-rather than a new table. Migration `000038_user_preferences_interests`:
+rather than a new table. Migration `000039_user_preferences_interests`:
 
 ```sql
 ALTER TABLE user_preferences
