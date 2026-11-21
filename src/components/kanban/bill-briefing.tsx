@@ -111,13 +111,15 @@ export function BillBriefing({
                   Missed deadline: <span className="font-semibold">{deadExplanation.missedDeadline.name}</span> · {deadExplanation.missedDeadline.date}
                 </p>
               )}
+              {/* The long-form explanation is desktop-only; on mobile the
+                  summary + missed deadline say enough without eating the screen. */}
               {deadExplanation && (
-                <>
+                <div className="hidden sm:block space-y-1.5">
                   <p className="text-xs text-foreground/80">{deadExplanation.committeeExplanation}</p>
                   {deadExplanation.showRevivalNote && (
                     <p className="text-xs text-foreground/80">{REVIVAL_NOTE}</p>
                   )}
-                </>
+                </div>
               )}
             </div>
           ) : (
