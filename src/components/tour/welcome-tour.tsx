@@ -7,9 +7,12 @@ import { useTrack } from '@/hooks/use-track';
 import { cn } from '@/lib/core/utils';
 import { StepVideo } from './step-video';
 import {
+  TOUR_END_EVENT,
+  TOUR_OPEN_EVENT,
   TOUR_START_EVENT,
   TOUR_STEPS,
   TOUR_STORAGE_KEY,
+  hasSeenTour,
   shouldAutoStartTour,
   tourStepPath,
 } from '@/lib/tour/welcome-tour';
@@ -31,15 +34,6 @@ interface Rect {
 function cardWidth(vw: number): number {
   const width = vw >= 1536 ? 720 : vw >= 1024 ? 560 : vw >= 640 ? 480 : vw;
   return Math.min(width, vw - GUTTER * 2);
-}
-
-function hasSeenTour(): boolean {
-  try {
-    return localStorage.getItem(TOUR_STORAGE_KEY) !== null;
-  } catch {
-    // Storage blocked: treat as seen so we never nag on every page load.
-    return true;
-  }
 }
 
 function markTourSeen() {
@@ -82,6 +76,12 @@ export function WelcomeTour() {
   const track = useTrack();
 
   const open = step !== null;
+
+  // Announce every opening, auto-started or replayed, so the interest picker
+  // stays out of the way for the whole tour, even after it leaves the landing page.
+  useEffect(() => {
+    if (open) window.dispatchEvent(new Event(TOUR_OPEN_EVENT));
+  }, [open]);
   const current = step !== null ? TOUR_STEPS[step] : null;
 
   const close = useCallback((completed: boolean) => {
@@ -90,6 +90,7 @@ export function WelcomeTour() {
     navigatedRef.current = false;
     setStep(null);
     setTarget(null);
+    window.dispatchEvent(new Event(TOUR_END_EVENT));
   }, [track]);
 
   // Auto-start for first-time visitors on the landing pages. Delayed a beat so

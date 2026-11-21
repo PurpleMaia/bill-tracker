@@ -19,6 +19,7 @@ import { BillSearchCard } from './bill-search-card';
 import { SearchFilterRail } from './search-filter-rail';
 import { SearchFiltersSheet } from './search-filters-sheet';
 import { SearchIntro } from './search-intro';
+import { RecommendedBills } from '@/components/recommendations/recommended-bills';
 import { TrackButton } from './track-button';
 import { ScrollToTopButton } from '@/components/main/scroll-to-top-button';
 import { useBillSearch } from '@/hooks/use-bill-search';
@@ -26,21 +27,22 @@ import { useAuth } from '@/hooks/contexts/auth-context';
 import { useTrack } from '@/hooks/use-track';
 import { useBillDialogParam } from '@/hooks/use-bill-dialog-param';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import type { BillSearchResult } from '@/types/legislation';
 import { hasNonBillParams } from '@/lib/bills/bill-dialog-url';
 import {
   DEFAULT_FILTERS,
   parseSearchParams,
   resolveSortMode,
   SEARCH_PAGE_SIZE,
+  activeFilterCount,
   type SearchFilters,
   type SortMode,
 } from '@/lib/bills/search-params';
 import { loadSearchFilters, saveSearchFilters } from '@/lib/bills/search-filter-storage';
+import { SESSION_YEARS } from '@/lib/bills/session-years';
 import { cn } from '@/lib/core/utils';
 import { RISE_IN, riseDelay } from '@/lib/core/motion';
-
-/** Sessions the corpus covers, newest first. Mirrors the rail's YEARS list. */
-const SESSION_YEARS = [2026];
 
 const SORT_LABELS: Record<SortMode, string> = { relevance: 'Relevance', title: 'Title A–Z' };
 
@@ -116,16 +118,41 @@ export function BillSearchView() {
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
+  // The page itself scrolls (the layout's <main>), not an inner pane, so the
+  // wheel/trackpad works anywhere on the page. The side columns are sticky and
+  // sized to the visible part of <main>.
+  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
 
   const handleClear = useCallback(() => setFilters(DEFAULT_FILTERS), []);
   const handleCardClick = useCallback((billId: string) => openBillDialog(billId), [openBillDialog]);
+  // A recommended bill may not be in the loaded search pages, so remember it:
+  // the dialog's Track slot is built from whichever list holds the open bill.
+  const [openedRecommendation, setOpenedRecommendation] = useState<BillSearchResult | null>(null);
+  const handleRecommendationOpen = useCallback(
+    (bill: BillSearchResult) => {
+      setOpenedRecommendation(bill);
+      openBillDialog(bill.id);
+    },
+    [openBillDialog],
+  );
 
   // Auto-load the next page when the sentinel scrolls into view. The visible
   // "Load more" button below stays the keyboard-accessible path — scroll-driven
   // loading alone is a screen-reader trap.
   //
-  // `root` is the results pane, not the viewport: the pane is its own scroll
-  // container, so a viewport-rooted observer would never fire.
+  // `root` is the page's scroll container (<main>), which clips the viewport.
+  useEffect(() => {
+    const main = resultsRef.current?.closest('main') ?? null;
+    setScrollEl(main);
+    if (!main) return;
+    const measure = () => setViewportHeight(main.clientHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(main);
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node || !hasNextPage || isFetchingNextPage) return;
@@ -134,16 +161,16 @@ export function BillSearchView() {
       (entries) => {
         if (entries[0]?.isIntersecting) fetchNextPage();
       },
-      { root: resultsRef.current, rootMargin: '400px' },
+      { root: scrollEl, rootMargin: '400px' },
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, scrollEl]);
 
   // A new filter set is a new result list — jump back to the top so the user
   // isn't left mid-way down a list they didn't scroll.
   useEffect(() => {
-    resultsRef.current?.scrollTo({ top: 0 });
+    scrollEl?.scrollTo({ top: 0 });
   }, [
     debouncedQuery,
     filters.years,
@@ -157,11 +184,20 @@ export function BillSearchView() {
   ]);
 
   const hasQuery = filters.q.trim().length > 0;
+  // Recommendations only on the untouched page; a search or filter means the
+  // user is looking for something specific.
+  const showRecommendations = !hasQuery && activeFilterCount(filters) === 0;
   // The full placeholder runs past a phone-width input; phones get the short one.
   const isMobile = useIsMobile();
+  // Exactly one recommendations variant is mounted: the side panel at lg+ (1024px),
+  // the inline section below. Undefined until mounted, so neither renders first.
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
   // The dialog takes only a bill id; the Track control needs the bill number for
   // its label and toasts, so resolve the open row from the loaded results.
-  const openBill = openBillId ? bills.find((b) => b.id === openBillId) : undefined;
+  const openBill = openBillId
+    ? (bills.find((b) => b.id === openBillId) ??
+      (openedRecommendation?.id === openBillId ? openedRecommendation : undefined))
+    : undefined;
 
   const searchInput = (
     <>
@@ -196,9 +232,16 @@ export function BillSearchView() {
     </>
   );
 
+  // Side columns show only at lg+, where the page padding is md:py-6 (24px top
+  // and bottom); they fill exactly the visible height of <main>.
+  const sideColumnStyle = viewportHeight ? { height: viewportHeight - 48 } : undefined;
+
   return (
-    <div className="mx-auto flex h-full w-full min-h-0 max-w-6xl gap-6 p-4 md:p-6">
-      <aside className="hidden w-60 shrink-0 lg:block">
+    <div className="mx-auto flex w-full max-w-7xl items-start gap-4 px-2 py-4 md:px-4 md:py-6">
+      {/* Filter rail only at xl: between lg and xl the recommendations panel takes
+          the side column and filters stay in the Filters sheet. Sticky, so it
+          stays put while the page scrolls; only it scrolls if taller than the screen. */}
+      <aside className="sticky top-6 hidden w-60 shrink-0 xl:block" style={sideColumnStyle}>
         <div className="h-full min-h-0 overflow-y-auto pr-2">
           <SearchFilterRail
             filters={filters}
@@ -209,11 +252,10 @@ export function BillSearchView() {
         </div>
       </aside>
 
-      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-        {/* One scroll container holding the hero, the meta row, and the results,
-            so the CTA scrolls away with everything else rather than staying
-            pinned. The scroll-to-top button below brings it back. */}
-        <div ref={resultsRef} className="min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className="relative min-w-0 flex-1">
+        {/* The hero, meta row, and results flow with the page scroll, so the CTA
+            scrolls away with everything else. The scroll-to-top button brings it back. */}
+        <div ref={resultsRef}>
           <div className={cn('mb-4', RISE_IN)}>
             <SearchIntro
               onSuggestionClick={(term) => setFilters({ ...filters, q: term })}
@@ -222,6 +264,18 @@ export function BillSearchView() {
             >
               {searchInput}
             </SearchIntro>
+
+            {/* Phones/tablets: recommendations sit above the count/sort bar, which
+                governs only the full results below. Laptops and up get the side
+                panel instead (see the right-hand aside). */}
+            {showRecommendations && isDesktop === false && (
+              <div>
+                <div className="mt-4">
+                  <RecommendedBills variant="inline" onOpenBill={handleRecommendationOpen} />
+                </div>
+                <h2 className="mt-4 text-sm font-semibold">All bills</h2>
+              </div>
+            )}
 
             <div className="mt-3 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
@@ -347,8 +401,18 @@ export function BillSearchView() {
 
       </div>
 
+      {/* Laptops and up: recommendations get their own column so the main list
+          stays purely search results. Stays visible while searching, since it
+          no longer pushes results down. Not scrollable: it shows what fits the
+          screen height and Refresh moves to the next set. */}
+      <aside className="sticky top-6 hidden w-80 shrink-0 lg:block" style={sideColumnStyle}>
+        <div className="h-full min-h-0">
+          {isDesktop && <RecommendedBills variant="panel" onOpenBill={handleRecommendationOpen} />}
+        </div>
+      </aside>
+
       {/* Back to the search bar once the hero has scrolled out of reach. */}
-      <ScrollToTopButton scrollRef={resultsRef} label="Scroll back to search" />
+      <ScrollToTopButton label="Scroll back to search" />
 
       {/* The board's own dialog, reused rather than reimplemented — BillsProvider
           wraps the whole app, so it works here. It degrades for logged-out

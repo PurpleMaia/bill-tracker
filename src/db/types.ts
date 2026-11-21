@@ -336,7 +336,10 @@ export interface UserBills {
 export interface UserPreferences {
   ai_opt_in: Generated<boolean>;
   created_at: Generated<Timestamp>;
+  interest_keywords: Generated<string[]>;
+  interest_topics: Generated<string[]>;
   kanban_detailed_view: Generated<boolean>;
+  onboarded_at: Timestamp | null;
   updated_at: Generated<Timestamp>;
   user_id: string;
 }

@@ -30,6 +30,10 @@ export function useTrackedBills() {
         // Add the bill to the list
         console.log('Bill tracked successfully, adding to list...');
         addBill(trackedBill);
+        // Search shows is_tracked and Recommended excludes tracked bills;
+        // drop both caches so neither goes stale.
+        queryClient.invalidateQueries({ queryKey: ['bills', 'search'] });
+        queryClient.invalidateQueries({ queryKey: ['recommendations'] });
 
         // Tags are tenant-scoped, so only fetch them when in an org context.
         // Public users have no tenant — dereferencing activeTenant here used to
@@ -83,6 +87,8 @@ export function useTrackedBills() {
       // Search results are cached with is_tracked:true for this bill; without
       // this, Search keeps showing it as Tracked until the cache goes stale.
       queryClient.invalidateQueries({ queryKey: ['bills', 'search'] });
+      // Untracked bills become eligible for Recommended again.
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       if (!options?.suppressToast) {
         toast({
           title: 'Bill removed',

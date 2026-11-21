@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewOnBoard } from '@/hooks/use-view-on-board';
 import { ToastAction } from '@/components/ui/toast';
 import { data } from '@/lib/data-client';
+import { cn } from '@/lib/core/utils';
 
 /**
  * Icon-only below `sm`, full "Track Bill" label above it.
@@ -31,13 +32,30 @@ interface TrackButtonProps {
    * is_tracked (resolved server-side); defaults to false for logged-out search.
    */
   initialTracked?: boolean;
+  /**
+   * Shorter form used on Find Bills (results and recommendations): "Track"
+   * instead of the board's "Track Bill" wording, with no extra icon margin.
+   */
+  compact?: boolean;
+  /** Extra classes, merged last (e.g. a smaller size inside the recommendations panel). */
+  className?: string;
 }
 
 /**
  * Tracks a bill to the user's active org board. For logged-out visitors the
  * same button links to /login, which returns them to these search results.
  */
-export function TrackButton({ billId, billNumber, initialTracked = false }: TrackButtonProps) {
+export function TrackButton({
+  billId,
+  billNumber,
+  initialTracked = false,
+  compact = false,
+  className,
+}: TrackButtonProps) {
+  const trackLabel = compact ? 'Track' : 'Track Bill';
+  // Button already spaces icon and label (gap-2); the compact form adds no margin.
+  const iconGap = compact ? '' : 'sm:mr-1.5';
+
   const { user, activeTenant } = useAuth();
   const { toast } = useToast();
   const { refreshBills } = useBills();
@@ -56,10 +74,10 @@ export function TrackButton({ billId, billNumber, initialTracked = false }: Trac
 
   if (!user) {
     return (
-      <Button asChild size="sm" className={COMPACT_ON_MOBILE}>
+      <Button asChild size="sm" className={cn(COMPACT_ON_MOBILE, className)}>
         <LoginLink aria-label={`Track ${billNumber}`}>
-          <UserPlus className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
-          <span className="hidden sm:inline">Track Bill</span>
+          <UserPlus className={cn('h-4 w-4', iconGap)} aria-hidden="true" />
+          <span className="hidden sm:inline">{trackLabel}</span>
         </LoginLink>
       </Button>
     );
@@ -78,6 +96,8 @@ export function TrackButton({ billId, billNumber, initialTracked = false }: Trac
       // dialog's) would still read Track. Invalidate the search cache so every
       // instance re-derives from a fresh is_tracked.
       queryClient.invalidateQueries({ queryKey: ['bills', 'search'] });
+      // A tracked bill is excluded from recommendations, so drop it from that row.
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       // The board ("Your Bills") reads from BillsProvider, a separate app-level
       // context that this React Query key does not touch — so without this the
       // board stays stale until a full reload. BillsProvider is mounted once at
@@ -121,16 +141,16 @@ export function TrackButton({ billId, billNumber, initialTracked = false }: Trac
       onClick={handleTrack}
       disabled={isTracking || isTracked}
       aria-label={isTracked ? `${billNumber} is tracked` : `Track ${billNumber}`}
-      className={COMPACT_ON_MOBILE}
+      className={cn(COMPACT_ON_MOBILE, className)}
     >
       {isTracking ? (
-        <Loader2 className="h-4 w-4 animate-spin sm:mr-1.5" aria-hidden="true" />
+        <Loader2 className={cn('h-4 w-4 animate-spin', iconGap)} aria-hidden="true" />
       ) : isTracked ? (
-        <Check className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
+        <Check className={cn('h-4 w-4', iconGap)} aria-hidden="true" />
       ) : (
-        <UserPlus className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
+        <UserPlus className={cn('h-4 w-4', iconGap)} aria-hidden="true" />
       )}
-      <span className="hidden sm:inline">{isTracked ? 'Tracked' : 'Track Bill'}</span>
+      <span className="hidden sm:inline">{isTracked ? 'Tracked' : trackLabel}</span>
     </Button>
   );
 }

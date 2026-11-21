@@ -196,6 +196,14 @@ export interface BillSearchResult {
   is_tracked: boolean;
 }
 
+/** A Discover "Recommended for you" row item: a bill matched to the user's interests. */
+export interface RecommendedBill extends BillSearchResult {
+  /** InterestTerm labels, deduped, catalog order then keywords. */
+  matched: string[];
+  /** ISO datetime of the next hearing, only if in the future at rank time. */
+  next_hearing_at: string | null;
+}
+
 export interface BillSearchResponse {
   items: BillSearchResult[];
   nextCursor: string | null;

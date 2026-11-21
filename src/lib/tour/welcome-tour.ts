@@ -9,6 +9,25 @@ export const TOUR_STORAGE_KEY = 'billtracker:welcome-tour-v1';
 /** Window event that (re)starts the tour from anywhere, e.g. the Guide page. */
 export const TOUR_START_EVENT = 'billtracker:start-tour';
 
+/**
+ * Window event fired whenever the tour opens, whether it auto-started or was
+ * replayed. (TOUR_START_EVENT is a request to start; this reports that it did.)
+ */
+export const TOUR_OPEN_EVENT = 'billtracker:tour-open';
+
+/** Window event fired when the tour closes (finished or skipped). */
+export const TOUR_END_EVENT = 'billtracker:end-tour';
+
+/** Whether the tour was already finished/skipped. Storage blocked counts as seen. */
+export function hasSeenTour(): boolean {
+  try {
+    return localStorage.getItem(TOUR_STORAGE_KEY) !== null;
+  } catch {
+    // Storage blocked: treat as seen so we never nag on every page load.
+    return true;
+  }
+}
+
 export interface TourStep {
   id: string;
   title: string;

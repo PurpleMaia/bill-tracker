@@ -25,12 +25,8 @@ export async function PATCH(request: NextRequest) {
   try {
     const { user } = await requireSession.fromRequest(request);
     const body = await request.json().catch(() => ({}));
-    const patch: { ai_opt_in?: boolean; kanban_detailed_view?: boolean } = {};
-    if (typeof body.ai_opt_in === 'boolean') patch.ai_opt_in = body.ai_opt_in;
-    if (typeof body.kanban_detailed_view === 'boolean') {
-      patch.kanban_detailed_view = body.kanban_detailed_view;
-    }
-    const prefs = await updateUserPreferences(user.id, patch);
+    // updateUserPreferences owns the field whitelist and normalization.
+    const prefs = await updateUserPreferences(user.id, body ?? {});
     return NextResponse.json(prefs);
   } catch (error: any) {
     if (error?.statusCode) {

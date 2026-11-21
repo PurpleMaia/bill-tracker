@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import type { User } from '@/types/user';
 import type { Membership, ActiveTenant } from '@/types/tenant';
 import { data as dataClient } from '@/lib/data-client';
-import type { UserPreferences } from '@/types/preferences';
+import type { PreferencesPatch, UserPreferences } from '@/types/preferences';
 import { UNRESOLVED_AUTH, type InitialAuth } from '@/lib/auth/initial-auth-types';
 
 interface AuthContextType {
@@ -27,7 +27,7 @@ interface AuthContextType {
 
   // User preferences
   preferences: UserPreferences | null;
-  updatePreferences: (patch: Partial<UserPreferences>) => Promise<void>;
+  updatePreferences: (patch: PreferencesPatch) => Promise<void>;
 }
 
 type ProfileName = { firstName: string; lastName: string };
@@ -248,7 +248,7 @@ export function AuthProvider({
     setUser(updated);
   }, []);
 
-  const updatePreferences = useCallback(async (patch: Partial<UserPreferences>) => {
+  const updatePreferences = useCallback(async (patch: PreferencesPatch) => {
     const updated = await dataClient.preferences.update(patch);
     setPreferences(updated);
   }, []);
