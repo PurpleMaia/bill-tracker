@@ -69,6 +69,16 @@ describe('rankRecommendations', () => {
     expect(r[0].next_hearing_at).not.toBeNull();
   });
 
+  it('treats a deleted/canceled hearing notice as no upcoming hearing', () => {
+    const canceled = {
+      ...bill('HB1', { date: '2026-02-20' }),
+      hearing_notice:
+        'This measure has been deleted from the meeting scheduled on Tuesday 03-10-26 9:00AM in conference room 411.',
+    };
+    const r = rankRecommendations([canceled], NOW);
+    expect(r[0].next_hearing_at).toBeNull();
+  });
+
   it('orders by recent activity, falling back to updated_at, missing last', () => {
     const r = rankRecommendations(
       [

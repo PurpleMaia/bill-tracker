@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/contexts/auth-context';
 import { toast } from '@/hooks/use-toast';
@@ -15,7 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { InterestsEditor, type InterestsValue } from '@/components/recommendations/interests-editor';
 import { normalizeInterests } from '@/lib/bills/recommendation-topics';
-import { shouldOpenInterestPicker } from '@/lib/recommendations/interest-picker';
+import { shouldOpenInterestPicker, tourBlocksPicker } from '@/lib/recommendations/interest-picker';
 import { TOUR_END_EVENT, TOUR_START_EVENT, hasSeenTour } from '@/lib/tour/welcome-tour';
 
 interface InterestPickerDialogProps {
@@ -30,11 +31,12 @@ interface InterestPickerDialogProps {
  */
 export function InterestPickerDialog({ open, onOpenChange }: InterestPickerDialogProps = {}) {
   const editMode = open !== undefined;
+  const pathname = usePathname();
   const queryClient = useQueryClient();
   const { user, preferences, updatePreferences } = useAuth();
 
-  // The picker always comes after the welcome tour: it waits until the tour has
-  // been seen (finished or skipped), and while a replayed tour is running.
+  // The picker comes after the welcome tour: it waits while a tour runs, and for
+  // an unseen tour on a page where it auto-starts (see tourBlocksPicker).
   // tourSeen starts false and is read from storage after mount, so the server
   // and client render the same closed dialog and nothing flashes.
   const [tourSeen, setTourSeen] = useState(false);
@@ -62,7 +64,11 @@ export function InterestPickerDialog({ open, onOpenChange }: InterestPickerDialo
 
   const autoOpen =
     !dismissed &&
-    shouldOpenInterestPicker({ signedIn: !!user, preferences, tourRunning: tourRunning || !tourSeen });
+    shouldOpenInterestPicker({
+      signedIn: !!user,
+      preferences,
+      tourRunning: tourBlocksPicker({ tourRunning, tourSeen, pathname }),
+    });
   const isOpen = editMode ? open : autoOpen;
 
   // Seed the draft each time the dialog opens.

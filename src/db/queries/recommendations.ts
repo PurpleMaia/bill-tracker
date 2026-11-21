@@ -25,6 +25,8 @@ const CANDIDATE_CAP = 500;
  * HEARING_DATETIME_PATTERN in lib/testimony/hearing-schedule.ts (e.g. "... on
  * Friday, 01-31-25 9:15AM ..."). The ranking parses the text itself.
  */
+// Also matches deletion/cancellation notices, which repeat the old date; the
+// ranking treats those as "no hearing", so the latest notice wins either way.
 const HEARING_NOTICE_PATTERN =
   '[0-9]{1,2}-[0-9]{1,2}-[0-9]{2,4}[,[:space:]]+(at[[:space:]]+)?[0-9]{1,2}:[0-9]{2}[[:space:]]*[AP]';
 
@@ -42,7 +44,8 @@ async function getLatestHearingNotices(billIds: string[]): Promise<Map<string, s
     .where(sql<boolean>`statustext ~* ${HEARING_NOTICE_PATTERN}`)
     .distinctOn('bill_id')
     .orderBy('bill_id')
-    .orderBy('date', 'desc')
+    // `date` is text (M/D/YYYY): cast so 10/1 sorts after 9/30.
+    .orderBy(sql`cast(date as date)`, 'desc')
     .execute();
   return new Map(rows.map((r) => [r.bill_id, r.statustext]));
 }

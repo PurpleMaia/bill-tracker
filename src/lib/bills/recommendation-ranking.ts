@@ -4,6 +4,9 @@ import { parseHearingDatetime } from '@/lib/testimony/hearing-schedule';
 /** Ranked pool sent to the client; the panel pages through it on Refresh. */
 export const RECOMMENDATION_LIMIT = 30;
 
+/** A notice that a measure was pulled from (or a meeting canceled for) its hearing. */
+const CANCELED_HEARING = /\b(deleted|cancell?ed|withdrawn|postponed)\b/i;
+
 function activityTime(b: BillSearchResult): number {
   for (const raw of [b.latest_update?.date, b.updated_at]) {
     if (!raw) continue;
@@ -28,7 +31,9 @@ export function rankRecommendations(
     // The bill's latest hearing notice, when the caller found one; otherwise
     // the latest update, which may itself be the notice.
     const noticeText = c.hearing_notice ?? c.latest_update?.statustext ?? null;
-    const hearing = noticeText ? parseHearingDatetime(noticeText) : null;
+    // A deletion/cancellation notice repeats the old date; it means no hearing.
+    const hearing =
+      noticeText && !CANCELED_HEARING.test(noticeText) ? parseHearingDatetime(noticeText) : null;
     const hearingMs = hearing && hearing.getTime() > nowMs ? hearing.getTime() : null;
     const { hearing_notice: _notice, ...rest } = c;
     const bill: RecommendedBill = {

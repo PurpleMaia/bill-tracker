@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { shouldOpenInterestPicker } from '@/lib/recommendations/interest-picker';
+import { shouldOpenInterestPicker, tourBlocksPicker } from '@/lib/recommendations/interest-picker';
 
 const base = {
   signedIn: true,
@@ -24,5 +24,20 @@ describe('shouldOpenInterestPicker', () => {
   });
   it('stays closed while the tour is running', () => {
     expect(shouldOpenInterestPicker({ ...base, tourRunning: true })).toBe(false);
+  });
+});
+
+describe('tourBlocksPicker', () => {
+  it('waits while a tour is running', () => {
+    expect(tourBlocksPicker({ tourRunning: true, tourSeen: true, pathname: '/tracker' })).toBe(true);
+  });
+  it('waits for an unseen tour on a page where it auto-starts', () => {
+    expect(tourBlocksPicker({ tourRunning: false, tourSeen: false, pathname: '/find-bills' })).toBe(true);
+  });
+  it('does not wait forever on a page where the tour never auto-starts', () => {
+    expect(tourBlocksPicker({ tourRunning: false, tourSeen: false, pathname: '/tracker' })).toBe(false);
+  });
+  it('does not wait once the tour has been seen', () => {
+    expect(tourBlocksPicker({ tourRunning: false, tourSeen: true, pathname: '/find-bills' })).toBe(false);
   });
 });

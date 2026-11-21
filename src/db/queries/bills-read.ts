@@ -592,7 +592,8 @@ export async function getLatestStatusUpdates(
     .where('bill_id', 'in', billIds)
     .distinctOn('bill_id')
     .orderBy('bill_id')
-    .orderBy('date', 'desc')
+    // `date` is text (M/D/YYYY): cast so 10/1 sorts after 9/30.
+    .orderBy(sql`cast(date as date)`, 'desc')
     .execute();
   return new Map(
     rows.map((u) => [
