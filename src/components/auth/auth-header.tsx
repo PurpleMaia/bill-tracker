@@ -30,31 +30,23 @@ export function AuthHeader() {
       {user ? (
         <UserMenu />   //shows user menu if logged in
       ) : (
-        // Signed-out users have no account menu, so the feedback link lives here
-        // beside the login trigger. Login is the primary action and anchors the
-        // right edge; feedback sits after it as a compact icon-only button so it
-        // reads as secondary and never crowds the centered sub-nav. The label is
-        // carried by the tooltip + aria-label. The login page offers sign-up.
-        // Tighter gap keeps the login/feedback pair reading as one cluster.
-        // The Guide gets the same compact treatment, since it too lives in the
-        // account menu for signed-in users.
+        // Signed-out users have no account menu, so the Guide and feedback links
+        // live here (for signed-in users both are in the account menu). They sit
+        // to the LEFT of Login as transparent, white icon-only buttons so they
+        // read as secondary; Login stays the one solid button and anchors the
+        // right edge. Labels are carried by the tooltip + aria-label. The login
+        // page offers sign-up.
         <div className="flex items-center gap-1">
-          <Button asChild variant="outline" className="h-10 shadow-sm text-primary bg-white">
-            <LoginLink>
-              <LogIn className="mr-1" />
-              Login
-            </LoginLink>
-          </Button>          
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 asChild
-                variant="outline"
+                variant="ghost"
                 size="icon"
-                className="h-10 w-10 shadow-sm text-primary bg-white"
+                className="h-10 w-10 text-white hover:bg-white/10 hover:text-white"
               >
                 <Link href="/guide" aria-label="Guide">
-                  <CircleHelp className="h-4 w-4" />
+                  <CircleHelp className="h-5 w-5" />
                 </Link>
               </Button>
             </TooltipTrigger>
@@ -64,17 +56,23 @@ export function AuthHeader() {
             <TooltipTrigger asChild>
               <Button
                 asChild
-                variant="outline"
+                variant="ghost"
                 size="icon"
-                className="h-10 w-10 shadow-sm text-primary bg-white"
+                className="h-10 w-10 text-white hover:bg-white/10 hover:text-white"
               >
                 <a href={FEEDBACK_FORM_URL} target="_blank" rel="noopener noreferrer" aria-label="Feedback (opens in new tab)">
-                  <MessageSquareText className="h-4 w-4" />
+                  <MessageSquareText className="h-5 w-5" />
                 </a>
               </Button>
             </TooltipTrigger>
             <TooltipContent>Feedback</TooltipContent>
           </Tooltip>
+          <Button asChild variant="outline" className="h-10 shadow-sm text-primary bg-white">
+            <LoginLink>
+              <LogIn className="mr-1" />
+              Login
+            </LoginLink>
+          </Button>
         </div>
       )}
     </div>
