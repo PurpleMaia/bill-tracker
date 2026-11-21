@@ -28,6 +28,7 @@ export function BillBriefing({
   progressStages,
   currentStageName,
   onNextStep,
+  compact = false,
 }: {
   bill: BillDetails;
   today: string;
@@ -37,6 +38,13 @@ export function BillBriefing({
   progressStages: string[];
   currentStageName: string;
   onNextStep: (a: 'testimony' | 'diff' | 'reports' | 'contact') => void;
+  /**
+   * Preview for a bill the user hasn't tracked yet (opened from Find Bills):
+   * just where it is and the hearing line. The detail tiles and next steps
+   * matter once you follow a bill, so they're held back until it's tracked
+   * (a failed bill still gets its "Bill failed" tile).
+   */
+  compact?: boolean;
 }) {
   const facts = useMemo(() => deriveBriefingFacts(bill, today), [bill, today]);
   const committeeNames = useCommitteeNames();
@@ -84,6 +92,7 @@ export function BillBriefing({
       </div>
       )}
 
+      {(!compact || dead) && (
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <div
           data-bill-tour="standing"
@@ -191,7 +200,17 @@ export function BillBriefing({
         </div>
       </div>
 
-      {facts.nextSteps.length > 0 && (
+      )}
+
+      {compact && !dead && (
+        // Desktop only: on phones the same pitch sits under the Track button.
+        <p className="hidden border-t border-dashed pt-3 text-xs text-muted-foreground sm:block">
+          Track this bill to put it on your board, see its committee activity and suggested next
+          steps, and get its hearings on your calendar.
+        </p>
+      )}
+
+      {!compact && facts.nextSteps.length > 0 && (
         <div className="border-t border-dashed pt-3">
           <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Suggested next steps</h4>
           <div className="space-y-1.5">

@@ -72,6 +72,13 @@ export interface BillDetailsDialogProps {
    */
   trackSlot?: React.ReactNode;
   /**
+   * Whether the bill in `trackSlot` is already tracked. With a trackSlot and
+   * not tracked, the dialog is a preview pitched at tracking: a compact
+   * briefing plus a line on what tracking gets you. Ignored without trackSlot
+   * (a bill opened from a board is tracked).
+   */
+  isTracked?: boolean;
+  /**
    * Set by the user's own board views (kanban, spreadsheet) to show Remove from
    * board / Untrack. Explicit rather than inferred from `trackSlot`, which Search
    * omits when the opened bill isn't in its loaded results.
@@ -103,7 +110,9 @@ const TABS: readonly DialogTab[] = [
   { id: 'updates', label: 'Status Updates', shortLabel: 'Updates', icon: Clock, mobileOnly: true },
 ];
 
-export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', returnTo, trackSlot, allowBoardRemoval = false }: BillDetailsDialogProps) {
+export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', returnTo, trackSlot, isTracked = false, allowBoardRemoval = false }: BillDetailsDialogProps) {
+  // Opened from Find Bills and not tracked yet: pitch tracking (see isTracked).
+  const isPreview = !!trackSlot && !isTracked;
   const { bills, setBills, setTempBills, proposeStatusChange, updateBill, viewMode } = useBills();
   const { user, activeTenant } = useAuth();
   const { untrackBill } = useTrackedBills();
@@ -649,6 +658,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                     progressValue={progressValue}
                     progressStages={PROGRESS_STAGES.map(s => s.shortName)}
                     currentStageName={currentStageName}
+                    compact={isPreview}
                     onNextStep={(action) => {
                       if (action === 'diff' || action === 'reports') setActiveTab('versions');
                       else if (action === 'testimony') goTo('testimony');
@@ -866,9 +876,15 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                         its label is forced back on because the search page's
                         button is icon-only at this breakpoint. */}
                     {trackSlot && (
-                      <div className="[&_button]:h-11 [&_button]:w-full [&_button>span]:inline">
+                      <div className="[&_button]:h-11 [&_button]:w-full [&_button>span]:inline [&_a]:h-11 [&_a]:w-full [&_a>span]:inline">
                         {trackSlot}
                       </div>
+                    )}
+                    {/* Why track — the answer at the moment of deciding. */}
+                    {isPreview && (
+                      <p className="text-center text-xs text-muted-foreground">
+                        Put it on your board and its hearings on your calendar.
+                      </p>
                     )}
                   </div>
                 </>

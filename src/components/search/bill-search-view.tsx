@@ -420,6 +420,7 @@ export function BillSearchView() {
           trackSlot adds the Track control the board's own copy doesn't need:
           a bill opened from search may not be tracked yet. */}
       <UrlBillDetailsDialog
+        isTracked={openBill?.is_tracked ?? false}
         trackSlot={
           openBill ? (
             <TrackButton
