@@ -59,3 +59,14 @@ export function getAssignableRoles(userRole: string): string[] {
 export function canCommitStatus(orgRole?: string): boolean {
   return orgRole === 'admin';
 }
+
+/**
+ * Checks if a user is a platform sysadmin (system_role), e.g. for the
+ * analytics dashboard. Distinct from the legacy `role === 'admin'`.
+ *
+ * @param user User object with systemRole property
+ * @returns True only for systemRole 'sysadmin'
+ */
+export function isSysadmin(user: { systemRole?: string } | null | undefined): boolean {
+  return user?.systemRole === 'sysadmin';
+}

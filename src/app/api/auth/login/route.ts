@@ -6,6 +6,7 @@ import type { User } from "@/types/user";
 import { loginSchema } from "@/lib/auth/validators";
 import { ApiError } from "@/lib/core/errors";
 import { getUserMemberships } from "@/db/queries/tenants";
+import { logEvent } from "@/db/queries/usage-events";
 
 const LOGIN_RATE_LIMIT = { limit: 5, windowMs: 5 * 60_000 };
 
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
 
       // Create session token for successfully authenticated user
       const token = await createSession(user.id);
+      await logEvent('login', user.id);
 
       // Fetch memberships for the authenticated user
       const memberships = await getUserMemberships(user.id);

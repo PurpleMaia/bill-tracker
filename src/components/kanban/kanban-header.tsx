@@ -11,6 +11,8 @@ import { KanbanPillStrip } from './kanban-pill-strip';
 import { ViewScopeToggle } from './view-scope-toggle';
 import { FilterChipsRow } from './filter-chips-row';
 import { useBills } from '@/hooks/contexts/bills-context';
+import { useTrack } from '@/hooks/use-track';
+import { searchBillsLocal } from '@/lib/bills/bill-search';
 import { TrackBillDialog } from './track-bill-dialog';
 import { TagFilterList } from '../tags/tag-filter-list';
 import { TagsDialog } from '../tags/tags-dialog';
@@ -119,7 +121,24 @@ export function KanbanHeader({ variant = 'own' }: KanbanHeaderProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // One bill_search event per distinct query the user typed, once typing has
+  // settled. Only typed queries count — a query restored from storage on mount
+  // is not a new search.
+  const track = useTrack();
+  const userTypedRef = useRef(false);
+  const lastTrackedQuery = useRef<string | null>(null);
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!userTypedRef.current || !q || lastTrackedQuery.current === q) return;
+    const timer = setTimeout(() => {
+      lastTrackedQuery.current = q;
+      track('bill_search', { query: q, resultCount: searchBillsLocal(bills, q).length });
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [searchQuery, bills, track]);
+
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    userTypedRef.current = true;
     setSearchQuery(event.target.value);
   };
 

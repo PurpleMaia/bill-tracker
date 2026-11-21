@@ -7,6 +7,7 @@ import { blocksToPlainText, composeHeaderLines, tiptapToBlocks } from '@/lib/tes
 import { downloadBlob } from '@/lib/testimony-export/download';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
+import { useTrack } from '@/hooks/use-track';
 import { TestimonyPreview } from './testimony-preview';
 import type { TestimonyHeaderValue } from './testimony-header-form';
 import { ArrowLeft, ArrowRight, Check, Copy, FileDown, Loader2 } from 'lucide-react';
@@ -21,6 +22,7 @@ interface TestimonyExportStepProps {
 
 export function TestimonyExportStep({ bill, form, contentJson, onBack, onNext }: TestimonyExportStepProps) {
   const [generating, setGenerating] = useState<'pdf' | 'docx' | null>(null);
+  const track = useTrack();
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -51,6 +53,7 @@ export function TestimonyExportStep({ bill, form, contentJson, onBack, onNext }:
         const { generateTestimonyDocx } = await import('@/lib/testimony-export/to-docx');
         downloadBlob(await generateTestimonyDocx(meta, blocks), filename);
       }
+      track('testimony_exported', { format });
     } catch (error) {
       console.error('Testimony export failed:', error);
       toast({ title: 'Export failed', description: `Could not generate the ${format.toUpperCase()} file.`, variant: 'destructive' });

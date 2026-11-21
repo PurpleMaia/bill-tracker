@@ -5,6 +5,7 @@ import { isValidOAuthState, decodeSignupPayload } from '@/lib/auth/google-oauth'
 import { resolveGoogleUser, type ResolveGoogleUserResult } from '@/db/queries/users';
 import { redeemInviteToken, createOrgForNewUser } from '@/db/queries/tenants';
 import { createSession } from '@/lib/auth/session';
+import { logEvent } from '@/db/queries/usage-events';
 import { setSessionCookie } from '@/lib/auth/cookies';
 import { appUrl } from '@/lib/core/app-url';
 import { loginHref } from '@/lib/auth/return-path';
@@ -142,6 +143,7 @@ export async function GET(
     }
 
     const token = await createSession(user.id);
+    await logEvent(isNewUser ? 'signup' : 'login', user.id, { props: { provider: providerId } });
 
     // returnTo was validated as a same-site path when decoded.
     const destination = appUrl(payload.returnTo ?? '/');

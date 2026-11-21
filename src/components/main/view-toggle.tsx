@@ -4,6 +4,7 @@ import { CalendarDaysIcon, KanbanSquareIcon, Table, Users2Icon } from 'lucide-re
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useKanbanBoard } from '@/hooks/contexts/kanban-board-context';
 import { useAuth } from '@/hooks/contexts/auth-context';
+import { useTrack } from '@/hooks/use-track';
 import { cn } from '@/lib/core/utils';
 
 const VIEW_META = {
@@ -22,6 +23,7 @@ type ViewId = keyof typeof VIEW_META;
 export function ViewToggle({ compact = false }: { compact?: boolean }) {
   const { view: currentView, setView } = useKanbanBoard();
   const { user, activeTenant } = useAuth();
+  const track = useTrack();
 
   const orgRole = activeTenant?.orgRole;
   const views: ViewId[] =
@@ -32,7 +34,10 @@ export function ViewToggle({ compact = false }: { compact?: boolean }) {
   return (
     <Tabs
       value={currentView}
-      onValueChange={(v) => setView(v as ViewId | 'supervisor')}
+      onValueChange={(v) => {
+        setView(v as ViewId | 'supervisor');
+        track('tracker_view_changed', { view: v });
+      }}
       className="rounded-md shadow-sm"
     >
       <TabsList className="bg-secondary">

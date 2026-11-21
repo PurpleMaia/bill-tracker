@@ -11,6 +11,7 @@ import { queryClient } from '@/lib/core/react-query';
 import { Providers } from '@/lib/core/providers';
 import { getInitialAuth } from '@/lib/auth/initial-auth';
 import { AuthErrorToast } from '@/components/auth/auth-error-toast';
+import { PageViewTracker } from '@/components/analytics/page-view-tracker';
 
 
 
@@ -67,6 +68,9 @@ export default async function RootLayout({
               during prerender. */}
           <Suspense fallback={null}>
             <AuthErrorToast />
+          </Suspense>
+          <Suspense fallback={null}>
+            <PageViewTracker />
           </Suspense>
         </Providers>
         <Toaster /> {/* Add toaster for notifications */}

@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useTrack } from '@/hooks/use-track';
+import { sectionForPath } from '@/lib/analytics/paths';
 import { billActionHref } from '@/lib/bills/bill-dialog-url';
 import type { Bill, BillStatus, BillDetails, StatusUpdate } from '@/types/legislation';
 import {
@@ -106,6 +108,8 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
   const { untrackBill } = useTrackedBills();
   const isMobile = useIsMobile();
   const router = useRouter();
+  const pathname = usePathname();
+  const track = useTrack();
   // Hosts may pass billID null the moment the dialog closes; keep showing the
   // last bill until the close animation (200ms) has played — see the reset
   // effect below — then drop it so a closed dialog renders nothing.
@@ -150,6 +154,7 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
       setBillDetails((prev) => (prev?.id === billID ? prev : null));
       setLoadingDetails(true);
       setDetailsError(null);
+      track('bill_opened', { billId: billID, section: sectionForPath(pathname) });
       data.bills.getBillDetails({ billId: billID })
         .then((details) => {
           if (details.updates) {
@@ -164,6 +169,8 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
         })
         .finally(() => setLoadingDetails(false));
     }
+  // track/pathname are read at open time only; re-running on them would re-log.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, billID]);
 
   useEffect(() => {

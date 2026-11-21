@@ -127,7 +127,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (action === 'approve') {
-      await updateBillStatus(proposal.bill_id, proposal.proposed_status, tenantId);
+      await updateBillStatus(proposal.bill_id, proposal.proposed_status, tenantId, user.id);
       await markProposalApproved(proposalId, user.id);
     } else if (action === 'reject') {
       await markProposalRejected(proposalId);
