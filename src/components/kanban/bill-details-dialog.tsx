@@ -802,8 +802,9 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                     </TabsContent>
                   </Tabs>
 
-                  {/* Sticky action bar — the testimony CTA in thumb reach; the
-                      disabled reason is visible text (tooltips don't work on touch) */}
+                  {/* Sticky action bar — the testimony CTA in thumb reach. Closed
+                      testimony/contact just shows as a disabled button; the
+                      reason text was dropped to save vertical space. */}
                   <div data-bill-tour="actions" className="shrink-0 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-1.5">
                     {/* Two CTAs share a half-width row; Track Bill sits full
                         width beneath them. The labels are shortened here because
@@ -852,16 +853,6 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                         {testimonyEligibility.allowed && testimonyUrgent && testimonyCountdown && (
                           <p className="text-center text-xs font-medium text-red-600">
                             Testimony {testimonyCountdown}
-                          </p>
-                        )}
-                        {!testimonyEligibility.allowed && (
-                          <p className="text-center text-xs text-muted-foreground">
-                            Testimony is closed! {testimonyEligibility.reason}.
-                          </p>
-                        )}
-                        {contactDisabled && (
-                          <p className="text-center text-xs text-muted-foreground">
-                            {contactDisabledReason}
                           </p>
                         )}
                       </>
