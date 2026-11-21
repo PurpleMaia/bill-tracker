@@ -13,6 +13,7 @@ import {
   TOUR_STEPS,
   TOUR_STORAGE_KEY,
   MENU_TOUR_TARGET,
+  SUBNAV_TOUR_TARGET,
   hasSeenTour,
   mobileNavHint,
   shouldAutoStartTour,
@@ -56,6 +57,35 @@ function visibleRect(selector: string): Rect | null {
   return null;
 }
 
+/**
+ * The header sub-nav tabs, when the page has any on screen. The slot itself is
+ * always in the header (padded, even when empty), so measure what's inside it.
+ */
+function findSubnav(): Rect | null {
+  const slot = document.querySelector<HTMLElement>(`[data-tour="${SUBNAV_TOUR_TARGET}"]`);
+  if (!slot) return null;
+  for (const child of Array.from(slot.children)) {
+    const r = child.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) {
+      return { top: r.top, left: r.left, width: r.width, height: r.height };
+    }
+  }
+  return null;
+}
+
+/** Smallest rect covering both, for placing the card clear of every spotlight. */
+function union(a: Rect, b: Rect | null): Rect {
+  if (!b) return a;
+  const top = Math.min(a.top, b.top);
+  const left = Math.min(a.left, b.left);
+  return {
+    top,
+    left,
+    width: Math.max(a.left + a.width, b.left + b.width) - left,
+    height: Math.max(a.top + a.height, b.top + b.height) - top,
+  };
+}
+
 /** Whether the nav links are tucked in the hamburger drawer (phones). */
 function navIsInMenu(): boolean {
   return visibleRect(`[data-tour="${MENU_TOUR_TARGET}"]`) !== null;
@@ -81,6 +111,8 @@ export function WelcomeTour() {
   const [target, setTarget] = useState<Rect | null>(null);
   // Phones: nav lives in the hamburger drawer, so each step says how to get there.
   const [inMenu, setInMenu] = useState(false);
+  // The page's sub-nav tabs, spotlighted alongside the nav item when present.
+  const [subnav, setSubnav] = useState<Rect | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   // Whether this run of the tour has navigated yet (see the navigation effect).
   const navigatedRef = useRef(false);
@@ -145,11 +177,18 @@ export function WelcomeTour() {
     const measure = () => {
       setInMenu(navIsInMenu());
       setTarget(current.target ? findVisibleTarget(current.target) : null);
+      setSubnav(current.subnav ? findSubnav() : null);
     };
     measure();
+    // The sub-nav renders after the step's navigation (and auth) settles, so
+    // keep re-measuring briefly rather than catching only the first frame.
+    const settle = window.setInterval(measure, 250);
+    const stopSettling = window.setTimeout(() => window.clearInterval(settle), 2500);
     window.addEventListener('resize', measure);
     window.addEventListener('scroll', measure, true);
     return () => {
+      window.clearInterval(settle);
+      window.clearTimeout(stopSettling);
       window.removeEventListener('resize', measure);
       window.removeEventListener('scroll', measure, true);
     };
@@ -192,17 +231,20 @@ export function WelcomeTour() {
   // the card scrolls internally instead of running off-screen.
   let cardStyle: React.CSSProperties;
   const vh = window.innerHeight;
-  if (target) {
+  // Every spotlit element: the nav item (or hamburger) plus the sub-nav tabs.
+  const holes = target ? [target, ...(subnav ? [subnav] : [])] : [];
+  const anchor = target ? union(target, subnav) : null;
+  if (anchor) {
     const vw = window.innerWidth;
     const width = cardWidth(vw);
-    const centerX = target.left + target.width / 2;
+    const centerX = anchor.left + anchor.width / 2;
     const left = Math.max(GUTTER, Math.min(centerX - width / 2, vw - width - GUTTER));
-    const below = target.top + target.height / 2 < vh / 2;
+    const below = anchor.top + anchor.height / 2 < vh / 2;
     if (below) {
-      const top = target.top + target.height + SPOT_PAD + GUTTER;
+      const top = anchor.top + anchor.height + SPOT_PAD + GUTTER;
       cardStyle = { top, left, width, maxHeight: vh - top - GUTTER };
     } else {
-      const bottom = vh - target.top + SPOT_PAD + GUTTER;
+      const bottom = vh - anchor.top + SPOT_PAD + GUTTER;
       cardStyle = { bottom, left, width, maxHeight: vh - bottom - GUTTER };
     }
   } else {
@@ -218,21 +260,44 @@ export function WelcomeTour() {
   return (
     <div className="fixed inset-0 z-tour" role="presentation">
       {/* Click shield: blocks the page behind the tour without dismissing it. */}
-      <div className={cn('absolute inset-0', !target && 'bg-black/55')} />
+      <div className={cn('absolute inset-0', holes.length === 0 && 'bg-black/55')} />
 
-      {target && (
+      {/* Dim everything except the spotlit elements: one SVG mask with a hole
+          per element (a box-shadow per hole would dim the other holes). */}
+      {holes.length > 0 && (
+        <svg aria-hidden className="pointer-events-none absolute inset-0 h-full w-full">
+          <defs>
+            <mask id="welcome-tour-holes">
+              <rect width="100%" height="100%" fill="white" />
+              {holes.map((h, i) => (
+                <rect
+                  key={i}
+                  x={h.left - SPOT_PAD}
+                  y={h.top - SPOT_PAD}
+                  width={h.width + SPOT_PAD * 2}
+                  height={h.height + SPOT_PAD * 2}
+                  rx={8}
+                  fill="black"
+                />
+              ))}
+            </mask>
+          </defs>
+          <rect width="100%" height="100%" fill="rgba(0, 0, 0, 0.55)" mask="url(#welcome-tour-holes)" />
+        </svg>
+      )}
+      {holes.map((h, i) => (
         <div
+          key={i}
           aria-hidden
           className="pointer-events-none absolute rounded-lg ring-2 ring-white"
           style={{
-            top: target.top - SPOT_PAD,
-            left: target.left - SPOT_PAD,
-            width: target.width + SPOT_PAD * 2,
-            height: target.height + SPOT_PAD * 2,
-            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.55)',
+            top: h.top - SPOT_PAD,
+            left: h.left - SPOT_PAD,
+            width: h.width + SPOT_PAD * 2,
+            height: h.height + SPOT_PAD * 2,
           }}
         />
-      )}
+      ))}
 
       <div
         ref={cardRef}
@@ -262,6 +327,11 @@ export function WelcomeTour() {
         <p id="welcome-tour-body" className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
           {current.body}
         </p>
+        {subnav && current.subnav && (
+          <p className="mt-2 rounded-md bg-secondary px-2.5 py-1.5 text-sm font-medium text-primary">
+            {current.subnav}
+          </p>
+        )}
         {inMenu && (
           <p className="mt-2 rounded-md bg-secondary px-2.5 py-1.5 text-sm font-medium text-primary">
             {mobileNavHint(current)}

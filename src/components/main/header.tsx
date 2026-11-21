@@ -45,7 +45,7 @@ export function Header() {
           remaining space). min-h-10 matches the sub-nav pills' h-10 so the
           header is the same height on pages with no sub-nav (Find Bills).
           Between md and xl it takes its own row, hidden when empty. */}
-      <div className="flex min-h-10 min-w-0 items-center justify-center px-2 justify-self-center md:max-xl:col-span-3 md:max-xl:row-start-2 md:max-xl:empty:hidden">
+      <div data-tour="subnav" className="flex min-h-10 min-w-0 items-center justify-center px-2 justify-self-center md:max-xl:col-span-3 md:max-xl:row-start-2 md:max-xl:empty:hidden">
         <HeaderSubNav />
       </div>
 

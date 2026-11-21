@@ -50,7 +50,15 @@ export interface TourStep {
   body: string;
   /** NAV_ITEMS href to spotlight. Omitted = centered card with no spotlight. */
   target?: string;
+  /**
+   * What the page's header sub-nav tabs do. When the tabs are on screen they
+   * are spotlighted alongside the nav item and this line is shown.
+   */
+  subnav?: string;
 }
+
+/** data-tour value on the header's sub-nav slot (see components/main/header.tsx). */
+export const SUBNAV_TOUR_TARGET = 'subnav';
 
 export const TOUR_STEPS: readonly TourStep[] = [
   {
@@ -67,6 +75,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'your-bills',
     target: '/tracker',
+    subnav: 'Use the tabs at the top to switch between the Kanban, Spreadsheet, and Calendar views.',
     title: 'Your Tracker',
     body: 'Bills you track show up here, on your organization’s board. See them as a Kanban board, a spreadsheet, or a calendar of key dates.',
   },
@@ -74,12 +83,14 @@ export const TOUR_STEPS: readonly TourStep[] = [
     // id kept as 'testimonies': it names the tutorial video file.
     id: 'testimonies',
     target: '/take-action',
+    subnav: 'Use the tabs at the top to switch between Testimony and Contact Legislators.',
     title: 'Take Action',
     body: 'Speak up on your bills. Write testimony and submit it yourself on the Capitol website, or contact the legislators who can act on a bill. Your testimony and the legislators you have contacted are tracked here.',
   },
   {
     id: 'boards',
     target: '/community',
+    subnav: 'Use the tabs at the top to switch between Browse (every public board) and Following (the ones you follow).',
     title: 'Community',
     body: 'See what other organizations are tracking: open any public board (view only) and follow the ones you care about.',
   },

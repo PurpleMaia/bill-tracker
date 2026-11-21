@@ -76,3 +76,10 @@ describe('mobileNavHint', () => {
     expect(mobileNavHint(step)).toContain('☰ menu');
   });
 });
+
+describe('sub-nav hints', () => {
+  it('explains the header tabs on every page that has them', () => {
+    const withTabs = TOUR_STEPS.filter((s) => s.subnav).map((s) => s.target);
+    expect(withTabs).toEqual(['/tracker', '/take-action', '/community']);
+  });
+});
