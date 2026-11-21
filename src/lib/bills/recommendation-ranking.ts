@@ -7,6 +7,25 @@ export const RECOMMENDATION_LIMIT = 30;
 /** A notice that a measure was pulled from (or a meeting canceled for) its hearing. */
 const CANCELED_HEARING = /\b(deleted|cancell?ed|withdrawn|postponed)\b/i;
 
+/**
+ * The soonest upcoming hearing across a bill's hearing notices. A deletion or
+ * cancellation notice repeats the time it cancels, so that time is dropped; any
+ * other scheduled time (e.g. a same-day reschedule) still counts. Independent of
+ * notice order, which day-only dates can't settle.
+ */
+export function nextHearing(notices: string[], now: Date): Date | null {
+  const canceled = new Set<number>();
+  const scheduled: number[] = [];
+  for (const text of notices) {
+    const at = parseHearingDatetime(text)?.getTime();
+    if (at === undefined) continue;
+    if (CANCELED_HEARING.test(text)) canceled.add(at);
+    else scheduled.push(at);
+  }
+  const upcoming = scheduled.filter((t) => t > now.getTime() && !canceled.has(t));
+  return upcoming.length ? new Date(Math.min(...upcoming)) : null;
+}
+
 function activityTime(b: BillSearchResult): number {
   for (const raw of [b.latest_update?.date, b.updated_at]) {
     if (!raw) continue;
@@ -22,20 +41,18 @@ function activityTime(b: BillSearchResult): number {
  * number of matched interests, then bill number for determinism.
  */
 export function rankRecommendations(
-  candidates: Array<BillSearchResult & { matched: string[]; hearing_notice?: string | null }>,
+  candidates: Array<BillSearchResult & { matched: string[]; hearing_notices?: string[] }>,
   now: Date,
   limit: number = RECOMMENDATION_LIMIT,
 ): RecommendedBill[] {
   const nowMs = now.getTime();
   const keyed = candidates.map((c) => {
-    // The bill's latest hearing notice, when the caller found one; otherwise
-    // the latest update, which may itself be the notice.
-    const noticeText = c.hearing_notice ?? c.latest_update?.statustext ?? null;
-    // A deletion/cancellation notice repeats the old date; it means no hearing.
-    const hearing =
-      noticeText && !CANCELED_HEARING.test(noticeText) ? parseHearingDatetime(noticeText) : null;
-    const hearingMs = hearing && hearing.getTime() > nowMs ? hearing.getTime() : null;
-    const { hearing_notice: _notice, ...rest } = c;
+    // All of the bill's hearing notices when the caller found them; otherwise
+    // the latest update, which may itself be a notice.
+    const notices = c.hearing_notices ?? (c.latest_update ? [c.latest_update.statustext] : []);
+    const hearing = nextHearing(notices, now);
+    const hearingMs = hearing ? hearing.getTime() : null;
+    const { hearing_notices: _notices, ...rest } = c;
     const bill: RecommendedBill = {
       ...rest,
       next_hearing_at: hearingMs === null ? null : new Date(hearingMs).toISOString(),

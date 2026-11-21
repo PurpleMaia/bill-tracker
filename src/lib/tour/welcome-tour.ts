@@ -9,6 +9,12 @@ export const TOUR_STORAGE_KEY = 'billtracker:welcome-tour-v1';
 /** Window event that (re)starts the tour from anywhere, e.g. the Guide page. */
 export const TOUR_START_EVENT = 'billtracker:start-tour';
 
+/**
+ * Window event fired whenever the tour opens, whether it auto-started or was
+ * replayed. (TOUR_START_EVENT is a request to start; this reports that it did.)
+ */
+export const TOUR_OPEN_EVENT = 'billtracker:tour-open';
+
 /** Window event fired when the tour closes (finished or skipped). */
 export const TOUR_END_EVENT = 'billtracker:end-tour';
 

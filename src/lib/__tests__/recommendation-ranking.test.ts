@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { RECOMMENDATION_LIMIT, rankRecommendations } from '@/lib/bills/recommendation-ranking';
+import { RECOMMENDATION_LIMIT, nextHearing, rankRecommendations } from '@/lib/bills/recommendation-ranking';
 import type { BillSearchResult } from '@/types/legislation';
 
 const NOW = new Date('2026-03-01T00:00:00Z');
@@ -62,7 +62,7 @@ describe('rankRecommendations', () => {
   it('uses the latest hearing notice even when a newer non-hearing update exists', () => {
     const withNotice = {
       ...bill('HB1', { text: 'Referred to WAM.', date: '2026-02-20' }),
-      hearing_notice: FUTURE('03-10-2026'),
+      hearing_notices: [FUTURE('03-10-2026')],
     };
     const r = rankRecommendations([bill('HB2', { date: '2026-02-25' }), withNotice], NOW);
     expect(order(r)).toEqual(['HB1', 'HB2']);
@@ -72,8 +72,10 @@ describe('rankRecommendations', () => {
   it('treats a deleted/canceled hearing notice as no upcoming hearing', () => {
     const canceled = {
       ...bill('HB1', { date: '2026-02-20' }),
-      hearing_notice:
+      hearing_notices: [
+        'Bill scheduled to be heard by AGR on Tuesday, 03-10-26 9:00AM in conference room 411.',
         'This measure has been deleted from the meeting scheduled on Tuesday 03-10-26 9:00AM in conference room 411.',
+      ],
     };
     const r = rankRecommendations([canceled], NOW);
     expect(r[0].next_hearing_at).toBeNull();
@@ -114,5 +116,28 @@ describe('rankRecommendations', () => {
     expect(rankRecommendations(input, NOW)).toHaveLength(RECOMMENDATION_LIMIT);
     expect(rankRecommendations(input, NOW, 3)).toHaveLength(3);
     expect(input).toEqual(copy);
+  });
+});
+
+describe('nextHearing', () => {
+  const sched = (d: string) => `Bill scheduled to be heard by AGR on Tuesday, ${d} in conference room 411.`;
+  const del = (d: string) => `This measure has been deleted from the meeting scheduled on Tuesday ${d} in CR 411.`;
+
+  it('returns the soonest future hearing, in any notice order', () => {
+    const h = nextHearing([sched('03-20-26 9:00AM'), sched('03-10-26 9:00AM')], NOW);
+    expect(h?.toISOString()).toBe(nextHearing([sched('03-10-26 9:00AM')], NOW)?.toISOString());
+  });
+
+  it('drops a hearing whose time has a matching deletion, keeping a same-day reschedule', () => {
+    const h = nextHearing(
+      [sched('03-10-26 9:00AM'), del('03-10-26 9:00AM'), sched('03-10-26 1:30PM')],
+      NOW,
+    );
+    expect(h?.toISOString()).toBe(nextHearing([sched('03-10-26 1:30PM')], NOW)?.toISOString());
+  });
+
+  it('is null when every hearing was canceled or is in the past', () => {
+    expect(nextHearing([sched('03-10-26 9:00AM'), del('03-10-26 9:00AM')], NOW)).toBeNull();
+    expect(nextHearing([sched('02-10-26 9:00AM')], NOW)).toBeNull();
   });
 });

@@ -25,29 +25,32 @@ const CANDIDATE_CAP = 500;
  * HEARING_DATETIME_PATTERN in lib/testimony/hearing-schedule.ts (e.g. "... on
  * Friday, 01-31-25 9:15AM ..."). The ranking parses the text itself.
  */
-// Also matches deletion/cancellation notices, which repeat the old date; the
-// ranking treats those as "no hearing", so the latest notice wins either way.
+// Also matches deletion/cancellation notices, which repeat the time they
+// cancel; nextHearing() uses them to drop that time.
 const HEARING_NOTICE_PATTERN =
   '[0-9]{1,2}-[0-9]{1,2}-[0-9]{2,4}[,[:space:]]+(at[[:space:]]+)?[0-9]{1,2}:[0-9]{2}[[:space:]]*[AP]';
 
 /**
- * Each bill's most recent hearing notice. Looked up separately from the latest
- * status update, because a newer update ("Referred to WAM") would otherwise
- * hide a hearing that is still coming up.
+ * Every hearing notice (scheduled, deleted or canceled) for each bill. The
+ * ranking works out the next live hearing from all of them, rather than trusting
+ * one "latest" row: a newer non-hearing update would hide a hearing, and
+ * same-day notices have no reliable order.
  */
-async function getLatestHearingNotices(billIds: string[]): Promise<Map<string, string>> {
-  if (billIds.length === 0) return new Map();
+async function getHearingNotices(billIds: string[]): Promise<Map<string, string[]>> {
+  const byBill = new Map<string, string[]>();
+  if (billIds.length === 0) return byBill;
   const rows = await db
     .selectFrom('status_updates')
     .select(['bill_id', 'statustext'])
     .where('bill_id', 'in', billIds)
     .where(sql<boolean>`statustext ~* ${HEARING_NOTICE_PATTERN}`)
-    .distinctOn('bill_id')
-    .orderBy('bill_id')
-    // `date` is text (M/D/YYYY): cast so 10/1 sorts after 9/30.
-    .orderBy(sql`cast(date as date)`, 'desc')
     .execute();
-  return new Map(rows.map((r) => [r.bill_id, r.statustext]));
+  for (const r of rows) {
+    const list = byBill.get(r.bill_id);
+    if (list) list.push(r.statustext);
+    else byBill.set(r.bill_id, [r.statustext]);
+  }
+  return byBill;
 }
 
 /**
@@ -111,7 +114,7 @@ export async function getRecommendedBills(
   const ids = rows.map((r) => r.id);
   const [updates, notices] = await Promise.all([
     getLatestStatusUpdates(ids),
-    getLatestHearingNotices(ids),
+    getHearingNotices(ids),
   ]);
 
   const candidates = rows.map((r) => {
@@ -123,7 +126,7 @@ export async function getRecommendedBills(
     return {
       ...toBillSearchResult(r, updates.get(r.id), false),
       matched,
-      hearing_notice: notices.get(r.id) ?? null,
+      hearing_notices: notices.get(r.id) ?? [],
     };
   });
 

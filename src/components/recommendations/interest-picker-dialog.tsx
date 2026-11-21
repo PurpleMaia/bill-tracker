@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { InterestsEditor, type InterestsValue } from '@/components/recommendations/interests-editor';
 import { normalizeInterests } from '@/lib/bills/recommendation-topics';
 import { shouldOpenInterestPicker, tourBlocksPicker } from '@/lib/recommendations/interest-picker';
-import { TOUR_END_EVENT, TOUR_START_EVENT, hasSeenTour } from '@/lib/tour/welcome-tour';
+import { TOUR_END_EVENT, TOUR_OPEN_EVENT, hasSeenTour } from '@/lib/tour/welcome-tour';
 
 interface InterestPickerDialogProps {
   open?: boolean;
@@ -54,10 +54,10 @@ export function InterestPickerDialog({ open, onOpenChange }: InterestPickerDialo
       setTourRunning(false);
       setTourSeen(true);
     };
-    window.addEventListener(TOUR_START_EVENT, start);
+    window.addEventListener(TOUR_OPEN_EVENT, start);
     window.addEventListener(TOUR_END_EVENT, end);
     return () => {
-      window.removeEventListener(TOUR_START_EVENT, start);
+      window.removeEventListener(TOUR_OPEN_EVENT, start);
       window.removeEventListener(TOUR_END_EVENT, end);
     };
   }, []);

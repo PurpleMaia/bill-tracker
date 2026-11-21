@@ -7,6 +7,7 @@ import { cn } from '@/lib/core/utils';
 import { StepVideo } from './step-video';
 import {
   TOUR_END_EVENT,
+  TOUR_OPEN_EVENT,
   TOUR_START_EVENT,
   TOUR_STEPS,
   TOUR_STORAGE_KEY,
@@ -73,6 +74,12 @@ export function WelcomeTour() {
   const nextRef = useRef<HTMLButtonElement>(null);
 
   const open = step !== null;
+
+  // Announce every opening, auto-started or replayed, so the interest picker
+  // stays out of the way for the whole tour, even after it leaves the landing page.
+  useEffect(() => {
+    if (open) window.dispatchEvent(new Event(TOUR_OPEN_EVENT));
+  }, [open]);
   const current = step !== null ? TOUR_STEPS[step] : null;
 
   const close = useCallback(() => {
