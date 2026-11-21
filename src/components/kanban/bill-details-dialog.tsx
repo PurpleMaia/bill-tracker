@@ -40,6 +40,7 @@ import { data } from '@/lib/data-client';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TagSelector } from '../tags/tag-selector';
+import { BillDescription } from './bill-description';
 import { BillBriefing } from './bill-briefing';
 import { explainDeadBill } from '@/lib/bills/dead-bill-explanation';
 import { VersionsReportsTab } from './versions-reports-tab';
@@ -634,6 +635,11 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
               <ScrollArea className="flex-1">
                 <div className="p-4 sm:p-5 space-y-4 sm:space-y-5">
 
+                  {/* What the bill is about comes first — that's what makes
+                      someone care enough to track it; the procedural briefing
+                      follows. Keyed so Read more resets per bill. */}
+                  <BillDescription key={bill.id} text={billDetails?.description || bill.description} />
+
                   {/* AI-optional briefing — derived facts render with no AI call */}
                   <BillBriefing
                     bill={billForPanels}
@@ -652,11 +658,6 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
 
                   {/* Bill details */}
                   <div className="space-y-4">
-                    <div>
-                      <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Description</h3>
-                      <p className="text-sm leading-relaxed">{billDetails?.description || bill.description}</p>
-                    </div>
-
                     <div data-bill-tour="introducers">
                       <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Introducers</h3>
                       <p className="text-sm">{billDetails?.introducer || 'N/A'}</p>
