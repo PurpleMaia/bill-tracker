@@ -4,6 +4,7 @@ import {
   BookOpen,
   BookmarkPlus,
   FileText,
+  Menu,
   Users,
   Search,
   SquareKanban,
@@ -133,6 +134,25 @@ export default function GuidePage() {
         the ones that matter to you, follow them as they move, and have your say. Five steps, about
         two minutes.
       </p>
+
+      {/* Phones only: page nav is behind the header's hamburger, not visible links. */}
+      <div className="mt-6 flex items-start gap-3 rounded-lg border border-primary/20 bg-secondary p-4 md:hidden">
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground"
+          aria-hidden
+        >
+          <Menu className="h-5 w-5" />
+        </span>
+        <p className="text-sm leading-relaxed">
+          <span className="font-medium">Getting around on your phone:</span>{' '}
+          <span className="text-muted-foreground">
+            tap the <strong>☰ menu</strong> at the top left of the screen to switch between{' '}
+            <strong>Find Bills</strong>, <strong>Your Tracker</strong>, <strong>Take Action</strong>, and{' '}
+            <strong>Community</strong>. You can also tap the page name on each step below to jump
+            straight there.
+          </span>
+        </p>
+      </div>
 
       <ol className="mt-8 space-y-4">
         {STEPS.map((step, i) => (

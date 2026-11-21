@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import { cn } from '@/lib/core/utils';
 import { isNavItemActive, NAV_ITEMS } from './header-nav';
+import { MENU_TOUR_TARGET } from '@/lib/tour/welcome-tour';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -36,6 +37,9 @@ export function MobileHamburgerMenu() {
         <Button
           variant="ghost"
           size="icon"
+          // The welcome tour spotlights this on phones, where the nav links
+          // themselves are hidden inside the drawer.
+          data-tour={MENU_TOUR_TARGET}
           className="h-10 w-10 shrink-0 text-primary-foreground hover:bg-white/10 hover:text-white"
         >
           <Menu className="h-6 w-6" />

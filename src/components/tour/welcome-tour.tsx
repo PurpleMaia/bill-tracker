@@ -12,7 +12,9 @@ import {
   TOUR_START_EVENT,
   TOUR_STEPS,
   TOUR_STORAGE_KEY,
+  MENU_TOUR_TARGET,
   hasSeenTour,
+  mobileNavHint,
   shouldAutoStartTour,
   tourStepPath,
 } from '@/lib/tour/welcome-tour';
@@ -44,19 +46,27 @@ function markTourSeen() {
   }
 }
 
-/**
- * Nav links render in the desktop header; on mobile they sit in the closed
- * hamburger drawer, so nothing is visible and the card centers instead.
- */
-function findVisibleTarget(href: string): Rect | null {
-  const nodes = document.querySelectorAll<HTMLElement>(`[data-tour="nav-${href}"]`);
-  for (const node of Array.from(nodes)) {
+function visibleRect(selector: string): Rect | null {
+  for (const node of Array.from(document.querySelectorAll<HTMLElement>(selector))) {
     const r = node.getBoundingClientRect();
     if (r.width > 0 && r.height > 0) {
       return { top: r.top, left: r.left, width: r.width, height: r.height };
     }
   }
   return null;
+}
+
+/** Whether the nav links are tucked in the hamburger drawer (phones). */
+function navIsInMenu(): boolean {
+  return visibleRect(`[data-tour="${MENU_TOUR_TARGET}"]`) !== null;
+}
+
+/**
+ * The nav link for `href` in the desktop header. On phones the links sit in
+ * the closed hamburger drawer, so spotlight the hamburger button instead.
+ */
+function findVisibleTarget(href: string): Rect | null {
+  return visibleRect(`[data-tour="nav-${href}"]`) ?? visibleRect(`[data-tour="${MENU_TOUR_TARGET}"]`);
 }
 
 /**
@@ -69,6 +79,8 @@ export function WelcomeTour() {
   const router = useRouter();
   const [step, setStep] = useState<number | null>(null);
   const [target, setTarget] = useState<Rect | null>(null);
+  // Phones: nav lives in the hamburger drawer, so each step says how to get there.
+  const [inMenu, setInMenu] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   // Whether this run of the tour has navigated yet (see the navigation effect).
   const navigatedRef = useRef(false);
@@ -129,11 +141,11 @@ export function WelcomeTour() {
   // Measure the spotlight target, and keep it fresh on resize/scroll. Re-run on
   // navigation too, since the new page can shift layout.
   useLayoutEffect(() => {
-    if (!current?.target) {
-      setTarget(null);
-      return;
-    }
-    const measure = () => setTarget(findVisibleTarget(current.target!));
+    if (!current) return;
+    const measure = () => {
+      setInMenu(navIsInMenu());
+      setTarget(current.target ? findVisibleTarget(current.target) : null);
+    };
     measure();
     window.addEventListener('resize', measure);
     window.addEventListener('scroll', measure, true);
@@ -250,6 +262,11 @@ export function WelcomeTour() {
         <p id="welcome-tour-body" className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
           {current.body}
         </p>
+        {inMenu && (
+          <p className="mt-2 rounded-md bg-secondary px-2.5 py-1.5 text-sm font-medium text-primary">
+            {mobileNavHint(current)}
+          </p>
+        )}
 
         <div className="mt-4 flex items-center justify-between gap-2">
           <Button variant="ghost" size="sm" onClick={() => close(isLast)} className="text-muted-foreground">

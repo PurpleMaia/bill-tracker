@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   TOUR_STEPS,
+  mobileNavHint,
   shouldAutoStartTour,
   tourStepPath,
   tutorialVideoSources,
@@ -62,5 +63,16 @@ describe('tourStepPath', () => {
   });
   it('leaves the centered welcome step where it is', () => {
     expect(tourStepPath(step('welcome'), '/guide')).toBeNull();
+  });
+});
+
+describe('mobileNavHint', () => {
+  it('names the menu item for a step with a page', () => {
+    const step = TOUR_STEPS.find((s) => s.target === '/tracker')!;
+    expect(mobileNavHint(step)).toBe('On your phone, tap the ☰ menu at the top left, then Your Tracker.');
+  });
+  it('gives a general pointer for a step without a page', () => {
+    const step = TOUR_STEPS.find((s) => !s.target)!;
+    expect(mobileNavHint(step)).toContain('☰ menu');
   });
 });

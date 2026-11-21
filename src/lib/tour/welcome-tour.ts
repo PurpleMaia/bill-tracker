@@ -28,6 +28,22 @@ export function hasSeenTour(): boolean {
   }
 }
 
+/**
+ * data-tour value on the mobile hamburger button. On phones the nav links live
+ * inside the closed drawer, so the tour spotlights this button instead.
+ */
+export const MENU_TOUR_TARGET = 'nav-menu';
+
+/**
+ * Extra line shown under a step when the tour is pointing at the hamburger
+ * (phones), telling the user how to reach that page themselves.
+ */
+export function mobileNavHint(step: TourStep): string {
+  return step.target
+    ? `On your phone, tap the ☰ menu at the top left, then ${step.title}.`
+    : 'On your phone, tap the ☰ menu at the top left to move between pages.';
+}
+
 export interface TourStep {
   id: string;
   title: string;
