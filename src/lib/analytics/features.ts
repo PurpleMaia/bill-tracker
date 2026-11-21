@@ -1,9 +1,10 @@
 import type { Section } from '@/lib/analytics/paths';
-import type { ClientEventName } from '@/lib/analytics/events';
+import type { ClientEventName, ServerEventName } from '@/lib/analytics/events';
 import type { OrgFilter } from '@/types/analytics';
 
 // Feature-usage rows on the analytics dashboard. Keys are `page_view:<section>`
-// for page views and the bare event name for every other client event; the UI
+// for page views and the bare event name for every other client event (plus
+// the server-logged status_change, which has no other home on the dashboard); the UI
 // and src/db/queries/analytics.ts share these so labels always agree.
 
 const SECTION_LABELS: Record<Section, string> = {
@@ -16,13 +17,14 @@ const SECTION_LABELS: Record<Section, string> = {
   bill: 'Bill page',
 };
 
-const EVENT_LABELS: Record<Exclude<ClientEventName, 'page_view'>, string> = {
+const EVENT_LABELS: Record<Exclude<ClientEventName, 'page_view'> | Extract<ServerEventName, 'status_change'>, string> = {
   bill_opened: 'Opened a bill',
   bill_search: 'Searched bills',
   testimony_exported: 'Exported testimony',
   csv_exported: 'Exported CSV',
   tracker_view_changed: 'Switched tracker view',
   tour_finished: 'Finished the welcome tour',
+  status_change: 'Changed a bill status',
 };
 
 /** Every known feature key, in display order (page views first). */

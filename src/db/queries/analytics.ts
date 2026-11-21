@@ -313,7 +313,7 @@ async function getFeatures(org: OrgFilter, from: Date | null, prevFrom: Date | n
       sql<string>`count(distinct usage_events.user_id) filter (where ${inRange})`.as('unique_users'),
       sql<string>`count(distinct usage_events.anon_id) filter (where ${inRange})`.as('anon_visitors'),
     ])
-    .where('usage_events.event', 'in', [...CLIENT_EVENTS])
+    .where('usage_events.event', 'in', [...CLIENT_EVENTS, 'status_change'])
     .where(since('usage_events.created_at', prevFrom ?? from))
     .where(activityFilter('usage_events.tenant_id', org)) // activity rule (event's own tenant)
     .groupBy(['usage_events.event', pageSection]);

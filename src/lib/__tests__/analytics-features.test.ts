@@ -13,6 +13,8 @@ describe('feature labels', () => {
   it('lists every page section and client event once', () => {
     expect(FEATURE_KEYS).toContain('page_view:tracker');
     expect(FEATURE_KEYS).toContain('bill_search');
+    expect(FEATURE_KEYS).toContain('status_change');
+    expect(FEATURE_KEYS).not.toContain('login');
     expect(FEATURE_KEYS).not.toContain('page_view');
     expect(new Set(FEATURE_KEYS).size).toBe(FEATURE_KEYS.length);
   });
