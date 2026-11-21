@@ -205,8 +205,8 @@ export function BillBriefing({
       {compact && !dead && (
         // Desktop only: on phones the same pitch sits under the Track button.
         <p className="hidden border-t border-dashed pt-3 text-xs text-muted-foreground sm:block">
-          Track this bill to put it on your board, see its committee activity and suggested next
-          steps, and get its hearings on your calendar.
+          Track this bill to get email updates when it moves, see its committee activity and
+          suggested next steps, and put its hearings on your calendar.
         </p>
       )}
 

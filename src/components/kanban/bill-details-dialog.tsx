@@ -880,10 +880,11 @@ export function BillDetailsDialog({ billID, isOpen, onClose, boardMode = 'own', 
                         {trackSlot}
                       </div>
                     )}
-                    {/* Why track — the answer at the moment of deciding. */}
+                    {/* Why track — the answer at the moment of deciding. The
+                        update emails are sent by the scraper service, not this app. */}
                     {isPreview && (
                       <p className="text-center text-xs text-muted-foreground">
-                        Put it on your board and its hearings on your calendar.
+                        Get email updates when it moves, plus its hearings on your calendar.
                       </p>
                     )}
                   </div>
