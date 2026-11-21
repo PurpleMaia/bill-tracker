@@ -73,6 +73,16 @@ function findSubnav(): Rect | null {
   return null;
 }
 
+/** Returns `prev` when `next` has the same geometry, so React skips the re-render. */
+function sameRect(prev: Rect | null, next: Rect | null): Rect | null {
+  if (prev && next &&
+      prev.top === next.top && prev.left === next.left &&
+      prev.width === next.width && prev.height === next.height) {
+    return prev;
+  }
+  return next;
+}
+
 /** Smallest rect covering both, for placing the card clear of every spotlight. */
 function union(a: Rect, b: Rect | null): Rect {
   if (!b) return a;
@@ -176,19 +186,19 @@ export function WelcomeTour() {
     if (!current) return;
     const measure = () => {
       setInMenu(navIsInMenu());
-      setTarget(current.target ? findVisibleTarget(current.target) : null);
-      setSubnav(current.subnav ? findSubnav() : null);
+      setTarget((prev) => sameRect(prev, current.target ? findVisibleTarget(current.target) : null));
+      setSubnav((prev) => sameRect(prev, current.subnav ? findSubnav() : null));
     };
     measure();
-    // The sub-nav renders after the step's navigation (and auth) settles, so
-    // keep re-measuring briefly rather than catching only the first frame.
-    const settle = window.setInterval(measure, 250);
-    const stopSettling = window.setTimeout(() => window.clearInterval(settle), 2500);
+    // The sub-nav renders only after the step's page has loaded (a cold dev
+    // compile can take many seconds) and auth has resolved, and layout can
+    // shift as data arrives — so keep re-measuring for as long as the step is
+    // open. sameRect keeps state stable when nothing moved, so this is cheap.
+    const poll = window.setInterval(measure, 250);
     window.addEventListener('resize', measure);
     window.addEventListener('scroll', measure, true);
     return () => {
-      window.clearInterval(settle);
-      window.clearTimeout(stopSettling);
+      window.clearInterval(poll);
       window.removeEventListener('resize', measure);
       window.removeEventListener('scroll', measure, true);
     };
