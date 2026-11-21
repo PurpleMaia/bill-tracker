@@ -234,14 +234,14 @@ export function BillSearchView() {
 
   // Side columns show only at lg+, where the page padding is md:py-6 (24px top
   // and bottom); they fill exactly the visible height of <main>.
-  const sideColumnStyle = viewportHeight ? { height: viewportHeight - 48 } : undefined;
+  const sideColumnStyle = viewportHeight ? { height: viewportHeight - 64 } : undefined;
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl items-start gap-4 px-2 py-4 md:px-4 md:py-6">
+    <div className="mx-auto flex w-full max-w-7xl items-start gap-6 px-4 py-5 sm:px-6 md:px-8 md:py-8 lg:gap-8">
       {/* Filter rail only at xl: between lg and xl the recommendations panel takes
           the side column and filters stay in the Filters sheet. Sticky, so it
           stays put while the page scrolls; only it scrolls if taller than the screen. */}
-      <aside className="sticky top-6 hidden w-60 shrink-0 xl:block" style={sideColumnStyle}>
+      <aside className="sticky top-8 hidden w-60 shrink-0 xl:block" style={sideColumnStyle}>
         <div className="h-full min-h-0 overflow-y-auto pr-2">
           <SearchFilterRail
             filters={filters}
@@ -256,7 +256,7 @@ export function BillSearchView() {
         {/* The hero, meta row, and results flow with the page scroll, so the CTA
             scrolls away with everything else. The scroll-to-top button brings it back. */}
         <div ref={resultsRef}>
-          <div className={cn('mb-4', RISE_IN)}>
+          <div className={cn('mb-6', RISE_IN)}>
             <SearchIntro
               onSuggestionClick={(term) => setFilters({ ...filters, q: term })}
               sessionYears={SESSION_YEARS}
@@ -270,10 +270,10 @@ export function BillSearchView() {
                 panel instead (see the right-hand aside). */}
             {showRecommendations && isDesktop === false && (
               <div>
-                <div className="mt-4">
+                <div className="mt-6">
                   <RecommendedBills variant="inline" onOpenBill={handleRecommendationOpen} />
                 </div>
-                <h2 className="mt-4 text-sm font-semibold">All bills</h2>
+                <h2 className="mt-6 text-sm font-semibold">All bills</h2>
               </div>
             )}
 
@@ -334,7 +334,7 @@ export function BillSearchView() {
           )}
 
           {isLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-28 w-full" />
               ))}
@@ -363,7 +363,7 @@ export function BillSearchView() {
           ) : (
             // Keyed by result set: a new filter set remounts every card so the
             // whole list cascades in, even bills that were already showing.
-            <ul key={resultSetKey} className="space-y-3">
+            <ul key={resultSetKey} className="space-y-4">
               {bills.map((bill, i) => (
                 <li
                   key={bill.id}
@@ -405,7 +405,7 @@ export function BillSearchView() {
           stays purely search results. Stays visible while searching, since it
           no longer pushes results down. Not scrollable: it shows what fits the
           screen height and Refresh moves to the next set. */}
-      <aside className="sticky top-6 hidden w-80 shrink-0 lg:block" style={sideColumnStyle}>
+      <aside className="sticky top-8 hidden w-80 shrink-0 lg:block" style={sideColumnStyle}>
         <div className="h-full min-h-0">
           {isDesktop && <RecommendedBills variant="panel" onOpenBill={handleRecommendationOpen} />}
         </div>
