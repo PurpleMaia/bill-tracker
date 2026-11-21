@@ -30,7 +30,6 @@ export type SeriesKey =
   | 'billsTracked'
   | 'testimonies'
   | 'contacts'
-  | 'tagsApplied'
   | 'follows';
 
 export interface DashboardData {

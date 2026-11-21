@@ -18,7 +18,7 @@ import type {
 //
 // Org rules (spec §4a), applied by the filter helpers below:
 //   - activity  → the org it happened in (row's tenant_id; user_bills falls back
-//                 to the user's memberships when tenant_id is NULL; bill_tags via tags.tenant_id)
+//                 to the user's memberships when tenant_id is NULL)
 //   - people    → a user counts under EVERY org they currently belong to
 //   - 'none'    → users with no membership, plus activity with a NULL tenant
 //   - bill_search has no user/tenant: it counts in event totals and top searches
@@ -263,21 +263,6 @@ async function weeklyContacts(org: OrgFilter, from: Date | null): Promise<Weekly
   return toPoints(rows);
 }
 
-async function weeklyTagsApplied(org: OrgFilter, from: Date | null): Promise<WeeklyPoint[]> {
-  const week = weekOf('bill_tags.created_at');
-  const rows = await db
-    .selectFrom('bill_tags')
-    .innerJoin('tags', 'tags.id', 'bill_tags.tag_id')
-    .select([week.as('week'), (eb) => eb.fn.countAll<string>().as('value')])
-    .where(since('bill_tags.created_at', from))
-    // Activity rule: bill_tags has no tenant column, so the tag's org is used.
-    // tags.tenant_id is NOT NULL, so 'none' is always empty here.
-    .where(activityFilter('tags.tenant_id', org))
-    .groupBy(week)
-    .execute();
-  return toPoints(rows);
-}
-
 async function weeklyFollows(org: OrgFilter, from: Date | null): Promise<WeeklyPoint[]> {
   const week = weekOf('org_follows.created_at');
   const rows = await db
@@ -396,7 +381,7 @@ export async function getAnalyticsDashboard(params: {
   // 'all' starts the charts at the first signup.
   const seriesFrom = sFrom ?? (firstUser?.at ? new Date(firstUser.at) : now);
 
-  const [kpis, signups, logins, activeUsers, billsTracked, testimonies, contacts, tagsApplied, follows, features, topSearches] =
+  const [kpis, signups, logins, activeUsers, billsTracked, testimonies, contacts, follows, features, topSearches] =
     await Promise.all([
       getKpis(org, from, now),
       weeklySignups(org, sFrom),
@@ -405,7 +390,6 @@ export async function getAnalyticsDashboard(params: {
       weeklyBillsTracked(org, sFrom),
       weeklyTestimonies(org, sFrom),
       weeklyContacts(org, sFrom),
-      weeklyTagsApplied(org, sFrom),
       weeklyFollows(org, sFrom),
       getFeatures(org, from, prevFrom),
       getTopSearches(org, from),
@@ -423,7 +407,6 @@ export async function getAnalyticsDashboard(params: {
       billsTracked: fill(billsTracked),
       testimonies: fill(testimonies),
       contacts: fill(contacts),
-      tagsApplied: fill(tagsApplied),
       follows: fill(follows),
     },
     features,

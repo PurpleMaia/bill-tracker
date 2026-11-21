@@ -54,7 +54,7 @@ Chosen: **B** — answers "which features get used" in one place we control.
 | Bills tracked | `user_bills.adopted_at` | Rows can have `tenant_id = NULL` (legacy drift) — attribute to org via `members` when filtering by org, or count them under "no org". |
 | Testimonies | `testimonies.created_at`, `submitted_at` | — |
 | Legislator contacts logged | `legislator_contacts.contacted_at` | — |
-| Tags applied | `bill_tags.created_at` | `bill_tags` has no user/tenant column; org via `tags.tenant_id`. |
+| ~~Tags applied~~ | `bill_tags.created_at` | **Not charted.** Both tag-save paths delete and re-insert a bill's whole tag set, so timestamps refresh on every edit and removed tags vanish from history (found in PR review). Dropped from the dashboard; revisit with a tag event if needed. |
 | Org follows | `org_follows.created_at` | — |
 | Org status changes | `org_bills.updated_at` | **Latest only, no history** — cannot count changes historically. Logged as an event going forward instead. (`status_updates` is scraped legislature data, not user activity.) |
 
@@ -127,7 +127,7 @@ Adding an event later = add to the enum + one `track()` call.
 - **Layout** (shadcn `card` + existing `chart.tsx`/recharts):
   1. KPI row: total users · active users last 7d / 30d · bills currently tracked · testimonies.
   2. Weekly line/bar charts: signups · active users · bills tracked · work done
-     (testimonies, contacts logged, tags applied, follows as separate series).
+     (testimonies, contacts logged, follows as separate series).
   3. **Top searches:** most frequent `bill_search` queries in range (normalized lowercase), with
      count and average result count — zero-result searches highlighted.
   4. **Feature usage table:** for each section/event in range — count, unique users, trend vs.
@@ -140,7 +140,7 @@ Adding an event later = add to the enum + one `track()` call.
 ### 4a. Metric definitions (author's calls, from builder review)
 
 - **Org filter:** *activity* is attributed to the org it happened in (`usage_events.tenant_id`,
-  `testimonies.tenant_id`, `legislator_contacts.tenant_id`, `tags.tenant_id`, `org_follows.tenant_id`,
+  `testimonies.tenant_id`, `legislator_contacts.tenant_id`, `org_follows.tenant_id`,
   `user_bills.tenant_id` falling back to the user's membership when NULL). *People* metrics
   (signups, active users) count a user under **every** org they currently belong to, so per-org
   numbers don't sum to the total. **"No org"** = users with no membership, plus events with a

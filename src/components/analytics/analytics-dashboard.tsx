@@ -32,7 +32,6 @@ const PRIMARY = { light: 'hsl(var(--primary))', dark: 'hsl(var(--primary))' };
 const WORK_SERIES = [
   { key: 'testimonies', label: 'Testimonies', theme: { light: '#2a78d6', dark: '#3987e5' } },
   { key: 'contacts', label: 'Contacts logged', theme: { light: '#eb6834', dark: '#d95926' } },
-  { key: 'tagsApplied', label: 'Tags applied', theme: { light: '#1baf7a', dark: '#199e70' } },
   { key: 'follows', label: 'Follows', theme: { light: '#eda100', dark: '#c98500' } },
 ] as const;
 
